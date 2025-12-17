@@ -1,0 +1,9 @@
+# CSV Template for Projects Migration
+# Generated: 2025-11-28
+# Required columns: name,description,start_date,end_date,budget,status,progress,objective,scope,stakeholders,customer,project_manager,code,team_members,department,priority,contract_amount
+# Instructions: Remove this header line and the comment lines before uploading
+
+name,description,start_date,end_date,budget,status,progress,objective,scope,stakeholders,customer,project_manager,code,team_members,department,priority,contract_amount
+"Sample Project","This is a sample project description","2025-01-01","2025-12-31","500000","active","75","Project objectives here","Project scope here","Stakeholder 1, Stakeholder 2","Customer Name","Project Manager","PRJ-001","Team Member 1, Team Member 2","Development","high","550000"
+"Website Redesign","Complete redesign of company website","2025-02-01","2025-08-31","300000","active","45","Improve user experience","Redesign all pages","CEO, Marketing Team","ABC Company","John Doe","PRJ-002","Designer, Developer","Marketing","medium","350000"
+"Mobile App Development","Native iOS and Android app","2025-03-01","2025-11-30","750000","planning","10","Launch mobile app","iOS and Android development","Product Team","XYZ Corp","Jane Smith","PRJ-003","iOS Dev, Android Dev, PM","Mobile","critical","800000"

@@ -1,0 +1,45 @@
+import { test as baseTest } from '@playwright/test';
+
+// Extend base test with our fixtures
+export const test = baseTest.extend({
+  // Add test user data
+  testUser: {
+    email: 'admin@example.com',
+    password: 'password123',
+    name: 'Test Admin'
+  },
+
+  // Add test project data
+  testProject: {
+    name: 'E2E Test Project',
+    description: 'Project created by E2E tests',
+    status: 'active'
+  },
+
+  // Add test task data
+  testTask: {
+    title: 'E2E Test Task',
+    description: 'Task created by E2E tests',
+    status: 'todo'
+  }
+});
+
+// Global setup for authentication
+export const setup = async () => {
+  // In a real scenario, you would:
+  // 1. Create test user in database
+  // 2. Create test data
+  // 3. Return authentication state
+
+  console.log('Setting up test environment...');
+  console.log('Using Neon database connection:');
+  console.log('postgresql://neondb_owner:npg_6FSH4YyQIoeb@ep-muddy-cherry-ah612m1a-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require');
+};
+
+// Global teardown
+export const teardown = async () => {
+  // In a real scenario, you would:
+  // 1. Clean up test data
+  // 2. Remove test users
+  console.log('Cleaning up test environment...');
+};

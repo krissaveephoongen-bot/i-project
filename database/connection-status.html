@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Connection Status</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .status-card {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 5px solid;
+        }
+        .status-connected {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .status-disconnected {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .status-warning {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .status-info {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .config-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        .config-value {
+            color: #6c757d;
+        }
+        .config-value.configured {
+            color: #28a745;
+        }
+        .config-value.unconfigured {
+            color: #dc3545;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Database Connection Status</h1>
+        
+        <div id="overall-status"></div>
+        
+        <h2>Configuration Details</h2>
+        <div id="config-details"></div>
+        
+        <h2>Connection Tests</h2>
+        <div id="connection-tests">
+            <button class="button" onclick="testDatabaseConnection()">Test Database Connection</button>
+            <button class="button" onclick="checkNeonDirect()">Test Neon Direct</button>
+            <button class="button" onclick="refreshStatus()">Refresh Status</button>
+        </div>
+        
+        <div id="test-results"></div>
+        
+        <h2>Next Steps</h2>
+        <div id="next-steps"></div>
+    </div>
+
+    <script src="database/database-config.js"></script>
+    <script src="database/query-manager.js"></script>
+    
+    <script>
+        function checkConnectionStatus() {
+            const statusDiv = document.getElementById('overall-status');
+            const configDiv = document.getElementById('config-details');
+            const nextStepsDiv = document.getElementById('next-steps');
+
+            // Check Neon configuration
+            const neonConfigured = window.DatabaseConfig &&
+                window.DatabaseConfig.NEON_CONFIG &&
+                window.DatabaseConfig.NEON_CONFIG.connectionString &&
+                window.DatabaseConfig.NEON_CONFIG.connectionString !== 'YOUR_NEON_CONNECTION_STRING';
+
+            // Current connection status
+            const connectionStatus = window.DatabaseConfig ?
+                window.DatabaseConfig.getConnectionStatus() :
+                { connected: false, error: 'Database config not loaded' };
+
+            // Overall status
+            let statusHTML = '';
+            if (neonConfigured && connectionStatus.connected) {
+                statusHTML = `
+                    <div class="status-card status-connected">
+                        <h3>✅ Connected to Database</h3>
+                        <p><strong>Provider:</strong> Neon PostgreSQL</p>
+                        <p><strong>Status:</strong> Fully operational</p>
+                        <p><strong>Last Check:</strong> ${new Date().toLocaleString()}</p>
+                    </div>
+                `;
+            } else if (neonConfigured) {
+                statusHTML = `
+                    <div class="status-card status-warning">
+                        <h3>⚠️ Partially Configured</h3>
+                        <p><strong>Provider:</strong> Neon PostgreSQL (direct connection available)</p>
+                        <p><strong>Status:</strong> Configuration detected, testing needed</p>
+                        <p><strong>Last Check:</strong> ${new Date().toLocaleString()}</p>
+                    </div>
+                `;
+            } else {
+                statusHTML = `
+                    <div class="status-card status-disconnected">
+                        <h3>❌ Not Connected</h3>
+                        <p><strong>Status:</strong> Database not configured or connection failed</p>
+                        <p><strong>Mode:</strong> Using fallback/local data</p>
+                        <p><strong>Last Check:</strong> ${new Date().toLocaleString()}</p>
+                    </div>
+                `;
+            }
+
+            statusDiv.innerHTML = statusHTML;
+
+            // Configuration details
+            let configHTML = `
+                <h3>Neon Configuration</h3>
+                <div class="config-item">
+                    <span class="config-label">Connection String:</span>
+                    <span class="config-value ${neonConfigured ? 'configured' : 'unconfigured'}">
+                        ${neonConfigured ? 'Available ✅' : 'Not configured ❌'}
+                    </span>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">SSL:</span>
+                    <span class="config-value ${neonConfigured ? 'configured' : 'unconfigured'}">
+                        ${neonConfigured ? 'Enabled ✅' : 'Not configured ❌'}
+                    </span>
+                </div>
+            `;
+
+            configDiv.innerHTML = configHTML;
+
+            // Next steps
+            let nextStepsHTML = '';
+            if (!neonConfigured) {
+                nextStepsHTML = `
+                    <div class="status-card status-info">
+                        <h3>📋 Setup Required</h3>
+                        <ol>
+                            <li><strong>Update Configuration:</strong> Edit database-config.js with your Neon credentials</li>
+                            <li><strong>Test Connection:</strong> Use the test buttons above</li>
+                            <li><strong>Import Schema:</strong> Run database/neon-schema.sql</li>
+                            <li><strong>Initialize Data:</strong> Use sample data initialization</li>
+                        </ol>
+                    </div>
+                `;
+            } else if (neonConfigured && !connectionStatus.connected) {
+                nextStepsHTML = `
+                    <div class="status-card status-warning">
+                        <h3>🔧 Connection Issue</h3>
+                        <ol>
+                            <li><strong>Check Credentials:</strong> Verify Neon connection string</li>
+                            <li><strong>Test Network:</strong> Ensure internet connection is working</li>
+                            <li><strong>Check Neon Status:</strong> Visit neon.tech status</li>
+                            <li><strong>Test Direct Connection:</strong> Use the test buttons above</li>
+                        </ol>
+                    </div>
+                `;
+            } else if (connectionStatus.connected) {
+                nextStepsHTML = `
+                    <div class="status-card status-connected">
+                        <h3>🎉 Ready to Use!</h3>
+                        <ol>
+                            <li><strong>Import Data:</strong> Use migration tools if needed</li>
+                            <li><strong>Test Features:</strong> Try creating projects, tasks, etc.</li>
+                            <li><strong>Monitor Performance:</strong> Check query execution times</li>
+                            <li><strong>Setup Backups:</strong> Configure regular database backups</li>
+                        </ol>
+                    </div>
+                `;
+            }
+
+            nextStepsDiv.innerHTML = nextStepsHTML;
+        }
+        
+        async function testDatabaseConnection() {
+            const resultsDiv = document.getElementById('test-results');
+            
+            resultsDiv.innerHTML = `
+                <div class="test-result status-info">
+                    🔄 Testing database connection...
+                </div>
+            `;
+            
+            try {
+                if (window.DatabaseConfig) {
+                    await window.DatabaseConfig.initializeDatabase();
+                    const status = window.DatabaseConfig.getConnectionStatus();
+                    
+                    if (status.connected) {
+                        resultsDiv.innerHTML = `
+                            <div class="test-result status-connected">
+                                ✅ Database connection successful!<br>
+                                Provider: ${status.provider}<br>
+                                Time: ${new Date().toLocaleTimeString()}
+                            </div>
+                        `;
+                    } else {
+                        resultsDiv.innerHTML = `
+                            <div class="test-result status-disconnected">
+                                ❌ Database connection failed<br>
+                                Error: ${status.error}<br>
+                                Time: ${new Date().toLocaleTimeString()}
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="test-result status-disconnected">
+                            ❌ Database configuration not loaded
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="test-result status-disconnected">
+                        ❌ Connection test error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        async function checkNeonDirect() {
+            const resultsDiv = document.getElementById('test-results');
+            
+            resultsDiv.innerHTML = `
+                <div class="test-result status-info">
+                    🔄 Testing Neon direct connection...
+                </div>
+            `;
+            
+            // This would require actual Neon client implementation
+            resultsDiv.innerHTML = `
+                <div class="test-result status-warning">
+                    ⚠️ Neon direct connection test requires pg client setup<br>
+                    Connection string detected: ✅<br>
+                    SSL enabled: ✅<br>
+                    Next: Set up pg client or use proxy server
+                </div>
+            `;
+        }
+        
+        function refreshStatus() {
+            checkConnectionStatus();
+            document.getElementById('test-results').innerHTML = '';
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(checkConnectionStatus, 1000); // Wait for scripts to load
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+When updating or modifying the project design and UI
+- Always maintain the Modern Corporate Glass (Glassmorphism) design across all pages
+- Use consistent primary color (#0056D2) and secondary color (#00C7BE)
+- Apply rounded-xl (12px) or rounded-2xl (16px) for cards and containers
+- Use glassmorphism effect: bg-white/70 backdrop-blur-md for cards
+- Use semi-transparent borders: border-white/30
+- Apply gradient backgrounds: bg-gradient-to-br from-blue-50 via-white to-cyan-50
+- Use consistent spacing: p-6 for cards, py-3 px-4 for sidebar items
+- Ensure proper visual hierarchy with font weights (font-medium for labels, font-semibold for headings)
+- Apply enhanced shadows for depth: shadow-lg, shadow-xl, shadow-2xl
+- Use gradient backgrounds for icons: from-[var(--primary-color)] to-[var(--secondary-color)]
+- Maintain consistent hover states with scale and shadow effects
+- Ensure proper contrast between icon color and background color - never use the same color
+- Keep button styling consistent: rounded-lg with backdrop-blur effects
+- Add transition animations for smooth interactions

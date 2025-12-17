@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Admin Console</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+    <link href="../admin-console-style.css" rel="stylesheet">
+    <script>
+        const ChartJS = window.Chart;
+    </script>
+    <style type="text/tailwindcss">
+    @tailwind base;
+    @tailwind components;
+    @tailwind utilities;
+
+    @layer utilities {
+        .tooltip {
+            @apply invisible absolute;
+        }
+        .has-tooltip:hover .tooltip {
+            @apply visible z-50;
+        }
+    }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+        // Save Chart.js constructor immediately after page load
+        if (window.Chart) {
+            window.ChartJS = window.Chart;
+        }
+    </script>
+    <script type="text/babel" src="../components/AdminSidebar.js"></script>
+    <script type="text/babel" src="../admin-console/dashboard-app.js"></script>
+</body>
+</html>
