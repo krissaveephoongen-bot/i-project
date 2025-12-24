@@ -41,11 +41,6 @@
   status = 200
   force = true
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-  [plugins.inputs]
-    skip = true
-
 [dev]
   publish = "dist"
   port = 5173
