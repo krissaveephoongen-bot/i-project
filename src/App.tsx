@@ -23,7 +23,7 @@ function App() {
     return (
         <ErrorBoundary>
             <QueryClientProvider client={queryClient}>
-                <ThemeProvider defaultTheme="system" storageKey="project-management-theme">
+                <ThemeProvider defaultTheme="light" storageKey="project-management-theme">
                     <ErrorProvider>
                         <AuthProvider>
                             <AdminPINProvider>

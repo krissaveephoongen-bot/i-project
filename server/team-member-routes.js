@@ -94,7 +94,7 @@ router.get('/team-members', async (req, res) => {
 
     res.json({
       success: true,
-      teamMembers: result.rows,
+      data: result.rows,
       pagination: {
         total,
         limit: parseInt(limit),

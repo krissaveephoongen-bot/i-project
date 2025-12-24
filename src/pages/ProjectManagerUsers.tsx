@@ -11,7 +11,6 @@ import {
     KeyOutlined,
     CopyOutlined,
 } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
 import ScrollContainer from '@/components/layout/ScrollContainer';
 
 const { Search } = Input;
@@ -26,6 +25,11 @@ interface ProjectManager {
     projectsManaged: number;
     joinDate: string;
     lastActive: string;
+    userId?: string;
+    department?: string;
+    phone?: string;
+    isAvailable?: boolean;
+    maxProjects?: number;
 }
 
 const ProjectManagerUsers = () => {
@@ -45,63 +49,32 @@ const ProjectManagerUsers = () => {
         total: 0,
     });
 
-    // Mock data for project managers
-    const mockManagers: ProjectManager[] = [
-        {
-            id: '1',
-            name: 'John Doe',
-            email: 'john.doe@company.com',
-            role: 'Project Manager',
-            status: 'active',
-            projectsManaged: 5,
-            joinDate: '2024-01-15',
-            lastActive: '2024-12-17',
-        },
-        {
-            id: '2',
-            name: 'Jane Smith',
-            email: 'jane.smith@company.com',
-            role: 'Senior Project Manager',
-            status: 'active',
-            projectsManaged: 8,
-            joinDate: '2023-06-20',
-            lastActive: '2024-12-16',
-        },
-        {
-            id: '3',
-            name: 'Mike Johnson',
-            email: 'mike.johnson@company.com',
-            role: 'Project Manager',
-            status: 'inactive',
-            projectsManaged: 3,
-            joinDate: '2024-03-10',
-            lastActive: '2024-10-30',
-        },
-        {
-            id: '4',
-            name: 'Sarah Williams',
-            email: 'sarah.williams@company.com',
-            role: 'Project Manager',
-            status: 'active',
-            projectsManaged: 6,
-            joinDate: '2023-11-05',
-            lastActive: '2024-12-17',
-        },
-    ];
+    // Remove mock data - will fetch from API
 
     const fetchManagers = async () => {
         try {
             setLoading(true);
-            // TODO: Replace with actual API call
-            // const response = await fetch(`${API_URL}/project-managers`);
-            setManagers(mockManagers);
+            const token = localStorage.getItem('accessToken');
+            const response = await fetch('/api/project-managers', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch project managers');
+            }
+
+            const data = await response.json();
+            setManagers(data);
             setPagination({
                 ...pagination,
-                total: mockManagers.length,
+                total: data.length,
             });
         } catch (error) {
             console.error('Error fetching project managers:', error);
             message.error('Failed to load project managers');
+            setManagers([]);
         } finally {
             setLoading(false);
         }
@@ -143,21 +116,58 @@ const ProjectManagerUsers = () => {
             okText: 'Yes',
             cancelText: 'No',
             okButtonProps: { danger: true },
-            onOk() {
-                setManagers(managers.filter(m => m.id !== managerId));
-                message.success('Project manager removed successfully');
+            async onOk() {
+                try {
+                    const token = localStorage.getItem('accessToken');
+                    const response = await fetch(`/api/project-managers/${managerId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to delete manager');
+                    }
+
+                    message.success('Project manager removed successfully');
+                    await fetchManagers();
+                } catch (error: any) {
+                    console.error('Error deleting manager:', error);
+                    message.error(error.message || 'Failed to delete project manager');
+                }
             },
         });
     };
 
-    const handleToggleStatus = (manager: ProjectManager) => {
-        const newStatus = manager.status === 'active' ? 'inactive' : 'active';
-        setManagers(
-            managers.map(m =>
-                m.id === manager.id ? { ...m, status: newStatus as 'active' | 'inactive' } : m
-            )
-        );
-        message.success(`Project manager ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
+    const handleToggleStatus = async (manager: ProjectManager) => {
+        try {
+            const newStatus = manager.status === 'active' ? 'inactive' : 'active';
+            const token = localStorage.getItem('accessToken');
+
+            const response = await fetch(`/api/project-managers/${manager.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    status: newStatus,
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to update status');
+            }
+
+            message.success(`Project manager ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
+            await fetchManagers();
+        } catch (error: any) {
+            console.error('Error updating status:', error);
+            message.error(error.message || 'Failed to update status');
+        }
     };
 
     const handleResetPassword = (manager: ProjectManager) => {
@@ -209,40 +219,61 @@ const ProjectManagerUsers = () => {
     const handleModalOk = async () => {
         try {
             const values = await form.validateFields();
+            const token = localStorage.getItem('accessToken');
 
             if (editingManager) {
                 // Update existing manager
-                setManagers(
-                    managers.map(m =>
-                        m.id === editingManager.id
-                            ? {
-                                ...m,
-                                name: values.name,
-                                email: values.email,
-                                role: values.role,
-                                status: values.status,
-                            }
-                            : m
-                    )
-                );
+                const response = await fetch(`/api/project-managers/${editingManager.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        name: values.name,
+                        email: values.email,
+                        role: values.role,
+                        status: values.status,
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to update manager');
+                }
+
                 message.success('Project manager updated successfully');
+                await fetchManagers();
             } else {
                 // Add new manager
-                const newManager: ProjectManager = {
-                    id: Date.now().toString(),
-                    ...values,
-                    projectsManaged: 0,
-                    joinDate: new Date().toISOString().split('T')[0],
-                    lastActive: new Date().toISOString().split('T')[0],
-                };
-                setManagers([...managers, newManager]);
+                const response = await fetch('/api/project-managers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        name: values.name,
+                        email: values.email,
+                        role: values.role,
+                        status: values.status,
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to create manager');
+                }
+
                 message.success('Project manager added successfully');
+                await fetchManagers();
             }
 
             setIsModalOpen(false);
             form.resetFields();
-        } catch (error) {
-            console.error('Form validation failed:', error);
+        } catch (error: any) {
+            console.error('Error:', error);
+            message.error(error.message || 'Operation failed');
         }
     };
 
@@ -429,6 +460,12 @@ const ProjectManagerUsers = () => {
                             pageSize: 10,
                             total: filteredManagers.length,
                             showSizeChanger: true,
+                            itemRender: (current, type, originalElement) => {
+                              if (type === 'page') {
+                                return <span style={{ color: current === pagination.current ? 'black' : 'inherit' }}>{current}</span>;
+                              }
+                              return originalElement;
+                            },
                             pageSizeOptions: ['5', '10', '20', '50'],
                             showTotal: (total) => `Total ${total} managers`,
                         }}

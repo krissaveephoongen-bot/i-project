@@ -22,10 +22,10 @@ function TaskList({ tasks, detailed = false }) {
 
     const getPriorityColor = (priority) => {
       switch (priority) {
-        case 'high': return 'text-red-600';
-        case 'medium': return 'text-yellow-600';
-        case 'low': return 'text-green-600';
-        default: return 'text-gray-600';
+        case 'high': return 'text-error-600';
+        case 'medium': return 'text-warning-600';
+        case 'low': return 'text-primary-600';
+        default: return 'text-neutral-600';
       }
     };
 
@@ -41,21 +41,21 @@ function TaskList({ tasks, detailed = false }) {
     return (
       <div className="space-y-3" data-name="task-list" data-file="components/TaskList.js">
         {tasks.map(task => (
-          <div key={task.id} className={`${detailed ? 'card' : 'bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg p-4'} hover:shadow-sm transition-shadow`}>
+          <div key={task.id} className={`${detailed ? 'bg-background-base' : 'bg-background-light'} border border-neutral-200 rounded-lg p-4 shadow-xs hover:shadow-sm transition-shadow`}>
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-3 flex-1">
                 <input
                   type="checkbox"
                   checked={task.status === 'completed'}
                   onChange={() => {}}
-                  className="mt-1 w-4 h-4 text-[var(--primary-color)] border-gray-300 rounded focus:ring-[var(--primary-color)]"
+                  className="mt-1 w-4 h-4 text-primary-500 border-neutral-300 rounded focus:ring-primary-500"
                 />
                 <div className="flex-1">
-                  <h4 className={`font-medium ${task.status === 'completed' ? 'line-through text-[var(--text-secondary)]' : 'text-[var(--text-primary)]'}`}>
+                  <h4 className={`font-medium ${task.status === 'completed' ? 'line-through text-neutral-400' : 'text-neutral-900'}`}>
                     {task.title}
                   </h4>
                   {detailed && (
-                    <p className="text-sm text-[var(--text-secondary)] mt-1">{task.description}</p>
+                    <p className="text-sm text-neutral-600 mt-1">{task.description}</p>
                   )}
                   <div className="flex items-center space-x-4 mt-2">
                     <span className={`status-badge ${getStatusColor(task.status)}`}>
@@ -66,11 +66,11 @@ function TaskList({ tasks, detailed = false }) {
                     </span>
                     {detailed && (
                       <>
-                        <div className="flex items-center text-xs text-[var(--text-secondary)]">
+                        <div className="flex items-center text-xs text-neutral-500">
                           <div className="icon-calendar text-xs mr-1"></div>
                           <span>{new Date(task.dueDate).toLocaleDateString('th-TH')}</span>
                         </div>
-                        <div className="flex items-center text-xs text-[var(--text-secondary)]">
+                        <div className="flex items-center text-xs text-neutral-500">
                           <div className="icon-user text-xs mr-1"></div>
                           <span>{task.assignee}</span>
                         </div>
@@ -81,7 +81,7 @@ function TaskList({ tasks, detailed = false }) {
               </div>
               {!detailed && (
                 <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 bg-[var(--primary-color)] rounded-full flex items-center justify-center">
+                  <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
                     <span className="text-xs text-white font-medium">{task.assignee?.charAt(0) || 'A'}</span>
                   </div>
                 </div>

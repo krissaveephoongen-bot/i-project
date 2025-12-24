@@ -27,19 +27,20 @@ function TaskProgressIndicator({ task, worklogs }) {
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center text-sm">
-        <span className="text-gray-600">
+        <span className="text-neutral-600 font-medium">
           {estimatedHours > 0 ? 'Worklog-based Progress' : 'Manual Progress'}
         </span>
-        <span className="font-semibold">{actualProgress.toFixed(1)}%</span>
+        <span className="font-semibold text-neutral-900">{actualProgress.toFixed(1)}%</span>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
+      {/* Background: Light Gray, Progress: Primary Green */}
+      <div className="w-full bg-neutral-200 rounded-full h-2 shadow-xs">
         <div
-          className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+          className="bg-gradient-to-r from-primary-500 to-primary-600 h-2 rounded-full transition-all duration-300"
           style={{ width: `${actualProgress}%` }}
         ></div>
       </div>
       {estimatedHours > 0 && Math.abs(actualProgress - manualProgress) > 5 && (
-        <div className="text-xs text-amber-600 flex items-center gap-1">
+        <div className="text-xs text-warning-600 flex items-center gap-1 bg-warning-50 p-2 rounded-md border border-warning-200">
           <div className="icon-alert-circle text-sm"></div>
           <span>Manual: {manualProgress}%, Worklog: {actualProgress.toFixed(1)}%</span>
         </div>

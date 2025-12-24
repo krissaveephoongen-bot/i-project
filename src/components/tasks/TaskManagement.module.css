@@ -1,0 +1,325 @@
+/* TaskManagement Styles - SaaS Professional Design */
+
+.container {
+  padding: 1.5rem;
+  background: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+  .header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  letter-spacing: -0.01em;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .controls {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.selectProject {
+  flex: 1;
+  min-width: 240px;
+}
+
+.addButton {
+  white-space: nowrap;
+}
+
+/* Task Name */
+.taskName {
+  display: block;
+  color: #1f2937;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskName:hover {
+  color: #6b7dff;
+  text-decoration: underline;
+}
+
+/* Table & Progress Styling */
+.progressContainer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.progressLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.progressBar {
+  position: relative;
+  width: 100%;
+  height: 0.5rem;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progressBarPlanned {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: #c1d3ff;
+  border-radius: 9999px;
+  transition: width 0.3s ease-in-out;
+}
+
+.progressBarActual {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: #6b7dff;
+  border-radius: 9999px;
+  transition: width 0.3s ease-in-out;
+}
+
+/* Status Badge */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid;
+  transition: all 0.2s ease-in-out;
+}
+
+.statusBadge_todo {
+  background-color: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.statusBadge_in_progress {
+  background-color: #f0f4ff;
+  color: #4450cc;
+  border-color: #a2bdff;
+}
+
+.statusBadge_pending {
+  background-color: #fffbeb;
+  color: #b45309;
+  border-color: #fcd34d;
+}
+
+.statusBadge_completed {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border-color: #86efac;
+}
+
+.statusBadge_overdue {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.statusBadge_done {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border-color: #86efac;
+}
+
+/* Modal Styles */
+.modal {
+  border-radius: 0.75rem;
+}
+
+.modalHeader {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.formContainer {
+  padding: 1.5rem;
+}
+
+.formItem {
+  margin-bottom: 1.5rem;
+}
+
+.formLabel {
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.formInput {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: all 0.2s ease-in-out;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #6b7dff;
+  box-shadow: 0 0 0 3px rgba(107, 125, 255, 0.1);
+}
+
+.formInput::placeholder {
+  color: #9ca3af;
+}
+
+/* Action Buttons */
+.actionSpace {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.actionButton {
+  padding: 0.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+  color: #6b7280;
+}
+
+.actionButton:hover {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+.editButton {
+  color: #6b7280;
+}
+
+.editButton:hover {
+  color: #6b7dff;
+  background-color: #f0f4ff;
+}
+
+.deleteButton {
+  color: #6b7280;
+}
+
+.deleteButton:hover {
+  color: #ef4444;
+  background-color: #fef2f2;
+}
+
+/* Table Customizations */
+.table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.tableRow {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.tableRow:hover {
+  background-color: #f9fafb;
+}
+
+.tableCell {
+  padding: 1rem;
+  text-align: left;
+  color: #1f2937;
+}
+
+.tableCellHeader {
+  padding: 1rem;
+  font-weight: 600;
+  background-color: #f9fafb;
+  color: #374151;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Loading State */
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+
+.loadingSpinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #e5e7eb;
+  border-top-color: #6b7dff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #9ca3af;
+}
+
+.emptyStateIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.emptyStateText {
+  font-size: 1rem;
+  color: #6b7280;
+}

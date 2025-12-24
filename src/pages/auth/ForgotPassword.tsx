@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { authService } from '@/services/authService';
+import toast from 'react-hot-toast';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -27,9 +29,17 @@ export default function ForgotPassword() {
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setIsSubmitted(true);
+      const response = await authService.forgotPassword({ email: data.email });
+
+      if (response.success) {
+        toast.success('Password reset link sent to your email');
+        setIsSubmitted(true);
+      } else {
+        toast.error(response.message || 'Failed to send reset link');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to send reset link';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

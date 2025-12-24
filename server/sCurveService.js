@@ -84,7 +84,7 @@ async function calculateSCurve(projectId) {
 
     // Fetch all tasks for the project
     const tasksResult = await executeQuery(
-      'SELECT id, title, status, due_date, weight, completed_at FROM tasks WHERE project_id = $1',
+      'SELECT id, name, title, status, planned_start_date, planned_end_date, planned_progress_weight, actual_progress, created_at, updated_at FROM tasks WHERE project_id = $1',
       [projectId]
     );
 
@@ -92,7 +92,7 @@ async function calculateSCurve(projectId) {
 
     // Calculate total project weight
     const totalWeight = tasks.reduce((sum, task) => {
-      const weight = parseFloat(task.weight) || 1;
+      const weight = parseFloat(task.planned_progress_weight) || 0;
       return sum + weight;
     }, 0);
 
@@ -115,34 +115,32 @@ async function calculateSCurve(projectId) {
 
     // Calculate cumulative percentages for each month
     const scurveData = months.map((monthData) => {
-      // Planned percentage: tasks that should be done by end of this month
-      const plannedWeight = tasks
-        .filter((task) => {
-          const dueDate = task.due_date ? new Date(task.due_date) : null;
-          return dueDate && isDateInOrBeforeMonth(dueDate, monthData.year, monthData.month);
-        })
-        .reduce((sum, task) => sum + (parseFloat(task.weight) || 1), 0);
+      // Planned percentage: cumulative progress based on planned end dates
+      let plannedCumulativeWeight = 0;
+      tasks.forEach((task) => {
+        const endDate = task.planned_end_date ? new Date(task.planned_end_date) : null;
+        if (endDate && isDateInOrBeforeMonth(endDate, monthData.year, monthData.month)) {
+          plannedCumulativeWeight += parseFloat(task.planned_progress_weight) || 0;
+        }
+      });
+      const plannedPercentage = totalWeight > 0 ? (plannedCumulativeWeight / totalWeight) * 100 : 0;
 
-      const plannedPercentage = (plannedWeight / totalWeight) * 100;
-
-      // Actual percentage: tasks completed by end of this month
-      const actualWeight = tasks
-       .filter((task) => {
-         if (task.status !== 'done') return false;
-          const completedDate = task.completed_at ? new Date(task.completed_at) : null;
-          return completedDate && isDateInOrBeforeMonth(completedDate, monthData.year, monthData.month);
-        })
-        .reduce((sum, task) => sum + (parseFloat(task.weight) || 1), 0);
-
-      const actualPercentage = (actualWeight / totalWeight) * 100;
+      // Actual percentage: based on actual progress of tasks
+      let actualCumulativeProgress = 0;
+      tasks.forEach((task) => {
+        const taskWeight = parseFloat(task.planned_progress_weight) || 0;
+        const taskActualProgress = parseFloat(task.actual_progress) || 0;
+        actualCumulativeProgress += (taskWeight * taskActualProgress / 100);
+      });
+      const actualPercentage = totalWeight > 0 ? (actualCumulativeProgress / totalWeight) * 100 : 0;
 
       return {
         month: monthData.label,
-        date: monthData.date,
+        date: monthData.date.toISOString().split('T')[0],
         plannedPercentage: Math.min(100, Math.round(plannedPercentage * 100) / 100),
         actualPercentage: Math.min(100, Math.round(actualPercentage * 100) / 100),
-        plannedWeight,
-        actualWeight
+        plannedWeight: plannedCumulativeWeight,
+        actualWeight: actualCumulativeProgress
       };
     });
 

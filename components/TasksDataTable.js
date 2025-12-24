@@ -32,31 +32,32 @@ function TasksDataTable({ projectId, onTaskClick, onAddTask }) {
   };
 
   const getStatusColor = (status) => {
+    // Traffic light status system
     const colors = {
-      todo: 'bg-gray-100 text-gray-700',
-      progress: 'bg-blue-100 text-blue-700',
-      review: 'bg-amber-100 text-amber-700',
-      completed: 'bg-green-100 text-green-700'
+      todo: 'bg-neutral-100 text-neutral-700 border border-neutral-300',
+      progress: 'bg-accent-50 text-accent-700 border border-accent-200',
+      review: 'bg-warning-50 text-warning-700 border border-warning-200',
+      completed: 'bg-success-50 text-success-700 border border-success-200'
     };
     return colors[status] || colors.todo;
   };
 
   if (!projectId) {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
-        <div className="icon-folder-open text-4xl text-slate-300 mb-4"></div>
-        <p className="text-slate-500">Select a project to view tasks</p>
+      <div className="bg-background-base border border-neutral-200 rounded-lg p-12 text-center shadow-sm">
+        <div className="icon-folder-open text-4xl text-neutral-300 mb-4"></div>
+        <p className="text-neutral-500">Select a project to view tasks</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-      <div className="border-b border-slate-200 px-6 py-4 flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-slate-900">Task Management</h2>
+    <div className="bg-background-base border border-neutral-200 rounded-lg overflow-hidden shadow-sm">
+      <div className="border-b border-neutral-200 px-6 py-4 flex justify-between items-center bg-background-light">
+        <h2 className="text-xl font-semibold text-neutral-900">Task Management</h2>
         <button
           onClick={onAddTask}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center gap-2 font-medium"
         >
           <div className="icon-plus text-lg"></div>
           Add Task
@@ -67,45 +68,45 @@ function TasksDataTable({ projectId, onTaskClick, onAddTask }) {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Task Name</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Assignee</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Progress</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Status</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Weight</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Actions</th>
+              <tr className="border-b border-neutral-200 bg-neutral-50">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-900">Task Name</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-900">Assignee</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-900">Progress</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-900">Status</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-900">Weight</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-neutral-900">Actions</th>
               </tr>
             </thead>
             <tbody>
               {tasks.map(task => (
                 <tr 
                   key={task.objectId} 
-                  className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
+                  className="border-b border-neutral-100 hover:bg-neutral-50 cursor-pointer transition-colors"
                   onClick={() => onTaskClick(task)}
                 >
-                  <td className="py-3 px-4 text-sm text-slate-900">{task.objectData.Name}</td>
-                  <td className="py-3 px-4 text-sm text-slate-600">{task.objectData.Assignee}</td>
+                  <td className="py-3 px-4 text-sm text-neutral-900 font-medium">{task.objectData.Name}</td>
+                  <td className="py-3 px-4 text-sm text-neutral-600">{task.objectData.Assignee}</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-200 rounded-full h-2">
+                      <div className="flex-1 bg-neutral-200 rounded-full h-2 shadow-xs">
                         <div 
-                          className="bg-blue-500 h-2 rounded-full"
+                          className="bg-gradient-to-r from-primary-500 to-primary-600 h-2 rounded-full"
                           style={{ width: `${task.objectData.Progress || 0}%` }}
                         ></div>
                       </div>
-                      <span className="text-xs text-slate-600">{task.objectData.Progress || 0}%</span>
+                      <span className="text-xs text-neutral-600 font-medium">{task.objectData.Progress || 0}%</span>
                     </div>
                   </td>
                   <td className="py-3 px-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.objectData.Status)}`}>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(task.objectData.Status)}`}>
                       {task.objectData.Status}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-sm text-slate-600">{task.objectData.Weight}%</td>
+                  <td className="py-3 px-4 text-sm text-neutral-600">{task.objectData.Weight}%</td>
                   <td className="py-3 px-4 text-right">
                     <button 
                       onClick={(e) => handleDelete(task.objectId, e)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-error-600 hover:text-error-700 transition-colors"
                     >
                       <div className="icon-trash-2 text-lg"></div>
                     </button>
@@ -115,7 +116,7 @@ function TasksDataTable({ projectId, onTaskClick, onAddTask }) {
             </tbody>
           </table>
           {tasks.length === 0 && (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-neutral-500">
               <div className="icon-inbox text-4xl mb-2"></div>
               <p>No tasks yet. Click "Add Task" to create one.</p>
             </div>

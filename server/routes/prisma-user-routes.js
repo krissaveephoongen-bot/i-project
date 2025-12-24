@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
 const bcryptjs = require('bcryptjs');
-const prisma = new PrismaClient();
+const { prisma } = require('../prisma-client');
 
 // Helper function for error handling
 const handleError = (res, error, statusCode = 500) => {
@@ -38,6 +37,11 @@ router.get('/users', async (req, res) => {
           name: true,
           email: true,
           role: true,
+          status: true,
+          hireDate: true,
+          lastLogin: true,
+          department: true,
+          phone: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -103,7 +107,7 @@ router.get('/users/:id', async (req, res) => {
  */
 router.post('/users', async (req, res) => {
   try {
-    const { name, email, password, role = 'user' } = req.body;
+    const { name, email, password, role = 'USER', status = 'active', hireDate, department, phone } = req.body;
 
     // Validation
     if (!name || !email || !password) {
@@ -129,13 +133,21 @@ router.post('/users', async (req, res) => {
         name,
         email,
         password: hashedPassword,
-        role
+        role,
+        status,
+        hireDate: hireDate ? new Date(hireDate) : null,
+        department,
+        phone
       },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
+        status: true,
+        hireDate: true,
+        department: true,
+        phone: true,
         createdAt: true
       }
     });
@@ -155,13 +167,18 @@ router.post('/users', async (req, res) => {
  */
 router.put('/users/:id', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, status, hireDate, lastLogin, department, phone } = req.body;
 
     const data = {};
-    if (name) data.name = name;
-    if (email) data.email = email;
+    if (name !== undefined) data.name = name;
+    if (email !== undefined) data.email = email;
     if (password) data.password = await bcryptjs.hash(password, 12);
-    if (role) data.role = role;
+    if (role !== undefined) data.role = role;
+    if (status !== undefined) data.status = status;
+    if (hireDate !== undefined) data.hireDate = hireDate ? new Date(hireDate) : null;
+    if (lastLogin !== undefined) data.lastLogin = lastLogin ? new Date(lastLogin) : null;
+    if (department !== undefined) data.department = department;
+    if (phone !== undefined) data.phone = phone;
 
     const user = await prisma.user.update({
       where: { id: req.params.id },
@@ -171,6 +188,11 @@ router.put('/users/:id', async (req, res) => {
         name: true,
         email: true,
         role: true,
+        status: true,
+        hireDate: true,
+        lastLogin: true,
+        department: true,
+        phone: true,
         updatedAt: true
       }
     });

@@ -50,11 +50,11 @@ export const LoginForm: React.FC = () => {
       // Update auth context
       login(response.token, response.user);
 
-      toast.success('Login successful!');
+      toast.success('Login successful!', { duration: 2000 });
 
       // Redirect based on role
       if (response.user.role === 'admin') {
-        navigate('/admin/dashboard');
+        navigate('/dashboard');
       } else if (response.user.role === 'manager') {
         navigate('/projects');
       } else {

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import MobileBottomNav from '../MobileBottomNav';
+import { EnhancedNavigation } from './EnhancedNavigation';
 
 import { Toaster } from 'react-hot-toast';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -118,6 +119,9 @@ const Layout = () => {
               onLogout={logout} 
               onMenuClick={toggleSidebar}
             />
+            
+            {/* Enhanced Navigation Bar */}
+            <EnhancedNavigation collapsed={isMobile} />
             
             <main className="flex-1 bg-gray-50 p-1 md:p-2 overflow-hidden">
               <div className="w-full h-full overflow-y-auto">

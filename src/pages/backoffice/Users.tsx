@@ -275,6 +275,12 @@ const Users = () => {
             showSizeChanger: true,
             pageSizeOptions: ['10', '20', '50', '100'],
             showTotal: (total) => `Total ${total} users`,
+            itemRender: (current, type, originalElement) => {
+              if (type === 'page') {
+                return <span style={{ color: current === pagination.current ? 'black' : 'inherit' }}>{current}</span>;
+              }
+              return originalElement;
+            }
           }}
           onChange={handleTableChange}
           scroll={{ x: true }}

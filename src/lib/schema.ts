@@ -58,6 +58,9 @@ export const projects = pgTable('projects', {
   managerId: integer('manager_id').references(() => users.id),
   clientId: integer('client_id').references(() => clients.id),
   hourlyRate: numeric('hourly_rate', { precision: 10, scale: 2 }).default('0.00'),
+  priority: text('priority').default('medium'),
+  category: text('category'),
+  isArchived: boolean('is_archived').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -78,6 +81,11 @@ export const tasks = pgTable('tasks', {
   assignedTo: integer('assigned_to').references(() => users.id, { onDelete: 'set null' }),
   createdBy: integer('created_by').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   parentTaskId: integer('parent_task_id').references((): any => ({ name: 'tasks' }), { onDelete: 'cascade' }),
+  category: text('category'),
+  storyPoints: integer('story_points'),
+  sprintId: uuid('sprint_id'),
+  blockedBy: uuid('blocked_by'),
+  blockedReason: text('blocked_reason'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

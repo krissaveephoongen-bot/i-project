@@ -74,7 +74,7 @@ router.get('/activities', async (req, res) => {
         u.name as user_name,
         u.email as user_email
       FROM activity_log a
-      LEFT JOIN users u ON a.user_id = u.id
+      LEFT JOIN "User" u ON a.user_id = u.id
       WHERE 1=1
     `;
     const params = [];
@@ -146,7 +146,7 @@ router.get('/activities/:id', async (req, res) => {
         u.name as user_name,
         u.email as user_email
       FROM activity_log a
-      LEFT JOIN users u ON a.user_id = u.id
+      LEFT JOIN "User" u ON a.user_id = u.id
       WHERE a.id = $1
     `;
 
@@ -337,7 +337,7 @@ router.get('/activities/user/:userId', async (req, res) => {
         a.*,
         u.name as user_name
       FROM activity_log a
-      LEFT JOIN users u ON a.user_id = u.id
+      LEFT JOIN "User" u ON a.user_id = u.id
       WHERE a.user_id = $1
       ORDER BY a.created_at DESC
       LIMIT $2 OFFSET $3
@@ -380,7 +380,7 @@ router.get('/activities/entity/:entityType/:entityId', async (req, res) => {
         u.name as user_name,
         u.email as user_email
       FROM activity_log a
-      LEFT JOIN users u ON a.user_id = u.id
+      LEFT JOIN "User" u ON a.user_id = u.id
       WHERE a.entity_type = $1 AND a.entity_id = $2
       ORDER BY a.created_at DESC
       LIMIT $3 OFFSET $4

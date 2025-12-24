@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     X,
     ChevronRight,
@@ -14,7 +14,7 @@ import {
     Home as HomeIcon,
     DollarSign,
     Star,
-    Users,
+    Users as UsersIcon,
     TrendingUp,
     FileText,
     Package,
@@ -24,13 +24,15 @@ import {
     Plus,
     Shield,
     ClipboardList,
+    LogOut,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { useAuth } from '../../hooks/use-auth';
-import { User } from '../../hooks/use-auth';
+import type { User } from '../../hooks/use-auth';
 import AdminPINModal from '../AdminPINModal';
+import { useAuth as useAuthContext } from '@/contexts/AuthContext';
 
 interface MenuItem {
     title: string;
@@ -65,22 +67,22 @@ const menuItems: MenuItem[] = [
             { title: 'All Projects', icon: FolderKanban, path: '/projects' },
             { title: 'Project Table', icon: FileText, path: '/projects/table' },
             { title: 'Create Project', icon: Plus, path: '/projects/create' },
-            { title: 'My Projects', icon: Briefcase, path: '/projects/my-projects' },
+            { title: 'My Projects', icon: Briefcase, path: '/projects/my-projects', className: 'text-black' },
         ],
     },
     {
         title: 'Project Manager',
         icon: ClipboardList,
         submenu: [
-            { title: 'Project Manager', icon: ClipboardList, path: '/project-manager' },
-            { title: 'Manager Users', icon: Users, path: '/project-manager-users', requiredRole: ['admin'] },
+            { title: 'Project Managers', icon: ClipboardList, path: '/project-manager' },
+            { title: 'All Users', icon: UsersIcon, path: '/project-manager-users', requiredRole: ['admin'] },
         ],
     },
     {
         title: 'Resources',
-        icon: Users,
+        icon: UsersIcon,
         submenu: [
-            { title: 'Resource Management', icon: Users, path: '/resources' },
+            { title: 'Resource Management', icon: UsersIcon, path: '/resources' },
             { title: 'Team Members', icon: Package, path: '/resources/team' },
             { title: 'Allocation', icon: Target, path: '/resources/allocation' },
         ],
@@ -136,8 +138,11 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
     const location = useLocation();
+    const navigate = useNavigate();
     const { getCurrentUser } = useAuth();
-    const [user, setUser] = useState<User | null>(null);
+    const { logout, currentUser } = useAuthContext();
+    // Remove unused user state since we're using currentUser from context
+    const [, setUser] = useState<User | null>(null);
     const [expandedItems, setExpandedItems] = useState<string[]>(['Dashboard']);
     const [showPINModal, setShowPINModal] = useState(false);
 
@@ -165,6 +170,15 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
     const handlePINSuccess = () => {
         // Open Admin Console in new tab
         window.open('/admin/index.html', '_blank');
+    };
+
+    const handleLogout = async () => {
+        try {
+            logout();
+            navigate('/login', { replace: true });
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
     };
 
     const isMenuActive = (item: MenuItem): boolean => {
@@ -324,7 +338,7 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
                 <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                     <nav className="py-2 px-2 space-y-1">
                         {menuItems
-                            .filter((item) => !item.requiredRole || (user && item.requiredRole.some((role) => user.role === role)))
+                            .filter((item) => !item.requiredRole || (currentUser && item.requiredRole.includes(currentUser.role)))
                             .map((item, index) => {
                                 const Icon = item.icon;
                                 const isActive = isMenuActive(item);
@@ -380,7 +394,7 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
                                                         className="mt-2 space-y-0.5 overflow-hidden"
                                                     >
                                                         {item.submenu
-                                                            .filter((subitem) => !subitem.requiredRole || (user && subitem.requiredRole.some((role) => user.role === role)))
+                                                            .filter((subitem) => !subitem.requiredRole || (currentUser && subitem.requiredRole.some((role) => currentUser.role === role)))
                                                             .map((subitem, subIndex) => {
                                                             const SubIcon = subitem.icon;
                                                             const isSubActive = location.pathname === subitem.path;
@@ -523,19 +537,27 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.2 }}
                 >
-                    <motion.div
-                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
+                    {/* User Info */}
+                    <NavLink
+                        to="/settings"
+                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                         <motion.div
-                            className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0 text-white text-xs font-semibold shadow-sm"
+                            className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0 text-white text-xs font-semibold shadow-sm overflow-hidden"
                             whileHover={{
                                 scale: 1.1,
                                 boxShadow: '0 0 20px rgba(59, 130, 246, 0.4)'
                             }}
                         >
-                            {user?.name?.[0]?.toUpperCase() || 'U'}
+                            {currentUser?.avatar ? (
+                                <img
+                                    src={currentUser.avatar}
+                                    alt="User Avatar"
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                <span>{currentUser?.email?.[0]?.toUpperCase() || 'U'}</span>
+                            )}
                         </motion.div>
                         <div className="min-w-0 flex-1">
                             <motion.p
@@ -544,7 +566,7 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.3, delay: 0.3 }}
                             >
-                                {user?.name || 'User'}
+                                {currentUser?.name || 'User'}
                             </motion.p>
                             <motion.p
                                 className="text-[10px] text-gray-500 dark:text-gray-400 truncate"
@@ -552,10 +574,21 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.3, delay: 0.35 }}
                             >
-                                {user?.email?.split('@')[0] || 'user'}
+                                {currentUser?.email || 'user@example.com'}
                             </motion.p>
                         </div>
-                    </motion.div>
+                    </NavLink>
+
+                    {/* Logout Button */}
+                    <motion.button
+                        onClick={handleLogout}
+                        className="w-full mt-2 flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors hover:text-red-600 dark:hover:text-red-400"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                    >
+                        <LogOut className="h-4 w-4" />
+                        <span>Logout</span>
+                    </motion.button>
                 </motion.div>
             </motion.aside>
 

@@ -26,7 +26,7 @@ function ProjectChart({ projects }) {
           }
         });
 
-        // Create new chart
+        // Create new chart with traffic light status colors
         chartInstance.current = new ChartJS(ctx, {
           type: 'doughnut',
           data: {
@@ -38,11 +38,12 @@ function ProjectChart({ projects }) {
                 statusCounts.planning,
                 statusCounts['on-hold']
               ],
+              // Traffic light system: Blue (active) | Green (completed) | Yellow (planning) | Red (on-hold)
               backgroundColor: [
-                '#3B82F6',
-                '#10B981',
-                '#F59E0B',
-                '#EF4444'
+                '#0ea5e9',  // Accent Blue for active
+                '#22c55e',  // Primary Green for completed
+                '#f59e0b',  // Amber/Yellow for planning
+                '#ef4444'   // Error Red for on-hold
               ],
               borderWidth: 0
             }]
@@ -68,44 +69,45 @@ function ProjectChart({ projects }) {
     }, [projects]);
 
     return (
-      <div className="card" data-name="project-chart" data-file="components/ProjectChart.js">
-        <h2 className="text-lg font-semibold mb-4">สถานะโปรเจกต์</h2>
+      <div className="bg-background-base rounded-lg border border-neutral-200 p-6 shadow-sm" data-name="project-chart" data-file="components/ProjectChart.js">
+        <h2 className="text-lg font-semibold text-neutral-900 mb-4">สถานะโปรเจกต์</h2>
         
         <div className="relative h-48 mb-4">
           <canvas ref={chartRef}></canvas>
         </div>
         
+        {/* Status Legend - Traffic Light System */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-2 rounded-md hover:bg-background-light transition-colors">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-              <span className="text-sm text-[var(--text-secondary)]">กำลังดำเนินการ</span>
+              <div className="w-3 h-3 bg-accent-500 rounded-full mr-2"></div>
+              <span className="text-sm text-neutral-600 font-medium">กำลังดำเนินการ</span>
             </div>
-            <span className="text-sm font-medium">{projects.filter(p => p.status === 'active').length}</span>
+            <span className="text-sm font-semibold text-neutral-900">{projects.filter(p => p.status === 'active').length}</span>
           </div>
           
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-2 rounded-md hover:bg-background-light transition-colors">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-              <span className="text-sm text-[var(--text-secondary)]">เสร็จแล้ว</span>
+              <div className="w-3 h-3 bg-primary-500 rounded-full mr-2"></div>
+              <span className="text-sm text-neutral-600 font-medium">เสร็จแล้ว</span>
             </div>
-            <span className="text-sm font-medium">{projects.filter(p => p.status === 'completed').length}</span>
+            <span className="text-sm font-semibold text-neutral-900">{projects.filter(p => p.status === 'completed').length}</span>
           </div>
           
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-2 rounded-md hover:bg-background-light transition-colors">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
-              <span className="text-sm text-[var(--text-secondary)]">วางแผน</span>
+              <div className="w-3 h-3 bg-warning-500 rounded-full mr-2"></div>
+              <span className="text-sm text-neutral-600 font-medium">วางแผน</span>
             </div>
-            <span className="text-sm font-medium">{projects.filter(p => p.status === 'planning').length}</span>
+            <span className="text-sm font-semibold text-neutral-900">{projects.filter(p => p.status === 'planning').length}</span>
           </div>
           
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-2 rounded-md hover:bg-background-light transition-colors">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-              <span className="text-sm text-[var(--text-secondary)]">หยุดชั่วคราว</span>
+              <div className="w-3 h-3 bg-error-500 rounded-full mr-2"></div>
+              <span className="text-sm text-neutral-600 font-medium">หยุดชั่วคราว</span>
             </div>
-            <span className="text-sm font-medium">{projects.filter(p => p.status === 'on-hold').length}</span>
+            <span className="text-sm font-semibold text-neutral-900">{projects.filter(p => p.status === 'on-hold').length}</span>
           </div>
         </div>
       </div>

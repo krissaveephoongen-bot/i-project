@@ -78,29 +78,29 @@ function ProjectForm({ onSave, project = null }) {
 
     return (
       <div className="max-w-3xl mx-auto" data-name="project-form" data-file="components/ProjectForm.js">
-        <form onSubmit={handleSubmit} className="card space-y-6">
+        <form onSubmit={handleSubmit} className="bg-background-base rounded-lg border border-neutral-200 p-6 shadow-sm space-y-6">
           <div>
-            <h3 className="text-lg font-semibold mb-4">ข้อมูลพื้นฐาน</h3>
+            <h3 className="text-lg font-semibold text-neutral-900 mb-4">ข้อมูลพื้นฐาน</h3>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">รหัสโครงการ *</label>
+                  <label className="block text-sm font-medium text-neutral-900 mb-2">รหัสโครงการ *</label>
                   <input
                     type="text"
                     value={formData.code}
                     onChange={(e) => setFormData({...formData, code: e.target.value})}
-                    className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900 placeholder-neutral-500"
                     placeholder="PRJ-001"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">ผู้จัดการโครงการ *</label>
+                  <label className="block text-sm font-medium text-neutral-900 mb-2">ผู้จัดการโครงการ *</label>
                   <input
                     type="text"
                     value={formData.manager}
                     onChange={(e) => setFormData({...formData, manager: e.target.value})}
-                    className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900 placeholder-neutral-500"
                     placeholder="ชื่อผู้จัดการ"
                     required
                   />
@@ -108,56 +108,56 @@ function ProjectForm({ onSave, project = null }) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">ชื่อโครงการ *</label>
+                <label className="block text-sm font-medium text-neutral-900 mb-2">ชื่อโครงการ *</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">คำอธิบาย</label>
+                <label className="block text-sm font-medium text-neutral-900 mb-2">คำอธิบาย</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   rows={3}
-                  className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900 placeholder-neutral-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">วันที่เริ่ม *</label>
+                  <label className="block text-sm font-medium text-neutral-900 mb-2">วันที่เริ่ม *</label>
                   <input
                     type="date"
                     value={formData.startDate}
                     onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">วันที่สิ้นสุด *</label>
+                  <label className="block text-sm font-medium text-neutral-900 mb-2">วันที่สิ้นสุด *</label>
                   <input
                     type="date"
                     value={formData.endDate}
                     onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">งบประมาณ (บาท) *</label>
+                <label className="block text-sm font-medium text-neutral-900 mb-2">งบประมาณ (บาท) *</label>
                 <input
                   type="number"
                   value={formData.budget}
                   onChange={(e) => setFormData({...formData, budget: e.target.value})}
-                  className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
                   placeholder="0"
                   required
                 />
@@ -166,7 +166,7 @@ function ProjectForm({ onSave, project = null }) {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold mb-4">ทีมงาน</h3>
+            <h3 className="text-lg font-semibold text-neutral-900 mb-4">ทีมงาน</h3>
             <div className="space-y-3">
               <div className="flex gap-2">
                 <input
@@ -174,15 +174,15 @@ function ProjectForm({ onSave, project = null }) {
                   value={newMember}
                   onChange={(e) => setNewMember(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddMember())}
-                  className="flex-1 px-3 py-2 border border-[var(--border-color)] rounded-lg"
+                  className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900 placeholder-neutral-500"
                   placeholder="ชื่อสมาชิก"
                 />
                 <button
                   type="button"
                   onClick={handleAddMember}
-                  className="btn-primary"
+                  className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                 >
-                  <div className="icon-plus text-sm mr-2"></div>
+                  <div className="icon-plus text-sm mr-2 inline-block"></div>
                   เพิ่ม
                 </button>
               </div>
@@ -190,12 +190,12 @@ function ProjectForm({ onSave, project = null }) {
               {teamMembers.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {teamMembers.map((member, index) => (
-                    <div key={index} className="flex items-center space-x-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-lg">
+                    <div key={index} className="flex items-center space-x-2 px-3 py-1 bg-accent-50 text-accent-700 rounded-lg border border-accent-200">
                       <span className="text-sm">{member}</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveMember(member)}
-                        className="hover:text-red-600"
+                        className="hover:text-error-600 transition-colors"
                       >
                         <div className="icon-x text-sm"></div>
                       </button>
@@ -207,45 +207,45 @@ function ProjectForm({ onSave, project = null }) {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold mb-4">Project Charter</h3>
+            <h3 className="text-lg font-semibold text-neutral-900 mb-4">Project Charter</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">วัตถุประสงค์</label>
+                <label className="block text-sm font-medium text-neutral-900 mb-2">วัตถุประสงค์</label>
                 <textarea
                   value={formData.objective}
                   onChange={(e) => setFormData({...formData, objective: e.target.value})}
                   rows={3}
-                  className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900 placeholder-neutral-500"
                   placeholder="ระบุวัตถุประสงค์ของโครงการ..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">ขอบเขตงาน (Scope)</label>
+                <label className="block text-sm font-medium text-neutral-900 mb-2">ขอบเขตงาน (Scope)</label>
                 <textarea
                   value={formData.scope}
                   onChange={(e) => setFormData({...formData, scope: e.target.value})}
                   rows={3}
-                  className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900 placeholder-neutral-500"
                   placeholder="ระบุขอบเขตการทำงานของโครงการ..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">ผู้มีส่วนได้ส่วนเสีย (Stakeholders)</label>
+                <label className="block text-sm font-medium text-neutral-900 mb-2">ผู้มีส่วนได้ส่วนเสีย (Stakeholders)</label>
                 <textarea
                   value={formData.stakeholders}
                   onChange={(e) => setFormData({...formData, stakeholders: e.target.value})}
                   rows={2}
-                  className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900 placeholder-neutral-500"
                   placeholder="ระบุผู้มีส่วนได้ส่วนเสียในโครงการ..."
                 />
               </div>
             </div>
           </div>
 
-          <button type="submit" className="btn-primary w-full">
-            <div className="icon-save text-sm mr-2"></div>
+          <button type="submit" className="w-full bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+            <div className="icon-save text-sm mr-2 inline-block"></div>
             {project ? 'บันทึกการเปลี่ยนแปลง' : 'สร้างโครงการ'}
           </button>
         </form>

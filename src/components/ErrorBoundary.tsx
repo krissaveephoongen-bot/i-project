@@ -1,7 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
+import React, { ReactNode } from 'react';
+import { AlertCircle } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -13,107 +11,51 @@ interface State {
   error: Error | null;
 }
 
-/**
- * Error Boundary Component
- * Catches React errors and displays a user-friendly error message
- */
-export class ErrorBoundary extends Component<Props, State> {
-  public constructor(props: Props) {
+export class ErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  public static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Error Boundary caught:', error, errorInfo);
   }
 
-  private handleReset = () => {
-    this.setState({ hasError: false, error: null });
-  };
-
-  private handleGoHome = () => {
-    window.location.href = '/dashboard';
-  };
-
-  public render() {
+  render() {
     if (this.state.hasError) {
       return (
-        this.props.fallback || (
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-            <Card className="w-full max-w-md p-8">
-              <div className="flex justify-center mb-4">
-                <div className="p-3 bg-error-100 dark:bg-error-900/20 rounded-lg">
-                  <AlertTriangle className="h-8 w-8 text-error-600 dark:text-error-400" />
-                </div>
-              </div>
-
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                Oops! Something went wrong
-              </h1>
-
-              <p className="text-gray-600 dark:text-gray-400 text-center mb-4">
-                We encountered an unexpected error. Please try again or go back home.
-              </p>
-
-              {process.env.NODE_ENV === 'development' && this.state.error && (
-                <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs font-mono text-gray-700 dark:text-gray-300 break-words">
-                    {this.state.error.toString()}
+        <div className="flex items-center justify-center py-12 px-4">
+          <div className="max-w-md w-full">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+              <div className="flex items-start gap-4">
+                <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-2">
+                    Something went wrong
+                  </h3>
+                  <p className="text-sm text-red-700 dark:text-red-400 mb-4">
+                    {this.state.error?.message || 'An unexpected error occurred'}
                   </p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium text-sm transition-colors"
+                  >
+                    Reload Page
+                  </button>
                 </div>
-              )}
-
-              <div className="flex gap-3">
-                <Button
-                  onClick={this.handleReset}
-                  className="flex-1 flex items-center justify-center gap-2"
-                  variant="default"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Try Again
-                </Button>
-
-                <Button
-                  onClick={this.handleGoHome}
-                  className="flex-1 flex items-center justify-center gap-2"
-                  variant="outline"
-                >
-                  <Home className="h-4 w-4" />
-                  Go Home
-                </Button>
               </div>
-
-              <p className="text-xs text-gray-500 dark:text-gray-500 text-center mt-4">
-                If the problem persists, please contact support.
-              </p>
-            </Card>
+            </div>
           </div>
-        )
+        </div>
       );
     }
 
     return this.props.children;
   }
-}
-
-/**
- * Functional wrapper for easier use
- */
-export function withErrorBoundary<P extends object>(
-  Component: React.ComponentType<P>,
-  fallback?: ReactNode
-) {
-  return function WithErrorBoundaryComponent(props: P) {
-    return (
-      <ErrorBoundary fallback={fallback}>
-        <Component {...props} />
-      </ErrorBoundary>
-    );
-  };
 }
 
 export default ErrorBoundary;

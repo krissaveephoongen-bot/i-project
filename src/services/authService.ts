@@ -30,12 +30,26 @@ export interface UserProfile {
   position?: string;
   phone?: string;
   status: string;
+  timezone?: string;
   created_at: string;
 }
 
 export interface PasswordChangeRequest {
   currentPassword: string;
   newPassword: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
 }
 
 export const authService = {
@@ -106,5 +120,52 @@ export const authService = {
    */
   clearToken(): void {
     localStorage.removeItem('authToken');
+  },
+
+  /**
+   * Refresh access token
+   */
+  async refreshToken(request: RefreshTokenRequest): Promise<LoginResponse> {
+    const response = await apiClient.post<LoginResponse>('/auth/refresh', request);
+    return response.data;
+  },
+
+  /**
+   * Request password reset
+   */
+  async forgotPassword(request: ForgotPasswordRequest): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post('/auth/forgot-password', request);
+    return response.data;
+  },
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(request: ResetPasswordRequest): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post('/auth/reset-password', request);
+    return response.data;
+  },
+
+  /**
+   * Get stored refresh token
+   */
+  getRefreshToken(): string | null {
+    return localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
+  },
+
+  /**
+   * Set refresh token
+   */
+  setRefreshToken(token: string, rememberMe = false): void {
+    const storage = rememberMe ? localStorage : sessionStorage;
+    storage.setItem('refreshToken', token);
+  },
+
+  /**
+   * Clear refresh token
+   */
+  clearRefreshToken(): void {
+    localStorage.removeItem('refreshToken');
+    sessionStorage.removeItem('refreshToken');
   }
 };

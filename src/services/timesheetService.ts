@@ -1,117 +1,121 @@
-import { TimesheetEntry, TimesheetWeek, TimesheetApproval } from '@/types/timesheet';
+import { api } from '@/lib/api';
+import { 
+  TimesheetEntry, 
+  TimesheetWeek
+} from '@/types/timesheet';
+
+interface GetTimesheetsParams {
+  page?: number;
+  limit?: number;
+  userId?: string;
+  projectId?: string;
+  taskId?: string;
+  status?: TimesheetEntry['status'] | TimesheetWeek['status'];
+  startDate?: string;
+  endDate?: string;
+}
 
 export const timesheetService = {
-  // Timesheet Entries
-  async createTimesheetEntry(entry: Omit<TimesheetEntry, 'id' | 'createdAt' | 'updatedAt'>): Promise<TimesheetEntry> {
-    const response = await fetch('/api/timesheets/entries', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-      body: JSON.stringify(entry),
-    });
-    if (!response.ok) throw new Error('Failed to create timesheet entry');
-    return response.json();
-  },
-
-  async updateTimesheetEntry(entryId: string, updates: Partial<TimesheetEntry>): Promise<TimesheetEntry> {
-    const response = await fetch(`/api/timesheets/entries/${entryId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-      body: JSON.stringify(updates),
-    });
-    if (!response.ok) throw new Error('Failed to update timesheet entry');
-    return response.json();
-  },
-
-  async deleteTimesheetEntry(entryId: string): Promise<void> {
-    const response = await fetch(`/api/timesheets/entries/${entryId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-    });
-    if (!response.ok) throw new Error('Failed to delete timesheet entry');
-  },
-
-  // Timesheet Weeks
-  async getTimesheetWeek(userId: string, weekStartDate: Date): Promise<TimesheetWeek> {
-    const response = await fetch(
-      `/api/timesheets/weeks?userId=${userId}&weekStartDate=${weekStartDate.toISOString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        },
+  // Get all timesheets with pagination and filters
+  async getTimesheets(params: GetTimesheetsParams = {}) {
+    const { page = 1, limit = 10, ...filters } = params;
+    const response = await api.get('/timesheets', {
+      params: {
+        page,
+        limit,
+        ...filters
       }
-    );
-    if (!response.ok) throw new Error('Failed to fetch timesheet week');
-    return response.json();
+    });
+    return response.data;
   },
 
-  async submitTimesheetWeek(timesheetId: string): Promise<TimesheetWeek> {
-    const response = await fetch(`/api/timesheets/weeks/${timesheetId}/submit`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-    });
-    if (!response.ok) throw new Error('Failed to submit timesheet');
-    return response.json();
+  // Get a single timesheet by ID
+  async getTimesheetById(id: string) {
+    const response = await api.get(`/timesheets/${id}`);
+    return response.data;
   },
 
-  async getTimesheetWeeks(userId: string, filters?: any): Promise<TimesheetWeek[]> {
-    const queryParams = new URLSearchParams({
-      userId,
-      ...filters,
+  // Create a new timesheet entry
+  async createTimesheetEntry(entry: Omit<TimesheetEntry, 'id' | 'createdAt' | 'updatedAt'>): Promise<TimesheetWeek> {
+    const response = await api.post('/timesheets', entry);
+    return response.data;
+  },
+
+  // Update an existing timesheet entry
+  async updateTimesheetEntry(entryId: string, updates: Partial<TimesheetEntry>): Promise<TimesheetWeek> {
+    const response = await api.put(`/timesheets/${entryId}`, updates);
+    return response.data;
+  },
+
+  // Delete a timesheet entry
+  async deleteTimesheetEntry(entryId: string): Promise<void> {
+    await api.delete(`/timesheets/${entryId}`);
+  },
+
+  // Get timesheet for a specific week
+  async getTimesheetWeek(userId: string, weekStartDate: Date) {
+    const response = await api.get('/timesheets/week', {
+      params: {
+        userId,
+        startDate: weekStartDate.toISOString().split('T')[0],
+        endDate: new Date(weekStartDate.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      }
     });
-    const response = await fetch(`/api/timesheets/weeks?${queryParams}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
+    return response.data;
+  },
+
+  // Submit timesheet for approval
+  async submitTimesheet(timesheetId: string): Promise<TimesheetWeek> {
+    const response = await api.post(`/timesheets/${timesheetId}/submit`);
+    return response.data;
+  },
+
+  // Get timesheets for a specific user
+  async getUserTimesheets(userId: string, filters: any = {}) {
+    const response = await api.get('/timesheets', {
+      params: {
+        userId,
+        ...filters
+      }
     });
-    if (!response.ok) throw new Error('Failed to fetch timesheets');
-    return response.json();
+    return response.data;
   },
 
   // Timesheet Approvals
-  async getPendingApprovals(managerId: string): Promise<TimesheetApproval[]> {
-    const response = await fetch(`/api/timesheets/approvals/pending?managerId=${managerId}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
+  async getPendingApprovals(managerId?: string) {
+    const response = await api.get('/timesheets/pending-approval', {
+      params: { managerId }
     });
-    if (!response.ok) throw new Error('Failed to fetch pending approvals');
-    return response.json();
+    return response.data;
   },
 
-  async approveTimesheet(timesheetId: string, comment?: string): Promise<TimesheetApproval> {
-    const response = await fetch(`/api/timesheets/${timesheetId}/approve`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-      body: JSON.stringify({ comment }),
-    });
-    if (!response.ok) throw new Error('Failed to approve timesheet');
-    return response.json();
+  // Approve a timesheet
+  async approveTimesheet(timesheetId: string, approvedById: string) {
+    const response = await api.post(`/timesheets/${timesheetId}/approve`, { approvedById });
+    return response.data;
   },
 
-  async rejectTimesheet(timesheetId: string, reason: string): Promise<TimesheetApproval> {
-    const response = await fetch(`/api/timesheets/${timesheetId}/reject`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-      body: JSON.stringify({ reason }),
+  // Reject a timesheet
+  async rejectTimesheet(timesheetId: string, rejectedById: string, rejectionReason: string) {
+    const response = await api.post(`/timesheets/${timesheetId}/reject`, { 
+      rejectedById, 
+      rejectionReason 
     });
-    if (!response.ok) throw new Error('Failed to reject timesheet');
-    return response.json();
+    return response.data;
+  },
+
+  // Get timesheet reports
+  async getReports(filters: any = {}) {
+    const response = await api.get('/timesheets/reports', { params: filters });
+    return response.data;
+  },
+
+  // Get timesheet statistics
+  async getTimesheetStats(userId?: string) {
+    const response = await api.get('/timesheets/stats', {
+      params: { userId }
+    });
+    return response.data;
   },
 
   // Database status

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,8 @@ import {
   FileText,
   Activity,
   ClipboardList,
+  Heart,
+  Zap,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ScrollContainer from '@/components/layout/ScrollContainer';
@@ -187,6 +189,35 @@ export default function Menu() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [recentItems, setRecentItems] = useState<MenuItem[]>([]);
+
+  // Load favorites and recent items from localStorage on mount
+  useEffect(() => {
+    const savedFavorites = localStorage.getItem('menuFavorites');
+    const savedViewMode = localStorage.getItem('menuViewMode');
+    const savedCategory = localStorage.getItem('menuCategory');
+    const savedRecentItems = localStorage.getItem('menuRecentItems');
+
+    if (savedFavorites) {
+      setFavorites(new Set(JSON.parse(savedFavorites)));
+    }
+    if (savedViewMode) {
+      setViewMode(savedViewMode as 'grid' | 'list');
+    }
+    if (savedCategory) {
+      setSelectedCategory(savedCategory);
+    }
+    if (savedRecentItems) {
+      setRecentItems(JSON.parse(savedRecentItems));
+    }
+  }, []);
+
+  // Save preferences to localStorage
+  const savePreferences = (mode: 'grid' | 'list', category: string, favs: Set<string>) => {
+    localStorage.setItem('menuViewMode', mode);
+    localStorage.setItem('menuCategory', category);
+    localStorage.setItem('menuFavorites', JSON.stringify(Array.from(favs)));
+  };
 
   const filteredItems = menuItems.filter(item => {
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
@@ -203,12 +234,28 @@ export default function Menu() {
       newFavorites.add(item.path);
     }
     setFavorites(newFavorites);
-    localStorage.setItem('menuFavorites', JSON.stringify(Array.from(newFavorites)));
+    savePreferences(viewMode, selectedCategory, newFavorites);
   };
 
-  const handleNavigate = (path: string) => {
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    savePreferences(mode, selectedCategory, favorites);
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    savePreferences(viewMode, category, favorites);
+  };
+
+  const handleNavigate = (path: string, item: MenuItem) => {
+    // Add to recent items
+    const updated = [item, ...recentItems.filter(r => r.path !== path)].slice(0, 5);
+    setRecentItems(updated);
+    localStorage.setItem('menuRecentItems', JSON.stringify(updated));
     navigate(path);
   };
+
+  const favoriteItems = menuItems.filter(item => favorites.has(item.path)).slice(0, 3);
 
   return (
     <ScrollContainer>
@@ -236,45 +283,107 @@ export default function Menu() {
 
               <div className="flex items-center justify-between">
                 <div className="flex gap-2 flex-wrap">
-                  <Button
-                    variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedCategory('all')}
-                  >
-                    All
-                  </Button>
-                  {categories.map(category => (
-                    <Button
-                      key={category}
-                      variant={selectedCategory === category ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedCategory(category)}
-                    >
-                      {category}
-                    </Button>
-                  ))}
-                </div>
+                   <Button
+                     variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                     size="sm"
+                     onClick={() => handleCategoryChange('all')}
+                   >
+                     All
+                   </Button>
+                   {categories.map(category => (
+                     <Button
+                       key={category}
+                       variant={selectedCategory === category ? 'default' : 'outline'}
+                       size="sm"
+                       onClick={() => handleCategoryChange(category)}
+                     >
+                       {category}
+                     </Button>
+                   ))}
+                 </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant={viewMode === 'grid' ? 'default' : 'outline'}
-                    size="icon"
-                    onClick={() => setViewMode('grid')}
-                  >
-                    <Grid className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'list' ? 'default' : 'outline'}
-                    size="icon"
-                    onClick={() => setViewMode('list')}
-                  >
-                    <ListIcon className="h-4 w-4" />
-                  </Button>
-                </div>
+                 <div className="flex gap-2">
+                   <Button
+                     variant={viewMode === 'grid' ? 'default' : 'outline'}
+                     size="icon"
+                     onClick={() => handleViewModeChange('grid')}
+                   >
+                     <Grid className="h-4 w-4" />
+                   </Button>
+                   <Button
+                     variant={viewMode === 'list' ? 'default' : 'outline'}
+                     size="icon"
+                     onClick={() => handleViewModeChange('list')}
+                   >
+                     <ListIcon className="h-4 w-4" />
+                   </Button>
+                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Favorites Section */}
+        {favoriteItems.length > 0 && (
+          <Card className="border-2 border-yellow-200 bg-yellow-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-yellow-500" />
+                Your Favorites
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {favoriteItems.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => handleNavigate(item.path, item)}
+                      className="p-4 rounded-lg bg-white border border-yellow-300 hover:bg-yellow-100 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <Icon className="h-5 w-5 text-yellow-600" />
+                        <span className="font-medium text-gray-900">{item.title}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recent Items Section */}
+        {recentItems.length > 0 && (
+          <Card className="border-2 border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-blue-500" />
+                Recently Accessed
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {recentItems.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => handleNavigate(item.path, item)}
+                      className="p-4 rounded-lg bg-white border border-blue-300 hover:bg-blue-100 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <Icon className="h-5 w-5 text-blue-600" />
+                        <span className="font-medium text-gray-900">{item.title}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Menu Items */}
         {viewMode === 'grid' ? (
@@ -286,7 +395,7 @@ export default function Menu() {
                 <Card
                   key={item.path}
                   className="cursor-pointer hover:shadow-lg transition-all"
-                  onClick={() => handleNavigate(item.path)}
+                  onClick={() => handleNavigate(item.path, item)}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-3">
@@ -334,10 +443,10 @@ export default function Menu() {
                   const isFavorite = favorites.has(item.path);
                   return (
                     <div
-                      key={item.path}
-                      onClick={() => handleNavigate(item.path)}
-                      className="p-4 hover:bg-gray-50 cursor-pointer transition-colors flex items-center justify-between"
-                    >
+                       key={item.path}
+                       onClick={() => handleNavigate(item.path, item)}
+                       className="p-4 hover:bg-gray-50 cursor-pointer transition-colors flex items-center justify-between"
+                     >
                       <div className="flex items-center gap-4 flex-1">
                         <Icon className="h-5 w-5 text-blue-600" />
                         <div>

@@ -1,10 +1,11 @@
 /**
- * Admin Console Configuration
+ * การตั้งค่าคอนโซลผู้ดูแลระบบ
  * 
- * Security Settings:
- * - MAX_ATTEMPTS: Maximum failed PIN attempts before lockout
- * - LOG_ATTEMPTS: Enable/disable attempt logging
- * - NOTIFY_ON_FAILED_ATTEMPTS: Send notifications on failed attempts
+ * การตั้งค่าความปลอดภัย:
+ * - MAX_ATTEMPTS: จำนวนครั้งสูงสุดที่ใส่ PIN ผิดก่อนถูกล็อก (ค่าเริ่มต้น: 5 ครั้ง)
+ * - LOG_ATTEMPTS: บันทึกประวัติการเข้าถึง (เปิดใช้งาน)
+ * - NOTIFY_ON_FAILED_ATTEMPTS: แจ้งเตือนเมื่อมีการพยายามเข้าถึงไม่สำเร็จ
+ * - PIN_SESSION_DURATION: ระยะเวลาที่ session ยังคงอยู่ (ค่าเริ่มต้น: 1 ชั่วโมง)
  */
 
 export const adminConfig = {
@@ -24,8 +25,9 @@ export const adminConfig = {
  * For production, use a strong PIN and update regularly
  */
 export const validateAdminPIN = (pin: string): boolean => {
-  // TODO: Change this PIN from default
-  return pin === '123456';
+  // เปลี่ยนรหัส PIN นี้เป็นรหัสที่ปลอดภัย
+  // ตัวอย่าง: ใช้รหัส 6 หลักที่จดจำง่ายแต่คาดเดายาก
+  return pin === '246810';
 };
 
 /**

@@ -1,2 +1,0 @@
-const n=r=>{const e=typeof r=="string"?parseFloat(r):r;return isNaN(e)?(console.warn("Invalid amount provided to formatCurrency:",r),"฿0.00"):new Intl.NumberFormat("th-TH",{style:"currency",currency:"THB",minimumFractionDigits:2,maximumFractionDigits:2}).format(e).replace("THB","฿").trim()},a=r=>{if(!r)return 0;const e=r.replace(/[^0-9.,-]/g,"").replace(/,/g,""),t=parseFloat(e);return isNaN(t)?0:t};export{n as f,a as p};
-//# sourceMappingURL=formatCurrency-pRnzFgIC.js.map

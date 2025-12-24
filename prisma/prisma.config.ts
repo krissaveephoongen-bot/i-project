@@ -1,7 +1,0 @@
-import { defineConfig } from 'prisma/config'
-
-export default defineConfig({
-  database: {
-    url: process.env.DATABASE_URL || "postgresql://neondb_owner:npg_6FSH4YyQIoeb@ep-muddy-cherry-ah612m1a-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&connection_limit=1"
-  }
-})

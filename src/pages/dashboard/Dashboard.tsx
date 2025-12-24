@@ -1,75 +1,104 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ProjectChart } from '@/components/charts/ProjectChart';
-import { Users, CheckSquare, BarChart3, TrendingUp, Clock, DollarSign, Target, AlertTriangle, ArrowUpRight, ArrowDownRight, RefreshCw, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, Typography, Skeleton, Button } from 'antd';
+import { UserOutlined, CheckSquareOutlined, DollarOutlined, AlertOutlined, ArrowUpOutlined, CalendarOutlined, TableOutlined } from '@ant-design/icons';
 import { formatCurrency } from '@/utils/formatCurrency';
-import { SkeletonCard } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import ProjectTableView from './ProjectTableView';
+import ProjectSCurveChart from '@/components/charts/ProjectSCurveChart';
+
+const { Title, Text } = Typography;
 
 interface Project {
     id: string;
     name: string;
+    code: string;
     status: string;
     progress: number;
-    budget: number;
-    spent: number;
-    tasksCount: number;
-    completedTasks: number;
-    teamMembers: string[];
+    budget: number | null;
+    actualCost: number | null;
+    startDate: string;
+    endDate: string | null;
+    client?: {
+        id: string;
+        name: string;
+    };
+    projectManager?: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    _count?: {
+        tasks: number;
+        timesheets: number;
+        timeLogs: number;
+    };
 }
 
-interface Task {
-    id: string;
-    title: string;
-    status: string;
-    priority: string;
-    dueDate: string;
-    progress: number;
-}
-
-interface Client {
-    id: string;
-    name: string;
-    status: string;
-    revenue: number;
-}
-
-interface TimesheetEntry {
-    id: string;
-    hours: number;
-    status: string;
-}
 
 export default function Dashboard() {
-    const [stats, setStats] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-    const [dateRange, setDateRange] = useState<'week' | 'month' | 'quarter'>('month');
+     const navigate = useNavigate();
+     const [stats, setStats] = useState<any>(null);
+     const [isLoading, setIsLoading] = useState(true);
+     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+     const [dateRange, setDateRange] = useState<'week' | 'month' | 'quarter'>('month');
 
     const [projects, setProjects] = useState<Project[]>([]);
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [clients, setClients] = useState<Client[]>([]);
-    const [timesheet, setTimesheet] = useState<TimesheetEntry[]>([]);
+    const [selectedProject, setSelectedProject] = useState<string>('all');
+    // Define the S-curve data point type
+    type SCurveDataPoint = {
+      month: string;
+      date: string;
+      plannedPercentage: number;
+      actualPercentage: number;
+      plannedWeight: number;
+      actualWeight: number;
+    };
+
+    const [sCurveData, setSCurveData] = useState<Record<string, SCurveDataPoint[]>>({});
 
     // Fetch dashboard data
     useEffect(() => {
-        const fetchDashboardData = async () => {
+        const fetchData = async () => {
             try {
                 setIsLoading(true);
-                const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-                const [projectsRes, tasksRes, clientsRes, timesheetRes] = await Promise.all([
-                    fetch(`${apiUrl}/projects`, { credentials: 'include' }),
-                    fetch(`${apiUrl}/tasks`, { credentials: 'include' }),
-                    fetch(`${apiUrl}/clients`, { credentials: 'include' }),
-                    fetch(`${apiUrl}/timesheet`, { credentials: 'include' }),
-                ]);
+                // Fetch projects from API
+                const projectsResponse = await fetch('/api/projects?limit=10');
 
-                if (projectsRes.ok) setProjects(await projectsRes.json());
-                if (tasksRes.ok) setTasks(await tasksRes.json());
-                if (clientsRes.ok) setClients(await clientsRes.json());
-                if (timesheetRes.ok) setTimesheet(await timesheetRes.json());
+                if (!projectsResponse.ok) {
+                    throw new Error(`Failed to fetch projects: ${projectsResponse.status}`);
+                }
+
+                const projectsResult = await projectsResponse.json();
+
+                if (projectsResult.success) {
+                    const apiProjects = projectsResult.data.map((p: any) => ({
+                        id: p.id,
+                        name: p.name,
+                        code: p.code,
+                        status: p.status,
+                        progress: p.progress || 0,
+                        budget: p.budget,
+                        actualCost: p.actualCost,
+                        startDate: p.startDate,
+                        endDate: p.endDate,
+                        client: p.client,
+                        projectManager: p.projectManager,
+                        _count: p._count
+                    }));
+
+                    setProjects(apiProjects);
+
+                    // Generate S-Curve data for each project based on dateRange
+                    const sCurveDataMap: Record<string, SCurveDataPoint[]> = {};
+                    apiProjects.forEach((project: Project) => {
+                        const weeks = getWeeksFromDateRange(dateRange);
+                        sCurveDataMap[project.id] = generateSCurveData(project.name, weeks, project.progress);
+                    });
+
+                    setSCurveData(sCurveDataMap);
+                } else {
+                    throw new Error(projectsResult.message || 'Failed to fetch projects');
+                }
 
                 setLastUpdated(new Date());
             } catch (error) {
@@ -79,58 +108,87 @@ export default function Dashboard() {
             }
         };
 
-        fetchDashboardData();
-    }, []);
+        const getWeeksFromDateRange = (range: 'week' | 'month' | 'quarter'): number => {
+            switch (range) {
+                case 'week':
+                    return 1;
+                case 'month':
+                    return 4;
+                case 'quarter':
+                    return 12;
+                default:
+                    return 4;
+            }
+        };
 
-    const calculateStats = (projects: Project[], tasks: Task[], clients: Client[], timesheet: TimesheetEntry[]) => {
+        const generateSCurveData = (_projectName: string, weeks: number, currentProgress: number): SCurveDataPoint[] => {
+            const data: SCurveDataPoint[] = [];
+            const today = new Date();
+
+            for (let i = 0; i < weeks; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + (i * 7));
+
+                const plannedProgress = Math.min(100, Math.round(100 / (1 + Math.exp(-0.5 * (i - weeks/2)))));
+
+                const progressVariance = Math.random() * 10 - 5;
+                const actualProgress = Math.min(currentProgress, Math.max(0, plannedProgress + progressVariance));
+
+                const dateString = date.toISOString().split('T')[0];
+                if (!dateString) continue; // Skip if date is invalid
+
+                data.push({
+                    month: date.toLocaleString('default', { month: 'short' }),
+                    date: dateString,
+                    plannedPercentage: plannedProgress,
+                    actualPercentage: i === weeks - 1 ? currentProgress : actualProgress,
+                    plannedWeight: plannedProgress * 1000,
+                    actualWeight: actualProgress * 1000
+                });
+            }
+
+            return data;
+        };
+
+        fetchData();
+    }, [dateRange]);
+
+    const calculateStats = (projects: Project[]) => {
         const totalProjects = projects.length;
-        const activeProjects = projects.filter(p => p.status === 'active').length;
-        const totalTasks = tasks.length;
-        const completedTasks = tasks.filter(t => t.status === 'completed').length;
-        const inProgressTasks = tasks.filter(t => t.status === 'in-progress').length;
-        const overdueTasks = tasks.filter(t => new Date(t.dueDate) < new Date() && t.status !== 'completed').length;
-        const upcomingDeadlines = tasks.filter(t => {
-            const dueDate = new Date(t.dueDate);
-            const now = new Date();
-            const diffTime = dueDate.getTime() - now.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return diffDays <= 7 && diffDays >= 0 && t.status !== 'completed';
-        }).length;
+        const activeProjects = projects.filter(p => p.status === 'IN_PROGRESS' || p.status === 'PLANNING').length;
+        const totalTasks = projects.reduce((sum, p) => sum + (p._count?.tasks || 0), 0);
 
-        const totalTeamMembers = [...new Set(projects.flatMap(p => p.teamMembers))].length;
-        const totalBudget = projects.reduce((sum, p) => sum + p.budget, 0);
-        const totalSpent = projects.reduce((sum, p) => sum + p.spent, 0);
+        const totalBudget = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
+        const totalSpent = projects.reduce((sum, p) => sum + (p.actualCost || 0), 0);
         const budgetRemaining = totalBudget - totalSpent;
         const budgetUtilization = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-        const totalRevenue = clients.reduce((sum, c) => sum + c.revenue, 0);
-        const totalHours = timesheet.reduce((sum, t) => sum + t.hours, 0);
 
         return {
             projects: totalProjects,
             activeProjects,
             tasks: totalTasks,
-            completed: completedTasks,
-            inProgress: inProgressTasks,
-            overdueTasks,
-            upcomingDeadlines,
-            team: totalTeamMembers,
+            completed: 0, // Will be calculated from actual task data
+            inProgress: 0,
+            overdueTasks: 0,
+            upcomingDeadlines: 0,
+            team: 0, // Will be calculated from user data
             totalBudget,
             totalSpent,
             budgetRemaining,
             budgetUtilization,
-            totalRevenue,
-            totalHours,
+            totalRevenue: 0,
+            totalHours: 0,
             newMessages: 3,
-            completionRate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
+            completionRate: 0,
         };
     };
 
     useEffect(() => {
-        if (projects.length > 0 || tasks.length > 0 || clients.length > 0 || timesheet.length > 0) {
-            const calculatedStats = calculateStats(projects, tasks, clients, timesheet);
+        if (projects.length > 0) {
+            const calculatedStats = calculateStats(projects);
             setStats(calculatedStats);
         }
-    }, [projects, tasks, clients, timesheet, dateRange]);
+    }, [projects, dateRange]);
 
     if (isLoading) {
         return (
@@ -141,22 +199,19 @@ export default function Dashboard() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     {Array.from({ length: 4 }).map((_, i) => (
-                        <SkeletonCard key={i} />
+                        <Card key={i}>
+                            <Skeleton active paragraph={{ rows: 4 }} />
+                        </Card>
                     ))}
                 </div>
                 <div className="space-y-4">
                     {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="h-16 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        <Skeleton key={i} active paragraph={{ rows: 1 }} className="h-16" />
                     ))}
                 </div>
             </div>
         );
     }
-
-    const handleRefresh = () => {
-        setIsLoading(true);
-        setStats(null);
-    };
 
     const formatTime = (date: Date | null) => {
         if (!date) return '';
@@ -164,187 +219,487 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="space-y-6">
+        <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
             {/* Header with Controls */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                marginBottom: '32px'
+            }}
+            className="md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <Title level={1} style={{ margin: 0, color: '#1f2937' }}>Dashboard</Title>
+                    <Text type="secondary" style={{ fontSize: '14px' }}>
                         {lastUpdated && `Last updated: ${formatTime(lastUpdated)}`}
-                    </p>
+                    </Text>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex gap-2 rounded-lg border border-gray-200 p-1 dark:border-gray-700">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                        display: 'flex',
+                        gap: '2px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        padding: '2px',
+                        background: '#f9fafb'
+                    }}>
                         {(['week', 'month', 'quarter'] as const).map(range => (
                             <button
                                 key={range}
                                 onClick={() => setDateRange(range)}
-                                className={`rounded px-3 py-1 text-sm font-medium transition-colors ${dateRange === range
-                                        ? 'bg-indigo-600 text-white'
-                                        : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                                    }`}
+                                style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '14px',
+                                    fontWeight: '500',
+                                    border: 'none',
+                                    background: dateRange === range ? '#4f46e5' : 'transparent',
+                                    color: dateRange === range ? 'white' : '#374151',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
                             >
                                 {range.charAt(0).toUpperCase() + range.slice(1)}
                             </button>
                         ))}
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleRefresh}
-                        className="gap-2"
-                    >
-                        <RefreshCw className="h-4 w-4" />
-                        Refresh
-                    </Button>
                 </div>
             </div>
 
-            {/* KPI Cards Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* S-Curve Chart */}
+            <div style={{ marginBottom: '32px', width: '100%' }}>
+                <ProjectSCurveChart
+                    projects={projects.map(p => ({ id: p.id, name: p.name }))}
+                    projectData={sCurveData}
+                    isLoading={isLoading}
+                    onProjectChange={setSelectedProject}
+                />
+            </div>
+
+            {/* Stats Cards */}
+            <div style={{
+                display: 'grid',
+                gap: '20px',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                marginBottom: '32px'
+            }}>
                 {/* Projects Card */}
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-                        <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                            <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats?.projects || 0}</div>
-                        <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 mt-1">
-                            <ArrowUpRight className="h-3 w-3" />
-                            <span>{stats?.activeProjects || 0} active</span>
-                        </div>
-                    </CardContent>
+                <Card
+                  style={{
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    background: '#4f46e5',
+                    color: 'white'
+                  }}
+                  hoverable
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <Text style={{ color: 'white', opacity: 0.9, fontSize: '14px' }}>Total Projects</Text>
+                      <Title level={2} style={{ color: 'white', margin: '8px 0' }}>{stats?.projects || 0}</Title>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <ArrowUpOutlined style={{ fontSize: '12px', color: 'white' }} />
+                        <Text style={{ color: 'white', opacity: 0.8, fontSize: '12px' }}>
+                          {stats?.activeProjects || 0} active
+                        </Text>
+                      </div>
+                    </div>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <CheckSquareOutlined style={{ fontSize: '24px', color: 'white' }} />
+                    </div>
+                  </div>
                 </Card>
 
                 {/* Tasks Card */}
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Task Completion</CardTitle>
-                        <div className="h-8 w-8 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                            <CheckSquare className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{Math.round(stats?.completionRate || 0)}%</div>
-                        <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            <Clock className="h-3 w-3" />
-                            <span>{stats?.inProgress || 0}/{stats?.tasks || 0} in progress</span>
-                        </div>
-                    </CardContent>
+                <Card
+                  style={{
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    background: '#ec4899',
+                    color: 'white'
+                  }}
+                  hoverable
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <Text style={{ color: 'white', opacity: 0.9, fontSize: '14px' }}>Task Completion</Text>
+                      <Title level={2} style={{ color: 'white', margin: '8px 0' }}>{Math.round(stats?.completionRate || 0)}%</Title>
+                      <Text style={{ color: 'white', opacity: 0.8, fontSize: '12px' }}>
+                        {stats?.inProgress || 0}/{stats?.tasks || 0} in progress
+                      </Text>
+                    </div>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <CheckSquareOutlined style={{ fontSize: '24px', color: 'white' }} />
+                    </div>
+                  </div>
                 </Card>
 
                 {/* Budget Card */}
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Budget Utilization</CardTitle>
-                        <div className="h-8 w-8 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                            <DollarSign className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{Math.round(stats?.budgetUtilization || 0)}%</div>
-                        <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 mt-1">
-                            <span>{formatCurrency(stats?.budgetRemaining || 0)} remaining</span>
-                        </div>
-                    </CardContent>
+                <Card
+                  style={{
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    background: '#0ea5e9',
+                    color: 'white'
+                  }}
+                  hoverable
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <Text style={{ color: 'white', opacity: 0.9, fontSize: '14px' }}>Budget Utilization</Text>
+                      <Title level={2} style={{ color: 'white', margin: '8px 0' }}>{Math.round(stats?.budgetUtilization || 0)}%</Title>
+                      <Text style={{ color: 'white', opacity: 0.8, fontSize: '12px' }}>
+                        {formatCurrency(stats?.budgetRemaining || 0)} remaining
+                      </Text>
+                    </div>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <DollarOutlined style={{ fontSize: '24px', color: 'white' }} />
+                    </div>
+                  </div>
                 </Card>
 
                 {/* Team Card */}
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Team Activity</CardTitle>
-                        <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-900 flex items-center justify-center">
-                            <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats?.team || 0}</div>
-                        <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            <Clock className="h-3 w-3" />
-                            <span>{stats?.totalHours || 0}h logged</span>
-                        </div>
-                    </CardContent>
+                <Card
+                  style={{
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    background: '#10b981',
+                    color: 'white'
+                  }}
+                  hoverable
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <Text style={{ color: 'white', opacity: 0.9, fontSize: '14px' }}>Team Activity</Text>
+                      <Title level={2} style={{ color: 'white', margin: '8px 0' }}>{stats?.team || 0}</Title>
+                      <Text style={{ color: 'white', opacity: 0.8, fontSize: '12px' }}>
+                        {stats?.totalHours || 0}h logged
+                      </Text>
+                    </div>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <UserOutlined style={{ fontSize: '24px', color: 'white' }} />
+                    </div>
+                  </div>
                 </Card>
             </div>
 
             {/* Financial & Priority Stats Row */}
-            <div className="grid gap-4 md:grid-cols-4">
+            <div style={{
+                display: 'grid',
+                gap: '20px',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                marginBottom: '32px'
+            }}>
                 {/* Total Budget */}
-                <Card className="border-l-4 border-green-500 hover:shadow-lg transition-shadow">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Budget</p>
-                                <p className="text-2xl font-bold text-green-900 dark:text-green-400">{formatCurrency(stats?.totalBudget || 0)}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Across {stats?.projects || 0} projects</p>
-                            </div>
-                            <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
-                            </div>
-                        </div>
-                    </CardContent>
+                <Card
+                  style={{
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    background: '#f0fdf4',
+                    borderLeft: '4px solid #10b981'
+                  }}
+                  hoverable
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <Text style={{ fontSize: '14px', color: '#374151' }}>Total Budget</Text>
+                      <Title level={3} style={{ margin: '4px 0', color: '#065f46' }}>{formatCurrency(stats?.totalBudget || 0)}</Title>
+                      <Text style={{ fontSize: '12px', color: '#6b7280' }}>Across {stats?.projects || 0} projects</Text>
+                    </div>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      background: 'rgba(16, 185, 129, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <DollarOutlined style={{ fontSize: '20px', color: '#10b981' }} />
+                    </div>
+                  </div>
                 </Card>
 
                 {/* Total Spent */}
-                <Card className="border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Spent</p>
-                                <p className="text-2xl font-bold text-blue-900 dark:text-blue-400">{formatCurrency(stats?.totalSpent || 0)}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                                    {stats?.budgetUtilization ? Math.round(stats.budgetUtilization) : 0}% of budget
-                                </p>
-                            </div>
-                            <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                                <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                            </div>
-                        </div>
-                    </CardContent>
+                <Card
+                  style={{
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    background: '#eff6ff',
+                    borderLeft: '4px solid #3b82f6'
+                  }}
+                  hoverable
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <Text style={{ fontSize: '14px', color: '#374151' }}>Total Spent</Text>
+                      <Title level={3} style={{ margin: '4px 0', color: '#1e40af' }}>{formatCurrency(stats?.totalSpent || 0)}</Title>
+                      <Text style={{ fontSize: '12px', color: '#6b7280' }}>
+                        {stats?.budgetUtilization ? Math.round(stats.budgetUtilization) : 0}% of budget
+                      </Text>
+                    </div>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      background: 'rgba(59, 130, 246, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <DollarOutlined style={{ fontSize: '20px', color: '#3b82f6' }} />
+                    </div>
+                  </div>
                 </Card>
 
                 {/* Overdue Tasks */}
-                <Card className={`border-l-4 ${stats?.overdueTasks && stats.overdueTasks > 0 ? 'border-red-500' : 'border-gray-300'} hover:shadow-lg transition-shadow`}>
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Overdue Tasks</p>
-                                <p className={`text-2xl font-bold ${stats?.overdueTasks && stats.overdueTasks > 0 ? 'text-red-900 dark:text-red-400' : 'text-green-900 dark:text-green-400'}`}>
-                                    {stats?.overdueTasks || 0}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                                    {stats?.overdueTasks && stats.overdueTasks > 0 ? 'Needs attention' : 'All on track'}
-                                </p>
-                            </div>
-                            <div className={`h-10 w-10 rounded-full ${stats?.overdueTasks && stats.overdueTasks > 0 ? 'bg-red-100 dark:bg-red-900' : 'bg-green-100 dark:bg-green-900'} flex items-center justify-center`}>
-                                <AlertTriangle className={`h-5 w-5 ${stats?.overdueTasks && stats.overdueTasks > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} />
-                            </div>
-                        </div>
-                    </CardContent>
+                <Card
+                  style={{
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    background: '#fef2f2',
+                    borderLeft: `4px solid ${stats?.overdueTasks && stats.overdueTasks > 0 ? '#ef4444' : '#10b981'}`
+                  }}
+                  hoverable
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <Text style={{ fontSize: '14px', color: '#374151' }}>Overdue Tasks</Text>
+                      <Title level={3} style={{
+                        margin: '4px 0',
+                        color: stats?.overdueTasks && stats.overdueTasks > 0 ? '#dc2626' : '#065f46'
+                      }}>
+                        {stats?.overdueTasks || 0}
+                      </Title>
+                      <Text style={{ fontSize: '12px', color: '#6b7280' }}>
+                        {stats?.overdueTasks && stats.overdueTasks > 0 ? 'Needs attention' : 'All on track'}
+                      </Text>
+                    </div>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      background: stats?.overdueTasks && stats.overdueTasks > 0
+                        ? 'rgba(239, 68, 68, 0.1)'
+                        : 'rgba(16, 185, 129, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <AlertOutlined style={{
+                        fontSize: '20px',
+                        color: stats?.overdueTasks && stats.overdueTasks > 0 ? '#ef4444' : '#10b981'
+                      }} />
+                    </div>
+                  </div>
                 </Card>
 
                 {/* Upcoming Deadlines */}
-                <Card className="border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Upcoming Deadlines</p>
-                                <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-400">{stats?.upcomingDeadlines || 0}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Within 7 days</p>
-                            </div>
-                            <div className="h-10 w-10 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
-                                <Calendar className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                            </div>
-                        </div>
-                    </CardContent>
+                <Card
+                  style={{
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    background: '#fffbeb',
+                    borderLeft: '4px solid #f59e0b'
+                  }}
+                  hoverable
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <Text style={{ fontSize: '14px', color: '#374151' }}>Upcoming Deadlines</Text>
+                      <Title level={3} style={{ margin: '4px 0', color: '#92400e' }}>{stats?.upcomingDeadlines || 0}</Title>
+                      <Text style={{ fontSize: '12px', color: '#6b7280' }}>Within 7 days</Text>
+                    </div>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <CalendarOutlined style={{ fontSize: '20px', color: '#f59e0b' }} />
+                    </div>
+                  </div>
                 </Card>
             </div>
 
-            {/* Project Table View with Charts */}
-            <ProjectTableView />
+            {/* Project Table View - Shown when All Projects is selected */}
+            {selectedProject === 'all' && projects.length > 0 && (
+                <div style={{ marginTop: '32px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <Title level={2} style={{ margin: 0, color: '#1f2937' }}>Project Overview</Title>
+                        <Button
+                            type="primary"
+                            icon={<TableOutlined />}
+                            onClick={() => navigate('/projects/table')}
+                            style={{ background: '#4f46e5' }}
+                        >
+                            View Detailed Table
+                        </Button>
+                    </div>
+                    <Card
+                        style={{
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                            borderRadius: '12px'
+                        }}
+                    >
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                fontSize: '14px'
+                            }}>
+                                <thead>
+                                    <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
+                                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.05em' }}>Project</th>
+                                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.05em' }}>Progress</th>
+                                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.05em' }}>Status</th>
+                                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.05em' }}>Budget</th>
+                                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.05em' }}>Team</th>
+                                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.05em' }}>Completion</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {projects.map((project) => (
+                                        <tr key={project.id} style={{
+                                            borderBottom: '1px solid #e5e7eb',
+                                            transition: 'background-color 0.2s',
+                                            cursor: 'pointer'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            <td style={{ padding: '16px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    <div style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        borderRadius: '50%',
+                                                        background: '#e0e7ff',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        marginRight: '12px',
+                                                        color: '#3730a3',
+                                                        fontWeight: '600'
+                                                    }}>
+                                                        {project.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontWeight: '500', color: '#111827' }}>
+                                                            {project.name}
+                                                        </div>
+                                                        <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                                                            {project._count?.tasks || 0} tasks
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '16px' }}>
+                                                <div style={{ width: '100%', background: '#e5e7eb', borderRadius: '4px', height: '8px', marginBottom: '4px' }}>
+                                                    <div
+                                                        style={{
+                                                            height: '8px',
+                                                            borderRadius: '4px',
+                                                            background: project.progress < 30 ? '#ef4444' : project.progress < 70 ? '#f59e0b' : '#10b981',
+                                                            width: `${project.progress}%`
+                                                        }}
+                                                    ></div>
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                                                    {project.progress}% complete
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '16px' }}>
+                                                <span style={{
+                                                    padding: '4px 8px',
+                                                    borderRadius: '12px',
+                                                    fontSize: '12px',
+                                                    fontWeight: '500',
+                                                    background: project.status === 'In Progress' ? '#dbeafe' :
+                                                               project.status === 'Planning' ? '#fef3c7' :
+                                                               project.status === 'Completed' ? '#d1fae5' : '#f3f4f6',
+                                                    color: project.status === 'In Progress' ? '#1e40af' :
+                                                           project.status === 'Planning' ? '#92400e' :
+                                                           project.status === 'Completed' ? '#065f46' : '#374151'
+                                                }}>
+                                                    {project.status}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '16px' }}>
+                                                <div style={{ fontWeight: '500', color: '#111827' }}>{formatCurrency(project.actualCost || 0)}</div>
+                                                <div style={{ fontSize: '12px', color: '#6b7280' }}>of {formatCurrency(project.budget || 0)}</div>
+                                                <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
+                                                    {project.budget ? Math.round(((project.actualCost || 0) / project.budget) * 100) : 0}% spent
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '16px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    <div style={{
+                                                        width: '32px',
+                                                        height: '32px',
+                                                        borderRadius: '50%',
+                                                        background: '#e5e7eb',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '12px',
+                                                        fontWeight: '500',
+                                                        color: '#374151',
+                                                        border: '2px solid white'
+                                                    }}>
+                                                        {project.projectManager?.name?.charAt(0) || 'P'}
+                                                    </div>
+                                                    <span style={{ marginLeft: '8px', fontSize: '12px', color: '#6b7280' }}>
+                                                        {project.projectManager?.name || 'Unassigned'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '16px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    <CheckSquareOutlined style={{ color: '#10b981', marginRight: '8px' }} />
+                                                    <span style={{ color: '#6b7280' }}>
+                                                        {project.progress}% completed
+                                                    </span>
+                                                </div>
+                                                <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
+                                                    {project._count?.tasks || 0} total tasks
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }

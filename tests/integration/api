@@ -1,0 +1,72 @@
+const http = require('http');
+
+function makeRequest(options, data) {
+  return new Promise((resolve, reject) => {
+    const req = http.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          resolve({
+            status: res.statusCode,
+            body: JSON.parse(body)
+          });
+        } catch (e) {
+          resolve({
+            status: res.statusCode,
+            body: body
+          });
+        }
+      });
+    });
+
+    req.on('error', reject);
+    if (data) req.write(JSON.stringify(data));
+    req.end();
+  });
+}
+
+async function testLogin() {
+  console.log('Testing API Login Endpoint...\n');
+
+  const loginData = {
+    email: 'jakgrits.ph@appworks.co.th',
+    password: 'AppWorks@123!'
+  };
+
+  const options = {
+    hostname: 'localhost',
+    port: 5000,
+    path: '/api/auth/login',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  };
+
+  try {
+    console.log('Sending login request...');
+    console.log(`Email: ${loginData.email}`);
+    console.log(`Password: ${loginData.password}\n`);
+
+    const result = await makeRequest(options, loginData);
+    
+    console.log('Response Status:', result.status);
+    console.log('Response Body:', JSON.stringify(result.body, null, 2));
+
+    if (result.status === 200 && result.body.success) {
+      console.log('\n✅ LOGIN SUCCESSFUL');
+      console.log('\nToken:', result.body.token.substring(0, 20) + '...');
+      console.log('User:', result.body.user);
+    } else {
+      console.log('\n❌ LOGIN FAILED');
+    }
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
+
+  process.exit(0);
+}
+
+// Give server time to start
+setTimeout(testLogin, 2000);

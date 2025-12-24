@@ -62,10 +62,10 @@ router.get('/users', requireAdmin, async (req, res) => {
       error: 'Failed to fetch users',
       message: error.message,
     });
-  } finally {
-    await client.end();
-  }
-});
+    } finally {
+    // Connection handled by executeQuery
+    }
+    });
 
 /**
  * POST /admin/users
@@ -375,59 +375,58 @@ router.get('/audit-logs', requireAdmin, async (req, res) => {
  * GET /admin/dashboard/stats
  * Get admin dashboard statistics
  */
-router.get('/dashboard/stats', requireAdmin, async (req, res) => {
-  const client = getDBClient();
-  try {
-    await client.connect();
+ router.get('/dashboard/stats', requireAdmin, async (req, res) => {
+   try {
+     // Get various stats for admin dashboard
+     const [userStats, projectStats, teamStats] = await Promise.all([
+       // User statistics
+       executeQuery(`
+         SELECT
+           COUNT(*) as total_users,
+           COUNT(CASE WHEN role = 'ADMIN' THEN 1 END) as admin_users,
+           COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as new_users
+         FROM "User" WHERE status = 'active'
+       `),
 
-    // Get various stats for admin dashboard
-    const [userStats, timeStats, projectStats] = await Promise.all([
-      // User statistics
-      client.query(`
-        SELECT
-          COUNT(*) as total_users,
-          COUNT(CASE WHEN role = 'admin' THEN 1 END) as admin_users,
-          COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as new_users
-        FROM users WHERE is_deleted = FALSE
-      `),
+       // Project statistics
+       executeQuery(`
+         SELECT
+           COUNT(*) as total_projects,
+           COUNT(CASE WHEN status = 'active' THEN 1 END) as active_projects,
+           COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_projects
+         FROM projects WHERE is_deleted = false
+       `),
 
-      // Timesheet statistics
-      client.query(`
-        SELECT
-          COUNT(*) as total_entries,
-          COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_approvals,
-          COALESCE(SUM(hours), 0) as total_hours
-        FROM time_entries
-        WHERE created_at >= NOW() - INTERVAL '30 days'
-      `),
+       // Team statistics
+       executeQuery(`
+         SELECT
+           COUNT(*) as total_teams,
+           COUNT(CASE WHEN status = 'active' THEN 1 END) as active_teams
+         FROM teams WHERE is_deleted = false
+       `)
+     ]);
 
-      // Project statistics
-      client.query(`
-        SELECT
-          COUNT(*) as total_projects,
-          COUNT(CASE WHEN status = 'active' THEN 1 END) as active_projects,
-          COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_projects
-        FROM projects WHERE is_deleted = FALSE
-      `)
-    ]);
-
-    res.json({
-      users: userStats.rows[0],
-      timesheets: timeStats.rows[0],
-      projects: projectStats.rows[0],
-      system: {
-        status: 'healthy',
-        uptime: '99.9%',
-        lastBackup: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error fetching dashboard stats:', error);
-    res.status(500).json({
-      error: 'Failed to fetch dashboard statistics',
-      message: error.message,
-    });
-  } finally {
+     res.json({
+       success: true,
+       data: {
+         users: userStats.rows[0],
+         projects: projectStats.rows[0],
+         teams: teamStats.rows[0],
+         system: {
+           status: 'healthy',
+           uptime: '99.9%',
+           lastBackup: new Date().toISOString()
+         }
+       }
+     });
+   } catch (error) {
+     console.error('❌ Error fetching dashboard stats:', error);
+     res.status(500).json({
+       success: false,
+       error: 'Failed to fetch dashboard statistics',
+       message: error.message,
+     });
+   } finally {
     await client.end();
   }
 });

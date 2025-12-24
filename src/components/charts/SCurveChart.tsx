@@ -167,25 +167,47 @@ const SCurveChart: React.FC<SCurveChartProps> = ({ data, projectName, isLoading 
   };
 
   return (
-    <div className="w-full">
-      <div style={{ height: '400px', position: 'relative' }}>
-        <Line data={chartData} options={chartOptions} />
-      </div>
-
-      {/* Chart Legend */}
-      <div className="mt-4 grid grid-cols-2 gap-4">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-0.5 bg-blue-500" style={{ width: '20px', height: '3px' }}></div>
-          <span className="text-sm text-gray-600">
-            Planned Progress - Target trajectory based on task due dates
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-0.5 bg-green-500" style={{ width: '20px', height: '3px' }}></div>
-          <span className="text-sm text-gray-600">
-            Actual Progress - Real completion based on finished tasks
-          </span>
-        </div>
+    <div className="w-full h-full flex flex-col">
+      <div className="flex-1 min-h-0 relative">
+        <Line 
+          data={chartData} 
+          options={{
+            ...chartOptions,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              ...chartOptions.plugins,
+              legend: {
+                ...chartOptions.plugins?.legend,
+                position: 'top' as const,
+              },
+              tooltip: {
+                ...chartOptions.plugins?.tooltip,
+                mode: 'index',
+                intersect: false,
+              },
+            },
+            scales: {
+              ...chartOptions.scales,
+              y: {
+                ...chartOptions.scales?.y,
+                beginAtZero: true,
+                max: 100,
+                title: {
+                  display: true,
+                  text: 'Progress (%)',
+                },
+              },
+              x: {
+                ...chartOptions.scales?.x,
+                title: {
+                  display: true,
+                  text: 'Timeline',
+                },
+              },
+            },
+          }}
+        />
       </div>
     </div>
   );

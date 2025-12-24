@@ -22,7 +22,6 @@ export default defineConfig({
     react({
       babel: {
         plugins: [
-          ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }],
           'babel-plugin-macros',
         ],
       },
@@ -94,7 +93,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 5173,
     host: true,
     open: true,
     proxy: {

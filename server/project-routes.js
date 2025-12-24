@@ -6,6 +6,10 @@
 const express = require('express');
 const router = express.Router();
 const { executeQuery, getClient } = require('../database/neon-connection');
+// const validateCurrency = require('../middleware/currency-validator');
+
+// Apply currency validation to all routes that handle monetary values
+// router.use(validateCurrency);
 
 // Project CRUD Operations
 
@@ -53,7 +57,9 @@ router.get('/projects/my-projects', async (req, res) => {
       success: true,
       data: result.rows,
       count: result.rows.length,
-      total: result.rows.length
+      total: result.rows.length,
+      isEmpty: result.rows.length === 0,
+      message: result.rows.length === 0 ? 'No projects found. Create your first project to get started.' : undefined
     });
   } catch (error) {
     console.error('❌ Get my-projects error:', error.message);
@@ -95,17 +101,19 @@ router.get('/projects', async (req, res) => {
       success: true,
       data: result.rows,
       count: result.rows.length,
-      total: result.rowCount || result.rows.length
+      total: result.rowCount || result.rows.length,
+      isEmpty: result.rows.length === 0,
+      message: result.rows.length === 0 ? 'No projects available. Create your first project to get started.' : undefined
     });
-  } catch (error) {
+    } catch (error) {
     console.error('❌ Get projects error:', error.message);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch projects',
       error: error.message
     });
-  }
-});
+    }
+    });
 
 // Get single project by ID
 router.get('/projects/:id', async (req, res) => {
@@ -144,56 +152,27 @@ router.post('/projects', async (req, res) => {
     const projectData = req.body;
 
     // Validate required fields
-    const requiredFields = ['name', 'description', 'start_date', 'end_date', 'budget'];
-    const missingFields = requiredFields.filter(field => !projectData[field]);
-
-    if (missingFields.length > 0) {
+    if (!projectData.name || !projectData.name.trim()) {
       return res.status(400).json({
         success: false,
-        message: `Missing required fields: ${missingFields.join(', ')}`
+        message: 'Project name is required'
       });
     }
 
     const result = await executeQuery(`
       INSERT INTO projects (
-        name, description, objective, scope, stakeholders, customer,
-        project_manager, team_members, department, priority, risk_level,
-        project_type, project_value, project_action, project_co,
-        start_date, end_date, duration_days, remaining_days,
-        budget, contract_amount, status, progress, actual_progress, planned_progress,
-        created_by, updated_by
+        name, description, status, start_date, end_date, budget, created_by
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-        $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28
+        $1, $2, $3, $4, $5, $6, $7
       ) RETURNING *
     `, [
       projectData.name,
-      projectData.description,
-      projectData.objective || '',
-      projectData.scope || '',
-      projectData.stakeholders || '',
-      projectData.customer || '',
-      projectData.project_manager || '',
-      projectData.team_members || '',
-      projectData.department || '',
-      projectData.priority || 'medium',
-      projectData.risk_level || 'medium',
-      projectData.project_type || 'external',
-      projectData.project_value || '',
-      projectData.project_action || '',
-      projectData.project_co || '',
-      projectData.start_date,
-      projectData.end_date,
-      projectData.duration_days || 0,
-      projectData.remaining_days || 0,
-      projectData.budget,
-      projectData.contract_amount || projectData.budget,
+      projectData.description || '',
       projectData.status || 'planning',
-      projectData.progress || 0,
-      projectData.actual_progress || 0,
-      projectData.planned_progress || 0,
-      projectData.created_by || 'system',
-      projectData.updated_by || 'system'
+      projectData.start_date || null,
+      projectData.end_date || null,
+      projectData.budget || 0,
+      projectData.created_by || 'system'
     ]);
 
     res.status(201).json({

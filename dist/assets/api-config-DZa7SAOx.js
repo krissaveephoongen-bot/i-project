@@ -1,2 +1,0 @@
-import{p as e}from"./ui-BmZ6-Ak6.js";const t={};var o={};const i=()=>{const n=typeof import.meta<"u"&&(t==null?void 0:t.VITE_API_URL)||typeof e<"u"&&(o==null?void 0:o.REACT_APP_API_URL)||typeof window<"u"&&window.__API_URL__||"";return n||(typeof window<"u"?window.location.hostname==="localhost"||window.location.hostname==="127.0.0.1"?"http://localhost:5000/api":"/api":o.API_URL||"http://localhost:5000/api")},p=i(),r=1e4;export{r as A,p as a};
-//# sourceMappingURL=api-config-DZa7SAOx.js.map

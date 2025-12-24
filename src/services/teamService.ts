@@ -83,9 +83,15 @@ export const teamService = {
   },
 
   /**
-   * Get team members
+   * Get all team members or members of a specific team
    */
-  async getTeamMembers(teamId: string): Promise<{ success: boolean; data: TeamMember[] }> {
+  async getTeamMembers(teamId: string = 'all'): Promise<{ success: boolean; data: TeamMember[] }> {
+    if (teamId === 'all') {
+      // Get all team members from the users/team-members endpoint
+      const response = await apiClient.get('/team-members');
+      return response.data;
+    }
+    // Get members of a specific team
     const response = await apiClient.get(`/teams/${teamId}/members`);
     return response.data;
   },

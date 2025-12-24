@@ -6,10 +6,14 @@
 const express = require('express');
 const { Client } = require('pg');
 const dotenv = require('dotenv');
+const validateCurrency = require('./middleware/currency-validator');
 
 dotenv.config();
 
 const router = express.Router();
+
+// Apply currency validation to all expense routes
+router.use(validateCurrency);
 
 const getDBClient = () => {
   return new Client({

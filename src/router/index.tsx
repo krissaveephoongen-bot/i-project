@@ -29,9 +29,6 @@ const BackofficeUsers = React.lazy(() =>
   import('@/pages/backoffice/Users').catch(() => ({ default: () => <div>Loading Users...</div> }))
 );
 
-const AdminConsole = React.lazy(() => 
-  import('@/pages/AdminConsole')
-);
 
 const Dashboard = React.lazy(() => 
   import('@/pages/dashboard/Dashboard').catch(() => ({ default: () => <div>Loading...</div> }))
@@ -43,6 +40,10 @@ const EnhancedDashboard = React.lazy(() =>
 
 const Menu = React.lazy(() => 
   import('@/pages/Menu').catch(() => ({ default: () => <div>Loading...</div> }))
+);
+
+const MenuEnhanced = React.lazy(() => 
+  import('@/pages/MenuEnhanced').catch(() => ({ default: () => <div>Loading...</div> }))
 );
 
 const TaskManagementFull = React.lazy(() => 
@@ -162,8 +163,12 @@ const ProjectDetailPage = React.lazy(() =>
   import('@/pages/projects/ProjectDetailPage').catch(() => ({ default: () => <div>Loading...</div> }))
 );
 
-const ProjectManagerUsersPage = React.lazy(() => 
+const ProjectManagerUsersPage = React.lazy(() =>
   import('@/pages/ProjectManagerUsers').catch(() => ({ default: () => <div>Loading...</div> }))
+);
+
+const AllUsersPage = React.lazy(() =>
+  import('@/pages/AllUsers').catch(() => ({ default: () => <div>Loading...</div> }))
 );
 
 // Loading fallback component
@@ -282,6 +287,10 @@ export const router = createBrowserRouter([
         element: <SuspenseWrapper><Menu /></SuspenseWrapper>,
       },
       {
+        path: '/menu-enhanced',
+        element: <SuspenseWrapper><MenuEnhanced /></SuspenseWrapper>,
+      },
+      {
         path: '/dashboard',
         element: <SuspenseWrapper><Dashboard /></SuspenseWrapper>,
       },
@@ -357,7 +366,7 @@ export const router = createBrowserRouter([
         path: '/project-manager-users',
         element: (
           <ProtectedRouteWrapper requiredRole={['admin']}>
-            <SuspenseWrapper><ProjectManagerUsersPage /></SuspenseWrapper>
+            <SuspenseWrapper><AllUsersPage /></SuspenseWrapper>
           </ProtectedRouteWrapper>
         ),
       },
@@ -419,6 +428,20 @@ export const router = createBrowserRouter([
       },
     ],
   },
+  // Admin Console Route (protected)
+  {
+    path: '/admin',
+    element: (
+      <ProtectedRouteWrapper requiredRole={['admin']}>
+        <AdminConsoleWrapper />
+      </ProtectedRouteWrapper>
+    ),
+  },
+  // Redirect from /admin/console to /admin
+  {
+    path: '/admin/console',
+    element: <Navigate to="/admin" replace />,
+  },
   // Backoffice routes (admin only)
   {
     element: (
@@ -428,28 +451,12 @@ export const router = createBrowserRouter([
     ),
     children: [
       {
-        path: '/project-billing',
-        element: <Navigate to="/projects" replace />,
-      },
-      {
-        path: '/project-billing/:projectId',
-        element: <Navigate to="/projects/:projectId/billing" replace />,
-      },
-      {
-        path: '/backoffice/dashboard',
+        path: 'backoffice',
         element: <SuspenseWrapper><BackofficeDashboard /></SuspenseWrapper>,
       },
       {
-        path: '/backoffice/users',
+        path: 'backoffice/users',
         element: <SuspenseWrapper><BackofficeUsers /></SuspenseWrapper>,
-      },
-      {
-        path: '/admin/console',
-        element: <AdminConsoleWrapper />,
-      },
-      {
-        path: '/admin-console',
-        element: <Navigate to="/admin/console" replace />,
       },
     ],
   },

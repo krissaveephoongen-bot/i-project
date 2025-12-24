@@ -1,0 +1,60 @@
+const { Client } = require('pg');
+const bcrypt = require('bcryptjs');
+require('dotenv').config();
+
+const client = new Client({
+  connectionString: process.env.DATABASE_URL,
+});
+
+async function testLogin() {
+  try {
+    await client.connect();
+    console.log('Connected to database\n');
+
+    const testEmail = 'jakgrits.ph@appworks.co.th';
+    const testPassword = 'AppWorks@123!';
+
+    // Query user
+    const result = await client.query(`
+      SELECT id, name, email, password, role, status
+      FROM "User"
+      WHERE email = $1 AND status = 'active'
+    `, [testEmail]);
+
+    if (result.rows.length === 0) {
+      console.log('❌ User not found');
+      return;
+    }
+
+    const user = result.rows[0];
+    console.log('Found user:', {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status
+    });
+
+    // Verify password
+    const passwordMatch = await bcrypt.compare(testPassword, user.password);
+    
+    console.log('\nPassword verification:');
+    console.log(`Input password: ${testPassword}`);
+    console.log(`Password match: ${passwordMatch ? '✅ YES' : '❌ NO'}\n`);
+
+    if (passwordMatch) {
+      console.log('✅ LOGIN SUCCESSFUL');
+      console.log('\nTest credentials:');
+      console.log(`Email: ${testEmail}`);
+      console.log(`Password: ${testPassword}`);
+    } else {
+      console.log('❌ LOGIN FAILED - Password mismatch');
+    }
+
+  } catch (error) {
+    console.error('Error:', error.message);
+  } finally {
+    await client.end();
+  }
+}
+
+testLogin();

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { X, Lock, AlertCircle, Shield, Eye, EyeOff } from 'lucide-react';
-import { Button } from './ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminConfig, validateAdminPIN } from '../config/admin-config';
 
@@ -37,46 +36,72 @@ const AdminPINModal: React.FC<AdminPINModalProps> = ({ isOpen, onClose, onSucces
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate PIN length
+    if (pin.length !== 6) {
+      setError('กรุณาใส่รหัส PIN 6 หลัก');
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      // Simulate API call with delay
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
-    if (validateAdminPIN(pin)) {
-      // Log successful attempt if enabled
-      if (adminConfig.LOG_ATTEMPTS) {
-        console.log('✅ Admin console accessed successfully');
-      }
-
-      setIsLoading(false);
-      onSuccess();
-      setPin('');
-      onClose();
-    } else {
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-
-      // Log failed attempt if enabled
-      if (adminConfig.LOG_ATTEMPTS) {
-        console.warn(`❌ Failed admin console access attempt ${newAttempts}/${MAX_ATTEMPTS}`);
-      }
-
-      if (newAttempts >= MAX_ATTEMPTS) {
-        setError(`ลองจำนวนครั้งสูงสุดแล้ว (${MAX_ATTEMPTS} ครั้ง) กรุณาลองใหม่ในภายหลัง`);
-        setIsLoading(false);
-        
-        // Send notification if enabled
-        if (adminConfig.NOTIFY_ON_FAILED_ATTEMPTS) {
-          // In production: send email or notification
-          console.warn('Security Alert: Multiple failed admin console access attempts detected');
+      if (validateAdminPIN(pin)) {
+        // Log successful attempt
+        if (adminConfig.LOG_ATTEMPTS) {
+          console.log('✅ เข้าสู่ระบบผู้ดูแลเรียบร้อยแล้ว');
         }
 
-        setTimeout(onClose, 2000);
-      } else {
-        setError(`PIN ไม่ถูกต้อง (พยายาม ${newAttempts}/${MAX_ATTEMPTS})`);
+        // Clear any previous errors
+        setError('');
+        
+        // Add slight delay for better UX
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        onSuccess();
         setPin('');
-        setIsLoading(false);
+        onClose();
+      } else {
+        const newAttempts = attempts + 1;
+        setAttempts(newAttempts);
+        const remainingAttempts = MAX_ATTEMPTS - newAttempts;
+
+        // Log failed attempt
+        if (adminConfig.LOG_ATTEMPTS) {
+          console.warn(`❌ พยายามเข้าถึงไม่สำเร็จ ครั้งที่ ${newAttempts}/${MAX_ATTEMPTS}`);
+        }
+
+        if (newAttempts >= MAX_ATTEMPTS) {
+          const lockoutMessage = `เข้าสู่ระบบผิดพลาดเกินจำนวนครั้งที่กำหนด (${MAX_ATTEMPTS} ครั้ง) กรุณาติดต่อผู้ดูแลระบบ`;
+          setError(lockoutMessage);
+          
+          // Log security event
+          if (adminConfig.NOTIFY_ON_FAILED_ATTEMPTS) {
+            console.warn('⚠️ เตือนภัย: พบการพยายามเข้าถึงไม่สำเร็จหลายครั้ง', {
+              timestamp: new Date().toISOString(),
+              attempts: newAttempts,
+              ip: 'user-ip-address' // In production, log actual IP
+            });
+          }
+
+          // Auto-close after delay
+          setTimeout(() => {
+            setError('');
+            onClose();
+          }, 3000);
+        } else {
+          setError(`รหัส PIN ไม่ถูกต้อง (เหลือโอกาสลองอีก ${remainingAttempts} ครั้ง)`);
+          setPin('');
+        }
       }
+    } catch (err) {
+      console.error('เกิดข้อผิดพลาดในการยืนยัน PIN:', err);
+      setError('เกิดข้อผิดพลาดในการยืนยันตัวตน กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setIsLoading(false);
     }
   };
 

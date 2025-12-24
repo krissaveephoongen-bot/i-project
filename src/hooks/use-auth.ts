@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 export interface User {
   id: string;
@@ -8,6 +8,10 @@ export interface User {
   email: string;
   role: string;
   avatar?: string;
+  displayName?: string;
+  department?: string;
+  phone?: string;
+  timezone?: string;
 }
 
 interface LoginCredentials {
@@ -50,21 +54,20 @@ export function useAuth() {
   }, []);
 
   const login = useCallback(async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    // Replace with actual API call
-    const mockUser = {
-      id: '1',
-      name: 'John Doe',
-      email: credentials.email,
-      role: 'admin',
-    };
-    
-    const tokens = {
-      accessToken: 'mock-access-token',
-      refreshToken: 'mock-refresh-token',
-    };
-    
-    toast.success('Logged in successfully');
-    return { user: mockUser, tokens };
+      // Replace with actual API call
+      const mockUser = {
+          id: '1',
+          name: 'John Doe',
+          email: credentials.email,
+          role: 'admin',
+      };
+      
+      const tokens = {
+          accessToken: 'mock-access-token',
+          refreshToken: 'mock-refresh-token',
+      };
+      
+      return { user: mockUser, tokens };
   }, []);
 
   const logout = useCallback(() => {
@@ -84,13 +87,13 @@ export function useAuth() {
     toast.success('Password reset email sent!');
   }, []);
 
-  const resetPassword = useCallback(async (data: { token: string; password: string }): Promise<void> => {
+  const resetPassword = useCallback(async (_token: string, _newPassword: string): Promise<void> => {
     // Replace with actual API call
-    console.log('Reset password:', data);
+    console.log('Reset password:', _token, _newPassword);
     toast.success('Password reset successful!');
   }, []);
 
-  const refreshToken = useCallback(async (token: string): Promise<AuthResponse> => {
+  const refreshToken = useCallback(async (_token: string): Promise<AuthResponse> => {
     // Replace with actual API call
     const mockUser = {
       id: '1',

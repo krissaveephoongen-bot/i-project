@@ -27,18 +27,19 @@ router.get('/teams', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     let query = `
-      SELECT t.*, u.name as lead_name, COUNT(tm.id) as member_count
+      SELECT t.id, t.name, t.description, t.created_by, t.status, t.is_deleted, t.created_at, t.updated_at,
+             u.name as creator_name, COUNT(tm.id) as member_count
       FROM teams t
-      LEFT JOIN users u ON t.lead_id = u.id
+      LEFT JOIN "User" u ON t.created_by = u.id
       LEFT JOIN team_members tm ON t.id = tm.team_id
-      WHERE t.status = $1
+      WHERE t.status = $1 AND t.is_deleted = false
     `;
     const params = [status];
 
     // Non-admin users only see teams they're members of
     if (req.user.role !== 'admin') {
       query += ` AND (
-        t.lead_id = $${params.length + 1}
+        t.created_by = $${params.length + 1}
         OR EXISTS (
           SELECT 1 FROM team_members tm2
           WHERE tm2.team_id = t.id AND tm2.user_id = $${params.length + 2}
@@ -52,23 +53,26 @@ router.get('/teams', authenticateToken, async (req, res) => {
       params.push(`%${search}%`);
     }
 
-    query += ` GROUP BY t.id, u.name ORDER BY t.created_at DESC`;
+    query += ` GROUP BY t.id, t.name, t.description, t.created_by, t.status, t.is_deleted, t.created_at, t.updated_at, u.name ORDER BY t.created_at DESC`;
 
     const result = await executeQuery(query, params);
 
     res.status(200).json({
       success: true,
       data: result.rows,
-      total: result.rows.length
+      total: result.rows.length,
+      isEmpty: result.rows.length === 0,
+      message: result.rows.length === 0 ? 'No teams found. Create your first team to get started.' : undefined
     });
-  } catch (error) {
-    console.error('❌ Get teams error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
+    } catch (error) {
+     console.error('❌ Get teams error:', error.message || error);
+     res.status(500).json({
+       success: false,
+       message: 'Failed to fetch teams',
+       error: error.message || 'Unknown error'
+     });
+     }
     });
-  }
-});
 
 /**
  * GET /teams/:id

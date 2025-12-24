@@ -1,0 +1,75 @@
+# Development stage
+FROM node:20-alpine AS development
+
+WORKDIR /app
+
+# Install system dependencies including Python, build tools, and canvas dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    gcc \
+    pkgconfig \
+    pixman-dev \
+    cairo-dev \
+    pango-dev \
+    jpeg-dev \
+    giflib-dev \
+    librsvg \
+    git
+
+# Copy package files
+COPY package*.json ./
+COPY server/package*.json ./server/
+
+# Install dependencies
+RUN npm install
+
+# Set working directory to server
+WORKDIR /app/server
+
+# Install server dependencies with build flags
+RUN npm config set unsafe-perm true && \
+    npm install --build-from-source
+
+# Set back to root directory
+WORKDIR /app
+
+# Copy source code
+COPY . .
+
+# Expose the port the app runs on
+EXPOSE 5000
+
+# Command to run the application in development
+CMD ["npm", "run", "dev:api"]
+
+# Production stage
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY server/package*.json ./server/
+
+# Install only production dependencies
+RUN npm ci --only=production
+
+# Set working directory to server
+WORKDIR /app/server
+
+# Install production server dependencies
+RUN npm ci --only=production
+
+# Set back to root directory
+WORKDIR /app
+
+# Copy source code
+COPY . .
+
+# Expose the port the app runs on
+EXPOSE 5000
+
+# Command to run the application in production
+CMD ["node", "server/index.js"]

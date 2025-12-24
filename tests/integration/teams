@@ -1,0 +1,27 @@
+const { executeQuery } = require('./database/neon-connection');
+require('dotenv').config();
+
+async function testTeamsQuery() {
+  try {
+    console.log('Testing teams query...\n');
+
+    const result = await executeQuery(`
+      SELECT t.id, t.name, t.description, t.lead_id, t.status, t.is_deleted, t.created_at, t.updated_at,
+             u.name as lead_name, COUNT(tm.id) as member_count
+      FROM teams t
+      LEFT JOIN "User" u ON t.lead_id = u.id
+      LEFT JOIN team_members tm ON t.id = tm.team_id
+      WHERE t.status = $1
+      GROUP BY t.id, t.name, t.description, t.lead_id, t.status, t.is_deleted, t.created_at, t.updated_at, u.name
+      ORDER BY t.created_at DESC
+    `, ['active']);
+
+    console.log('✅ Query successful');
+    console.log('Results:', result.rows);
+    console.log('\nTotal teams:', result.rows.length);
+  } catch (error) {
+    console.error('❌ Query failed:', error.message);
+  }
+}
+
+testTeamsQuery();

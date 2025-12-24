@@ -1,0 +1,1 @@
+{"mcpServers":{"Neon":{"command":"npx","args":["-y","mcp-remote@latest","https://mcp.neon.tech/mcp"],"alwaysAllow":["list_projects","describe_project","run_sql"]},"prisma-mcp-server":{"command":"npx","args":["@prisma/mcp-server"]}}}

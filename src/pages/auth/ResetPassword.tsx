@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { authService } from '@/services/authService';
+import toast from 'react-hot-toast';
 
 const resetPasswordSchema = z.object({
   password: z.string()
@@ -26,6 +28,7 @@ export default function ResetPassword() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const token = searchParams.get('token');
 
   const {
@@ -44,27 +47,25 @@ export default function ResetPassword() {
         throw new Error('Invalid reset link. Token is missing.');
       }
 
-      const response = await fetch('/api/prisma/users/verify-reset-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token,
-          newPassword: data.password,
-        }),
+      const response = await authService.resetPassword({
+        token,
+        newPassword: data.password,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to reset password');
+      if (response.success) {
+        toast.success('Password reset successfully!');
+        setSuccess(true);
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          navigate('/auth/login');
+        }, 2000);
+      } else {
+        throw new Error(response.message || 'Failed to reset password');
       }
-
-      setSuccess(true);
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'An error occurred';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

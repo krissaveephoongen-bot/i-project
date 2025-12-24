@@ -208,7 +208,9 @@ export default function ProjectTableView() {
 
     // Prepare chart data for Risk Status
     const riskChartData = riskStats.map((stat) => ({
-        name: stat.risk_level.charAt(0).toUpperCase() + stat.risk_level.slice(1),
+        name: stat.risk_level && stat.risk_level.length > 0
+            ? stat.risk_level.charAt(0).toUpperCase() + stat.risk_level.slice(1)
+            : 'Unknown',
         value: stat.count,
     }));
 
@@ -343,12 +345,13 @@ export default function ProjectTableView() {
                                         <td className="py-3 px-4 text-center">
                                             <div
                                                 className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${getRiskColor(
-                                                    project.risk_level
+                                                    project.risk_level || 'medium'
                                                 )}`}
                                             >
-                                                {getRiskIcon(project.risk_level)}
-                                                {project.risk_level.charAt(0).toUpperCase() +
-                                                    project.risk_level.slice(1)}
+                                                {getRiskIcon(project.risk_level || 'medium')}
+                                                {project.risk_level && project.risk_level.length > 0
+                                                    ? project.risk_level.charAt(0).toUpperCase() + project.risk_level.slice(1)
+                                                    : 'Unknown'}
                                             </div>
                                         </td>
                                     </tr>

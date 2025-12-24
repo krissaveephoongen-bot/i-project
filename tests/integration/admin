@@ -1,0 +1,198 @@
+/**
+ * Admin Operations Test Script
+ * Tests all admin functionality to identify blocking issues
+ */
+
+const http = require('http');
+
+const BASE_URL = 'http://localhost:5000';
+const TEST_EMAIL = 'jakgrits.ph@appworks.co.th';
+const TEST_PASSWORD = 'AppWorks@123!';
+
+let authToken = null;
+
+// Helper function to make HTTP requests
+function makeRequest(method, path, body = null) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(path, BASE_URL);
+    const options = {
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname + url.search,
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    };
+
+    if (authToken) {
+      options.headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const req = http.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          resolve({
+            status: res.statusCode,
+            data: JSON.parse(data),
+            headers: res.headers
+          });
+        } catch (e) {
+          resolve({
+            status: res.statusCode,
+            data: data,
+            headers: res.headers
+          });
+        }
+      });
+    });
+
+    req.on('error', reject);
+
+    if (body) {
+      req.write(JSON.stringify(body));
+    }
+    req.end();
+  });
+}
+
+async function runTests() {
+  console.log('🧪 Admin Operations Test Suite\n');
+  console.log('Testing server: ' + BASE_URL);
+  console.log('Admin email: ' + TEST_EMAIL);
+  console.log('=' . repeat(60) + '\n');
+
+  try {
+    // 1. Login Test
+    console.log('1️⃣ Testing Login...');
+    const loginRes = await makeRequest('POST', '/api/auth/login', {
+      email: TEST_EMAIL,
+      password: TEST_PASSWORD
+    });
+
+    if (loginRes.status !== 200) {
+      console.log('❌ Login failed:', loginRes.data.message);
+      process.exit(1);
+    }
+
+    authToken = loginRes.data.token;
+    console.log('✅ Login successful');
+    console.log(`   Token: ${authToken.substring(0, 20)}...`);
+    console.log(`   Role: ${loginRes.data.user.role}\n`);
+
+    // 2. Test Projects Endpoint
+    console.log('2️⃣ Testing GET /api/projects...');
+    const projectsRes = await makeRequest('GET', '/api/projects');
+    if (projectsRes.status === 200) {
+      console.log('✅ Can access projects');
+      console.log(`   Total: ${projectsRes.data.total}`);
+      console.log(`   Empty: ${projectsRes.data.isEmpty}`);
+      if (projectsRes.data.message) console.log(`   Message: ${projectsRes.data.message}`);
+    } else {
+      console.log('❌ Projects endpoint blocked:', projectsRes.data.message);
+    }
+    console.log();
+
+    // 3. Test Create Project
+    console.log('3️⃣ Testing POST /api/projects (Create)...');
+    const createProjectRes = await makeRequest('POST', '/api/projects', {
+      name: 'Test Project',
+      description: 'A test project',
+      status: 'planning',
+      budget: 50000,
+      created_by: loginRes.data.user.id
+    });
+
+    if (createProjectRes.status === 201 || createProjectRes.status === 200) {
+      console.log('✅ Can create projects');
+      console.log(`   Project ID: ${createProjectRes.data.data?.id || 'N/A'}`);
+    } else {
+      console.log('❌ Create project blocked:', createProjectRes.data.message);
+    }
+    console.log();
+
+    // 4. Test Teams Endpoint
+    console.log('4️⃣ Testing GET /api/teams...');
+    const teamsRes = await makeRequest('GET', '/api/teams');
+    if (teamsRes.status === 200) {
+      console.log('✅ Can access teams');
+      console.log(`   Total: ${teamsRes.data.total}`);
+    } else if (teamsRes.status === 403) {
+      console.log('❌ Teams access denied (permission issue)');
+    } else {
+      console.log('❌ Teams endpoint error:', teamsRes.data.message);
+    }
+    console.log();
+
+    // 5. Test Activities Endpoint
+    console.log('5️⃣ Testing GET /api/activities...');
+    const activitiesRes = await makeRequest('GET', '/api/activities');
+    if (activitiesRes.status === 200) {
+      console.log('✅ Can access activities');
+    } else {
+      console.log('⚠️  Activities endpoint status:', activitiesRes.status);
+    }
+    console.log();
+
+    // 6. Test Admin Access
+    console.log('6️⃣ Testing /api/admin/* endpoints...');
+    const adminRes = await makeRequest('GET', '/api/admin/dashboard/stats');
+    if (adminRes.status === 200) {
+      console.log('✅ Can access admin dashboard');
+    } else if (adminRes.status === 403) {
+      console.log('⚠️  Admin access denied (permission issue)');
+    } else if (adminRes.status === 404) {
+      console.log('⚠️  Admin route not found (needs to be registered in server/app.js)');
+    } else {
+      console.log('⚠️  Admin endpoint error:', adminRes.status);
+    }
+    console.log();
+
+    // 7. Test Reports Endpoint
+    console.log('7️⃣ Testing /api/reports endpoint...');
+    const reportsRes = await makeRequest('GET', '/api/reports/data');
+    if (reportsRes.status === 200) {
+      console.log('✅ Can access reports');
+    } else if (reportsRes.status === 404) {
+      console.log('⚠️  Reports route not found (needs to be registered)');
+    } else {
+      console.log('⚠️  Reports endpoint error:', reportsRes.status);
+    }
+    console.log();
+
+    // Summary
+    console.log('=' . repeat(60));
+    console.log('\n📊 Test Summary:\n');
+    console.log('Core Features:');
+    console.log('  ✅ Authentication - Working');
+    console.log('  ' + (projectsRes.status === 200 ? '✅' : '❌') + ' Projects API - ' + (projectsRes.status === 200 ? 'Working' : 'Blocked'));
+    console.log('  ' + (teamsRes.status === 200 ? '✅' : '⚠️ ') + ' Teams API - ' + (teamsRes.status === 200 ? 'Working' : (teamsRes.status === 404 ? 'Not registered' : 'Error')));
+    console.log('  ' + (activitiesRes.status === 200 ? '✅' : '⚠️ ') + ' Activities API - ' + (activitiesRes.status === 200 ? 'Working' : 'Error'));
+    console.log('\nAdmin Features:');
+    console.log('  ' + (adminRes.status === 200 ? '✅' : (adminRes.status === 404 ? '⚠️ ' : '❌')) + ' Admin Console - ' + (adminRes.status === 200 ? 'Working' : (adminRes.status === 404 ? 'Not registered' : 'Error')));
+    console.log('  ' + (reportsRes.status === 200 ? '✅' : (reportsRes.status === 404 ? '⚠️ ' : '❌')) + ' Reports - ' + (reportsRes.status === 200 ? 'Working' : (reportsRes.status === 404 ? 'Not registered' : 'Error')));
+
+    console.log('\n' + '=' . repeat(60));
+    console.log('\n💡 Recommendations:\n');
+
+    if (adminRes.status === 404) {
+      console.log('1. Enable admin routes in server/app.js');
+      console.log('   Uncomment: app.use(\'/api/admin\', adminRoutes);');
+    }
+
+    if (reportsRes.status === 404) {
+      console.log('2. Enable reports routes in server/app.js');
+      console.log('   Uncomment: app.use(\'/api/reports\', reportsRoutes);');
+    }
+
+    console.log('\n3. See ADMIN_PERMISSIONS_AUDIT.md for complete permissions list');
+
+  } catch (error) {
+    console.error('❌ Test failed:', error.message);
+    process.exit(1);
+  }
+}
+
+runTests();

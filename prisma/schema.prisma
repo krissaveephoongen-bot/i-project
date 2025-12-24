@@ -4,46 +4,126 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
+
+enum Role {
+  ADMIN
+  PROJECT_MANAGER
+  TEAM_LEAD
+  DEVELOPER
+  DESIGNER
+  TESTER
+  CLIENT
+  USER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  BLOCKED
+  CANCELLED
+}
+
+enum TimesheetStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum ProjectStatus {
+  DRAFT
+  PLANNING
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+// Model relationships are defined within each model
 
 model User {
   id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name            String
   email           String          @unique
   password        String
-  role            String          @default("user")
+  role            Role            @default(USER)
+  avatar          String?
+  phone           String?
+  position        String?
+  department      String?
+  hireDate        DateTime?       @db.Date
+  status          String          @default("active") // active, inactive, on_leave
+  lastLogin       DateTime?       @db.Timestamptz(6)
+  timezone        String          @default("Asia/Bangkok")
   
   // Password reset
   resetToken      String?         @db.Text
   resetTokenExpires DateTime?      @db.Timestamptz(6)
   
+  // Timestamps
   createdAt       DateTime        @default(now()) @db.Timestamptz(6)
   updatedAt       DateTime        @updatedAt @db.Timestamptz(6)
   
   // Relations
-  createdCosts    Cost[]          @relation("CreatedCosts")
-  approvedCosts   Cost[]          @relation("ApprovedCosts")
-  costApprovals   CostApproval[]  @relation("ApprovalsByUser")
-  projectManager  ProjectManager?
+  createdCosts        Cost[]          @relation("CreatedCosts")
+  approvedCosts       Cost[]          @relation("ApprovedCosts")
+  costApprovals       CostApproval[]  @relation("ApprovalsByUser")
+  projectManager      ProjectManager?
+  assignedTasks       Task[]          @relation("AssignedTasks")
+  reportedTasks       Task[]          @relation("ReportedTasks")
+  timesheets          Timesheet[]
+  timeLogs            TimeLog[]
+  comments            Comment[]
+  notifications       Notification[]
+  approvedTimesheets  Timesheet[]     @relation("TimesheetApprovals")
 }
 
 model Project {
   id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name            String
+  code            String        @unique
   description     String?
-  budget          Float
+  budget          Float         @default(0)
+  actualCost      Float         @default(0)
+  estimatedHours  Int?          @default(0)
   startDate       DateTime      @db.Timestamptz(6)
   endDate         DateTime?     @db.Timestamptz(6)
-  status          String        @default("active")
+  status          ProjectStatus @default(PLANNING)
+  priority        String        @default("medium") // low, medium, high, urgent
+  clientId        String?       @db.Uuid
+  client          Client?       @relation(fields: [clientId], references: [id])
+  projectManagerId String?      @db.Uuid
+  projectManager  ProjectManager? @relation("ProjectManager", fields: [projectManagerId], references: [id])
+  tags            String[]      @default([])
+  progress        Int           @default(0) // 0-100
+  category        String?       // development, design, testing, research, etc.
+  isArchived      Boolean       @default(false)
+  
+  // Timestamps
   createdAt       DateTime      @default(now()) @db.Timestamptz(6)
   updatedAt       DateTime      @updatedAt @db.Timestamptz(6)
   
   // Relations
-  costs           Cost[]
+  costs                   Cost[]
   projectManagerAssignments ProjectManagerAssignment[]
+  tasks                   Task[]
+  timesheets              Timesheet[]
+  timeLogs                TimeLog[]
+  comments                Comment[]
   
   @@index([status])
+  @@index([projectManagerId])
+  @@index([status, startDate])
+  @@index([clientId, status])
+  @@index([createdAt])
+  @@index([priority])
+  @@index([category])
+  @@index([isArchived])
+  @@index([priority, status])
 }
 
 model Cost {
@@ -151,6 +231,7 @@ model ProjectManager {
   updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
   
   // Relations
+  assignedProjects Project[] @relation("ProjectManager")
   projectAssignments ProjectManagerAssignment[]
   
   @@index([userId])
@@ -185,3 +266,221 @@ model ProjectManagerAssignment {
   @@index([projectId])
   @@index([status])
 }
+
+model Client {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String
+  email           String?   @unique
+  phone           String?
+  address         String?
+  taxId           String?   @unique
+  website         String?
+  industry        String?
+  notes           String?   @db.Text
+  status          String    @default("active") // active, inactive, lead
+  
+  // Relations
+  projects        Project[]
+  contacts        ContactPerson[]
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
+  
+  @@index([status])
+  @@map("clients")
+}
+
+model ContactPerson {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId        String    @db.Uuid
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name            String
+  email           String?
+  phone           String?
+  position        String?
+  isPrimary       Boolean   @default(false)
+  notes           String?   @db.Text
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
+  
+  @@index([clientId])
+  @@map("contact_people")
+}
+
+model Task {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String
+  name            String?     // Alternative name field for progress tracking
+  description     String?     @db.Text
+  status          TaskStatus  @default(TODO)
+  priority        String      @default("medium") // low, medium, high, urgent
+  dueDate         DateTime?   @db.Timestamptz(6)
+  estimatedHours  Float?      @default(0)
+  actualHours     Float?      @default(0)
+
+  // Progress tracking fields for S-Curve
+  plannedStartDate    DateTime?   @db.Timestamptz(6)
+  plannedEndDate      DateTime?   @db.Timestamptz(6)
+  plannedProgressWeight Float?    @default(0) // Weight for project progress calculation
+  actualProgress      Float       @default(0) // 0-100
+
+  // Relations
+  projectId       String      @db.Uuid
+  project         Project     @relation(fields: [projectId], references: [id])
+  assigneeId      String?     @db.Uuid
+  assignee        User?       @relation("AssignedTasks", fields: [assigneeId], references: [id])
+  reporterId      String      @db.Uuid
+  reporter        User        @relation("ReportedTasks", fields: [reporterId], references: [id])
+  parentTaskId    String?     @db.Uuid
+  parentTask      Task?       @relation("SubTasks", fields: [parentTaskId], references: [id])
+  subTasks        Task[]      @relation("SubTasks")
+  timesheets      Timesheet[]
+  timeLogs        TimeLog[]
+  comments        Comment[]
+  labels          String[]    @default([])
+  category        String?     // feature, bug, enhancement, maintenance, etc.
+  storyPoints     Int?        // for agile estimation
+  sprintId        String?     @db.Uuid // for agile sprint tracking
+  blockedBy       String?     @db.Uuid // reference to blocking task
+  blockedReason   String?     @db.Text
+
+  // Timestamps
+  createdAt       DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime    @updatedAt @db.Timestamptz(6)
+  startedAt       DateTime?   @db.Timestamptz(6)
+  completedAt     DateTime?   @db.Timestamptz(6)
+
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([reporterId])
+  @@index([parentTaskId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+  @@index([projectId, status])
+  @@index([assigneeId, status])
+  @@index([dueDate, status])
+  @@index([createdAt])
+  @@index([category])
+  @@index([sprintId])
+  @@index([blockedBy])
+  @@index([storyPoints])
+  @@map("tasks")
+}
+
+model Timesheet {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String          @db.Uuid
+  user            User            @relation(fields: [userId], references: [id])
+  projectId       String          @db.Uuid
+  project         Project         @relation(fields: [projectId], references: [id])
+  taskId          String?         @db.Uuid
+  task            Task?           @relation(fields: [taskId], references: [id])
+  date            DateTime        @db.Date
+  hoursWorked     Float
+  description     String?
+  status          TimesheetStatus @default(DRAFT)
+  approvedById    String?         @db.Uuid
+  approvedBy      User?           @relation("TimesheetApprovals", fields: [approvedById], references: [id])
+  approvedAt      DateTime?       @db.Timestamptz(6)
+  rejectionReason String?
+  
+  // Timestamps
+  createdAt       DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime        @updatedAt @db.Timestamptz(6)
+  
+  @@index([userId])
+  @@index([projectId])
+  @@index([taskId])
+  @@index([date])
+  @@index([status])
+  @@index([userId, date])
+  @@index([projectId, date])
+  @@index([status, date])
+  @@unique([userId, projectId, taskId, date])
+  @@map("timesheets")
+}
+
+model TimeLog {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @db.Uuid
+  user            User      @relation(fields: [userId], references: [id])
+  projectId       String    @db.Uuid
+  project         Project   @relation(fields: [projectId], references: [id])
+  taskId          String?   @db.Uuid
+  task            Task?     @relation(fields: [taskId], references: [id])
+  startTime       DateTime  @db.Timestamptz(6)
+  endTime         DateTime? @db.Timestamptz(6)
+  duration        Int?      // in seconds
+  description     String?   @db.Text
+  billable        Boolean   @default(true)
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
+  
+  @@index([userId])
+  @@index([projectId])
+  @@index([taskId])
+  @@index([startTime])
+  @@index([endTime])
+  @@index([userId, startTime])
+  @@index([projectId, startTime])
+  @@index([startTime, endTime])
+  @@map("time_logs")
+}
+
+model Comment {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content         String    @db.Text
+  
+  // Relations
+  userId          String    @db.Uuid
+  user            User      @relation(fields: [userId], references: [id])
+  taskId          String?   @db.Uuid
+  task            Task?     @relation(fields: [taskId], references: [id])
+  projectId       String?   @db.Uuid
+  project         Project?  @relation(fields: [projectId], references: [id])
+  parentCommentId String?   @db.Uuid
+  parentComment   Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  replies         Comment[] @relation("CommentReplies")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
+  
+  @@index([userId])
+  @@index([taskId])
+  @@index([projectId])
+  @@index([parentCommentId])
+  @@index([taskId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([createdAt])
+  @@map("comments")
+}
+
+model Notification {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @db.Uuid
+  user            User      @relation(fields: [userId], references: [id])
+  title           String
+  message         String    @db.Text
+  type            String    // info, success, warning, error
+  isRead          Boolean   @default(false)
+  relatedEntityId String?   @db.Uuid
+  relatedEntityType String?  // task, project, timesheet, etc.
+
+  // Timestamps
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  readAt          DateTime? @db.Timestamptz(6)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([relatedEntityId, relatedEntityType])
+  @@map("notifications")
+}
+
+// All relations are now defined within their respective models

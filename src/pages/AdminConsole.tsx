@@ -1,29 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  BarChart3,
-  Users,
-  Database,
-  Shield,
-  Settings,
-  Activity,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Zap,
-  RefreshCw,
-  Lock,
-  LogOut,
-} from 'lucide-react';
-import toast from 'react-hot-toast';
-import AdminPINModal from '@/components/AdminPINModal';
-import { useAdminPIN } from '@/contexts/AdminPINContext';
+import { BarChart3, Activity, RefreshCw, LogOut, Users, Database, CheckCircle, AlertTriangle, Shield } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { motion } from 'framer-motion';
-import { ADMIN_ENDPOINTS } from '@/config/admin-config';
+import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+
+type ServiceStatus = 'up' | 'down' | 'degraded';
+type LogLevel = 'info' | 'warn' | 'error';
 
 interface SystemMetrics {
   totalUsers: number;
@@ -38,245 +22,111 @@ interface SystemMetrics {
 }
 
 interface SystemHealth {
-  database: 'healthy' | 'warning' | 'critical';
-  api: 'healthy' | 'warning' | 'critical';
-  storage: 'healthy' | 'warning' | 'critical';
-  cache: 'healthy' | 'warning' | 'critical';
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  services: Array<{
+    name: string;
+    status: ServiceStatus;
+    responseTime: number;
+  }>;
+  database: ServiceStatus;
+  api: ServiceStatus;
+  cache: ServiceStatus;
+  storage: ServiceStatus;
 }
 
 interface LogEntry {
   id: string;
   timestamp: string;
-  level: 'info' | 'warning' | 'error';
+  level: LogLevel;
   message: string;
-  user?: string;
-  action?: string;
+  source: string;
 }
 
-export default function AdminConsole() {
+const AdminConsole: React.FC = () => {
+  const { logout } = useAuthContext();
   const navigate = useNavigate();
-  const { isPINVerified, verifyPIN, clearPINVerification, isSessionExpired } = useAdminPIN();
+
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'health' | 'logs' | 'settings'>('overview');
-  const [showPINModal, setShowPINModal] = useState(!isPINVerified);
-  const [sessionWarning, setSessionWarning] = useState(false);
 
-  // Check PIN verification and session
+  // Load initial data
   useEffect(() => {
-    if (!isPINVerified) {
-      setShowPINModal(true);
-      setLoading(false);
-      return;
-    }
+    fetchData();
+  }, []);
 
-    // Check if session is expired
-    if (isSessionExpired()) {
-      setSessionWarning(true);
-      clearPINVerification();
-      return;
-    }
-
-    // Fetch metrics only if PIN is verified
-    const fetchMetrics = async () => {
-      try {
-        setLoading(true);
-
-        const [metricsRes, healthRes, logsRes] = await Promise.all([
-          fetch(ADMIN_ENDPOINTS.METRICS, { credentials: 'include' }),
-          fetch(ADMIN_ENDPOINTS.HEALTH, { credentials: 'include' }),
-          fetch(`${ADMIN_ENDPOINTS.LOGS}?limit=50`, { credentials: 'include' }),
-        ]);
-
-        if (metricsRes.ok) {
-          const data = await metricsRes.json();
-          setMetrics(data);
-        }
-
-        if (healthRes.ok) {
-          const data = await healthRes.json();
-          setHealth(data);
-        }
-
-        if (logsRes.ok) {
-          const data = await logsRes.json();
-          setLogs(Array.isArray(data) ? data : data.data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching admin metrics:', error);
-        toast.error('Failed to load admin metrics');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMetrics();
-  }, [isPINVerified, isSessionExpired, clearPINVerification]);
-
-  const handleRefresh = async () => {
+  const fetchData = async () => {
     try {
-      setRefreshing(true);
+      setIsLoading(true);
+      // Simulate API calls
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const [metricsRes, healthRes, logsRes] = await Promise.all([
-        fetch(ADMIN_ENDPOINTS.METRICS, { credentials: 'include' }),
-        fetch(ADMIN_ENDPOINTS.HEALTH, { credentials: 'include' }),
-        fetch(`${ADMIN_ENDPOINTS.LOGS}?limit=50`, { credentials: 'include' }),
+      // Mock data - replace with actual API calls
+      setMetrics({
+        totalUsers: 42,
+        activeUsers: 15,
+        totalProjects: 8,
+        activeProjects: 6,
+        totalTasks: 156,
+        completedTasks: 89,
+        databaseSize: '2.4 GB',
+        uptime: '7d 14h 32m',
+        lastBackup: '2 hours ago'
+      });
+
+      setHealth({
+        status: 'healthy',
+        services: [
+          { name: 'API', status: 'up', responseTime: 120 },
+          { name: 'Database', status: 'up', responseTime: 45 },
+          { name: 'Cache', status: 'up', responseTime: 5 },
+          { name: 'Storage', status: 'up', responseTime: 30 }
+        ],
+        database: 'up',
+        api: 'up',
+        cache: 'up',
+        storage: 'up'
+      });
+
+      // Mock logs
+      setLogs([
+        {
+          id: '1',
+          timestamp: new Date().toISOString(),
+          level: 'info',
+          message: 'System started successfully',
+          source: 'system'
+        },
+        {
+          id: '2',
+          timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+          level: 'warn',
+          message: 'High CPU usage detected',
+          source: 'monitoring'
+        }
       ]);
 
-      if (metricsRes.ok) {
-        const data = await metricsRes.json();
-        setMetrics(data);
-      }
-
-      if (healthRes.ok) {
-        const data = await healthRes.json();
-        setHealth(data);
-      }
-
-      if (logsRes.ok) {
-        const data = await logsRes.json();
-        setLogs(Array.isArray(data) ? data : data.data || []);
-      }
-
-      toast.success('Metrics refreshed');
     } catch (error) {
-      toast.error('Failed to refresh metrics');
+      console.error('Error fetching admin data:', error);
+      toast.error('Failed to load admin data');
     } finally {
-      setRefreshing(false);
+      setIsLoading(false);
     }
   };
 
-  const handleDatabaseMaintenance = async () => {
-    try {
-      const response = await fetch(ADMIN_ENDPOINTS.MAINTENANCE_DATABASE, {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (!response.ok) throw new Error('Maintenance failed');
-      toast.success('Database maintenance completed');
-      handleRefresh();
-    } catch (error) {
-      toast.error('Database maintenance failed');
-    }
+  const handleRefresh = () => {
+    fetchData();
   };
 
-  const handleClearCache = async () => {
-    try {
-      const response = await fetch(ADMIN_ENDPOINTS.CACHE_CLEAR, {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (!response.ok) throw new Error('Cache clear failed');
-      toast.success('Cache cleared');
-    } catch (error) {
-      toast.error('Failed to clear cache');
-    }
-  };
-
-  const getHealthColor = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return 'text-green-600';
-      case 'warning':
-        return 'text-yellow-600';
-      case 'critical':
-        return 'text-red-600';
-      default:
-        return 'text-gray-600';
-    }
-  };
-
-  const getHealthIcon = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return <CheckCircle className="w-5 h-5" />;
-      case 'warning':
-        return <AlertTriangle className="w-5 h-5" />;
-      case 'critical':
-        return <AlertTriangle className="w-5 h-5" />;
-      default:
-        return <Clock className="w-5 h-5" />;
-    }
-  };
-
-  // Handle PIN verification success
-  const handlePINSuccess = () => {
-    verifyPIN();
-    setShowPINModal(false);
-    toast.success('Admin Console unlocked');
-  };
-
-  // Handle PIN modal close
-  const handlePINModalClose = () => {
-    if (!isPINVerified) {
-      navigate('/menu');
-    } else {
-      setShowPINModal(false);
-    }
-  };
-
-  // Handle logout
   const handleLogout = () => {
-    clearPINVerification();
+    logout();
     navigate('/menu');
-    toast.success('Admin Console session ended');
   };
 
-  // Show PIN modal if not verified
-  if (showPINModal || !isPINVerified) {
-    return (
-      <div className="fixed inset-0 z-0">
-        <AdminPINModal
-          isOpen={showPINModal || !isPINVerified}
-          onClose={handlePINModalClose}
-          onSuccess={handlePINSuccess}
-        />
-        <div className="flex justify-center items-center h-screen">
-          <div className="text-center">
-            <Lock className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-pulse" />
-            <p className="text-gray-600 dark:text-gray-400">Admin Console requires PIN verification</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show session expired warning
-  if (sessionWarning) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex justify-center items-center min-h-screen"
-      >
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8">
-          <div className="flex justify-center mb-4">
-            <AlertTriangle className="w-16 h-16 text-yellow-600 dark:text-yellow-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-center mb-2">Session Expired</h2>
-          <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
-            Your PIN verification session has expired. Please verify again.
-          </p>
-          <Button
-            onClick={() => {
-              setSessionWarning(false);
-              setShowPINModal(true);
-            }}
-            className="w-full"
-          >
-            Verify PIN Again
-          </Button>
-        </div>
-      </motion.div>
-    );
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
         <div className="text-center">
@@ -301,7 +151,7 @@ export default function AdminConsole() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={handleRefresh} disabled={refreshing} variant="outline" size="sm">
+          <Button onClick={handleRefresh} disabled={refreshing} variant="secondary" size="sm">
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
@@ -312,30 +162,10 @@ export default function AdminConsole() {
             className="gap-2"
           >
             <LogOut className="w-4 h-4" />
-            End Session
+            Logout
           </Button>
         </div>
       </div>
-
-      {/* Security Status */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-xl p-4 flex items-center justify-between"
-      >
-        <div className="flex items-center gap-3">
-          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-          <div>
-            <p className="font-semibold text-green-900 dark:text-green-100">Admin Console Secured</p>
-            <p className="text-sm text-green-700 dark:text-green-300">PIN verified - Session active</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-green-600 dark:text-green-400 font-mono">
-            {new Date().toLocaleTimeString()}
-          </p>
-        </div>
-      </motion.div>
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 dark:border-gray-700">
@@ -386,7 +216,7 @@ export default function AdminConsole() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-                <Zap className="h-4 w-4 text-purple-600" />
+                <Activity className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{metrics.totalTasks}</div>
@@ -439,45 +269,33 @@ export default function AdminConsole() {
       {activeTab === 'health' && health && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(health).map(([service, status]) => (
-              <Card key={service}>
+            {health.services.map((service) => (
+              <Card key={service.name}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium capitalize">
-                    {service} Status
+                    {service.name} Status
                   </CardTitle>
-                  <div className={`${getHealthColor(status)}`}>
-                    {getHealthIcon(status)}
+                  <div className={`${
+                    service.status === 'up' ? 'text-green-600' :
+                    service.status === 'degraded' ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {service.status === 'up' ? <CheckCircle className="w-5 h-5" /> :
+                     service.status === 'degraded' ? <AlertTriangle className="w-5 h-5" /> :
+                     <AlertTriangle className="w-5 h-5" />}
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-2xl font-bold capitalize ${getHealthColor(status)}`}>
-                    {status}
+                  <div className={`text-2xl font-bold capitalize ${
+                    service.status === 'up' ? 'text-green-600' :
+                    service.status === 'degraded' ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {service.status}
                   </div>
+                  <p className="text-xs text-gray-500">{service.responseTime}ms response</p>
                 </CardContent>
               </Card>
             ))}
           </div>
-
-          {/* Maintenance Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Maintenance Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                onClick={handleDatabaseMaintenance}
-                variant="outline"
-                className="w-full justify-start"
-              >
-                <Database className="w-4 h-4 mr-2" />
-                Run Database Maintenance
-              </Button>
-              <Button onClick={handleClearCache} variant="outline" className="w-full justify-start">
-                <Zap className="w-4 h-4 mr-2" />
-                Clear Application Cache
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       )}
 
@@ -501,21 +319,21 @@ export default function AdminConsole() {
                       className={`mt-1 ${
                         log.level === 'error'
                           ? 'text-red-600'
-                          : log.level === 'warning'
+                          : log.level === 'warn'
                             ? 'text-yellow-600'
                             : 'text-blue-600'
                       }`}
                     >
                       {log.level === 'error' && <AlertTriangle className="w-4 h-4" />}
-                      {log.level === 'warning' && <AlertTriangle className="w-4 h-4" />}
+                      {log.level === 'warn' && <AlertTriangle className="w-4 h-4" />}
                       {log.level === 'info' && <Activity className="w-4 h-4" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 dark:text-white">
-                        {log.action || log.message}
+                        {log.message}
                       </p>
                       <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
-                        {new Date(log.timestamp).toLocaleString()} {log.user && `• ${log.user}`}
+                        {new Date(log.timestamp).toLocaleString()} • {log.source}
                       </p>
                     </div>
                   </div>
@@ -581,38 +399,10 @@ export default function AdminConsole() {
               </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Max Session Duration (minutes)
-                </label>
-                <input
-                  type="number"
-                  defaultValue="480"
-                  disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Max Upload Size (MB)
-                </label>
-                <input
-                  type="number"
-                  defaultValue="100"
-                  disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                />
-              </div>
-            </CardContent>
-          </Card>
         </div>
       )}
     </div>
   );
-}
+};
+
+export default AdminConsole;
