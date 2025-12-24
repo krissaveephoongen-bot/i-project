@@ -72,73 +72,52 @@ export const LoginForm: React.FC = () => {
   const isFormValid = email && password && !loading;
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden p-4">
-      {/* Decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/20 rounded-full mix-blend-multiply filter blur-3xl"></div>
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-purple-500/20 rounded-full mix-blend-multiply filter blur-3xl"></div>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-md relative z-10"
-      >
-        {/* Card */}
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-slate-800 overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-10 text-center relative">
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute inset-0 bg-gradient-to-b from-white to-transparent"></div>
+    <>
+      <div className="flex min-h-screen">
+        {/* Left Section - Blue Gradient */}
+        <div className="hidden lg:flex flex-col items-center justify-center w-1/2 bg-gradient-to-br from-blue-600 to-blue-800 p-12 text-white text-center">
+          <div className="max-w-md">
+            <h1 className="text-4xl font-bold mb-6">Where are you going today?</h1>
+            <div className="mt-24">
+              <p className="text-sm text-blue-100">Design by appworks</p>
+              <p className="text-xs text-blue-200 mt-1">version 1.0 Powered by Cursor AI</p>
             </div>
-            <motion.div
-              animate={{ y: [0, -5, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="relative mb-4"
-            >
-              <div className="w-16 h-16 mx-auto rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
-                <Lock className="h-8 w-8 text-white" />
-              </div>
-            </motion.div>
-            <h1 className="text-3xl font-bold text-white relative mb-2">Welcome Back</h1>
-            <p className="text-blue-100 text-sm relative">Project Management System</p>
           </div>
+        </div>
 
-          {/* Content */}
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        {/* Right Section - Login Form */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="w-full max-w-md"
+          >
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 mx-auto rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Error Alert */}
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl"
+                className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg mb-4"
               >
-                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-red-800 dark:text-red-300 text-sm">{error}</p>
-                </div>
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="font-medium text-red-800 text-sm">{error}</p>
               </motion.div>
             )}
 
             {/* Email Input */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="space-y-2"
-            >
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Email Address
-              </label>
+            <div className="space-y-2">
               <div className="relative">
-                <div
-                  className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${
-                    focusedField === 'email'
-                      ? 'text-blue-600 dark:text-blue-400'
-                      : 'text-gray-400 dark:text-gray-500'
-                  }`}
-                >
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                   <Mail className="h-5 w-5" />
                 </div>
                 <input
@@ -147,32 +126,17 @@ export const LoginForm: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="admin@example.com"
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:focus:border-blue-400 dark:focus:ring-blue-400/20 bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                  disabled={loading}
+                  placeholder="jakgrits.ph@appworks.co.th"
+                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
-            </motion.div>
+            </div>
 
             {/* Password Input */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 }}
-              className="space-y-2"
-            >
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Password
-              </label>
+            <div className="space-y-2">
               <div className="relative">
-                <div
-                  className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${
-                    focusedField === 'password'
-                      ? 'text-blue-600 dark:text-blue-400'
-                      : 'text-gray-400 dark:text-gray-500'
-                  }`}
-                >
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                   <Lock className="h-5 w-5" />
                 </div>
                 <input
@@ -182,15 +146,13 @@ export const LoginForm: React.FC = () => {
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-12 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:focus:border-blue-400 dark:focus:ring-blue-400/20 bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                  disabled={loading}
+                  className="w-full pl-12 pr-12 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-1"
-                  tabIndex={-1}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -199,70 +161,79 @@ export const LoginForm: React.FC = () => {
                   )}
                 </button>
               </div>
-            </motion.div>
+            </div>
 
-            {/* Login Button */}
-            <motion.button
-              type="submit"
-              disabled={!isFormValid}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              whileHover={isFormValid ? { scale: 1.02 } : {}}
-              whileTap={isFormValid ? { scale: 0.98 } : {}}
-              className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
-                isFormValid
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              {loading ? (
-                <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                  >
-                    <Lock className="h-4 w-4" />
-                  </motion.div>
-                  <span>Logging in...</span>
-                </>
-              ) : (
-                <>
-                  <span>Login</span>
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </motion.button>
-
-            {/* Info Box */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl"
-            >
-              <div className="flex items-start gap-3">
-                <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
-                    Test Credentials
-                  </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">
-                    Use your account email and password to login
-                  </p>
-                </div>
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-700"
+                >
+                  จดจำฉันไว้
+                </label>
               </div>
-            </motion.div>
-          </form>
 
-          {/* Footer */}
-          <div className="px-8 py-4 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-200 dark:border-slate-700">
-            <p className="text-xs text-center text-gray-600 dark:text-gray-400">
-              © 2024 Project Management System. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </motion.div>
-    </div>
+              <div className="text-sm">
+                <a
+                  href="#"
+                  className="font-medium text-blue-600 hover:text-blue-500"
+                >
+                  ลืมรหัสผ่าน
+                </a>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={!isFormValid || loading}
+                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white ${
+                  isFormValid && !loading
+                    ? 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                    : 'bg-blue-400 cursor-not-allowed'
+                } transition-colors duration-200`}
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    กำลังเข้าสู่ระบบ...
+                  </>
+                ) : (
+                  'เข้าสู่ระบบ'
+                )}
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      </div>
+      </div>
+    </>
   );
 };
