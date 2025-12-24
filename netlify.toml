@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "npm install && npm run build"
   publish = "dist"
   functions = "netlify/functions"
 
@@ -7,6 +7,8 @@
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
   NPM_VERBOSE = "true"
+  NODE_ENV = "production"
+  VITE_API_URL = "https://your-production-api-url.com"
 
 [[redirects]]
   from = "/*"
@@ -31,33 +33,21 @@
   framework = "vite"
 
 [context.production]
-  command = "npm run build"
+  command = "npm install && npm run build"
   publish = "dist"
+  environment = { NODE_ENV = "production" }
 
 [context.deploy-preview]
-  command = "npm run build"
+  command = "npm install && npm run build"
   publish = "dist"
+  environment = { NODE_ENV = "development" }
 
 [context.branch-deploy]
-  command = "npm run build"
+  command = "npm install && npm run build"
   publish = "dist"
+  environment = { NODE_ENV = "development" }
 
 [context.next]
-  command = "npm run build"
+  command = "npm install && npm run build"
   publish = "dist"
-
-[context.production.environment]
-  NODE_ENV = "production"
-  VITE_API_URL = "https://your-production-api-url.com"
-
-[context.deploy-preview.environment]
-  NODE_ENV = "development"
-  VITE_API_URL = "https://staging-api-url.com"
-
-[context.branch-deploy.environment]
-  NODE_ENV = "development"
-  VITE_API_URL = "https://staging-api-url.com"
-
-[context.next.environment]
-  NODE_ENV = "development"
-  VITE_API_URL = "https://staging-api-url.com"
+  environment = { NODE_ENV = "development" }
