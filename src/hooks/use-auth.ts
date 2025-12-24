@@ -54,21 +54,17 @@ export function useAuth() {
   }, []);
 
   const login = useCallback(async (credentials: LoginCredentials): Promise<AuthResponse> => {
-      // Replace with actual API call
-      const mockUser = {
-          id: '1',
-          name: 'John Doe',
-          email: credentials.email,
-          role: 'admin',
-      };
-      
-      const tokens = {
-          accessToken: 'mock-access-token',
-          refreshToken: 'mock-refresh-token',
-      };
-      
-      return { user: mockUser, tokens };
-  }, []);
+       // TODO: Replace with actual API call to backend
+       // const response = await fetch('/api/auth/login', {
+       //   method: 'POST',
+       //   headers: { 'Content-Type': 'application/json' },
+       //   body: JSON.stringify(credentials)
+       // });
+       // const data = await response.json();
+       // return data;
+       
+       throw new Error('Login not implemented. Configure API endpoint.');
+   }, []);
 
   const logout = useCallback(() => {
     queryClient.clear();
@@ -94,21 +90,19 @@ export function useAuth() {
   }, []);
 
   const refreshToken = useCallback(async (_token: string): Promise<AuthResponse> => {
-    // Replace with actual API call
-    const mockUser = {
-      id: '1',
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      role: 'admin',
-    };
-    
-    const tokens = {
-      accessToken: 'new-mock-access-token',
-      refreshToken: 'new-mock-refresh-token',
-    };
-    
-    return { user: mockUser, tokens };
-  }, []);
+     // TODO: Replace with actual API call to backend
+     // const response = await fetch('/api/auth/refresh', {
+     //   method: 'POST',
+     //   headers: { 
+     //     'Content-Type': 'application/json',
+     //     'Authorization': `Bearer ${_token}`
+     //   }
+     // });
+     // const data = await response.json();
+     // return data;
+     
+     throw new Error('Token refresh not implemented. Configure API endpoint.');
+   }, []);
 
   return {
     getCurrentUser,

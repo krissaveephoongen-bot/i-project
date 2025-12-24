@@ -9,9 +9,24 @@ import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfil
 // Load environment variables
 const env = loadEnv('development', process.cwd(), '');
 
+// Validate that only safe variables are exposed to the browser
+const SAFE_ENV_VARS = ['VITE_'];
+function getSafeEnv(envVars: Record<string, string>) {
+  const safe: Record<string, string> = {};
+  for (const [key, value] of Object.entries(envVars)) {
+    if (SAFE_ENV_VARS.some(prefix => key.startsWith(prefix))) {
+      safe[key] = value;
+    }
+  }
+  return safe;
+}
+
 export default defineConfig({
   define: {
-    'process.env': { ...env, NODE_DEBUG: 'false' },
+    'process.env': {
+      NODE_ENV: env.NODE_ENV || 'development',
+      NODE_DEBUG: 'false'
+    },
     'process.version': '"18.0.0"',
     'process.platform': '"browser"',
     'process.browser': 'true',

@@ -28,7 +28,7 @@ async function testAPI() {
     const userRes = await api.post('/users', {
       name: 'Test User',
       email: `test-${Date.now()}@example.com`,
-      password: 'Test@123456',
+      password: process.env.TEST_USER_PASSWORD || 'Test@123456',
       role: 'user'
     });
     testUserId = userRes.data.data.id;
@@ -206,8 +206,8 @@ async function testAPI() {
 
     // Change password
     const changePassRes = await api.put(`/users/${testUserId}/change-password`, {
-      currentPassword: 'Test@123456',
-      newPassword: 'NewPass@123456'
+      currentPassword: process.env.TEST_USER_PASSWORD || 'Test@123456',
+      newPassword: process.env.TEST_USER_NEW_PASSWORD || 'NewPass@123456'
     });
     console.log('✅ Password changed successfully');
 

@@ -70,20 +70,14 @@ const apiCall = async (endpoint, options = {}) => {
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers['Authorization'] = 'Bearer ' + token;
   }
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(API_BASE_URL + endpoint, {
       ...options,
-      headers,
-      signal: controller.signal
+      headers
     });
-
-    clearTimeout(timeoutId);
 
     if (response.status === 401) {
       auth.logout();
@@ -99,12 +93,7 @@ const apiCall = async (endpoint, options = {}) => {
 
 // Alert Component
 function Alert({ type, message, onClose }) {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 4000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  const alertClass = `alert alert-${type}`;
+  const alertClass = 'alert alert-' + type;
   const icons = {
     success: 'fas fa-check-circle',
     error: 'fas fa-exclamation-circle',
@@ -115,6 +104,20 @@ function Alert({ type, message, onClose }) {
     <div className={alertClass}>
       <i className={icons[type]}></i>
       <span>{message}</span>
+      <button
+        onClick={onClose}
+        style={{
+          marginLeft: 'auto',
+          background: 'none',
+          border: 'none',
+          color: 'inherit',
+          cursor: 'pointer',
+          fontSize: '18px',
+          padding: '0 8px'
+        }}
+      >
+        &times;
+      </button>
     </div>
   );
 }

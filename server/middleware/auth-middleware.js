@@ -6,7 +6,9 @@
 const jwt = require('jsonwebtoken');
 const { executeQuery } = require('../../database/neon-connection');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  throw new Error('JWT_SECRET environment variable is required. Set it in your .env or .env.local file.');
+})();
 
 /**
  * Verify JWT token and attach user to request

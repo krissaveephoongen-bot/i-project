@@ -9,6 +9,7 @@
   "scripts": {
     "start": "vite",
     "build": "vite build",
+    "build:secure": "node scripts/build-with-env.ps1",
     "preview": "vite preview",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "vitest",
@@ -43,7 +44,11 @@
     "dev:all": "concurrently \"npm run server\" \"npm run dev\"",
     "create:admin": "node scripts/create-admin.js",
     "admin:init": "node scripts/setup-admin-users.js",
-    "admin:setup": "node scripts/setup-admin-users.js"
+    "admin:setup": "node scripts/setup-admin-users.js",
+    "scan:secrets": "node scripts/secrets-scanner.js",
+    "security:check": "npm run scan:secrets && npm run lint",
+    "security:verify": "node scripts/security-verify.js",
+    "security:setup": "bash scripts/setup-security.sh"
   },
   "dependencies": {
     "@ant-design/icons": "^5.4.0",
@@ -59,7 +64,7 @@
     "@nivo/line": "^0.99.0",
     "@nivo/pie": "^0.99.0",
     "@prisma/adapter-pg": "^7.1.0",
-    "@prisma/engine-core": "^4.13.0",
+    "@prisma/engine-core": "^2.0.123",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-popover": "^1.1.15",
@@ -117,6 +122,16 @@
     "yup": "^1.7.1",
     "zod": "^3.25.76"
   },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts,json}": [
+      "grep -n \"password\\|secret\\|api[_-]?key\\|token\\|auth\\|credential\" || true"
+    ]
+  },
   "devDependencies": {
     "@babel/core": "^7.23.0",
     "@babel/preset-react": "^7.22.15",
@@ -146,7 +161,7 @@
     "concurrently": "^9.2.1",
     "crypto-browserify": "^3.12.1",
     "dotenv": "^17.2.3",
-    "drizzle-kit": "^0.31.7",
+    "drizzle-kit": "^0.18.1",
     "eslint": "^8.54.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-import": "^2.29.0",
@@ -158,6 +173,7 @@
     "https-browserify": "^1.0.0",
     "husky": "^8.0.3",
     "jsdom": "^27.2.0",
+    "lint-staged": "^15.0.0",
     "next": "^16.0.10",
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",
@@ -173,10 +189,10 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "util": "^0.12.5",
-    "vite": "^5.4.21",
+    "vite": "^7.3.0",
     "vite-plugin-node-polyfills": "^0.24.0",
     "vite-plugin-svgr": "^4.2.0",
-    "vitest": "^1.6.1"
+    "vitest": "^4.0.16"
   },
   "browserslist": {
     "production": [
@@ -189,5 +205,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "overrides": {
+    "undici": "5.28.5"
   }
 }

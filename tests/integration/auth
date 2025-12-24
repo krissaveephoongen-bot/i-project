@@ -11,8 +11,12 @@ async function testLogin() {
     await client.connect();
     console.log('Connected to database\n');
 
-    const testEmail = 'jakgrits.ph@appworks.co.th';
-    const testPassword = 'AppWorks@123!';
+    const testEmail = process.env.TEST_USER_EMAIL || 'jakgrits.ph@appworks.co.th';
+    const testPassword = process.env.TEST_USER_PASSWORD;
+    
+    if (!testPassword) {
+      throw new Error('TEST_USER_PASSWORD environment variable is required');
+    }
 
     // Query user
     const result = await client.query(`

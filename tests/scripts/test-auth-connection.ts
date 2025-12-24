@@ -9,7 +9,10 @@ import axios from 'axios';
 // Configuration
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
 const TEST_EMAIL = 'test@example.com';
-const TEST_PASSWORD = 'password123';
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'password123';
+if (!process.env.TEST_USER_PASSWORD) {
+  console.warn('⚠️  TEST_USER_PASSWORD not set, using default');
+}
 const TEST_PIN = process.env.ADMIN_PIN || '123456';
 
 interface TestResult {

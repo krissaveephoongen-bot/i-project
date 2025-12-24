@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/apiClient';
+import { api as apiClient } from '@/lib/api-client';
 
 export interface MenuStats {
   totalProjects: number;

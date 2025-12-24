@@ -222,7 +222,10 @@ async function interactiveTest(users) {
 async function autoTest(users) {
   console.log(`${colors.yellow}Auto-testing with default credentials...${colors.reset}\n`);
   
-  const testPassword = 'password123';
+  const testPassword = process.env.TEST_USER_PASSWORD;
+if (!testPassword) {
+  throw new Error('TEST_USER_PASSWORD environment variable is required');
+}
   let successCount = 0;
   let failCount = 0;
 

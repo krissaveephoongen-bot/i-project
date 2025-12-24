@@ -88,7 +88,11 @@ async function testPasswordReset() {
 
   // Test data
   const testUserId = 'test-user-id'; // Replace with actual user ID
-  const newPassword = 'NewSecurePassword123!';
+  const newPassword = process.env.TEST_USER_NEW_PASSWORD || 'NewSecurePassword123!';
+  
+  if (!process.env.TEST_USER_NEW_PASSWORD) {
+    console.warn('⚠️  TEST_USER_NEW_PASSWORD not set, using default');
+  }
 
   console.log(`${colors.yellow}Note: Update TEST_USER_ID with an actual user ID from your database${colors.reset}\n`);
 

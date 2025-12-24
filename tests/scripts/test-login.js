@@ -12,52 +12,66 @@ const API_HOST = process.env.API_HOST || 'localhost';
 const API_PORT = process.env.API_PORT || 5000;
 const API_URL = `http://${API_HOST}:${API_PORT}`;
 
-// Test credentials
-const TEST_CASES = [
-  {
-    name: 'Valid Login',
-    credentials: {
-      email: 'admin@example.com',
-      password: 'password123'
-    },
-    expectedStatus: 200,
-    expectSuccess: true
-  },
-  {
-    name: 'Invalid Email',
-    credentials: {
-      email: 'invalid@example.com',
-      password: 'password123'
-    },
-    expectedStatus: 401,
-    expectSuccess: false
-  },
-  {
-    name: 'Wrong Password',
-    credentials: {
-      email: 'admin@example.com',
-      password: 'wrongpassword'
-    },
-    expectedStatus: 401,
-    expectSuccess: false
-  },
-  {
-    name: 'Missing Email',
-    credentials: {
-      password: 'password123'
-    },
-    expectedStatus: 400,
-    expectSuccess: false
-  },
-  {
-    name: 'Missing Password',
-    credentials: {
-      email: 'admin@example.com'
-    },
-    expectedStatus: 400,
-    expectSuccess: false
+// Test credentials - use environment variables for sensitive data
+const getTestCredentials = () => {
+  const testEmail = process.env.TEST_USER_EMAIL;
+  const testPassword = process.env.TEST_USER_PASSWORD;
+  
+  if (!testEmail) {
+    throw new Error('TEST_USER_EMAIL environment variable is required');
   }
-];
+  if (!testPassword) {
+    throw new Error('TEST_USER_PASSWORD environment variable is required');
+  }
+  
+  return [
+    {
+      name: 'Valid Login',
+      credentials: {
+        email: testEmail,
+        password: testPassword
+      },
+      expectedStatus: 200,
+      expectSuccess: true
+    },
+    {
+      name: 'Invalid Email',
+      credentials: {
+        email: 'invalid-test-user@example.com',
+        password: testPassword
+      },
+      expectedStatus: 401,
+      expectSuccess: false
+    },
+    {
+      name: 'Wrong Password',
+      credentials: {
+        email: testEmail,
+        password: 'WrongPassword123'
+      },
+      expectedStatus: 401,
+      expectSuccess: false
+    },
+    {
+      name: 'Missing Email',
+      credentials: {
+        password: testPassword
+      },
+      expectedStatus: 400,
+      expectSuccess: false
+    },
+    {
+      name: 'Missing Password',
+      credentials: {
+        email: testEmail
+      },
+      expectedStatus: 400,
+      expectSuccess: false
+    }
+  ];
+};
+
+const TEST_CASES = getTestCredentials();
 
 // Colors for console output
 const colors = {

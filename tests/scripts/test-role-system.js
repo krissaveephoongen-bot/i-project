@@ -13,6 +13,21 @@ let adminToken = '';
 let managerToken = '';
 let employeeToken = '';
 
+// Validate environment variables for test credentials
+const TEST_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'Admin@1234';
+const TEST_MANAGER_PASSWORD = process.env.TEST_MANAGER_PASSWORD || 'ManagerPass123';
+const TEST_EMPLOYEE_PASSWORD = process.env.TEST_EMPLOYEE_PASSWORD || 'EmployeePass123';
+
+if (!process.env.TEST_ADMIN_PASSWORD) {
+  console.warn('⚠️  TEST_ADMIN_PASSWORD not set, using default');
+}
+if (!process.env.TEST_MANAGER_PASSWORD) {
+  console.warn('⚠️  TEST_MANAGER_PASSWORD not set, using default');
+}
+if (!process.env.TEST_EMPLOYEE_PASSWORD) {
+  console.warn('⚠️  TEST_EMPLOYEE_PASSWORD not set, using default');
+}
+
 const colors = {
   reset: '\x1b[0m',
   green: '\x1b[32m',
@@ -38,7 +53,7 @@ async function testLogin() {
     log.info('Testing admin login...');
     const adminRes = await axios.post(`${API_BASE}/auth/login`, {
       email: 'admin@example.com',
-      password: 'Admin@1234'
+      password: TEST_ADMIN_PASSWORD
     });
     adminToken = adminRes.data.token;
     log.success('Admin login successful');
@@ -77,7 +92,7 @@ async function testUserManagement() {
       {
         name: 'Test Manager',
         email: 'manager@test.com',
-        password: 'ManagerPass123',
+        password: TEST_MANAGER_PASSWORD,
         role: 'manager',
         department: 'Management'
       },
@@ -93,7 +108,7 @@ async function testUserManagement() {
       {
         name: 'Test Employee',
         email: 'employee@test.com',
-        password: 'EmployeePass123',
+        password: TEST_EMPLOYEE_PASSWORD,
         role: 'employee',
         department: 'Development'
       },

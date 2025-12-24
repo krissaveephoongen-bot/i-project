@@ -29,9 +29,14 @@ function makeRequest(options, data) {
 async function testLogin() {
   console.log('Testing API Login Endpoint...\n');
 
+  const testPassword = process.env.TEST_USER_PASSWORD;
+  if (!testPassword) {
+    throw new Error('TEST_USER_PASSWORD environment variable is required');
+  }
+
   const loginData = {
-    email: 'jakgrits.ph@appworks.co.th',
-    password: 'AppWorks@123!'
+    email: process.env.TEST_USER_EMAIL || 'jakgrits.ph@appworks.co.th',
+    password: testPassword
   };
 
   const options = {

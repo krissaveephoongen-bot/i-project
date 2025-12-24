@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 
 // Real user credentials for Neon database
 const REAL_USER = {
-  email: 'admin@example.com',
-  password: 'password123'
+  email: process.env.TEST_USER_EMAIL || 'admin@example.com',
+  password: process.env.TEST_USER_PASSWORD || 'password123'
 };
 
 test.describe('Authentication Flow with Real Data', () => {

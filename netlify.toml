@@ -1,0 +1,63 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
+  NPM_VERBOSE = "true"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.example.com;"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+[dev]
+  publish = "dist"
+  port = 5173
+  targetPort = 5173
+  framework = "vite"
+
+[context.production]
+  command = "npm run build"
+  publish = "dist"
+
+[context.deploy-preview]
+  command = "npm run build"
+  publish = "dist"
+
+[context.branch-deploy]
+  command = "npm run build"
+  publish = "dist"
+
+[context.next]
+  command = "npm run build"
+  publish = "dist"
+
+[context.production.environment]
+  NODE_ENV = "production"
+  VITE_API_URL = "https://your-production-api-url.com"
+
+[context.deploy-preview.environment]
+  NODE_ENV = "development"
+  VITE_API_URL = "https://staging-api-url.com"
+
+[context.branch-deploy.environment]
+  NODE_ENV = "development"
+  VITE_API_URL = "https://staging-api-url.com"
+
+[context.next.environment]
+  NODE_ENV = "development"
+  VITE_API_URL = "https://staging-api-url.com"

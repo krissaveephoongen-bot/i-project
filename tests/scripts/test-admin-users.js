@@ -119,10 +119,15 @@ test('Database initialization', async () => {
 // Test 3: Create a test user
 let testUserId;
 test('Create admin user', async () => {
+  // Use test password from environment variable
+  const testPassword = process.env.TEST_PASSWORD;
+  if (!testPassword) {
+    throw new Error('TEST_PASSWORD environment variable is required');
+  }
   const response = await makeRequest('POST', '/users', {
     email: `test-${Date.now()}@example.com`,
     name: 'Test User',
-    password: 'testpass123',
+    password: testPassword,
     department: 'Test',
     position: 'Test Position'
   });

@@ -4,8 +4,8 @@ import { test as baseTest } from '@playwright/test';
 export const test = baseTest.extend({
   // Add test user data
   testUser: {
-    email: 'admin@example.com',
-    password: 'password123',
+    email: process.env.TEST_USER_EMAIL || 'admin@example.com',
+    password: process.env.TEST_USER_PASSWORD || 'password123',
     name: 'Test Admin'
   },
 
