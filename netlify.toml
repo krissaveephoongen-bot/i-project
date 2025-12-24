@@ -8,7 +8,7 @@
   NPM_FLAGS = "--legacy-peer-deps"
   NPM_VERBOSE = "true"
   NODE_ENV = "production"
-  VITE_API_URL = "https://your-production-api-url.com"
+  VITE_API_URL = "/.netlify/functions/api"
   NPM_CONFIG_PRODUCTION = "false"
 
 [[redirects]]
@@ -16,9 +16,16 @@
   to = "/index.html"
   status = 200
 
+# Security headers
 [[headers]]
   for = "/*"
   [headers.values]
+    # CORS headers
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
+    
+    # Security headers
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
@@ -26,6 +33,18 @@
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.example.com https://your-production-api-url.com;"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+# API proxy
+[[redirects]]
+  from = "/api/*"
+  to = "https://your-production-api-url.com/:splat"
+  status = 200
+  force = true
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+  [plugins.inputs]
+    skip = true
 
 [dev]
   publish = "dist"
