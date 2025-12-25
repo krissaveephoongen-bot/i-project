@@ -7,6 +7,7 @@
     "seed": "node prisma/seed.js"
   },
   "scripts": {
+    "postinstall": "prisma generate && prisma db push --skip-generate --force-reset || true",
     "start": "vite",
     "build": "vite build",
     "build:secure": "node scripts/build-with-env.ps1",
