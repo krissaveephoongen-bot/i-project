@@ -22,6 +22,7 @@ function getSafeEnv(envVars: Record<string, string>) {
 }
 
 export default defineConfig({
+  base: '/',
   define: {
     'process.env': {
       NODE_ENV: env.NODE_ENV || 'development',
@@ -113,7 +114,7 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
       },
