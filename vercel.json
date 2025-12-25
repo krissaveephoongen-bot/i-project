@@ -10,8 +10,8 @@
       "destination": "/api/:path*"
     },
     {
-      "source": "/:path*",
-      "destination": "/:path*"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "functions": {
