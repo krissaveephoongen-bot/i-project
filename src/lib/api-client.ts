@@ -1,64 +1,185 @@
-import { parseApiError, AppError } from './error-handler';
+import { AppError } from './error-handler';
+import { API_BASE_URL, API_TIMEOUT } from './api-config';
 
-interface FetchOptions extends RequestInit {
+type HeadersObject = Record<string, string>;
+
+interface FetchOptions extends Omit<RequestInit, 'headers'> {
   timeout?: number;
+  skipAuth?: boolean;
+  headers?: HeadersObject | Headers;
 }
 
 /**
- * Enhanced fetch wrapper with error handling and timeout support
+ * Get default headers for API requests
+ */
+const getDefaultHeaders = (): HeadersObject => ({
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'Cache-Control': 'no-cache, no-store, must-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+});
+
+/**
+ * Enhanced fetch wrapper with error handling, timeout, and CORS support
  */
 export const fetchWithTimeout = async (
   url: string,
   options: FetchOptions = {}
 ): Promise<Response> => {
-  const { timeout = 10000, ...fetchOptions } = options;
+  const { 
+    timeout = API_TIMEOUT, 
+    headers = {},
+    skipAuth = false,
+    ...fetchOptions 
+  } = options;
+
+  // Ensure URL is absolute for API requests
+  const isAbsoluteUrl = url.startsWith('http');
+  const requestUrl = isAbsoluteUrl ? url : `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+
+  // Convert headers to plain object if they're in Headers format
+  const normalizeHeaders = (headers: HeadersObject | Headers): HeadersObject => {
+    if (headers instanceof Headers) {
+      const result: HeadersObject = {};
+      headers.forEach((value, key) => {
+        result[key] = value;
+      });
+      return result;
+    }
+    return headers;
+  };
+
+  // Merge headers
+  const defaultHeaders = getDefaultHeaders();
+  const normalizedHeaders = normalizeHeaders(headers);
+  const requestHeaders: HeadersObject = {
+    ...defaultHeaders,
+    ...normalizedHeaders,
+  };
+
+  // Add auth token if available and not skipped
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('authToken');
+    if (token && !skipAuth && !requestHeaders['Authorization']) {
+      requestHeaders['Authorization'] = `Bearer ${token}`;
+    }
+  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(requestUrl, {
       ...fetchOptions,
+      headers: requestHeaders,
       signal: controller.signal,
+      credentials: 'include', // Include cookies for CORS
+      mode: 'cors', // Enable CORS
     });
 
     // Handle HTTP errors
     if (!response.ok) {
-      const error = new AppError(
-        `HTTP ${response.status}: ${response.statusText}`,
-        `HTTP_${response.status}`,
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      let errorCode = `HTTP_${response.status}`;
+      
+      // Try to parse error details from response
+      try {
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData && typeof errorData === 'object' && 'message' in errorData) {
+          errorMessage = String(errorData.message);
+        }
+        if (errorData && typeof errorData === 'object' && 'code' in errorData) {
+          errorCode = String(errorData.code);
+        }
+      } catch (e) {
+        // Ignore JSON parse errors
+      }
+
+      throw new AppError(
+        errorMessage,
+        errorCode,
         response.status
       );
-      throw error;
     }
 
     return response;
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new AppError('Request timeout', 'REQUEST_TIMEOUT', 408);
+    } 
+    
+    if (error instanceof Error) {
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        throw new AppError('Network error. Please check your connection.', 'NETWORK_ERROR', 0);
+      }
+      
+      if (error instanceof AppError) {
+        throw error;
+      }
+      
+      throw new AppError(
+        error.message || 'An unknown error occurred',
+        'UNKNOWN_ERROR',
+        0
+      );
     }
-    throw error;
+    
+    throw new AppError('An unknown error occurred', 'UNKNOWN_ERROR', 0);
   } finally {
     clearTimeout(timeoutId);
   }
 };
 
 /**
- * Typed API request helper
+ * Typed API request helper with better error handling
  */
-export const apiRequest = async <T,>(
+export const apiRequest = async <T>(
   url: string,
-  options?: FetchOptions
+  options: FetchOptions = {}
 ): Promise<T> => {
-  const response = await fetchWithTimeout(url, options);
+  try {
+    const response = await fetchWithTimeout(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+      },
+    });
 
-  // Try to parse as JSON, fallback to text
-  const contentType = response.headers.get('content-type');
-  if (contentType?.includes('application/json')) {
-    return response.json() as Promise<T>;
+    // Handle empty responses (e.g., 204 No Content)
+    if (response.status === 204) {
+      return undefined as unknown as T;
+    }
+
+    // Try to parse as JSON, fallback to text
+    const contentType = response.headers.get('content-type');
+    try {
+      if (contentType?.includes('application/json')) {
+        return (await response.json()) as T;
+      }
+      return (await response.text()) as unknown as T;
+    } catch (error) {
+      console.error('Error parsing response:', error);
+      throw new AppError(
+        'Failed to parse response',
+        'PARSE_ERROR',
+        response.status,
+        { contentType, status: response.status, statusText: response.statusText }
+      );
+    }
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    throw new AppError(
+      errorMessage,
+      'API_REQUEST_ERROR',
+      0,
+      { url, options }
+    );
   }
-
-  return response.text() as Promise<T>;
 };
 
 /**

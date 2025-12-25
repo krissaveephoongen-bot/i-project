@@ -2,26 +2,43 @@
  * API Configuration - Centralized API settings
  */
 
+declare global {
+  interface Window {
+    __API_URL__?: string;
+  }
+  namespace NodeJS {
+    interface ProcessEnv {
+      NODE_ENV: 'development' | 'production' | 'test';
+      REACT_APP_API_URL?: string;
+      API_URL?: string;
+    }
+  }
+}
+
+// Check if running in development mode
+const isDevelopment = 
+  (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') || 
+  (typeof window !== 'undefined' && 
+   (window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1'));
+
 // Get API base URL from environment or default
 export const getApiBaseUrl = (): string => {
-  // Try environment variables
+  // Try environment variables first
   const envUrl = 
     (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
-    (typeof process !== 'undefined' && (process as any).env?.REACT_APP_API_URL) ||
-    (typeof window !== 'undefined' && (window as any).__API_URL__) ||
-    '';
+    (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) ||
+    (typeof window !== 'undefined' && window.__API_URL__);
 
   if (envUrl) return envUrl;
 
-  // Determine based on environment
-  if (typeof window !== 'undefined') {
-    // Client-side
-    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    return isDev ? 'http://localhost:5000/api' : '/api';
-  } else {
-    // Server-side
-    return process.env.API_URL || 'http://localhost:5000/api';
+  // Default URLs based on environment
+  if (isDevelopment) {
+    return 'http://localhost:5000/api';
   }
+  
+  // In production, use relative URL to avoid CORS issues
+  return '/.netlify/functions/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
