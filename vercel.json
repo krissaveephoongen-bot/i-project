@@ -4,6 +4,9 @@
   "devCommand": "npm run dev",
   "framework": "vite",
   "outputDirectory": "dist",
+  "projectSettings": {
+    "framework": "vite"
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
