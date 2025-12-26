@@ -39,14 +39,18 @@ function getPrismaClient(): PrismaClient {
   }
 }
 
-// Support both import styles
-const prismaModule = { 
+// CommonJS export for JavaScript files
+const module_exports = {
   getPrismaClient,
   get prisma() {
     return getPrismaClient()
   }
 }
 
-module.exports = prismaModule
-export default prismaModule
+export default module_exports
 export { getPrismaClient }
+
+// For CommonJS compatibility
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = module_exports
+}

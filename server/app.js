@@ -272,34 +272,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Create HTTP server and attach WebSocket
-const server = http.createServer(app);
-const wsHandler = new WebSocketHandler();
-const wss = new WebSocket.Server({ server });
-
-// Handle WebSocket connections
-wss.on('connection', (ws, req) => {
-  wsHandler.handleConnection(ws, req);
-});
-
-// Start server
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📍 Available endpoints:`);
-  console.log(`   - GET /api/health/db - Full health check`);
-  console.log(`   - GET /api/files - File management`);
-  console.log(`   - GET /api/reports/data - Report data`);
-  console.log(`   - GET /api/templates - Template management`);
-  console.log(`   - GET /api/teams/:id/customization - Team customization`);
-  console.log(`   - GET /api/analytics/* - Advanced analytics`);
-  console.log(`   - WebSocket: wss://your-domain/api/ws - Real-time collaboration`);
-
-  // Test database connection on startup - temporarily disabled
-  // const { testConnection } = require('../database/neon-connection');
-  // testConnection().catch(err => {
-  //   console.error('❌ Startup connection test failed:', err.message);
-  // });
-});
+// Server startup moved to end of file (only runs locally)
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
@@ -311,4 +284,24 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
+// Export for Vercel serverless + local development
 module.exports = app;
+
+// Only start HTTP server if running locally (not on Vercel)
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+  try {
+    const server = http.createServer(app);
+    const wsHandler = new WebSocketHandler();
+    const wss = new WebSocket.Server({ server });
+    
+    wss.on('connection', (ws, req) => {
+      wsHandler.handleConnection(ws, req);
+    });
+    
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err.message);
+  }
+}
