@@ -307,17 +307,24 @@ module.exports = app;
 // Only start HTTP server if running locally (not on Vercel)
 if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
   try {
-    const server = http.createServer(app);
-    const wsHandler = new WebSocketHandler();
-    const wss = new WebSocket.Server({ server });
-    
-    wss.on('connection', (ws, req) => {
-      wsHandler.handleConnection(ws, req);
-    });
-    
-    server.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
+    if (http && WebSocket && WebSocketHandler) {
+      const server = http.createServer(app);
+      const wsHandler = new WebSocketHandler();
+      const wss = new WebSocket.Server({ server });
+
+      wss.on('connection', (ws, req) => {
+        wsHandler.handleConnection(ws, req);
+      });
+
+      server.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+      });
+    } else {
+      console.log('WebSocket dependencies not available, starting server without WebSocket support');
+      app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT} (without WebSocket)`);
+      });
+    }
   } catch (err) {
     console.error('Failed to start server:', err.message);
   }

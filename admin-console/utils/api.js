@@ -1,6 +1,16 @@
 // API utility functions for admin console
 
-const API_BASE_URL = '/api';
+// Get API base URL from environment or use default
+const getApiBaseUrl = () => {
+    // For frontend running on Vite, check for VITE_ prefix env var
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+        return import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    }
+    // Fallback for other environments
+    return process.env.REACT_APP_API_URL || window.API_BASE_URL || 'http://localhost:5000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Helper function to handle API responses
 async function handleResponse(response) {
