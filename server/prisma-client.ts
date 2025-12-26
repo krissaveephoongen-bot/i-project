@@ -18,7 +18,7 @@ if (process.env.NODE_ENV === 'production') {
 
   prisma = new PrismaClient({
     adapter: new PrismaPg(client),
-  })
+  } as any)
 } else {
   // Use a global variable to prevent multiple Prisma instances in development
   if (!global.prisma) {
@@ -30,7 +30,7 @@ if (process.env.NODE_ENV === 'production') {
 
     global.prisma = new PrismaClient({
       adapter: new PrismaPg(client),
-    })
+    } as any)
   }
   prisma = global.prisma
 }
