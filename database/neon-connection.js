@@ -44,11 +44,27 @@ function createDatabasePool() {
     return dbPool;
   }
 
-  if (!DATABASE_CONFIG.connectionString) {
+  // Re-check DATABASE_URL at runtime (for serverless)
+  const connectionString = process.env.DATABASE_URL;
+  
+  if (!connectionString) {
     throw new Error('DATABASE_URL environment variable is not set');
   }
 
-  dbPool = new Pool(DATABASE_CONFIG);
+  // Update config with current environment variables
+  const config = {
+    connectionString,
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    },
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+    maxUses: 7500,
+  };
+
+  dbPool = new Pool(config);
 
   // Handle connection errors
   dbPool.on('error', (err) => {
