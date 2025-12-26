@@ -4,6 +4,7 @@
   "description": "Frontend for Project Management System",
   "private": true,
   "scripts": {
+    "postinstall": "npx prisma generate",
     "start": "vite",
     "dev": "vite",
     "build": "vite build",
