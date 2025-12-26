@@ -192,6 +192,16 @@ app.use('/api/project-managers', projectManagerRoutes);
 // Resource Management routes
 app.use('/api', resourceManagementRoutes);
 
+// Debug endpoint
+app.get('/api/debug', (req, res) => {
+  res.json({
+    status: 'debug',
+    node_env: process.env.NODE_ENV,
+    database_url: process.env.DATABASE_URL ? 'configured' : 'NOT SET',
+    jwt_secret: process.env.JWT_SECRET ? 'configured' : 'NOT SET'
+  });
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
