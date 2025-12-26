@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-import { Client } from 'pg'
+const { PrismaClient } = require('@prisma/client')
+const { PrismaPg } = require('@prisma/adapter-pg')
+const { Client } = require('pg')
 
 let prisma: PrismaClient | undefined
 
@@ -47,10 +47,5 @@ const module_exports = {
   }
 }
 
-export default module_exports
-export { getPrismaClient }
-
-// For CommonJS compatibility
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = module_exports
-}
+// Export for CommonJS
+module.exports = module_exports
