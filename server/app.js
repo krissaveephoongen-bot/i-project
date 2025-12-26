@@ -6,10 +6,15 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const WebSocket = require('ws');
-const http = require('http');
 const path = require('path');
-const WebSocketHandler = require('./websocket-handler');
+
+// Conditionally import WebSocket dependencies only for local development
+let WebSocket, http, WebSocketHandler;
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+  WebSocket = require('ws');
+  http = require('http');
+  WebSocketHandler = require('./websocket-handler');
+}
 const healthRoutes = require('./health-routes');
 const projectRoutes = require('./project-routes');
 const worklogRoutes = require('./worklog-routes');
@@ -57,18 +62,30 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
-    
+
     // List of allowed origins
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:5173',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:5173',
+      // Vercel deployment domains
+      /\.vercel\.app$/,
+      /^https?:\/\/.*\.vercel\.app$/,
       // Add any other origins you need
     ];
 
-    // Check if the origin is in the allowed list
-    if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+    // Check if the origin is in the allowed list or matches Vercel pattern
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (typeof allowed === 'string') {
+        return origin === allowed;
+      } else if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return false;
+    });
+
+    if (isAllowed || process.env.NODE_ENV === 'development' || process.env.VERCEL) {
       callback(null, true);
     } else {
       console.warn('CORS blocked request from origin:', origin);
