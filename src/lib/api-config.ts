@@ -37,9 +37,8 @@ export const getApiBaseUrl = (): string => {
     return 'http://localhost:5000/api';
   }
   
-  // In production, use relative URL to avoid CORS issues
-  // Works with both Vercel serverless functions and same-origin API
-  return '/api';
+  // In production, default to ticket-apw-backend on Vercel
+  return 'https://ticket-apw-backend.vercel.app/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
