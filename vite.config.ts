@@ -9,17 +9,7 @@ import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfil
 // Load environment variables
 const env = loadEnv('development', process.cwd(), '');
 
-// Validate that only safe variables are exposed to the browser
-const SAFE_ENV_VARS = ['VITE_'];
-function getSafeEnv(envVars: Record<string, string>) {
-  const safe: Record<string, string> = {};
-  for (const [key, value] of Object.entries(envVars)) {
-    if (SAFE_ENV_VARS.some(prefix => key.startsWith(prefix))) {
-      safe[key] = value;
-    }
-  }
-  return safe;
-}
+// Environment variables with VITE_ prefix are automatically exposed to the client
 
 export default defineConfig({
   base: '/',
@@ -64,8 +54,7 @@ export default defineConfig({
       globals: {
         Buffer: true,
         global: true,
-        process: true,
-        __dirname: true,
+        process: true
       },
       protocolImports: true,
     }),
@@ -83,12 +72,12 @@ export default defineConfig({
       path: 'path-browserify',
       process: 'process/browser',
       zlib: 'browserify-zlib',
-      fs: false,
-      net: false,
-      tls: false,
-      dns: false,
-      child_process: false,
-      module: false,
+      fs: 'empty-module',
+      net: 'empty-module',
+      tls: 'empty-module',
+      dns: 'empty-module',
+      child_process: 'empty-module',
+      module: 'empty-module',
     },
   },
   optimizeDeps: {
@@ -127,7 +116,6 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
     rollupOptions: {
-      external: ['pg', 'dotenv'],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
