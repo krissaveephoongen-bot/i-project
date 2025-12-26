@@ -10,40 +10,41 @@ const WebSocket = require('ws');
 const http = require('http');
 const path = require('path');
 const WebSocketHandler = require('./websocket-handler');
-const healthRoutes = require('./health-routes'); // temporarily disabled
+const healthRoutes = require('./health-routes');
 const projectRoutes = require('./project-routes');
 const worklogRoutes = require('./worklog-routes');
 const timeentriesRoutes = require('./timeentries-routes');
-// const timesheetRoutes = require('./timesheet-routes');
-// const taskRoutes = require('./task-routes');
+const timesheetRoutes = require('./timesheet-routes');
+const taskRoutes = require('./task-routes');
 const adminRoutes = require('./admin-routes');
-// const adminUserRoutes = require('./admin-user-routes');
-// const expenseRoutes = require('./expense-routes');
+const adminUserRoutes = require('./admin-user-routes');
+const expenseRoutes = require('./expense-routes');
 const reportsRoutes = require('./reports-routes');
 const activityRoutes = require('./activity-routes');
-// const userRoutes = require('./user-routes');
+const userRoutes = require('./user-routes');
 // const prismaAuthRoutes = require('./routes/prisma-auth-routes');
 const authRoutes = require('./auth-routes');
 const teamRoutes = require('./team-routes');
-// const fileRoutes = require('./file-routes');
+const fileRoutes = require('./file-routes');
 const exportRoutes = require('./export-routes');
-// const templateRoutes = require('./template-routes');
-// const customizationRoutes = require('./customization-routes');
-// const analyticsAdvancedRoutes = require('./analytics-advanced-routes');
-// const analyticsRoutes = require('./analytics-routes');
-// const searchRoutes = require('./search-routes');
-// const projectTeamRoutes = require('./project-team-routes');
+const templateRoutes = require('./template-routes');
+const customizationRoutes = require('./customization-routes');
+const analyticsAdvancedRoutes = require('./analytics-advanced-routes');
+const analyticsRoutes = require('./analytics-routes');
+const searchRoutes = require('./search-routes');
+const projectTeamRoutes = require('./project-team-routes');
 const teamMemberRoutes = require('./team-member-routes');
-// const customerRoutes = require('./customer-routes');
+const customerRoutes = require('./customer-routes');
 // const statusRoutes = require('./routes/status-routes');
-// const prismaCostRoutes = require('./routes/prisma-cost-routes');
-// const prismaProjectRoutes = require('./routes/prisma-project-routes');
-// const prismaUserRoutes = require('./routes/prisma-user-routes'); // temporarily disabled
+const prismaCostRoutes = require('./routes/prisma-cost-routes');
+const prismaProjectRoutes = require('./routes/prisma-project-routes');
+const prismaUserRoutes = require('./routes/prisma-user-routes');
+const resourceManagementRoutes = require('./routes/resource-management-routes');
+const projectManagerRoutes = require('./project-manager-routes');
 // const prismaAttachmentRoutes = require('./routes/prisma-attachment-routes');
 // const prismaApprovalRoutes = require('./routes/prisma-approval-routes');
-// const prismaDashboardRoutes = require('./routes/prisma-dashboard-routes'); // temporarily disabled
-// const menuRoutes = require('./menu-routes'); // temporarily disabled
-// const projectManagerRoutes = require('./project-manager-routes'); // temporarily disabled
+// const prismaDashboardRoutes = require('./routes/prisma-dashboard-routes');
+// const menuRoutes = require('./menu-routes');
 
 // Load environment variables
 dotenv.config();
@@ -91,14 +92,14 @@ app.use(express.urlencoded({ extended: true }));
 // Serve admin console static files
 app.use('/admin', express.static(path.join(__dirname, '../admin-console')));
 
-// Health check routes - temporarily disabled
-// app.use('/api', healthRoutes);
+// Health check routes
+app.use('/api', healthRoutes);
 
 // Authentication routes (login, profile, password)
 app.use('/api', authRoutes);
 
-// User management routes - temporarily disabled for testing
-// app.use('/api', userRoutes);
+// User management routes
+app.use('/api', userRoutes);
 
 // Project management routes
 app.use('/api', projectRoutes);
@@ -109,23 +110,23 @@ app.use('/api', worklogRoutes);
 // Time entries routes (production-ready)
 app.use('/api', timeentriesRoutes);
 
-// Timesheet routes (new) - temporarily disabled due to Prisma issues
-// app.use('/api', timesheetRoutes);
+// Timesheet routes (new)
+app.use('/api', timesheetRoutes);
 
-// Task routes (new) - temporarily disabled due to Prisma issues
-// app.use('/api', taskRoutes);
+// Task routes (new)
+app.use('/api', taskRoutes);
 
 // Admin routes (back office)
 app.use('/api/admin', adminRoutes);
 
-// Admin user management routes - temporarily disabled
-// app.use('/api/admin/users', adminUserRoutes);
+// Admin user management routes
+app.use('/api/admin/users', adminUserRoutes);
 
-// Expense routes - temporarily disabled
-// app.use('/api/expenses', expenseRoutes);
+// Expense routes
+app.use('/api/expenses', expenseRoutes);
 
-// Reports routes - temporarily disabled due to missing table schemas
-// app.use('/api/reports', reportsRoutes);
+// Reports routes
+app.use('/api/reports', reportsRoutes);
 
 // Activity log routes
 app.use('/api/activities', activityRoutes);
@@ -133,60 +134,63 @@ app.use('/api/activities', activityRoutes);
 // Teams management routes
 app.use('/api/teams', teamRoutes);
 
-// File management routes - temporarily disabled
-// app.use('/api/files', fileRoutes);
+// File management routes
+app.use('/api/files', fileRoutes);
 
-// Export/Report download routes - temporarily disabled
-// app.use('/api/export', exportRoutes);
+// Export/Report download routes
+app.use('/api/export', exportRoutes);
 
-// Template management routes - temporarily disabled
-// app.use('/api/templates', templateRoutes);
+// Template management routes
+app.use('/api/templates', templateRoutes);
 
-// Customization routes - temporarily disabled
-// app.use('/api/customization', customizationRoutes);
+// Customization routes
+app.use('/api/customization', customizationRoutes);
 
-// Advanced analytics routes - temporarily disabled
-// app.use('/api/analytics', analyticsAdvancedRoutes);
+// Advanced analytics routes
+app.use('/api/analytics', analyticsAdvancedRoutes);
 
-// Analytics summary routes - temporarily disabled
-// app.use('/api', analyticsRoutes);
+// Analytics summary routes
+app.use('/api', analyticsRoutes);
 
-// Search routes - temporarily disabled
-// app.use('/api', searchRoutes);
+// Search routes
+app.use('/api', searchRoutes);
 
-// Project team management routes - temporarily disabled
-// app.use('/api', projectTeamRoutes);
+// Project team management routes
+app.use('/api', projectTeamRoutes);
 
 // Team member management routes
 app.use('/api', teamMemberRoutes);
 
-// Customer management routes - temporarily disabled
-// app.use('/api', customerRoutes);
+// Customer management routes
+app.use('/api', customerRoutes);
 
 // Status Page - temporarily disabled
 // app.use(statusRoutes);
 
-// Prisma API routes - temporarily disabled
+// Prisma API routes
 // const prismaTaskRoutes = require('./routes/prisma-task-routes');
 // const prismaTimesheetRoutes = require('./routes/prisma-timesheet-routes');
 
-// Register Prisma API routes - temporarily disabled
+// Register Prisma API routes
 // app.use('/api', prismaTaskRoutes);
 // app.use('/api', prismaTimesheetRoutes);
 
-// Other Prisma routes - temporarily disabled for testing
-// app.use('/api/prisma', prismaCostRoutes);
-// app.use('/api/prisma', prismaProjectRoutes);
-// app.use('/api/prisma', prismaUserRoutes);
+// Other Prisma routes
+app.use('/api/prisma', prismaCostRoutes);
+app.use('/api/prisma', prismaProjectRoutes);
+app.use('/api/prisma', prismaUserRoutes);
 // app.use('/api/prisma', prismaAttachmentRoutes);
 // app.use('/api/prisma', prismaApprovalRoutes);
 // app.use('/api/prisma', prismaDashboardRoutes);
 
-// Menu enhancement routes (dashboard stats, recent items, quick access) - temporarily disabled
+// Menu enhancement routes (dashboard stats, recent items, quick access)
 // app.use('/api/menu', menuRoutes);
 
-// Project Manager routes - temporarily disabled
-// app.use('/api/project-managers', projectManagerRoutes);
+// Project Manager routes
+app.use('/api/project-managers', projectManagerRoutes);
+
+// Resource Management routes
+app.use('/api', resourceManagementRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

@@ -514,4 +514,113 @@ function calculateAllocationRate(estimated, completed) {
     return ((completed / estimated) * 100).toFixed(2);
 }
 
+/**
+ * POST /resources/:userId/allocate
+ * Allocate a resource to a project
+ */
+router.post('/resources/:userId/allocate', verifyToken, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { projectName, allocatedHours, startDate, endDate, role = 'Team Member', status = 'active' } = req.body;
+        
+        if (!projectName || !allocatedHours) {
+            return res.status(400).json({
+                success: false,
+                error: 'Project name and allocated hours are required'
+            });
+        }
+        
+        // Find or create project
+        const projectQuery = `
+            SELECT id FROM projects 
+            WHERE name = $1 
+            LIMIT 1
+        `;
+        const projectResult = await pool.query(projectQuery, [projectName]);
+        let projectId;
+        
+        if (projectResult.rows.length > 0) {
+            projectId = projectResult.rows[0].id;
+        } else {
+            // Create new project if it doesn't exist
+            const createProjectQuery = `
+                INSERT INTO projects (name, status, created_at, updated_at)
+                VALUES ($1, 'active', NOW(), NOW())
+                RETURNING id
+            `;
+            const createResult = await pool.query(createProjectQuery, [projectName]);
+            projectId = createResult.rows[0].id;
+        }
+        
+        // Add user to project if not already assigned
+        const assignQuery = `
+            INSERT INTO project_members (project_id, user_id, role, created_at)
+            VALUES ($1, $2, $3, NOW())
+            ON CONFLICT (project_id, user_id) DO UPDATE SET role = $3
+            RETURNING *
+        `;
+        
+        const assignResult = await pool.query(assignQuery, [projectId, userId, role]);
+        
+        res.status(201).json({
+            success: true,
+            message: 'Resource allocated successfully',
+            allocation: assignResult.rows[0]
+        });
+    } catch (error) {
+        console.error('Error allocating resource:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to allocate resource',
+            message: error.message
+        });
+    }
+});
+
+/**
+ * POST /resources/:userId/deallocate
+ * Deallocate a resource from a project
+ */
+router.post('/resources/:userId/deallocate', verifyToken, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { projectId } = req.body;
+        
+        if (!projectId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Project ID is required'
+            });
+        }
+        
+        // Remove user from project
+        const deleteQuery = `
+            DELETE FROM project_members
+            WHERE project_id = $1 AND user_id = $2
+            RETURNING *
+        `;
+        
+        const result = await pool.query(deleteQuery, [projectId, userId]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Allocation not found'
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: 'Resource deallocated successfully'
+        });
+    } catch (error) {
+        console.error('Error deallocating resource:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to deallocate resource',
+            message: error.message
+        });
+    }
+});
+
 module.exports = router;

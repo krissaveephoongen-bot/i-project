@@ -38,7 +38,8 @@ export const getApiBaseUrl = (): string => {
   }
   
   // In production, use relative URL to avoid CORS issues
-  return '/.netlify/functions/api';
+  // Works with both Vercel serverless functions and same-origin API
+  return '/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

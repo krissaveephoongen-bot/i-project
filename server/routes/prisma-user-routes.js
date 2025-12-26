@@ -166,48 +166,50 @@ router.post('/users', async (req, res) => {
  * Update a user
  */
 router.put('/users/:id', async (req, res) => {
-  try {
-    const { name, email, password, role, status, hireDate, lastLogin, department, phone } = req.body;
+   try {
+     const { name, email, password, role, status, hireDate, lastLogin, department, phone, avatar } = req.body;
 
-    const data = {};
-    if (name !== undefined) data.name = name;
-    if (email !== undefined) data.email = email;
-    if (password) data.password = await bcryptjs.hash(password, 12);
-    if (role !== undefined) data.role = role;
-    if (status !== undefined) data.status = status;
-    if (hireDate !== undefined) data.hireDate = hireDate ? new Date(hireDate) : null;
-    if (lastLogin !== undefined) data.lastLogin = lastLogin ? new Date(lastLogin) : null;
-    if (department !== undefined) data.department = department;
-    if (phone !== undefined) data.phone = phone;
+     const data = {};
+     if (name !== undefined) data.name = name;
+     if (email !== undefined) data.email = email;
+     if (password) data.password = await bcryptjs.hash(password, 12);
+     if (role !== undefined) data.role = role;
+     if (status !== undefined) data.status = status;
+     if (hireDate !== undefined) data.hireDate = hireDate ? new Date(hireDate) : null;
+     if (lastLogin !== undefined) data.lastLogin = lastLogin ? new Date(lastLogin) : null;
+     if (department !== undefined) data.department = department;
+     if (phone !== undefined) data.phone = phone;
+     if (avatar !== undefined) data.avatar = avatar;
 
-    const user = await prisma.user.update({
-      where: { id: req.params.id },
-      data,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        status: true,
-        hireDate: true,
-        lastLogin: true,
-        department: true,
-        phone: true,
-        updatedAt: true
-      }
-    });
+     const user = await prisma.user.update({
+       where: { id: req.params.id },
+       data,
+       select: {
+         id: true,
+         name: true,
+         email: true,
+         role: true,
+         status: true,
+         hireDate: true,
+         lastLogin: true,
+         department: true,
+         phone: true,
+         avatar: true,
+         updatedAt: true
+       }
+     });
 
-    res.json({ data: user, message: 'User updated successfully' });
-  } catch (error) {
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    if (error.code === 'P2002') {
-      return res.status(409).json({ error: 'Email already exists' });
-    }
-    handleError(res, error);
-  }
-});
+     res.json({ data: user, message: 'User updated successfully' });
+   } catch (error) {
+     if (error.code === 'P2025') {
+       return res.status(404).json({ error: 'User not found' });
+     }
+     if (error.code === 'P2002') {
+       return res.status(409).json({ error: 'Email already exists' });
+     }
+     handleError(res, error);
+   }
+ });
 
 /**
  * DELETE /api/prisma/users/:id

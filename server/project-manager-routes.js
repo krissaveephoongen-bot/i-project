@@ -1,4 +1,5 @@
 const express = require('express');
+const bcryptjs = require('bcryptjs');
 const { authenticateToken } = require('./middleware/auth-middleware');
 const { checkPermission } = require('./middleware/permissions-middleware');
 const { prisma } = require('./prisma-client');
@@ -145,15 +146,22 @@ router.post('/', authenticateToken, checkPermission('project-managers:create'), 
 
     if (!user) {
       // Create new user with PROJECT_MANAGER role
+      // Generate a temporary password (should be reset by user)
+      const tempPassword = Math.random().toString(36).slice(-12);
+      const hashedPassword = await bcryptjs.hash(tempPassword, 12);
+      
       user = await prisma.user.create({
         data: {
           name,
           email,
-          password: '$2b$10$dummy.hash.for.now', // This should be set properly via password reset
+          password: hashedPassword,
           role: 'PROJECT_MANAGER',
           status: 'active',
         }
       });
+      
+      // TODO: Send email to user with temporary password and password reset link
+      console.log(`Temporary password for ${email}: ${tempPassword}`);
     } else {
       // Update existing user to PROJECT_MANAGER role
       user = await prisma.user.update({
