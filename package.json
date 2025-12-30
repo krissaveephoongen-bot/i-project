@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Frontend for Project Management System",
   "private": true,
+  "type": "module",
   "scripts": {
     "start": "vite",
     "dev": "vite",
