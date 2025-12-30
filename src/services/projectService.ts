@@ -1,4 +1,5 @@
 import { Project, Task, SCurveDataPoint } from '@/types/project';
+import { buildApiUrl } from '@/lib/api-config';
 
 // Calculate S-Curve data based on tasks
 export const calculateSCurveData = (tasks: Task[], startDate: Date, endDate: Date): SCurveDataPoint[] => {
@@ -52,7 +53,7 @@ export const calculateSCurveData = (tasks: Task[], startDate: Date, endDate: Dat
 // API calls for projects
 export const projectService = {
   async createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> {
-    const response = await fetch('/api/projects', {
+    const response = await fetch(buildApiUrl('/projects'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -65,7 +66,7 @@ export const projectService = {
   },
 
   async updateProject(projectId: string, updates: Partial<Project>): Promise<Project> {
-    const response = await fetch(`/api/projects/${projectId}`, {
+    const response = await fetch(buildApiUrl(`/projects/${projectId}`), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -78,7 +79,7 @@ export const projectService = {
   },
 
   async getProject(projectId: string): Promise<Project> {
-    const response = await fetch(`/api/projects/${projectId}`, {
+    const response = await fetch(buildApiUrl(`/projects/${projectId}`), {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
       },
@@ -88,7 +89,7 @@ export const projectService = {
   },
 
   async deleteProject(projectId: string): Promise<void> {
-    const response = await fetch(`/api/projects/${projectId}`, {
+    const response = await fetch(buildApiUrl(`/projects/${projectId}`), {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -98,7 +99,7 @@ export const projectService = {
   },
 
   async addTask(projectId: string, task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task> {
-    const response = await fetch(`/api/projects/${projectId}/tasks`, {
+    const response = await fetch(buildApiUrl(`/projects/${projectId}/tasks`), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -111,7 +112,7 @@ export const projectService = {
   },
 
   async updateTask(projectId: string, taskId: string, updates: Partial<Task>): Promise<Task> {
-    const response = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+    const response = await fetch(buildApiUrl(`/projects/${projectId}/tasks/${taskId}`), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -124,7 +125,7 @@ export const projectService = {
   },
 
   async deleteTask(projectId: string, taskId: string): Promise<void> {
-    const response = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+    const response = await fetch(buildApiUrl(`/projects/${projectId}/tasks/${taskId}`), {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,

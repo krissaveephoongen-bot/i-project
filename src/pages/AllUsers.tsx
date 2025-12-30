@@ -11,6 +11,7 @@ import {
     KeyOutlined,
     CopyOutlined,
 } from '@ant-design/icons';
+import { buildApiUrl } from '@/lib/api-config';
 import ScrollContainer from '@/components/layout/ScrollContainer';
 
 const { Search } = Input;
@@ -50,7 +51,7 @@ const AllUsers = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('accessToken');
-            const response = await fetch('/api/prisma/users', {
+            const response = await fetch(buildApiUrl('/prisma/users'), {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -117,7 +118,7 @@ const AllUsers = () => {
             onOk: async () => {
                 try {
                     const token = localStorage.getItem('accessToken');
-                    const response = await fetch(`/api/prisma/users/${userId}`, {
+                    const response = await fetch(buildApiUrl(`/prisma/users/${userId}`), {
                         method: 'DELETE',
                         headers: {
                             'Authorization': `Bearer ${token}`
@@ -144,7 +145,7 @@ const AllUsers = () => {
             const newStatus = user.status === 'active' ? 'inactive' : 'active';
             const token = localStorage.getItem('accessToken');
 
-            const response = await fetch(`/api/prisma/users/${user.id}`, {
+            const response = await fetch(buildApiUrl(`/prisma/users/${user.id}`), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -181,7 +182,7 @@ const AllUsers = () => {
 
             if (!editingUser) return;
 
-            const response = await fetch(`/api/prisma/users/${editingUser.id}/admin-reset-password`, {
+            const response = await fetch(buildApiUrl(`/prisma/users/${editingUser.id}/admin-reset-password`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ newPassword: values.password }),
@@ -220,7 +221,7 @@ const AllUsers = () => {
 
             if (editingUser) {
                 // Update existing user
-                const response = await fetch(`/api/prisma/users/${editingUser.id}`, {
+                const response = await fetch(buildApiUrl(`/prisma/users/${editingUser.id}`), {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -245,7 +246,7 @@ const AllUsers = () => {
                 await fetchUsers();
             } else {
                 // Add new user
-                const response = await fetch('/api/prisma/users', {
+                const response = await fetch(buildApiUrl('/prisma/users'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { buildApiUrl } from '@/lib/api-config';
 // // import { costService } from '@/services/costService'; // Uncomment when API integration is needed // Uncomment when needed
 import { useAuth } from '@/contexts/AuthContext';
 import { Doughnut } from 'react-chartjs-2';
@@ -91,7 +92,7 @@ export default function CostManagement() {
             try {
                 setIsLoading(true);
                 const token = localStorage.getItem('accessToken');
-                const response = await fetch('/api/prisma/costs', {
+                const response = await fetch(buildApiUrl('/prisma/costs'), {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -143,7 +144,7 @@ export default function CostManagement() {
 
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await fetch('/api/prisma/costs', {
+            const response = await fetch(buildApiUrl('/prisma/costs'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -208,7 +209,7 @@ export default function CostManagement() {
             const token = localStorage.getItem('accessToken');
             const currentUser = localStorage.getItem('currentUserId');
 
-            const response = await fetch(`/api/prisma/costs/${expenseId}/approve`, {
+            const response = await fetch(buildApiUrl(`/prisma/costs/${expenseId}/approve`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -241,7 +242,7 @@ export default function CostManagement() {
             const token = localStorage.getItem('accessToken');
             const currentUser = localStorage.getItem('currentUserId');
 
-            const response = await fetch(`/api/prisma/costs/${expenseId}/approve`, {
+            const response = await fetch(buildApiUrl(`/prisma/costs/${expenseId}/approve`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

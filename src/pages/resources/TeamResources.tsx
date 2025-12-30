@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// useNavigate intentionally omitted (unused)
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -20,7 +20,7 @@ interface TeamWithMembers extends Team {
 }
 
 export default function TeamResources() {
-  const navigate = useNavigate();
+  // navigate intentionally omitted (unused)
   const { toast } = useToast();
   const [teams, setTeams] = useState<TeamWithMembers[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);

@@ -12,6 +12,12 @@ const buttonVariants = cva(
         primary: 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800',
         // Secondary button - solid neutral color
         secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300',
+        // Default neutral button (used as a neutral/default state)
+        default: 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 active:bg-gray-100',
+        // Outline button - transparent with border
+        outline: 'bg-transparent border border-gray-300 text-gray-900 hover:bg-gray-50 active:bg-gray-100',
+        // Ghost - minimal button (used for icon-only or subtle actions)
+        ghost: 'bg-transparent text-gray-700 hover:bg-gray-50 active:bg-gray-100',
         // Text button - for lowest emphasis
         text: 'bg-transparent text-blue-600 hover:bg-blue-50 active:bg-blue-100',
         // Destructive action - solid red

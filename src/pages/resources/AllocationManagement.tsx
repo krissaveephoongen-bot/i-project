@@ -4,20 +4,17 @@ import { Button } from '@/components/ui/button';
 import {
   Plus,
   TrendingUp,
-  Calendar,
   Users,
   Briefcase,
   Search,
   Trash2,
-  Edit2,
   Clock,
   AlertCircle,
   Check,
   Pause,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { resourceService } from '@/services/resourceService';
-import { ResourceAllocation, ResourceCapacity } from '@/types/resource';
+import { ResourceAllocation } from '@/types/resource';
 
 interface AllocationWithUser extends ResourceAllocation {
   userName?: string;

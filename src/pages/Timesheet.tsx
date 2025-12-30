@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend, parseISO, subMonths } from 'date-fns';
-import { Calendar, Clock, Plus, Trash2, Edit, Check, X, Eye, CheckCircle, Download, BarChart3, TrendingUp, PieChart as PieChartIcon, AlertCircle, Server } from 'lucide-react';
+import { Calendar, Clock, Plus, Trash2, Edit, Check, X, Eye, CheckCircle, Download, BarChart3, TrendingUp, PieChart as PieChartIcon, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Button } from '../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -125,7 +125,7 @@ const calculateMonthStats = (entries: TimeEntry[], monthDate: Date): MonthStats 
 export default function Timesheet() {
     const today = new Date();
     const { user } = useAuthContext();
-    const { data: dbStatus } = useQuery({
+    const { data: _dbStatus } = useQuery({
         queryKey: ['db-status'],
         queryFn: async () => timesheetService.getDbStatus(),
         refetchInterval: 60000,
@@ -326,7 +326,7 @@ export default function Timesheet() {
     const mapToTimesheetEntry = (entry: any): TimeEntry => {
         // Map status from database format to timesheet format
         const statusMap = {
-            'pending': 'submitted',
+            'pending': 'pending',
             'approved': 'approved',
             'rejected': 'rejected'
         } as const;
@@ -342,7 +342,7 @@ export default function Timesheet() {
             hours: entry.hours,
             description: entry.description || '',
             type: 'regular', // Default to 'regular' as work_type in DB might not match exactly
-            status: statusMap[entry.status as keyof typeof statusMap] || 'submitted',
+            status: statusMap[entry.status as keyof typeof statusMap] || 'pending',
             projectName: entry.project_name,
             taskName: entry.task_title
         };
@@ -378,7 +378,7 @@ export default function Timesheet() {
 
     const handleApprove = async (approvalId: string) => {
         try {
-            await timesheetService.approveTimeEntry(approvalId, Number(user?.id));
+            await timesheetService.approveTimeEntry(approvalId, String(user?.id));
             toast.success('Timesheet approved successfully');
             refetchApprovals();
         } catch (error) {
@@ -390,7 +390,7 @@ export default function Timesheet() {
     const handleReject = async () => {
         if (!selectedApproval) return;
         try {
-            await timesheetService.rejectTimeEntry(selectedApproval.id, Number(user?.id), rejectReason);
+            await timesheetService.rejectTimeEntry(selectedApproval.id, String(user?.id), rejectReason);
             toast.success('Timesheet rejected');
             setShowRejectModal(false);
             setRejectReason('');

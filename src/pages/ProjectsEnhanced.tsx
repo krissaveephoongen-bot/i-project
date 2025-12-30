@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Card, CardContent, CardHeader } from '../components/ui/card';
-import { Plus, Search, Download, Grid3x3, List, Settings2, TrendingUp } from 'lucide-react';
+import { Card } from '../components/ui/card';
+import { Plus, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
@@ -20,7 +20,7 @@ import {
   exportToPDF, 
   exportSummaryToPDF 
 } from '../utils/exportUtils';
-import { formatCurrency } from '../utils/currency';
+// formatCurrency intentionally omitted (unused)
 
 interface Project {
   id: string;

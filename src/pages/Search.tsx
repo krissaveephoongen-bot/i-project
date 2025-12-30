@@ -39,7 +39,7 @@ export default function Search() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [recentSearches, setRecentSearches] = useState<string[]>([
+  const [recentSearches] = useState<string[]>([
     'mobile app',
     'api integration',
     'john doe',

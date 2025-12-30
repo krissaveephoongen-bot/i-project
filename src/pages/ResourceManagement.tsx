@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, User, Calendar, Briefcase, Trash2, Edit2 } from 'lucide-react';
+import { Plus, User, Briefcase, Trash2, Edit2 } from 'lucide-react';
 
 interface Resource {
     id: string;

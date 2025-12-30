@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { BackofficeLayout } from '@/layouts/BackofficeLayout';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 // Lazy load backoffice pages

@@ -6,14 +6,11 @@ import {
   Users,
   UserPlus,
   Trash2,
-  Edit2,
   Search,
   MoreVertical,
   ChevronDown,
-  Award,
   Calendar,
   Mail,
-  Phone,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { teamService, Team, TeamMember } from '@/services/teamService';

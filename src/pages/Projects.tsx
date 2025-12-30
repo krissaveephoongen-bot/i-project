@@ -72,7 +72,7 @@ const useCustomers = () => {
         queryFn: async (): Promise<Customer[]> => {
             const response = await customerService.getCustomers();
             if (!response.success) {
-                throw new Error(response.message || 'Failed to fetch customers');
+                throw new Error((response as any).message || 'Failed to fetch customers');
             }
             return response.data || [];
         },
@@ -86,7 +86,7 @@ const useTeamMembers = () => {
         queryFn: async (): Promise<TeamMember[]> => {
             const response = await teamService.getTeamMembers('all');
             if (!response.success) {
-                throw new Error(response.message || 'Failed to fetch team members');
+                throw new Error((response as any).message || 'Failed to fetch team members');
             }
             return response.data || [];
         },
@@ -157,8 +157,7 @@ const Projects: React.FC = () => {
         }
     }, [isCustomersError, customersError]);
 
-    const [error, setError] = useState<ErrorState | null>(null);
-    const [showErrorAlert, setShowErrorAlert] = useState(false);
+    const [, setError] = useState<ErrorState | null>(null);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -203,7 +202,6 @@ const Projects: React.FC = () => {
             retryable,
         };
         setError(newError);
-        setShowErrorAlert(true);
         console.error(`[${code || 'ERROR'}]`, message);
         toast.error(message);
     };
@@ -215,15 +213,9 @@ const Projects: React.FC = () => {
 
     const clearError = () => {
         setError(null);
-        setShowErrorAlert(false);
     };
 
-    const retryLastAction = async () => {
-        if (error?.retryable) {
-            clearError();
-            // Action will be retried through state management
-        }
-    };
+    // retryLastAction removed (not used)
 
     const filteredProjects = projects.filter((project) => {
         const matchesSearch =
@@ -1090,7 +1082,7 @@ const Projects: React.FC = () => {
                                     <div className="flex justify-between items-center">
                                         <div className="flex items-center gap-1">
                                             <Users className="h-3 w-3 text-gray-500 dark:text-gray-400" />
-                                            <span className="text-xs text-gray-600 dark:text-gray-400">{(project.team_members || '').split(',').filter(m => m.trim()).length} members</span>
+                                            <span className="text-xs text-gray-600 dark:text-gray-400">{(project.team_members || '').split(',').filter((m: string) => m.trim()).length} members</span>
                                         </div>
                                         <Badge className={getPriorityColor(project.priority)}>
                                             {project.priority}

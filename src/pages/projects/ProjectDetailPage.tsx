@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Edit2, Archive, Trash2, Calendar, Users, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
+import { Edit2, Archive, Trash2, Calendar, TrendingUp, AlertCircle } from 'lucide-react';
 import { TaskManagement } from '@/components/projects/TaskManagement';
 import { TeamManagement } from '@/components/projects/TeamManagement';
 import { api } from '@/lib/api';
@@ -309,7 +309,7 @@ export function ProjectDetailPage() {
 
             <TabsContent value="tasks" className="space-y-4 pt-6">
               <TaskManagement
-                projectId={id}
+                projectId={id as string}
                 tasks={tasks}
                 onTasksChange={setTasks}
               />
@@ -317,7 +317,7 @@ export function ProjectDetailPage() {
 
             <TabsContent value="team" className="space-y-4 pt-6">
               <TeamManagement
-                projectId={id}
+                projectId={id as string}
                 teamMembers={teamMembers}
                 onTeamChange={setTeamMembers}
               />

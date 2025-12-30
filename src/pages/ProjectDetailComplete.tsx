@@ -10,7 +10,7 @@ import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import {
     ArrowLeft, Plus, Users, Calendar, DollarSign, CheckCircle, Clock, AlertCircle,
-    Edit2, Trash2, Save, X, Eye, EyeOff, Copy
+    Edit2, Trash2, Save, X
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { format, parseISO } from 'date-fns';
@@ -151,7 +151,7 @@ export default function ProjectDetailComplete() {
     const [isAddingExpense, setIsAddingExpense] = useState(false);
     const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
     const [newExpense, setNewExpense] = useState<Omit<Expense, 'id'>>({
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toISOString().split('T')[0] || '',
         category: 'other',
         amount: 0,
         description: '',
@@ -482,7 +482,7 @@ export default function ProjectDetailComplete() {
 
     const resetExpenseForm = () => {
         setNewExpense({
-            date: new Date().toISOString().split('T')[0],
+            date: new Date().toISOString().split('T')[0] || '',
             category: 'other',
             amount: 0,
             description: '',

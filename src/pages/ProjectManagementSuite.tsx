@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Trash2, TrendingUp, DollarSign, Users, AlertCircle, BarChart3 } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, DollarSign, Users, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Project, Task } from '@/types/project';
 import { projectService, calculateSCurveData } from '@/services/projectService';
@@ -18,7 +18,7 @@ export default function ProjectManagementSuite() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [, setEditingProject] = useState<Project | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',

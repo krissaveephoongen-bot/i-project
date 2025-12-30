@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Input } from '../components/ui/input';
 import {
-    ArrowLeft, Plus, Users, Calendar, DollarSign, CheckCircle, Clock, AlertCircle,
-    TrendingUp, FileText, Trash2, Edit, Activity, Target, BarChart3, Mail, Phone,
+    ArrowLeft, Plus, Users, DollarSign, CheckCircle, AlertCircle,
+    TrendingUp, FileText, Trash2, Edit, Mail, Phone,
     MapPin, Building2, Briefcase, Download
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -76,21 +76,7 @@ interface TeamMember {
     availability: number;
 }
 
-interface Client {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    address: string;
-    city: string;
-    state: string;
-    website: string;
-    industry: string;
-    status: 'active' | 'inactive' | 'prospect';
-    projectCount: number;
-    totalRevenue: number;
-    contactPerson: string;
-}
+// Client interface removed (unused)
 
 interface Expense {
     id: string;
@@ -155,8 +141,8 @@ export default function ProjectDetail() {
     // S-Curve State
     const [sCurveData, setSCurveData] = useState<SCurveData | null>(null);
     const [sCurveLoading, setSCurveLoading] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [, setLoading] = useState(true);
+    const [, setError] = useState<string | null>(null);
 
     // UI State
     const [isNewTaskDialogOpen, setIsNewTaskDialogOpen] = useState(false);

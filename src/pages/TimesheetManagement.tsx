@@ -85,6 +85,11 @@ export default function TimesheetManagement() {
       return;
     }
 
+    if (!entryForm.date) {
+      toast.error('Please select a date');
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -146,7 +151,7 @@ export default function TimesheetManagement() {
   const handleApprove = async (timesheetId: string) => {
     try {
       setLoading(true);
-      await timesheetService.approveTimesheet(timesheetId);
+      await timesheetService.approveTimesheet(timesheetId, String(user?.id));
       toast.success('Timesheet approved successfully');
       await loadPendingApprovals();
     } catch (error) {
@@ -163,7 +168,7 @@ export default function TimesheetManagement() {
 
     try {
       setLoading(true);
-      await timesheetService.rejectTimesheet(timesheetId, reason);
+      await timesheetService.rejectTimesheet(timesheetId, String(user?.id), reason);
       toast.success('Timesheet rejected successfully');
       await loadPendingApprovals();
     } catch (error) {
@@ -475,7 +480,7 @@ export default function TimesheetManagement() {
 
                   {timesheetWeeks[0]?.status === 'draft' && (
                     <Button
-                      onClick={() => handleSubmitTimesheet(timesheetWeeks[0].id)}
+                      onClick={() => timesheetWeeks[0] && handleSubmitTimesheet(timesheetWeeks[0].id)}
                       disabled={loading}
                       className="w-full mt-4 bg-green-600 hover:bg-green-700 gap-2"
                     >

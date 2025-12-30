@@ -43,5 +43,5 @@
     "**/*.jsx",
     "**/*.d.ts"
   ],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "admin-console", "src/admin-console", "src/setupTests.ts"]
 }

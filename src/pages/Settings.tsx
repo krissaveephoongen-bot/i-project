@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Bell, Shield, Eye, EyeOff, Camera, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { buildApiUrl } from '@/lib/api-config';
 import ScrollContainer from '@/components/layout/ScrollContainer';
 
 interface UserSettings {
@@ -31,7 +32,6 @@ interface NotificationPrefs {
 }
 
 export default function Settings() {
-    const { currentUser: firebaseUser } = useAuth();
     const { user: contextUser } = useAuth();
     const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(true);
@@ -151,7 +151,7 @@ export default function Settings() {
             }
 
             // Call API to update user profile
-            const response = await fetch(`/api/prisma/users/${contextUser.id}`, {
+            const response = await fetch(buildApiUrl(`/prisma/users/${contextUser.id}`), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ export default function Settings() {
             }
 
             // Call API to change password
-            const response = await fetch(`/api/prisma/users/${contextUser.id}/change-password`, {
+            const response = await fetch(buildApiUrl(`/prisma/users/${contextUser.id}/change-password`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -255,7 +255,7 @@ export default function Settings() {
             }
 
             // Call API to save notification preferences
-            const response = await fetch(`/api/prisma/users/${contextUser.id}/notification-preferences`, {
+            const response = await fetch(buildApiUrl(`/prisma/users/${contextUser.id}/notification-preferences`), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

@@ -80,7 +80,7 @@ export const tasks = pgTable('tasks', {
   projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
   assignedTo: integer('assigned_to').references(() => users.id, { onDelete: 'set null' }),
   createdBy: integer('created_by').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  parentTaskId: integer('parent_task_id').references((): any => ({ name: 'tasks' }), { onDelete: 'cascade' }),
+  parentTaskId: integer('parent_task_id').references(() => tasks.id, { onDelete: 'cascade' }),
   category: text('category'),
   storyPoints: integer('story_points'),
   sprintId: uuid('sprint_id'),

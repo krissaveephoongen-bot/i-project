@@ -43,3 +43,12 @@ export const getApiBaseUrl = (): string => {
 
 export const API_BASE_URL = getApiBaseUrl();
 export const API_TIMEOUT = 10000; // 10 seconds
+
+/**
+ * Helper function to build API URLs with proper base URL
+ */
+export const buildApiUrl = (endpoint: string): string => {
+  const baseUrl = getApiBaseUrl();
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${baseUrl}${cleanEndpoint}`;
+};

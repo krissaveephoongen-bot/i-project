@@ -89,21 +89,21 @@ test.describe('Timesheet Workflows', () => {
       // Fill in task (find by label)
       const taskInputs = await page.locator('[role="dialog"] input[type="text"]').all();
       if (taskInputs.length > 0) {
-        await taskInputs[0].fill('Development Task');
+        await taskInputs[0]!.fill('Development Task');
       }
 
       // Fill in date
       const dateInputs = await page.locator('[role="dialog"] input[type="date"]').all();
       if (dateInputs.length > 0) {
         const today = new Date().toISOString().split('T')[0];
-        await dateInputs[0].fill(today);
+        await dateInputs[0]!.fill(today);
       }
 
       // Fill in times
       const timeInputs = await page.locator('[role="dialog"] input[type="time"]').all();
       if (timeInputs.length >= 2) {
-        await timeInputs[0].fill('09:00');
-        await timeInputs[1].fill('17:00');
+        await timeInputs[0]!.fill('09:00');
+        await timeInputs[1]!.fill('17:00');
       }
 
       // Submit form
@@ -133,14 +133,14 @@ test.describe('Timesheet Workflows', () => {
       // Fill in task
       const taskInputs = await page.locator('[role="dialog"] input[type="text"]').all();
       if (taskInputs.length > 0) {
-        await taskInputs[0].fill('Task');
+        await taskInputs[0]!.fill('Task');
       }
 
       // Fill in times with end time before start time
       const timeInputs = await page.locator('[role="dialog"] input[type="time"]').all();
       if (timeInputs.length >= 2) {
-        await timeInputs[0].fill('17:00');
-        await timeInputs[1].fill('09:00');
+        await timeInputs[0]!.fill('17:00');
+        await timeInputs[1]!.fill('09:00');
       }
 
       // Try to submit
@@ -158,13 +158,13 @@ test.describe('Timesheet Workflows', () => {
       // Fill in required fields
       const taskInputs = await page.locator('[role="dialog"] input[type="text"]').all();
       if (taskInputs.length > 0) {
-        await taskInputs[0].fill('Development Task');
+        await taskInputs[0]!.fill('Development Task');
       }
 
       const timeInputs = await page.locator('[role="dialog"] input[type="time"]').all();
       if (timeInputs.length >= 2) {
-        await timeInputs[0].fill('09:00');
-        await timeInputs[1].fill('17:00');
+        await timeInputs[0]!.fill('09:00');
+        await timeInputs[1]!.fill('17:00');
       }
 
       // Fill in description

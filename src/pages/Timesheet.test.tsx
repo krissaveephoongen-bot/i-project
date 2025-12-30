@@ -11,7 +11,24 @@ vi.mock('react-hot-toast', () => ({
   },
 }));
 
-// Mock fetch globally
+// Mock timesheetService used by the component hooks
+vi.mock('@/services/timesheetService', () => ({
+  timesheetService: {
+    getTimesheetEntries: vi.fn(async () => []),
+    getReportsSummary: vi.fn(async () => ({
+      projectBreakdown: [],
+      typeBreakdown: [],
+      totalHours: 0,
+      daysWorked: 0,
+      averageHoursPerDay: 0,
+      overtimeHours: 0,
+    })),
+    getPendingApprovals: vi.fn(async () => []),
+    createTimeEntry: vi.fn(),
+  },
+}));
+
+// Mock fetch globally for projects and tasks
 global.fetch = vi.fn();
 
 describe('Timesheet Component', () => {
@@ -30,274 +47,107 @@ describe('Timesheet Component', () => {
   });
 
   describe('Rendering', () => {
-    it('should render the timesheet header', () => {
+    it('should render the log time header and primary action', () => {
       render(<Timesheet />);
-      expect(screen.getByText(/📋 Timesheet/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Log Time/i })).toBeInTheDocument();
+      // There is a tab and an action button both labeled 'Log Time' — ensure at least one action button exists
+      const buttons = screen.getAllByRole('button', { name: /Log Time/i });
+      expect(buttons.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('should render weekly stats cards', () => {
+    it('should show recent time entries area', () => {
       render(<Timesheet />);
-      expect(screen.getByText(/Total Hours/i)).toBeInTheDocument();
-      expect(screen.getByText(/Billable Hours/i)).toBeInTheDocument();
-      expect(screen.getByText(/Entries/i)).toBeInTheDocument();
-      expect(screen.getByText(/Daily Average/i)).toBeInTheDocument();
-      expect(screen.getByText(/Pending/i)).toBeInTheDocument();
-    });
-
-    it('should render time tracker widget', () => {
-      render(<Timesheet />);
-      expect(screen.getByText(/Time Tracker/i)).toBeInTheDocument();
-      expect(screen.getByText(/Select Project/i)).toBeInTheDocument();
-    });
-
-    it('should render action buttons', () => {
-      render(<Timesheet />);
-      expect(screen.getByText(/Export/i)).toBeInTheDocument();
-      expect(screen.getByText(/Add Entry/i)).toBeInTheDocument();
-    });
-  });
-
-  describe('Time Tracking', () => {
-    it('should require project selection before starting tracking', async () => {
-      render(<Timesheet />);
-      const startButton = screen.getByText(/Start Tracking/i);
-
-      expect(startButton).toBeDisabled();
-    });
-
-    it('should enable start button when project is selected', async () => {
-      const user = userEvent.setup();
-      render(<Timesheet />);
-
-      const projectSelect = screen.getByDisplayValue(/Choose a project/i);
-      await user.click(projectSelect);
-
-      const option = screen.getByText('Mobile App Development');
-      await user.click(option);
-
-      const startButton = screen.getByText(/Start Tracking/i);
-      expect(startButton).not.toBeDisabled();
-    });
-
-    it('should start tracking when start button is clicked', async () => {
-      const user = userEvent.setup();
-      render(<Timesheet />);
-
-      // Select project
-      const projectSelect = screen.getByDisplayValue(/Choose a project/i);
-      await user.click(projectSelect);
-      await user.click(screen.getByText('Mobile App Development'));
-
-      // Start tracking
-      const startButton = screen.getByText(/Start Tracking/i);
-      await user.click(startButton);
-
-      // Should show pause/stop buttons
-      await waitFor(() => {
-        expect(screen.getByText(/Pause/i)).toBeInTheDocument();
-        expect(screen.getByText(/Stop & Save/i)).toBeInTheDocument();
-      });
-    });
-
-    it('should display elapsed time while tracking', async () => {
-      vi.useFakeTimers();
-      const user = userEvent.setup({ delay: null });
-
-      render(<Timesheet />);
-
-      // Select project and start tracking
-      const projectSelect = screen.getByDisplayValue(/Choose a project/i);
-      await user.click(projectSelect);
-      await user.click(screen.getByText('Mobile App Development'));
-
-      const startButton = screen.getByText(/Start Tracking/i);
-      await user.click(startButton);
-
-      // Initial time should be 00:00:00
-      expect(screen.getByText('00:00:00')).toBeInTheDocument();
-
-      // Fast-forward 5 seconds
-      vi.advanceTimersByTime(5000);
-
-      await waitFor(() => {
-        expect(screen.getByText('00:00:05')).toBeInTheDocument();
-      });
-
-      vi.useRealTimers();
+      expect(screen.getByText(/Recent Time Entries/i)).toBeInTheDocument();
+      expect(screen.getByText(/No time entries yet/i)).toBeInTheDocument();
     });
   });
 
   describe('Entry Management', () => {
-    it('should open add entry dialog when button is clicked', async () => {
+    it('should open the Log Time dialog when button is clicked', async () => {
       const user = userEvent.setup();
       render(<Timesheet />);
 
-      const addButton = screen.getByText(/Add Entry/i);
-      await user.click(addButton);
+      // There are two elements labeled 'Log Time' (tab & button). Choose the one with an icon (action button).
+      const buttons = screen.getAllByRole('button', { name: /Log Time/i });
+      const actionButton = buttons.find((b) => b.querySelector('svg')) || buttons[0];
+      if (!actionButton) throw new Error('Log Time action button not found');
+      await user.click(actionButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Add Timesheet Entry/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /Log Time/i })).toBeInTheDocument();
+        // Check for form labels/texts (inputs are not associated with labels in this UI)
+        expect(screen.getByText(/Date/i)).toBeInTheDocument();
+        expect(screen.getByText(/Work Type/i)).toBeInTheDocument();
       });
     });
 
-    it('should validate required fields before adding entry', async () => {
+    it('should not call createTimeEntry when required fields are missing', async () => {
       const user = userEvent.setup();
+      const { timesheetService } = await import('@/services/timesheetService');
       render(<Timesheet />);
 
-      // Open dialog
-      await user.click(screen.getByText(/Add Entry/i));
+      // Open dialog (pick the action button)
+      const buttons = screen.getAllByRole('button', { name: /Log Time/i });
+      const actionButton = buttons.find((b) => b.querySelector('svg')) || buttons[0];
+      if (!actionButton) throw new Error('Log Time action button not found');
+      await user.click(actionButton);
 
-      // Try to save without filling required fields
-      const saveButton = screen.getByText(/✅ Add Entry/i);
-      await user.click(saveButton);
-
-      // Should show error toast (in actual implementation)
-      await waitFor(() => {
-        expect(global.fetch).not.toHaveBeenCalledWith(
-          expect.stringContaining('/worklogs'),
-          expect.any(Object)
-        );
-      });
-    });
-
-    it('should calculate duration correctly', async () => {
-      const user = userEvent.setup();
-      render(<Timesheet />);
-
-      await user.click(screen.getByText(/Add Entry/i));
-
-      // Fill in start and end times
-      // Find and fill the time inputs (this is a simplified approach)
-      // In real tests, you'd need more specific selectors
-      // For example: screen.getByLabelText('Start Time')
+      // Submit empty form
+      const submit = screen.getByRole('button', { name: /Submit/i });
+      await user.click(submit);
 
       await waitFor(() => {
-        // Duration should be calculated
-        expect(screen.getByDisplayValue('')).toBeInTheDocument();
+        // Should not have attempted to create a time entry
+        expect(timesheetService.createTimeEntry).not.toHaveBeenCalled();
       });
     });
   });
 
-  describe('Weekly Navigation', () => {
-    it('should navigate to previous week', async () => {
+  describe('Reports & Export', () => {
+    it('should export a CSV when reports are available', async () => {
       const user = userEvent.setup();
-      render(<Timesheet />);
+      const { timesheetService } = await import('@/services/timesheetService');
 
-      const prevButton = screen.getAllByRole('button').find(
-        (btn) => btn.querySelector('svg') && btn.textContent === ''
-      );
-
-      if (prevButton) {
-        await user.click(prevButton);
-        expect(global.fetch).toHaveBeenCalled();
-      }
-    });
-
-    it('should navigate to current week when Today button is clicked', async () => {
-      const user = userEvent.setup();
-      render(<Timesheet />);
-
-      const todayButton = screen.getByText(/Today/i);
-      await user.click(todayButton);
-
-      expect(global.fetch).toHaveBeenCalled();
-    });
-  });
-
-  describe('Entry Approval', () => {
-    it('should show approve button for pending entries', async () => {
-      (global.fetch as any).mockImplementation((url: string) => {
-        if (url.includes('/worklogs')) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => [
-              {
-                id: '1',
-                date: '2024-01-01',
-                task: 'Task 1',
-                project: 'Project 1',
-                startTime: '09:00',
-                endTime: '17:00',
-                hours: 8,
-                status: 'pending',
-                description: 'Work description',
-              },
-            ],
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: async () => [],
-        });
+      // Make reports return some data
+      (timesheetService.getReportsSummary as any).mockResolvedValue({
+        projectBreakdown: [{ projectId: 1, projectName: 'P', hours: 10, percentage: 100, taskCount: 1 }],
+        typeBreakdown: [],
+        totalHours: 10,
+        daysWorked: 1,
+        averageHoursPerDay: 10,
+        overtimeHours: 0,
       });
-
-      render(<Timesheet />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Task 1')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Export Functionality', () => {
-    it('should export timesheet as CSV', async () => {
-      const user = userEvent.setup();
 
       // Mock URL.createObjectURL
       global.URL.createObjectURL = vi.fn(() => 'blob:mock');
 
       render(<Timesheet />);
 
-      const exportButton = screen.getByText(/Export/i);
+      // Click reports tab
+      await user.click(screen.getByText(/📊 Reports/i));
+
+      // Wait for export button and click
+      const exportButton = await screen.findByRole('button', { name: /Export/i });
       await user.click(exportButton);
 
-      // Should create a blob
       expect(global.URL.createObjectURL).toHaveBeenCalled();
     });
   });
 
-  describe('Tab Navigation', () => {
-    it('should switch between list and calendar views', async () => {
+  describe('Approvals', () => {
+    it('should show pending approvals when available', async () => {
       const user = userEvent.setup();
-      render(<Timesheet />);
-
-      await waitFor(() => {
-        expect(screen.getByText(/List View/i)).toBeInTheDocument();
-        expect(screen.getByText(/Weekly View/i)).toBeInTheDocument();
-      });
-
-      const weeklyViewTab = screen.getByText(/Weekly View/i);
-      await user.click(weeklyViewTab);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Weekly Summary/i)).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Edge Cases', () => {
-    it('should handle missing project name gracefully', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
-      });
+      const { timesheetService } = await import('@/services/timesheetService');
+      (timesheetService.getPendingApprovals as any).mockResolvedValueOnce([
+        { id: '1', userName: 'Jane Doe', submittedDate: new Date().toISOString(), status: 'pending', totalHours: 8, entries: [] },
+      ]);
 
       render(<Timesheet />);
 
-      await waitFor(() => {
-        expect(screen.getByText(/📋 Timesheet/i)).toBeInTheDocument();
-      });
-    });
+      // Click approvals tab
+      await user.click(screen.getByText(/✅ Approvals/i));
 
-    it('should handle API errors gracefully', async () => {
-      (global.fetch as any).mockRejectedValueOnce(new Error('API Error'));
-
-      render(<Timesheet />);
-
-      await waitFor(() => {
-        // Should still render without crashing
-        expect(screen.getByText(/📋 Timesheet/i)).toBeInTheDocument();
-      });
+      expect(await screen.findByText('Jane Doe')).toBeInTheDocument();
     });
   });
 });

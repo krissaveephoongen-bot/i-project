@@ -14,11 +14,9 @@ import {
     Users,
     Calendar,
     CheckCircle,
-    AlertTriangle,
-    Clock,
     Plus,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+// toast intentionally omitted (unused)
 import ProjectBilling from './ProjectBilling';
 import ProjectIssueLog from './ProjectIssueLog';
 import ScrollContainer from '@/components/layout/ScrollContainer';

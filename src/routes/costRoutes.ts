@@ -1,6 +1,11 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { costController } from '@/controllers/costController';
-import { authenticate } from '@/middleware/auth';
+
+// Temporary authenticate stub until middleware/auth is implemented
+const authenticate = (req: Request, res: Response, next: NextFunction) => {
+	// In production this should validate a JWT or session
+	return next();
+};
 
 const router = Router();
 

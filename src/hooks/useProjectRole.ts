@@ -33,8 +33,8 @@ export const useProjectRole = (
   } else if (userId === projectManagerId) {
     // Project manager can edit/delete
     projectRole = 'manager';
-  } else if (role === 'manager') {
-    // Global managers are members
+  } else if (role === 'manager' || role === 'member') {
+    // Global managers and members are project members
     projectRole = 'member';
   } else {
     // Others are viewers

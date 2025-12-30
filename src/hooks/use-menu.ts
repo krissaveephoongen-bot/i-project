@@ -161,6 +161,7 @@ export const useMenuFilter = () => {
     return categories;
   }, []);
 
+  /**
    * Reset filters
    */
   const resetFilters = useCallback(() => {

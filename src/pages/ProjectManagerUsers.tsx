@@ -11,6 +11,7 @@ import {
     KeyOutlined,
     CopyOutlined,
 } from '@ant-design/icons';
+import { buildApiUrl } from '@/lib/api-config';
 import ScrollContainer from '@/components/layout/ScrollContainer';
 
 const { Search } = Input;
@@ -183,7 +184,7 @@ const ProjectManagerUsers = () => {
 
             if (!editingManager) return;
 
-            const response = await fetch(`/api/prisma/users/${editingManager.id}/admin-reset-password`, {
+            const response = await fetch(buildApiUrl(`/prisma/users/${editingManager.id}/admin-reset-password`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ newPassword: values.password }),

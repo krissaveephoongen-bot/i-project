@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Typography, Skeleton, Button } from 'antd';
 import { UserOutlined, CheckSquareOutlined, DollarOutlined, AlertOutlined, ArrowUpOutlined, CalendarOutlined, TableOutlined } from '@ant-design/icons';
 import { formatCurrency } from '@/utils/formatCurrency';
+import { buildApiUrl } from '@/lib/api-config';
 import ProjectSCurveChart from '@/components/charts/ProjectSCurveChart';
 
 const { Title, Text } = Typography;
@@ -62,7 +63,7 @@ export default function Dashboard() {
                 setIsLoading(true);
 
                 // Fetch projects from API
-                const projectsResponse = await fetch('/api/projects?limit=10');
+                const projectsResponse = await fetch(buildApiUrl('/projects?limit=10'));
 
                 if (!projectsResponse.ok) {
                     throw new Error(`Failed to fetch projects: ${projectsResponse.status}`);

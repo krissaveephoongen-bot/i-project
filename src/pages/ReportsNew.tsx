@@ -13,14 +13,11 @@ import {
   Download,
   TrendingUp,
   DollarSign,
-  Clock,
-  Users,
-  CheckCircle,
-  AlertCircle,
+  // Clock, Users, CheckCircle, AlertCircle intentionally omitted (unused)
   Calendar,
   FileText,
 } from 'lucide-react';
-import { formatCurrency, BAHT_SYMBOL } from '../utils/currency';
+import { formatCurrency } from '../utils/currency';
 import { useProjects, useTimeEntries, useExpenses } from '../hooks/useProjectData';
 import TimesheetSummary from '../components/timesheet/TimesheetSummary';
 import ExpenseSummary from '../components/expense/ExpenseSummary';
@@ -77,7 +74,7 @@ const ReportsNew: React.FC = () => {
 
       setProjectReports(reports);
       if (reports.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(reports[0].id);
+        setSelectedProjectId(reports[0]!.id);
       }
     }
   }, [projects, selectedProjectId]);

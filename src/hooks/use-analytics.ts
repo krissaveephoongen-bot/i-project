@@ -55,8 +55,8 @@ export function useAnalytics() {
     }
   };
 
-  // Helper method to access private analytics service methods
-  private async calculateProjectHealthScore(project: Project, tasks: Task[]): Promise<number> {
+  // Helper method to calculate project health score
+  const calculateProjectHealthScore = async (project: Project, tasks: Task[]): Promise<number> => {
     // This would be a public method in the analytics service in a real implementation
     // For now, we'll use a simplified calculation
     let score = 100;
@@ -77,7 +77,7 @@ export function useAnalytics() {
     score -= overduePenalty * 0.20;
 
     return Math.max(0, Math.min(100, Math.round(score)));
-  }
+  };
 
   return {
     isLoading,
