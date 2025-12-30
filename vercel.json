@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "npx vite build",
-  "installCommand": "npm ci --legacy-peer-deps",
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci --legacy-peer-deps --include=dev",
   "devCommand": "npm run dev",
   "rewrites": [
     {
