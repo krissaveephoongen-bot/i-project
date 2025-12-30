@@ -66,7 +66,7 @@ export const projects = pgTable('projects', {
 });
 
 // Tasks table with self-referential relationship
-export const tasks = pgTable('tasks', {
+export const tasks: any = pgTable('tasks', {
   id: serial('id').primaryKey(),
   title: text('title').notNull(),
   description: text('description'),
