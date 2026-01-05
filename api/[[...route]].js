@@ -580,6 +580,7 @@ async function handleHealth(req, res) {
 }
 
 // ===== MAIN ROUTER =====
+// Unified API Gateway - Consolidated from 12 serverless functions
 export default async (req, res) => {
   setCORSHeaders(res);
   if (handleOptions(req, res)) return;
