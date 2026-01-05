@@ -15,6 +15,9 @@ import {
 import { toast } from 'react-hot-toast';
 import SCurveChart from '../components/charts/SCurveChart';
 import SCurveStatusCards from '../components/charts/SCurveStatusCards';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import { parseApiError } from '@/lib/error-handler';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -141,8 +144,8 @@ export default function ProjectDetail() {
     // S-Curve State
     const [sCurveData, setSCurveData] = useState<SCurveData | null>(null);
     const [sCurveLoading, setSCurveLoading] = useState(false);
-    const [, setLoading] = useState(true);
-    const [, setError] = useState<string | null>(null);
+    const [isLoading, setLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
 
     // UI State
     const [isNewTaskDialogOpen, setIsNewTaskDialogOpen] = useState(false);
@@ -154,7 +157,7 @@ export default function ProjectDetail() {
     useEffect(() => {
         const fetchProjectData = async () => {
             if (!projectId) {
-                setError('Project ID not found');
+                setError(parseApiError(new Error('Project ID not found')));
                 setLoading(false);
                 return;
             }
@@ -192,7 +195,7 @@ export default function ProjectDetail() {
                     setExpenses(expensesData);
                 }
             } catch (err) {
-                setError(err instanceof Error ? err.message : 'Failed to load project data');
+                setError(parseApiError(err));
                 toast.error('Failed to load project');
             } finally {
                 setLoading(false);
@@ -375,6 +378,25 @@ export default function ProjectDetail() {
     const remainingBudget = project ? project.budget - project.spent : 0;
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const pendingExpenses = expenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.amount, 0);
+
+    if (error && !isLoading) {
+        return (
+            <div className="space-y-6">
+                <Button variant="outline" size="sm" onClick={() => navigate('/projects')}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Projects
+                </Button>
+                <ErrorState 
+                    error={error}
+                    onRetry={() => setError(null)}
+                />
+            </div>
+        );
+    }
+
+    if (isLoading) {
+        return <LoadingState />;
+    }
 
     if (!project) {
         return (

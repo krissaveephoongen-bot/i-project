@@ -10,9 +10,14 @@ import {
   FolderKanban,
   Users,
   Clock,
-  ArrowRight
+  ArrowRight,
+  RefreshCw
 } from 'lucide-react';
 import ScrollContainer from '../components/layout/ScrollContainer';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 interface SearchResult {
   id: string;
@@ -38,6 +43,7 @@ export default function Search() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState<any>(null);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [recentSearches] = useState<string[]>([
     'mobile app',
@@ -49,10 +55,12 @@ export default function Search() {
   const performSearch = async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       setResults([]);
+      setError(null);
       return;
     }
 
     setIsSearching(true);
+    setError(null);
 
     try {
       // Fetch from real API
@@ -67,16 +75,17 @@ export default function Search() {
       if (response.ok) {
         const data = await response.json();
         setResults(Array.isArray(data) ? data : data.data || []);
-        setIsSearching(false);
         return;
+      } else {
+        throw new Error(`Search failed: ${response.status}`);
       }
-    } catch (error) {
-      console.warn('API search failed:', error);
+    } catch (err) {
+      console.warn('Search error:', err);
+      setError(parseApiError(err));
+      setResults([]);
+    } finally {
+      setIsSearching(false);
     }
-
-    // No fallback search - API required
-    setResults([]);
-    setIsSearching(false);
   };
 
   const handleSearch = (searchQuery: string) => {
@@ -188,8 +197,21 @@ export default function Search() {
         </CardContent>
       </Card>
 
+      {/* Error State */}
+      {error && (
+        <ErrorState 
+          error={error}
+          onRetry={() => performSearch(query)}
+        />
+      )}
+
+      {/* Loading State */}
+      {isSearching && !error && (
+        <LoadingState message="Searching..." />
+      )}
+
       {/* Recent Searches */}
-      {!query && !results.length && (
+      {!query && !results.length && !error && !isSearching && (
         <Card>
           <CardHeader>
             <CardTitle>Recent Searches</CardTitle>
@@ -213,8 +235,24 @@ export default function Search() {
         </Card>
       )}
 
+      {/* Empty Search Results */}
+      {query && results.length === 0 && !error && !isSearching && (
+        <EmptyState 
+          icon="🔍"
+          title="No results found"
+          description={`No items match your search for "${query}"`}
+          action={{
+            label: "Clear Search",
+            onClick: () => {
+              setQuery('');
+              setResults([]);
+            }
+          }}
+        />
+      )}
+
       {/* Search Results */}
-      {results.length > 0 && (
+      {results.length > 0 && !error && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

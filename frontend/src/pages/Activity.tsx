@@ -4,7 +4,11 @@ import { Button } from '../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
-import { Activity as ActivityIcon, Users, CheckSquare, Clock, User, Settings, Search, Filter, FolderKanban, Calendar } from 'lucide-react';
+import { Activity as ActivityIcon, Users, CheckSquare, Clock, User, Settings, Search, Filter, FolderKanban, Calendar, RefreshCw } from 'lucide-react';
+import ErrorState from '@/components/ErrorState';
+import { parseApiError } from '@/lib/error-handler';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
 
 interface ActivityItem {
   id: string;
@@ -26,6 +30,7 @@ export default function Activity() {
   const [userFilter, setUserFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('7');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
 
   useEffect(() => {
     loadActivities();
@@ -36,10 +41,25 @@ export default function Activity() {
   }, [activities, searchQuery, typeFilter, userFilter, dateFilter]);
 
   const loadActivities = async () => {
-    setIsLoading(true);
+    try {
+      setIsLoading(true);
+      setError(null);
 
-    // Mock activity data
-    const mockActivities: ActivityItem[] = [
+      // Try to fetch real activity data from API
+      try {
+        const response = await fetch('/api/activities');
+        if (!response.ok) {
+          throw new Error('Failed to fetch activities');
+        }
+        const data = await response.json();
+        setActivities(data || []);
+        return;
+      } catch (apiError) {
+        console.warn('API unavailable, using mock data:', apiError);
+      }
+
+      // Fallback to mock activity data
+      const mockActivities: ActivityItem[] = [
       {
         id: '1',
         type: 'task',
@@ -134,11 +154,16 @@ export default function Activity() {
         user: 'Jane Smith',
         timestamp: '2024-12-02T17:00:00Z'
       }
-    ];
+      ];
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setActivities(mockActivities);
-    setIsLoading(false);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setActivities(mockActivities);
+    } catch (err) {
+      console.error('Error loading activities:', err);
+      setError(parseApiError(err));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const filterActivities = () => {
@@ -236,6 +261,164 @@ export default function Activity() {
 
   const uniqueUsers = [...new Set(activities.map(a => a.user))];
 
+  // Error state
+  if (error && !isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">Activity Log</h1>
+          <Button onClick={loadActivities} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+        <ErrorState 
+          error={error}
+          onRetry={loadActivities}
+        />
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <LoadingState message="Loading activity log..." />
+    );
+  }
+
+  // Empty state
+  if (filteredActivities.length === 0) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Activity Log</h1>
+        <EmptyState
+          icon="📊"
+          title="No activities found"
+          description="There are no activities matching your filters."
+          action={{
+            label: "Clear Filters",
+            onClick: () => {
+              setSearchQuery('');
+              setTypeFilter('all');
+              setUserFilter('all');
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Activity Log</h1>
+        <Button onClick={loadActivities} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid gap-4 md:grid-cols-5">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search activities..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Activity Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="task">Tasks</SelectItem>
+                <SelectItem value="project">Projects</SelectItem>
+                <SelectItem value="timesheet">Timesheets</SelectItem>
+                <SelectItem value="client">Clients</SelectItem>
+                <SelectItem value="user">Users</SelectItem>
+                <SelectItem value="system">System</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={userFilter} onValueChange={setUserFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="User" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                {uniqueUsers.map(user => (
+                  <SelectItem key={user} value={user}>{user}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Date Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Last 24 Hours</SelectItem>
+                <SelectItem value="7">Last 7 Days</SelectItem>
+                <SelectItem value="30">Last 30 Days</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchQuery('');
+                setTypeFilter('all');
+                setUserFilter('all');
+              }}
+              className="w-full"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Reset
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Activity List */}
+      <div className="grid gap-4">
+        {filteredActivities.map((activity) => {
+          const IconComponent = getActivityIcon(activity.type);
+          const colors = getActivityColor(activity.type);
+          const badgeColor = getActionBadgeColor(activity.action);
+
+          return (
+            <Card key={activity.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start space-x-4">
+                  <div className={`${colors} p-3 rounded-lg`}>
+                    <IconComponent className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-gray-900">{activity.description}</p>
+                        <p className="text-sm text-gray-500 mt-1">{activity.user} • {formatTimestamp(activity.timestamp)}</p>
+                      </div>
+                      <Badge className={badgeColor}>
+                        {activity.action.charAt(0).toUpperCase() + activity.action.slice(1)}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/*
+// OLD CODE - REPLACED WITH IMPROVED VERSION
   if (isLoading) {
     return (
       <div className="space-y-6">

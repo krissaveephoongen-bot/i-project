@@ -18,6 +18,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import ScrollContainer from '@/components/layout/ScrollContainer';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 interface FavoriteItem {
   id: string;
@@ -32,6 +36,8 @@ interface FavoriteItem {
 
 const Favorites = () => {
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'category'>('recent');
 

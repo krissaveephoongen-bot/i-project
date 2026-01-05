@@ -13,6 +13,10 @@ import {
     Check,
 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatCurrency';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 interface BillingPhase {
     id: string;
@@ -74,6 +78,7 @@ export default function ProjectBilling({
     const [phases, setPhases] = useState<BillingPhase[]>([]);
     const [summary, setSummary] = useState<BillingSummary | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPhase, setEditingPhase] = useState<BillingPhase | null>(null);
     const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
@@ -102,6 +107,7 @@ export default function ProjectBilling({
     const fetchPhases = async () => {
         try {
             setIsLoading(true);
+            setError(null);
             const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
             const response = await fetch(
                 `${apiUrl}/projects/${projectId}/billing-phases`,
@@ -112,8 +118,9 @@ export default function ProjectBilling({
 
             const data = await response.json();
             setPhases(Array.isArray(data.data) ? data.data : []);
-        } catch (error) {
-            console.error('Error fetching phases:', error);
+        } catch (err) {
+            console.error('Error fetching phases:', err);
+            setError(parseApiError(err));
         } finally {
             setIsLoading(false);
         }
@@ -121,6 +128,7 @@ export default function ProjectBilling({
 
     const fetchSummary = async () => {
         try {
+            setError(null);
             const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
             const response = await fetch(
                 `${apiUrl}/projects/${projectId}/billing-summary`,
@@ -131,8 +139,9 @@ export default function ProjectBilling({
 
             const data = await response.json();
             setSummary(data.data);
-        } catch (error) {
-            console.error('Error fetching summary:', error);
+        } catch (err) {
+            console.error('Error fetching summary:', err);
+            setError(parseApiError(err));
         }
     };
 
@@ -272,6 +281,26 @@ export default function ProjectBilling({
 
     if (isLoading) {
         return <div className="h-96 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />;
+    }
+
+    if (error && !isLoading) {
+        return (
+            <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-900">Billing - {projectName}</h2>
+                <ErrorState 
+                    error={error}
+                    onRetry={() => {
+                        setError(null);
+                        fetchPhases();
+                        fetchSummary();
+                    }}
+                />
+            </div>
+        );
+    }
+
+    if (isLoading && phases.length === 0) {
+        return <LoadingState />;
     }
 
     return (

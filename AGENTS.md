@@ -78,10 +78,48 @@ npm run start           # Start Express server
 
 **Formatting**: Prettier with ESLint (eslint-plugin-simple-import-sort, eslint-plugin-react, eslint-plugin-react-hooks)
 
-**Error Handling**: React Error Boundary pattern + Zod/Yup validation
+**Error Handling**: Comprehensive system with standardized patterns
+- Global ErrorBoundary wraps all routes
+- Use `useDataFetch` hook for API calls with automatic error handling
+- Display errors with `<ErrorState>` component with retry functionality
+- Show loading states with `<LoadingState>` or skeletons
+- Use `<EmptyState>` for empty data with contextual actions
+- All errors parsed via `parseApiError()` for consistent handling
+- Support network, timeout (408), and server error (5xx) recovery
+
+**Error Handling Pattern:**
+```typescript
+import { useDataFetch } from '@/hooks/useDataFetch';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+
+const { data, loading, error, retry } = useDataFetch(fetcher, deps);
+
+if (error) return <ErrorState error={error} onRetry={retry} />;
+if (loading) return <LoadingState />;
+if (!data?.length) return <EmptyState title="No items" />;
+return <YourComponent data={data} />;
+```
 
 **Styling**: Tailwind CSS utility classes + shadcn/ui component library
 
 **Testing**: Vitest for unit/integration tests (JSDOM environment)
 
 **Database**: Drizzle ORM with PostgreSQL; migrations in src/migrations
+
+## Error Handling Components
+
+**Available Components:**
+- `ErrorState` - Display errors with retry button and optional details
+- `DataLoader` - Wrapper for loading/error/empty/success states
+- `LoadingState` - Centered spinner with optional message
+- `EmptyState` - Contextual empty state with actions
+- `Skeleton`, `SkeletonTable`, `SkeletonCard` - Loading placeholders
+
+**Available Hooks:**
+- `useDataFetch<T>(fetcher, deps, callbacks)` - Generic data fetching with error handling
+
+**Error Files:**
+- `src/lib/error-handler.ts` - Error parsing, severity, recovery suggestions
+- `src/lib/api-client.ts` - API calls with timeout and error handling

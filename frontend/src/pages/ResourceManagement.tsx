@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, User, Briefcase, Trash2, Edit2 } from 'lucide-react';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 interface Resource {
     id: string;
@@ -17,6 +21,7 @@ interface Resource {
 export default function ResourceManagement() {
     const [resources, setResources] = useState<Resource[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {

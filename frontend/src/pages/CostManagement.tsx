@@ -11,6 +11,10 @@ import { Label } from '@/components/ui/label';
 import { buildApiUrl } from '@/lib/api-config';
 // // import { costService } from '@/services/costService'; // Uncomment when API integration is needed // Uncomment when needed
 import { useAuth } from '@/contexts/AuthContext';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 import { Doughnut } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -69,7 +73,7 @@ export default function CostManagement() {
 
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<any>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -122,8 +126,8 @@ export default function CostManagement() {
                 setError(null);
             } catch (err) {
                 console.error('Error fetching costs:', err);
-                const errorMsg = 'ไม่สามารถโหลดข้อมูลค่าใช้จ่ายได้';
-                setError(errorMsg);
+                const errorMsg = err instanceof Error ? err.message : 'Failed to fetch costs';
+                setError(parseApiError(err));
                 toast.error(errorMsg);
                 setExpenses([]);
             } finally {
@@ -324,38 +328,23 @@ export default function CostManagement() {
         }
     };
 
-    if (isLoading) {
+    if (error && !isLoading) {
         return (
-            <div className="space-y-6">
-                <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                <div className="grid gap-6 md:grid-cols-2">
-                    <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                    <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                </div>
+            <div className="container mx-auto p-6">
+                <h1 className="text-2xl font-bold text-gray-900 mb-6">Cost Management</h1>
+                <ErrorState 
+                    error={error}
+                    onRetry={() => {
+                        setError(null);
+                        setIsLoading(true);
+                    }}
+                />
             </div>
         );
     }
 
-    if (error) {
-        return (
-            <div className="container mx-auto p-6">
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-                    <div className="flex items-center gap-3">
-                        <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
-                        <div>
-                            <h2 className="text-lg font-semibold text-red-900 dark:text-red-200">Error Loading Cost Management</h2>
-                            <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium"
-                            >
-                                Try Again
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
+    if (isLoading) {
+        return <LoadingState />;
     }
 
     return (

@@ -13,6 +13,10 @@ import { timesheetService } from '@/services/timesheetService';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { TimeEntry } from '../types/database';
 import ScrollContainer from '../components/layout/ScrollContainer';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 interface TimeEntryFormData {
     date: string;
@@ -125,6 +129,8 @@ const calculateMonthStats = (entries: TimeEntry[], monthDate: Date): MonthStats 
 export default function Timesheet() {
     const today = new Date();
     const { user } = useAuthContext();
+    const [error, setError] = useState<any>(null);
+    
     const { data: _dbStatus } = useQuery({
         queryKey: ['db-status'],
         queryFn: async () => timesheetService.getDbStatus(),

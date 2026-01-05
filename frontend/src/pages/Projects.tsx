@@ -17,6 +17,10 @@ import { formatCurrency } from '../utils/currency';
 import SCurveChart from '../components/charts/SCurveChart';
 import SCurveStatusCards from '../components/charts/SCurveStatusCards';
 import ScrollContainer from '../components/layout/ScrollContainer';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 interface ProjectCharter {
     projectObjective: string;

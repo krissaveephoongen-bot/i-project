@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Typography, Skeleton, Button } from 'antd';
-import { UserOutlined, CheckSquareOutlined, DollarOutlined, AlertOutlined, ArrowUpOutlined, CalendarOutlined, TableOutlined } from '@ant-design/icons';
+import { UserOutlined, CheckSquareOutlined, DollarOutlined, AlertOutlined, ArrowUpOutlined, CalendarOutlined, TableOutlined, ReloadOutlined } from '@ant-design/icons';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { buildApiUrl } from '@/lib/api-config';
 import ProjectSCurveChart from '@/components/charts/ProjectSCurveChart';
+import ErrorState from '@/components/ErrorState';
+import { parseApiError } from '@/lib/error-handler';
 
 const { Title, Text } = Typography;
 
@@ -39,6 +41,7 @@ export default function Dashboard() {
      const navigate = useNavigate();
      const [stats, setStats] = useState<any>(null);
      const [isLoading, setIsLoading] = useState(true);
+     const [error, setError] = useState<any>(null);
      const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
      const [dateRange, setDateRange] = useState<'week' | 'month' | 'quarter'>('month');
 
@@ -57,57 +60,59 @@ export default function Dashboard() {
     const [sCurveData, setSCurveData] = useState<Record<string, SCurveDataPoint[]>>({});
 
     // Fetch dashboard data
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
+     useEffect(() => {
+         const fetchData = async () => {
+             try {
+                 setIsLoading(true);
+                 setError(null);
 
-                // Fetch projects from API
-                const projectsResponse = await fetch(buildApiUrl('/projects?limit=10'));
+                 // Fetch projects from API
+                 const projectsResponse = await fetch(buildApiUrl('/projects?limit=10'));
 
-                if (!projectsResponse.ok) {
-                    throw new Error(`Failed to fetch projects: ${projectsResponse.status}`);
-                }
+                 if (!projectsResponse.ok) {
+                     throw new Error(`Failed to fetch projects: ${projectsResponse.status}`);
+                 }
 
-                const projectsResult = await projectsResponse.json();
+                 const projectsResult = await projectsResponse.json();
 
-                if (projectsResult.success) {
-                    const apiProjects = projectsResult.data.map((p: any) => ({
-                        id: p.id,
-                        name: p.name,
-                        code: p.code,
-                        status: p.status,
-                        progress: p.progress || 0,
-                        budget: p.budget,
-                        actualCost: p.actualCost,
-                        startDate: p.startDate,
-                        endDate: p.endDate,
-                        client: p.client,
-                        projectManager: p.projectManager,
-                        _count: p._count
-                    }));
+                 if (projectsResult.success) {
+                     const apiProjects = projectsResult.data.map((p: any) => ({
+                         id: p.id,
+                         name: p.name,
+                         code: p.code,
+                         status: p.status,
+                         progress: p.progress || 0,
+                         budget: p.budget,
+                         actualCost: p.actualCost,
+                         startDate: p.startDate,
+                         endDate: p.endDate,
+                         client: p.client,
+                         projectManager: p.projectManager,
+                         _count: p._count
+                     }));
 
-                    setProjects(apiProjects);
+                     setProjects(apiProjects);
 
-                    // Generate S-Curve data for each project based on dateRange
-                    const sCurveDataMap: Record<string, SCurveDataPoint[]> = {};
-                    apiProjects.forEach((project: Project) => {
-                        const weeks = getWeeksFromDateRange(dateRange);
-                        sCurveDataMap[project.id] = generateSCurveData(project.name, weeks, project.progress);
-                    });
+                     // Generate S-Curve data for each project based on dateRange
+                     const sCurveDataMap: Record<string, SCurveDataPoint[]> = {};
+                     apiProjects.forEach((project: Project) => {
+                         const weeks = getWeeksFromDateRange(dateRange);
+                         sCurveDataMap[project.id] = generateSCurveData(project.name, weeks, project.progress);
+                     });
 
-                    setSCurveData(sCurveDataMap);
-                } else {
-                    throw new Error(projectsResult.message || 'Failed to fetch projects');
-                }
+                     setSCurveData(sCurveDataMap);
+                 } else {
+                     throw new Error(projectsResult.message || 'Failed to fetch projects');
+                 }
 
-                setLastUpdated(new Date());
-            } catch (error) {
-                console.error('Error fetching dashboard data:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+                 setLastUpdated(new Date());
+             } catch (err) {
+                 console.error('Error fetching dashboard data:', err);
+                 setError(parseApiError(err));
+             } finally {
+                 setIsLoading(false);
+             }
+         };
 
         const getWeeksFromDateRange = (range: 'week' | 'month' | 'quarter'): number => {
             switch (range) {
@@ -191,30 +196,45 @@ export default function Dashboard() {
         }
     }, [projects, dateRange]);
 
-    if (isLoading) {
-        return (
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                    <div className="h-10 w-24 bg-indigo-200 dark:bg-indigo-900 rounded animate-pulse" />
-                </div>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                        <Card key={i}>
-                            <Skeleton active paragraph={{ rows: 4 }} />
-                        </Card>
-                    ))}
-                </div>
-                <div className="space-y-4">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                        <Skeleton key={i} active paragraph={{ rows: 1 }} className="h-16" />
-                    ))}
-                </div>
-            </div>
-        );
-    }
+    // Error state
+     if (error && !isLoading) {
+         return (
+             <div className="p-6">
+                 <ErrorState 
+                     error={error}
+                     onRetry={() => {
+                         setError(null);
+                         setIsLoading(true);
+                     }}
+                 />
+             </div>
+         );
+     }
 
-    const formatTime = (date: Date | null) => {
+     if (isLoading) {
+         return (
+             <div className="space-y-6">
+                 <div className="flex items-center justify-between">
+                     <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                     <div className="h-10 w-24 bg-indigo-200 dark:bg-indigo-900 rounded animate-pulse" />
+                 </div>
+                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                     {Array.from({ length: 4 }).map((_, i) => (
+                         <Card key={i}>
+                             <Skeleton active paragraph={{ rows: 4 }} />
+                         </Card>
+                     ))}
+                 </div>
+                 <div className="space-y-4">
+                     {Array.from({ length: 5 }).map((_, i) => (
+                         <Skeleton key={i} active paragraph={{ rows: 1 }} className="h-16" />
+                     ))}
+                 </div>
+             </div>
+         );
+     }
+
+     const formatTime = (date: Date | null) => {
         if (!date) return '';
         return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     };

@@ -6,6 +6,10 @@ import { Plus, Eye, Edit2, Archive, TrendingUp, AlertCircle, Briefcase, ArrowRig
 import { formatCurrency } from '@/utils/formatCurrency';
 import { toast } from 'react-hot-toast';
 import ScrollContainer from '@/components/layout/ScrollContainer';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 interface MyProject {
   id: string;
@@ -25,7 +29,7 @@ export default function MyProjects() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<MyProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'completed' | 'on-hold'>('all');
 
   useEffect(() => {
@@ -63,12 +67,12 @@ export default function MyProjects() {
           }
         } catch (apiError) {
           console.warn('API fetch failed:', apiError);
-          setError('Unable to load projects. Please try again later.');
+          setError(parseApiError(apiError));
           setProjects([]);
         }
-      } catch (error) {
-        console.error('Error fetching projects:', error);
-        setError('Unable to load projects. Please try again later.');
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+        setError(parseApiError(err));
         toast.error('Failed to load projects');
       } finally {
         setIsLoading(false);
@@ -98,16 +102,25 @@ export default function MyProjects() {
 
   const filteredProjects = filterStatus === 'all' ? projects : projects.filter((p) => p.status === filterStatus);
 
-  if (isLoading) {
+  if (error && !isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+      <ScrollContainer>
+        <div className="space-y-6">
+          <h1 className="text-3xl font-bold text-gray-900">My Projects</h1>
+          <ErrorState 
+            error={error}
+            onRetry={() => {
+              setError(null);
+              setIsLoading(true);
+            }}
+          />
         </div>
-      </div>
+      </ScrollContainer>
     );
+  }
+
+  if (isLoading) {
+    return <LoadingState />;
   }
 
   return (

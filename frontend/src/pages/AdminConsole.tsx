@@ -5,6 +5,10 @@ import { BarChart3, Activity, RefreshCw, LogOut, Users, Database, CheckCircle, A
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 type ServiceStatus = 'up' | 'down' | 'degraded';
 type LogLevel = 'info' | 'warn' | 'error';
@@ -50,6 +54,7 @@ const AdminConsole: React.FC = () => {
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
   const [refreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'health' | 'logs' | 'settings'>('overview');
 

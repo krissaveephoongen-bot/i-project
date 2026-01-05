@@ -8,6 +8,10 @@ import { Plus, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Task } from '@/types/project';
 import { projectService } from '@/services/projectService';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 interface TaskManagementProps {
   projectId: string;
@@ -18,6 +22,7 @@ export default function TaskManagement({ projectId, onTasksUpdate }: TaskManagem
   const { user } = useAuthContext();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filteredStatus, setFilteredStatus] = useState<string>('all');
@@ -37,11 +42,13 @@ export default function TaskManagement({ projectId, onTasksUpdate }: TaskManagem
   const loadTasks = async () => {
     try {
       setLoading(true);
+      setError(null);
       const project = await projectService.getProject(projectId);
       setTasks(project.tasks || []);
       onTasksUpdate?.(project.tasks || []);
-    } catch (error) {
-      console.error('Failed to load tasks:', error);
+    } catch (err) {
+      console.error('Failed to load tasks:', err);
+      setError(parseApiError(err));
       toast.error('Failed to load tasks');
     } finally {
       setLoading(false);
@@ -159,6 +166,26 @@ export default function TaskManagement({ projectId, onTasksUpdate }: TaskManagem
         return 'bg-gray-100 text-gray-700';
     }
   };
+
+  // Error and loading states
+  if (error && !loading) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-gray-900">Task Management</h2>
+        <ErrorState 
+          error={error}
+          onRetry={() => {
+            setError(null);
+            loadTasks();
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (loading && tasks.length === 0) {
+    return <LoadingState />;
+  }
 
   return (
     <div className="space-y-6">

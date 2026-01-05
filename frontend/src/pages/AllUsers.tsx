@@ -13,6 +13,10 @@ import {
 } from '@ant-design/icons';
 import { buildApiUrl } from '@/lib/api-config';
 import ScrollContainer from '@/components/layout/ScrollContainer';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -32,6 +36,7 @@ interface User {
 const AllUsers = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [roleFilter, setRoleFilter] = useState('');

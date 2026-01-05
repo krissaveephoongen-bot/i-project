@@ -11,6 +11,10 @@ import { toast } from 'react-hot-toast';
 import { format, startOfMonth, endOfMonth, formatISO } from 'date-fns';
 import ScrollContainer from '../components/layout/ScrollContainer';
 import { API_BASE_URL, API_TIMEOUT } from '@/lib/api-config';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 interface Expense {
     id: string;

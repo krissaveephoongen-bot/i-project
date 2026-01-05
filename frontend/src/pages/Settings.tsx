@@ -4,11 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Bell, Shield, Eye, EyeOff, Camera, Trash2 } from 'lucide-react';
+import { User, Bell, Shield, Eye, EyeOff, Camera, Trash2, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { buildApiUrl } from '@/lib/api-config';
 import ScrollContainer from '@/components/layout/ScrollContainer';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import { parseApiError } from '@/lib/error-handler';
 
 interface UserSettings {
     firstName: string;
@@ -35,6 +38,7 @@ export default function Settings() {
     const { user: contextUser } = useAuth();
     const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
     const [saving, setSaving] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [uploading, setUploading] = useState(false);

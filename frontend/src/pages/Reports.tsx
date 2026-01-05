@@ -12,6 +12,10 @@ import {
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import ScrollContainer from '../components/layout/ScrollContainer';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 export default function Reports() {
   const { user } = useAuthContext();
@@ -20,6 +24,7 @@ export default function Reports() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<any>(null);
   const [filters, setFilters] = useState({
     projectId: '',
     userId: '',
@@ -29,13 +34,15 @@ export default function Reports() {
   const handleGenerateReport = async () => {
     try {
       setIsGenerating(true);
+      setError(null);
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast.success('Report generated successfully');
-    } catch (error) {
-      console.error('Error generating report:', error);
+    } catch (err) {
+      console.error('Error generating report:', err);
+      setError(parseApiError(err));
       toast.error('Failed to generate report');
     } finally {
       setIsGenerating(false);
@@ -78,6 +85,24 @@ export default function Reports() {
       </CardContent>
     </Card>
   );
+
+  // Error state
+  if (error && !isGenerating) {
+    return (
+      <ScrollContainer>
+        <div className="space-y-6">
+          <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+          <ErrorState 
+            error={error}
+            onRetry={() => {
+              setError(null);
+              handleGenerateReport();
+            }}
+          />
+        </div>
+      </ScrollContainer>
+    );
+  }
 
   return (
     <ScrollContainer>
