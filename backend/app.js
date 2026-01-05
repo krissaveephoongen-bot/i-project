@@ -38,34 +38,51 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// API Routes - Mock data for production
-app.get('/api/projects', (req, res) => {
-  res.json([
-    { id: 1, name: 'Project 1', status: 'active', description: 'Sample project' },
-    { id: 2, name: 'Project 2', status: 'active', description: 'Another project' }
-  ]);
-});
+// API Routes
+(async () => {
+  try {
+    const { default: projectRoutes } = await import('./routes/project-routes.js');
+    const { default: taskRoutes } = await import('./routes/task-routes.js');
+    const { default: userRoutes } = await import('./routes/user-routes.js');
+    const { default: authRoutes } = await import('./routes/auth-routes.js');
 
-app.get('/api/tasks', (req, res) => {
-  res.json([
-    { id: 1, title: 'Task 1', status: 'todo', priority: 'high', projectId: 1 },
-    { id: 2, title: 'Task 2', status: 'in_progress', priority: 'medium', projectId: 1 }
-  ]);
-});
+    app.use('/api/projects', projectRoutes);
+    app.use('/api/tasks', taskRoutes);
+    app.use('/api/users', userRoutes);
+    app.use('/api/auth', authRoutes);
+  } catch (error) {
+    console.error('Failed to load routes:', error.message);
+    
+    // Fallback mock endpoints
+    app.get('/api/projects', (req, res) => {
+      res.json([
+        { id: 1, name: 'Project 1', status: 'active', description: 'Sample project' },
+        { id: 2, name: 'Project 2', status: 'active', description: 'Another project' }
+      ]);
+    });
 
-app.get('/api/users', (req, res) => {
-  res.json([
-    { id: 1, name: 'User 1', email: 'user1@example.com', role: 'admin' },
-    { id: 2, name: 'User 2', email: 'user2@example.com', role: 'employee' }
-  ]);
-});
+    app.get('/api/tasks', (req, res) => {
+      res.json([
+        { id: 1, title: 'Task 1', status: 'todo', priority: 'high', projectId: 1 },
+        { id: 2, title: 'Task 2', status: 'in_progress', priority: 'medium', projectId: 1 }
+      ]);
+    });
 
-app.post('/api/auth/login', (req, res) => {
-  res.json({
-    user: { id: 1, name: 'Test User', email: 'test@example.com', role: 'admin' },
-    token: 'mock-jwt-token-' + Date.now()
-  });
-});
+    app.get('/api/users', (req, res) => {
+      res.json([
+        { id: 1, name: 'User 1', email: 'user1@example.com', role: 'admin' },
+        { id: 2, name: 'User 2', email: 'user2@example.com', role: 'employee' }
+      ]);
+    });
+
+    app.post('/api/auth/login', (req, res) => {
+      res.json({
+        user: { id: 1, name: 'Test User', email: 'test@example.com', role: 'admin' },
+        token: 'mock-jwt-token-' + Date.now()
+      });
+    });
+  }
+})();
 
 // Note: In Vercel deployment, static files and SPA routing are handled separately
 // This Express app only serves API routes
