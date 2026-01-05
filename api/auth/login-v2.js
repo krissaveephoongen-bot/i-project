@@ -1,62 +1,66 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import postgres from 'postgres';
+import { setCORSHeaders, handleOptions, errorResponse, successResponse, validationErrorResponse } from '../lib/response.js';
+import { validateEmail, validateRequired } from '../lib/validation.js';
 
 export default async (req, res) => {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-V, Authorization'
-  );
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+  setCORSHeaders(res);
+  if (handleOptions(req, res)) return;
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return errorResponse(res, 'Method not allowed', 405);
   }
 
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    // Validate inputs
+    const errors = [];
+    try {
+      validateRequired(email, 'Email');
+      validateEmail(email) || errors.push('Invalid email format');
+    } catch (e) {
+      errors.push(e.message);
+    }
+
+    try {
+      validateRequired(password, 'Password');
+    } catch (e) {
+      errors.push(e.message);
+    }
+
+    if (errors.length > 0) {
+      return validationErrorResponse(res, errors);
     }
 
     if (!process.env.DATABASE_URL) {
-      console.error('DATABASE_URL not configured');
-      return res.status(500).json({ error: 'Database connection failed' });
+      return errorResponse(res, 'Database connection failed', 500);
     }
 
-    // Connect to database
     const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
 
     try {
-      // Find user by email
       const result = await sql`
         SELECT * FROM users WHERE email = ${email}
       `;
 
       if (result.length === 0) {
         await sql.end();
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return errorResponse(res, 'Invalid credentials', 401);
       }
 
       const user = result[0];
-
-      // Verify password
       const isValidPassword = await bcrypt.compare(password, user.password);
+
       if (!isValidPassword) {
         await sql.end();
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return errorResponse(res, 'Invalid credentials', 401);
       }
 
-      // Generate JWT token
+      // Update last login
+      await sql`UPDATE users SET "lastLogin" = NOW() WHERE id = ${user.id}`;
+
       const token = jwt.sign(
         {
           id: user.id,
@@ -70,8 +74,7 @@ export default async (req, res) => {
 
       await sql.end();
 
-      // Return user info and token
-      return res.status(200).json({
+      return successResponse(res, {
         user: {
           id: user.id,
           name: user.name,
@@ -82,16 +85,16 @@ export default async (req, res) => {
           position: user.position,
         },
         token,
-      });
+      }, 200, 'Login successful');
     } finally {
       try {
         await sql.end();
       } catch (e) {
-        // Ignore cleanup errors
+        // Ignore
       }
     }
   } catch (error) {
     console.error('Login error:', error);
-    return res.status(500).json({ error: 'Login failed', details: error.message });
+    return errorResponse(res, 'Login failed', 500, error.message);
   }
 };

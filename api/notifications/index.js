@@ -1,11 +1,7 @@
 import jwt from 'jsonwebtoken';
 import postgres from 'postgres';
 
-function verifyToken(token) {
-  return jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
-}
-
-export default async (req, res) => {
+const setCORSHeaders = (res) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -13,7 +9,18 @@ export default async (req, res) => {
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-V, Authorization'
   );
+};
 
+const errorResponse = (res, message, statusCode = 400) => {
+  return res.status(statusCode).json({ success: false, message, timestamp: new Date().toISOString() });
+};
+
+const successResponse = (res, data, statusCode = 200) => {
+  return res.status(statusCode).json({ success: true, data, timestamp: new Date().toISOString() });
+};
+
+export default async (req, res) => {
+  setCORSHeaders(res);
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -22,15 +29,11 @@ export default async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Access token required' });
+      return errorResponse(res, 'Authorization required', 401);
     }
 
     const token = authHeader.substring(7);
-    const decoded = verifyToken(token);
-
-    if (!process.env.DATABASE_URL) {
-      return res.status(500).json({ error: 'Database connection failed' });
-    }
+    const user = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
 
     const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
 
@@ -38,38 +41,33 @@ export default async (req, res) => {
       if (req.method === 'GET') {
         const notifications = await sql`
           SELECT * FROM notifications 
-          WHERE "userId" = ${decoded.id}
+          WHERE "userId" = ${user.id}
           ORDER BY "createdAt" DESC
         `;
         await sql.end();
-        return res.status(200).json(notifications || []);
+        return successResponse(res, notifications);
       } else if (req.method === 'POST') {
         const { title, message, type } = req.body;
         if (!title || !message) {
           await sql.end();
-          return res.status(400).json({ error: 'title and message required' });
+          return errorResponse(res, 'title and message required', 400);
         }
-
         const result = await sql`
-          INSERT INTO notifications (userId, title, message, type, isRead, "createdAt")
-          VALUES (${decoded.id}, ${title}, ${message}, ${type || 'info'}, false, NOW())
+          INSERT INTO notifications (userId, title, message, type, "isRead", "createdAt")
+          VALUES (${user.id}, ${title}, ${message}, ${type || 'info'}, false, NOW())
           RETURNING *
         `;
         await sql.end();
-        return res.status(201).json(result[0]);
-      } else {
-        await sql.end();
-        return res.status(405).json({ error: 'Method not allowed' });
+        return successResponse(res, result[0], 201);
       }
+      await sql.end();
+      return errorResponse(res, 'Method not allowed', 405);
     } finally {
       try {
         await sql.end();
-      } catch (e) {
-        // Ignore
-      }
+      } catch (e) {}
     }
   } catch (error) {
-    console.error('Notifications error:', error);
-    return res.status(401).json({ error: error.message });
+    return errorResponse(res, error.message, 401);
   }
 };
