@@ -66,29 +66,29 @@ export const projects = pgTable('projects', {
 });
 
 // Tasks table with self-referential relationship
-export const tasks: any = pgTable('tasks', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  title: text('title').notNull(),
-  description: text('description'),
-  status: statusEnum('status').notNull().default('todo'),
-  priority: priorityEnum('priority').notNull().default('medium'),
-  dueDate: timestamp('due_date'),
-  estimatedHours: numeric('estimated_hours', { precision: 6, scale: 2 }),
-  actualHours: numeric('actual_hours', { precision: 6, scale: 2 }).default('0.00'),
-  weight: numeric('weight', { precision: 10, scale: 2 }).default('1.00'),
-  completedAt: timestamp('completed_at'),
-  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
-  assignedTo: uuid('assigned_to').references(() => users.id, { onDelete: 'set null' }),
-  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  parentTaskId: uuid('parent_task_id').references(() => tasks.id, { onDelete: 'cascade' }),
-  category: text('category'),
-  storyPoints: integer('story_points'),
-  sprintId: uuid('sprint_id'),
-  blockedBy: uuid('blocked_by'),
-  blockedReason: text('blocked_reason'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+export const tasks = pgTable('tasks', {
+   id: uuid('id').primaryKey().defaultRandom(),
+   title: text('title').notNull(),
+   description: text('description'),
+   status: statusEnum('status').notNull().default('todo'),
+   priority: priorityEnum('priority').notNull().default('medium'),
+   dueDate: timestamp('due_date'),
+   estimatedHours: numeric('estimated_hours', { precision: 6, scale: 2 }),
+   actualHours: numeric('actual_hours', { precision: 6, scale: 2 }).default('0.00'),
+   weight: numeric('weight', { precision: 10, scale: 2 }).default('1.00'),
+   completedAt: timestamp('completed_at'),
+   projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+   assignedTo: uuid('assigned_to').references(() => users.id, { onDelete: 'set null' }),
+   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+   parentTaskId: uuid('parent_task_id').references(() => tasks.id, { onDelete: 'cascade' }),
+   category: text('category'),
+   storyPoints: integer('story_points'),
+   sprintId: uuid('sprint_id'),
+   blockedBy: uuid('blocked_by'),
+   blockedReason: text('blocked_reason'),
+   createdAt: timestamp('created_at').defaultNow().notNull(),
+   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}) as any;
 
 // Timesheet Entries
 export const timeEntries = pgTable('time_entries', {
