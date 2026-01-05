@@ -135,81 +135,18 @@ export default function Activity() {
     setFilteredActivities(filtered);
   };
 
-  // Load activities from API or use mock data
+  // Load activities from API
   const loadActivities = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Try to fetch real activity data from API
-      try {
-        const response = await fetch('/api/activities');
-        if (!response.ok) {
-          throw new Error('Failed to fetch activities');
-        }
-        const data = await response.json();
-        setActivities(data || []);
-        return;
-      } catch (apiError) {
-        console.warn('API unavailable, using mock data:', apiError);
+      const response = await fetch('/api/activities');
+      if (!response.ok) {
+        throw new Error('Failed to fetch activities');
       }
-
-      // Fallback to mock activity data
-      const mockActivities: ActivityItem[] = [
-        {
-          id: '1',
-          type: 'task',
-          action: 'completed',
-          description: 'Completed task "Design user authentication flow"',
-          user: 'Sarah Chen',
-          timestamp: '2024-12-04T10:30:00Z',
-          entityId: 'task-1',
-          entityName: 'Design user authentication flow'
-        },
-        {
-          id: '2',
-          type: 'project',
-          action: 'updated',
-          description: 'Updated project progress to 65%',
-          user: 'John Doe',
-          timestamp: '2024-12-04T09:15:00Z',
-          entityId: 'proj-1',
-          entityName: 'Mobile App Development'
-        },
-        {
-          id: '3',
-          type: 'timesheet',
-          action: 'logged',
-          description: 'Logged 8 hours on "API Integration" project',
-          user: 'Mike Johnson',
-          timestamp: '2024-12-04T08:45:00Z',
-          entityId: 'timesheet-1',
-          entityName: 'API Integration'
-        },
-        {
-          id: '4',
-          type: 'client',
-          action: 'created',
-          description: 'Created new client "TechCorp Solutions"',
-          user: 'Jane Smith',
-          timestamp: '2024-12-03T16:20:00Z',
-          entityId: 'client-1',
-          entityName: 'TechCorp Solutions'
-        },
-        {
-          id: '5',
-          type: 'task',
-          action: 'created',
-          description: 'Created new task "Setup CI/CD pipeline"',
-          user: 'John Doe',
-          timestamp: '2024-12-03T14:10:00Z',
-          entityId: 'task-4',
-          entityName: 'Setup CI/CD pipeline'
-        }
-      ];
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setActivities(mockActivities);
+      const data = await response.json();
+      setActivities(data || []);
     } catch (err) {
       console.error('Error loading activities:', err);
       setError(parseApiError(err));
