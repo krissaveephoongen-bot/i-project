@@ -10,9 +10,14 @@ import {
   Edit,
   Search as SearchIcon,
   Filter,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import ScrollContainer from '@/components/layout/ScrollContainer';
+import ErrorState from '@/components/ErrorState';
+import { parseApiError } from '@/lib/error-handler';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
 
 interface Task {
   id: string;
@@ -32,6 +37,7 @@ export default function TaskManagementFull() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -57,67 +63,19 @@ export default function TaskManagementFull() {
   }, [tasks, searchQuery, statusFilter, priorityFilter, sortBy]);
 
   const loadTasks = async () => {
-    setLoading(true);
     try {
-      const mockTasks: Task[] = [
-        {
-          id: '1',
-          title: 'Design user authentication flow',
-          description: 'Create wireframes and design the authentication UI',
-          projectId: '1',
-          projectName: 'Mobile App',
-          status: 'in-progress',
-          priority: 'high',
-          assignee: 'Sarah Chen',
-          dueDate: '2024-12-20',
-          progress: 75,
-          createdAt: '2024-12-01',
-        },
-        {
-          id: '2',
-          title: 'Implement API endpoints',
-          description: 'Create REST API endpoints for user management',
-          projectId: '1',
-          projectName: 'Mobile App',
-          status: 'in-progress',
-          priority: 'critical',
-          assignee: 'John Doe',
-          dueDate: '2024-12-15',
-          progress: 60,
-          createdAt: '2024-12-01',
-        },
-        {
-          id: '3',
-          title: 'Write unit tests',
-          description: 'Write comprehensive unit tests for core modules',
-          projectId: '1',
-          projectName: 'Mobile App',
-          status: 'pending',
-          priority: 'medium',
-          assignee: 'Mike Johnson',
-          dueDate: '2024-12-25',
-          progress: 20,
-          createdAt: '2024-12-02',
-        },
-        {
-          id: '4',
-          title: 'Setup CI/CD pipeline',
-          description: 'Configure GitHub Actions for automated testing',
-          projectId: '2',
-          projectName: 'Backend API',
-          status: 'completed',
-          priority: 'high',
-          assignee: 'Alice Brown',
-          dueDate: '2024-12-10',
-          progress: 100,
-          createdAt: '2024-11-28',
-        },
-      ];
+      setLoading(true);
+      setError(null);
 
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setTasks(mockTasks);
-    } catch (error) {
-      toast.error('Failed to load tasks');
+      const response = await fetch('/api/tasks');
+      if (!response.ok) {
+        throw new Error('Failed to fetch tasks');
+      }
+      const data = await response.json();
+      setTasks(data || []);
+    } catch (err) {
+      console.error('Error loading tasks:', err);
+      setError(parseApiError(err));
     } finally {
       setLoading(false);
     }
@@ -218,6 +176,70 @@ export default function TaskManagementFull() {
     return colors[priority];
   };
 
+  // Error state
+  if (error && !loading) {
+    return (
+      <ScrollContainer>
+        <div className="space-y-6 p-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
+            <Button onClick={loadTasks} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+          <ErrorState
+            error={error}
+            onRetry={loadTasks}
+          />
+        </div>
+      </ScrollContainer>
+    );
+  }
+
+  if (loading) {
+    return (
+      <ScrollContainer>
+        <div className="space-y-6 p-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
+          </div>
+          <LoadingState message="Loading tasks..." />
+        </div>
+      </ScrollContainer>
+    );
+  }
+
+  // Empty state
+  if (filteredTasks.length === 0) {
+    return (
+      <ScrollContainer>
+        <div className="space-y-6 p-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
+            <Button onClick={() => setShowCreateForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Task
+            </Button>
+          </div>
+          <EmptyState
+            icon="📋"
+            title="No tasks found"
+            description="There are no tasks matching your filters."
+            action={{
+              label: "Clear Filters",
+              onClick: () => {
+                setSearchQuery('');
+                setStatusFilter('all');
+                setPriorityFilter('all');
+              }
+            }}
+          />
+        </div>
+      </ScrollContainer>
+    );
+  }
+
   return (
     <ScrollContainer>
       <div className="space-y-6 p-4">
@@ -305,77 +327,61 @@ export default function TaskManagementFull() {
 
         {/* Task List */}
         <div className="space-y-3">
-          {loading ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600">Loading tasks...</p>
-            </div>
-          ) : filteredTasks.length === 0 ? (
-            <Card className="p-8 text-center">
-              <CheckSquare className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
-              <p className="text-gray-600 mb-4">Create a new task to get started</p>
-              <Button onClick={() => setShowCreateForm(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Task
-              </Button>
-            </Card>
-          ) : (
-            filteredTasks.map(task => (
-              <Card key={task.id} className="p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">{task.title}</h3>
-                      <Badge className={getStatusColor(task.status)}>{task.status}</Badge>
-                      <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
-                    </div>
-
-                    <p className="text-sm text-gray-600 mb-3">{task.description}</p>
-
-                    <div className="grid gap-2 md:grid-cols-4 text-sm mb-3">
-                      <div>
-                        <p className="text-gray-500">Project</p>
-                        <p className="font-medium text-gray-900">{task.projectName}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Assignee</p>
-                        <p className="font-medium text-gray-900">{task.assignee}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Due Date</p>
-                        <p className="font-medium text-gray-900">{new Date(task.dueDate).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Progress</p>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-blue-600 h-2 rounded-full"
-                              style={{ width: `${task.progress}%` }}
-                            />
-                          </div>
-                          <span className="font-medium text-gray-900">{task.progress}%</span>
-                        </div>
-                      </div>
-                    </div>
+          {filteredTasks.map(task => (
+            <Card key={task.id} className="p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="font-semibold text-gray-900">{task.title}</h3>
+                    <Badge className={getStatusColor(task.status)}>{task.status}</Badge>
+                    <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
                   </div>
 
-                  <div className="flex gap-2 flex-shrink-0">
-                    <Button variant="outline" size="icon">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleDeleteTask(task.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
+                  <p className="text-sm text-gray-600 mb-3">{task.description}</p>
+
+                  <div className="grid gap-2 md:grid-cols-4 text-sm mb-3">
+                    <div>
+                      <p className="text-gray-500">Project</p>
+                      <p className="font-medium text-gray-900">{task.projectName}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Assignee</p>
+                      <p className="font-medium text-gray-900">{task.assignee}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Due Date</p>
+                      <p className="font-medium text-gray-900">{new Date(task.dueDate).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Progress</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full"
+                            style={{ width: `${task.progress}%` }}
+                          />
+                        </div>
+                        <span className="font-medium text-gray-900">{task.progress}%</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </Card>
-            ))
-          )}
+
+                <div className="flex gap-2 flex-shrink-0">
+                  <Button variant="outline" size="icon">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleDeleteTask(task.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
 
         {/* Create Task Modal */}
@@ -451,3 +457,4 @@ export default function TaskManagementFull() {
     </ScrollContainer>
   );
 }
+
