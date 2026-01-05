@@ -34,10 +34,10 @@ export const getApiBaseUrl = (): string => {
 
   // Default URLs based on environment
   if (isDevelopment) {
-    return 'http://localhost:5000/api';
+    return 'http://localhost:5173/api';
   }
   
-  // In production, use same origin for API (co-hosted)
+  // In production, use same origin for API (co-hosted serverless)
   if (typeof window !== 'undefined') {
     return `${window.location.origin}/api`;
   }
