@@ -99,3 +99,5 @@ playwright-report/
 server/.env
 # Local Netlify folder
 .netlify
+
+.vercel

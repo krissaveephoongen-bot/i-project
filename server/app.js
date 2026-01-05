@@ -1,7 +1,8 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const dotenv = require('dotenv');
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
 // Load environment variables
 dotenv.config();
@@ -18,12 +19,20 @@ app.get('/api/health', (req, res) => {
 });
 
 // API Routes
-app.use('/api/projects', require('./routes/project-routes'));
-app.use('/api/tasks', require('./routes/task-routes'));
-app.use('/api/users', require('./routes/user-routes'));
-app.use('/api/auth', require('./routes/auth-routes'));
+import projectRoutes from './routes/project-routes.js';
+import taskRoutes from './routes/task-routes.js';
+import userRoutes from './routes/user-routes.js';
+import authRoutes from './routes/auth-routes.js';
+
+app.use('/api/projects', projectRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes);
 
 // Serve static files in production
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../dist')));
 
@@ -42,4 +51,4 @@ if (!process.env.VERCEL) {
   });
 }
 
-module.exports = app;
+export default app;

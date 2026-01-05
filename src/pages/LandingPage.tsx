@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { login } = useAuthContext();
   const { isAuthenticated } = useAuthContext();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('jakgrits.ph@appworks.co.th');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -50,7 +55,17 @@ export default function LandingPage() {
             <h2 className="text-2xl font-semibold text-gray-800">เข้าสู่ระบบ</h2>
           </div>
 
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={async (e) => {
+            e.preventDefault();
+            setIsLoading(true);
+            try {
+              await login(email, password);
+            } catch (error) {
+              toast.error('Login failed');
+            } finally {
+              setIsLoading(false);
+            }
+          }}>
             {/* Email Input */}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -71,7 +86,8 @@ export default function LandingPage() {
                 type="email"
                 className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="อีเมล"
-                defaultValue="jakgrits.ph@appworks.co.th"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
@@ -95,6 +111,8 @@ export default function LandingPage() {
                 type={showPassword ? "text" : "password"}
                 className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="รหัสผ่าน"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
               <button
                 type="button"
@@ -134,9 +152,10 @@ export default function LandingPage() {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={isLoading}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                เข้าสู่ระบบ
+                {isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
               </button>
             </div>
           </form>

@@ -1,0 +1,61 @@
+# AGENTS.md - Development Guidelines
+
+## Build, Lint, Test Commands
+
+```bash
+# Development
+npm run dev              # Start dev server (port 5173)
+npm run build           # Build for production
+
+# Testing
+npm run test            # Run all tests (unit + integration)
+npm run test:unit       # Run single unit test: npm run test:unit -- src/path/to/test.test.ts
+npm run test:integration # Run integration tests with watch: npm run test:integration:watch
+npm run test:e2e        # Run E2E tests (Playwright)
+npm run test:e2e:headed # Run E2E with headed browser
+
+# Linting & Formatting
+npm run lint            # ESLint check
+npm run format          # Prettier format
+```
+
+## Architecture
+
+**Monorepo Structure**: React frontend (Vite), Express backend, PostgreSQL database
+- `src/`: Frontend (React 18, TypeScript, Tailwind CSS)
+  - `components/`: Reusable UI components
+  - `pages/`: Route pages
+  - `services/`: API clients & business logic
+  - `hooks/`: Custom React hooks
+  - `lib/`: Utilities, database schema (Drizzle ORM)
+  - `types/`: TypeScript interfaces
+- `server/`: Express.js backend with routes
+- Database: PostgreSQL + Drizzle ORM (migrations in `src/migrations`)
+- UI Libraries: shadcn/ui, Radix UI, Material-UI, Ant Design, Tailwind CSS
+
+**Deployment**:
+- Frontend: Vercel (https://ticket-apw.vercel.app)
+- Serverless API: Vercel (https://ticket-apw.vercel.app/api)
+
+## Code Style & Conventions
+
+**TypeScript/React**:
+- Use functional components with `React.FC<Props>`
+- Interface props (e.g., `EmptyStateProps`) in PascalCase
+- Import paths: Use `@/*` alias for `src/*`
+- Destructure imports (avoid default exports where possible)
+
+**Naming**:
+- Components: PascalCase (`EmptyState.tsx`)
+- Files/utilities: camelCase (`useCustomHook.ts`)
+- Constants: UPPER_SNAKE_CASE
+
+**Formatting**: Prettier with ESLint (eslint-plugin-simple-import-sort, eslint-plugin-react, eslint-plugin-react-hooks)
+
+**Error Handling**: React Error Boundary pattern + Zod/Yup validation
+
+**Styling**: Tailwind CSS utility classes + shadcn/ui component library
+
+**Testing**: Vitest for unit/integration tests (JSDOM environment)
+
+**Database**: Drizzle ORM with PostgreSQL; migrations in src/migrations

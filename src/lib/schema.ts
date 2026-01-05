@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, pgEnum, jsonb, numeric, time, uuid, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, pgEnum, jsonb, numeric, time, uuid, boolean } from 'drizzle-orm/pg-core';
 
 // Enums
 export const statusEnum = pgEnum('status', ['todo', 'in_progress', 'in_review', 'done', 'pending', 'approved', 'rejected', 'active', 'inactive']);
@@ -45,7 +45,7 @@ export const users = pgTable('users', {
 });
 
 export const projects = pgTable('projects', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   code: text('code').unique(),
   description: text('description'),
@@ -55,8 +55,8 @@ export const projects = pgTable('projects', {
   budget: numeric('budget', { precision: 12, scale: 2 }),
   spent: numeric('spent', { precision: 12, scale: 2 }).default('0.00'),
   remaining: numeric('remaining', { precision: 12, scale: 2 }).default('0.00'),
-  managerId: integer('manager_id').references(() => users.id),
-  clientId: integer('client_id').references(() => clients.id),
+  managerId: uuid('manager_id').references(() => users.id),
+  clientId: uuid('client_id').references(() => clients.id),
   hourlyRate: numeric('hourly_rate', { precision: 10, scale: 2 }).default('0.00'),
   priority: text('priority').default('medium'),
   category: text('category'),
@@ -67,7 +67,7 @@ export const projects = pgTable('projects', {
 
 // Tasks table with self-referential relationship
 export const tasks: any = pgTable('tasks', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
   description: text('description'),
   status: statusEnum('status').notNull().default('todo'),
@@ -77,10 +77,10 @@ export const tasks: any = pgTable('tasks', {
   actualHours: numeric('actual_hours', { precision: 6, scale: 2 }).default('0.00'),
   weight: numeric('weight', { precision: 10, scale: 2 }).default('1.00'),
   completedAt: timestamp('completed_at'),
-  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
-  assignedTo: integer('assigned_to').references(() => users.id, { onDelete: 'set null' }),
-  createdBy: integer('created_by').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  parentTaskId: integer('parent_task_id').references(() => tasks.id, { onDelete: 'cascade' }),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  assignedTo: uuid('assigned_to').references(() => users.id, { onDelete: 'set null' }),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  parentTaskId: uuid('parent_task_id').references(() => tasks.id, { onDelete: 'cascade' }),
   category: text('category'),
   storyPoints: integer('story_points'),
   sprintId: uuid('sprint_id'),
@@ -92,18 +92,18 @@ export const tasks: any = pgTable('tasks', {
 
 // Timesheet Entries
 export const timeEntries = pgTable('time_entries', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   date: timestamp('date').notNull(),
   workType: workTypeEnum('work_type').notNull(),
-  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
-  taskId: integer('task_id').references(() => tasks.id, { onDelete: 'set null' }),
-  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'set null' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   startTime: time('start_time').notNull(),
   endTime: time('end_time'),
   hours: numeric('hours', { precision: 5, scale: 2 }).notNull(),
   description: text('description'),
   status: statusEnum('status').notNull().default('pending'),
-  approvedBy: integer('approved_by').references(() => users.id, { onDelete: 'set null' }),
+  approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
   approvedAt: timestamp('approved_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -111,17 +111,17 @@ export const timeEntries = pgTable('time_entries', {
 
 // Expenses
 export const expenses = pgTable('expenses', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   date: timestamp('date').notNull(),
-  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
-  taskId: integer('task_id').references(() => tasks.id, { onDelete: 'set null' }),
-  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'set null' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
   category: expenseCategoryEnum('category').notNull(),
   description: text('description').notNull(),
   receiptUrl: text('receipt_url'),
   status: expenseStatusEnum('status').notNull().default('pending'),
-  approvedBy: integer('approved_by').references(() => users.id, { onDelete: 'set null' }),
+  approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
   approvedAt: timestamp('approved_at'),
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -130,18 +130,18 @@ export const expenses = pgTable('expenses', {
 
 // Budget Tracking
 export const budgetRevisions = pgTable('budget_revisions', {
-  id: serial('id').primaryKey(),
-  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
   previousBudget: numeric('previous_budget', { precision: 12, scale: 2 }).notNull(),
   newBudget: numeric('new_budget', { precision: 12, scale: 2 }).notNull(),
   reason: text('reason').notNull(),
-  changedBy: integer('changed_by').references(() => users.id, { onDelete: 'set null' }).notNull(),
+  changedBy: uuid('changed_by').references(() => users.id, { onDelete: 'set null' }).notNull(),
   changedAt: timestamp('changed_at').defaultNow().notNull(),
 });
 
 // Clients
 export const clients = pgTable('clients', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   email: text('email'),
   phone: text('phone'),
@@ -161,7 +161,7 @@ export type NewProject = typeof projects.$inferInsert;
 
 // Use interface for Task to allow circular references
 interface Task {
-  id: number;
+  id: string;
   title: string;
   description: string | null;
   status: 'todo' | 'in_progress' | 'in_review' | 'done' | 'pending' | 'approved' | 'rejected' | 'active' | 'inactive';
@@ -171,10 +171,10 @@ interface Task {
   actualHours: string;
   weight: string;
   completedAt: Date | null;
-  projectId: number;
-  assignedTo: number | null;
-  createdBy: number;
-  parentTaskId: number | null;
+  projectId: string;
+  assignedTo: string | null;
+  createdBy: string;
+  parentTaskId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -196,13 +196,13 @@ export type NewClient = typeof clients.$inferInsert;
 
 // Activity Logging Table
 export const activityLog = pgTable('activity_log', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   entityType: text('entity_type').notNull(), // 'project', 'task', 'user', etc.
-  entityId: integer('entity_id').notNull(),
+  entityId: text('entity_id').notNull(),
   type: activityTypeEnum('type').notNull(),
   action: text('action').notNull(), // Human-readable description
   description: text('description'),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
   changes: jsonb('changes'), // JSON object with before/after values
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -212,9 +212,9 @@ export type NewActivityLog = typeof activityLog.$inferInsert;
 
 // Comments Table
 export const comments = pgTable('comments', {
-  id: serial('id').primaryKey(),
-  taskId: integer('task_id').references(() => tasks.id, { onDelete: 'cascade' }).notNull(),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  id: uuid('id').primaryKey().defaultRandom(),
+  taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

@@ -1,7 +1,7 @@
-const express = require('express');
-const { db } = require('../../lib/db');
-const { projects } = require('../../src/lib/schema');
-const { eq, desc } = require('drizzle-orm');
+import express from 'express';
+import { db } from '../../lib/db.js';
+import { projects } from '../../src/lib/schema.js';
+import { eq, desc } from 'drizzle-orm';
 
 const router = express.Router();
 
@@ -98,4 +98,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

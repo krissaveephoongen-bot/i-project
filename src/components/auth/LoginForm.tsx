@@ -39,8 +39,8 @@ export const LoginForm: React.FC = () => {
         password
       });
 
-      if (!response.success) {
-        setError(response.message || 'Login failed');
+      if (!response || !response.token) {
+        setError('Login failed - no token received');
         return;
       }
 

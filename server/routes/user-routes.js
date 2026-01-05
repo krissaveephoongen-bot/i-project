@@ -1,9 +1,9 @@
-const express = require('express');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const { db } = require('../../lib/db');
-const { users } = require('../../src/lib/schema');
-const { eq, desc } = require('drizzle-orm');
+import express from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { db } from '../../lib/db.js';
+import { users } from '../../src/lib/schema.js';
+import { eq, desc } from 'drizzle-orm';
 
 const router = express.Router();
 
@@ -170,4 +170,4 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

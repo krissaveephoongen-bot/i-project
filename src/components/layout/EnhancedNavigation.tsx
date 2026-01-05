@@ -178,13 +178,13 @@ export const EnhancedNavigation: React.FC<EnhancedNavigationProps> = ({ classNam
         <div className="bg-white border-b border-gray-200">
           <div className="overflow-x-auto">
             <div className="flex gap-1 px-4 py-2">
-              {navItems.map(item => {
+              {navItems.map((item, index) => {
                 const Icon = item.icon;
                 const isActive = isPathActive(item.path);
                 const isExpanded = expandedCategories.has(item.category);
 
                 return (
-                  <div key={item.path}>
+                  <div key={`nav-item-${index}-${item.path}`}>
                     <button
                       onClick={() => {
                         if (item.children?.length) {
