@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
 import postgres from 'postgres';
 
 export default async (req, res) => {
@@ -21,11 +20,13 @@ export default async (req, res) => {
   }
 
   try {
-    const { email, password, name } = req.body;
-
-    if (!email || !password || !name) {
-      return res.status(400).json({ error: 'Email, password, and name are required' });
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Invalid token' });
     }
+
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
 
     if (!process.env.DATABASE_URL) {
       return res.status(500).json({ error: 'Database connection failed' });
@@ -34,30 +35,20 @@ export default async (req, res) => {
     const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
 
     try {
-      const existing = await sql`SELECT id FROM users WHERE email = ${email}`;
-      if (existing.length > 0) {
-        await sql.end();
-        return res.status(409).json({ error: 'Email already registered' });
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-      
-      const result = await sql`
-        INSERT INTO users (name, email, password, role, "isActive", status, "createdAt")
-        VALUES (${name}, ${email}, ${hashedPassword}, 'user', true, 'active', NOW())
-        RETURNING id, name, email, role
-      `;
-
+      const user = await sql`SELECT id, name, email, role FROM users WHERE id = ${decoded.id}`;
       await sql.end();
 
-      const user = result[0];
-      const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role, name: user.name },
+      if (user.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const newToken = jwt.sign(
+        { id: user[0].id, email: user[0].email, role: user[0].role, name: user[0].name },
         process.env.JWT_SECRET || 'fallback-secret',
         { expiresIn: '7d' }
       );
 
-      return res.status(201).json({ user, token });
+      return res.status(200).json({ token: newToken });
     } finally {
       try {
         await sql.end();
@@ -66,7 +57,7 @@ export default async (req, res) => {
       }
     }
   } catch (error) {
-    console.error('Register error:', error);
-    return res.status(500).json({ error: 'Registration failed' });
+    console.error('Refresh token error:', error);
+    return res.status(401).json({ error: 'Token refresh failed' });
   }
 };
