@@ -27,7 +27,7 @@ export function useProjects() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
   useEffect(() => {
     const fetchProjects = async () => {

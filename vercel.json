@@ -1,12 +1,18 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "installCommand": "npm ci --legacy-peer-deps --include=dev",
-  "devCommand": "npm run dev",
-  "rewrites": [
+  "builds": [
     {
-      "source": "/((?!api).*)",
-      "destination": "/index.html"
+      "src": "server/app.js",
+      "use": "@vercel/node"
     }
-  ]
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server/app.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }

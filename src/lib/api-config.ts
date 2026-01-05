@@ -34,12 +34,12 @@ export const getApiBaseUrl = (): string => {
 
   // Default URLs based on environment
   if (isDevelopment) {
-    return 'http://localhost:5173/api';
+    return 'http://localhost:3001/api';
   }
   
-  // In production, use same origin for API (co-hosted serverless)
+  // In production, use separate Vercel backend project
   if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api`;
+    return 'https://ticket-apw-api.vercel.app/api';
   }
   return '/api';
 };

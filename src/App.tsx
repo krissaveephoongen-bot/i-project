@@ -10,6 +10,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AppRouter } from '@/router';
 import { queryClient } from '@/lib/queryClient';
 import { usePageLoadMetrics, initWebVitalsMonitoring } from '@/lib/performanceMonitoring';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 function App() {
     // Track app-level performance metrics
@@ -61,6 +62,9 @@ function App() {
                                     {process.env.NODE_ENV === 'development' && (
                                         <ReactQueryDevtools initialIsOpen={false} />
                                     )}
+                                    
+                                    {/* Vercel Speed Insights */}
+                                    <SpeedInsights />
                                 </>
                             </AdminPINProvider>
                         </AuthProvider>

@@ -443,7 +443,7 @@ export class EnhancedApiClient extends ApiClient {
 // Create default API client instance
 const baseUrl = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL)
   || (typeof process !== 'undefined' && (process as any).env?.REACT_APP_API_URL)
-  || 'http://localhost:5000/api';
+  || 'http://localhost:3001/api';
 
 export const api = new ApiClient(baseUrl);
 export const enhancedApi = new EnhancedApiClient(baseUrl);
