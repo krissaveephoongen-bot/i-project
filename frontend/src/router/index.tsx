@@ -360,13 +360,17 @@ export const router = createBrowserRouter([
       },
       {
         path: '/project-manager',
-        element: <SuspenseWrapper><ProjectManagerUsersPage /></SuspenseWrapper>,
+        element: (
+          <ProtectedRouteWrapper requiredRole={['admin']}>
+            <SuspenseWrapper><ProjectManagerUsersPage /></SuspenseWrapper>
+          </ProtectedRouteWrapper>
+        ),
       },
       {
         path: '/project-manager-users',
         element: (
           <ProtectedRouteWrapper requiredRole={['admin']}>
-            <SuspenseWrapper><AllUsersPage /></SuspenseWrapper>
+            <SuspenseWrapper><ProjectManagerUsersPage /></SuspenseWrapper>
           </ProtectedRouteWrapper>
         ),
       },

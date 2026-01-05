@@ -45,11 +45,25 @@ app.get('/api/health', (req, res) => {
     const { default: taskRoutes } = await import('./routes/task-routes.js');
     const { default: userRoutes } = await import('./routes/user-routes.js');
     const { default: authRoutes } = await import('./routes/auth-routes.js');
+    const { default: projectManagerRoutes } = await import('./routes/project-manager-routes.js');
+    const { default: analyticsRoutes } = await import('./routes/analytics-routes.js');
+    const { default: expensesRoutes } = await import('./routes/expenses-routes.js');
+    const { default: reportsRoutes } = await import('./routes/reports-routes.js');
+    const { default: searchRoutes } = await import('./routes/search-routes.js');
+    const { default: teamsRoutes } = await import('./routes/teams-routes.js');
+    const { default: timesheetsRoutes } = await import('./routes/timesheets-routes.js');
 
     app.use('/api/projects', projectRoutes);
     app.use('/api/tasks', taskRoutes);
     app.use('/api/users', userRoutes);
     app.use('/api/auth', authRoutes);
+    app.use('/api/project-managers', projectManagerRoutes);
+    app.use('/api/analytics', analyticsRoutes);
+    app.use('/api/expenses', expensesRoutes);
+    app.use('/api/reports', reportsRoutes);
+    app.use('/api/search', searchRoutes);
+    app.use('/api/teams', teamsRoutes);
+    app.use('/api/timesheets', timesheetsRoutes);
   } catch (error) {
     console.error('Failed to load routes:', error.message);
     
