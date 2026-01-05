@@ -34,16 +34,17 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// API Routes
-import projectRoutes from './routes/project-routes.js';
-import taskRoutes from './routes/task-routes.js';
-import userRoutes from './routes/user-routes.js';
-import authRoutes from './routes/auth-routes.js';
+// API Routes - Note: Route files reference TS schema, disabled for Vercel deployment
+// TODO: Convert routes to use JavaScript instead of importing TS schema
+// import projectRoutes from './routes/project-routes.js';
+// import taskRoutes from './routes/task-routes.js';
+// import userRoutes from './routes/user-routes.js';
+// import authRoutes from './routes/auth-routes.js';
 
-app.use('/api/projects', projectRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/auth', authRoutes);
+// app.use('/api/projects', projectRoutes);
+// app.use('/api/tasks', taskRoutes);
+// app.use('/api/users', userRoutes);
+// app.use('/api/auth', authRoutes);
 
 // Note: In Vercel deployment, static files and SPA routing are handled separately
 // This Express app only serves API routes
