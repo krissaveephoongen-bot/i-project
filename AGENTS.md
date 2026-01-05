@@ -2,21 +2,46 @@
 
 ## Build, Lint, Test Commands
 
+### Monorepo Commands (Root)
 ```bash
-# Development
-npm run dev              # Start dev server (port 5173)
-npm run build           # Build for production
+# Installation
+npm run install:all     # Install dependencies in root, frontend, and backend
+
+# Development (Separated Frontend/Backend)
+npm run dev:frontend    # Start frontend dev server (port 5173)
+npm run dev:backend     # Start backend server (port 3001)
+npm run dev:all         # Start both frontend and backend concurrently
+
+# Build
+npm run build:frontend  # Build frontend for production
+npm run build:backend   # Build backend
+npm run build:all       # Build both frontend and backend
 
 # Testing
 npm run test            # Run all tests (unit + integration)
-npm run test:unit       # Run single unit test: npm run test:unit -- src/path/to/test.test.ts
-npm run test:integration # Run integration tests with watch: npm run test:integration:watch
+npm run test:unit       # Run unit tests
+npm run test:integration # Run integration tests
+npm run test:integration:watch # Run integration tests with watch
 npm run test:e2e        # Run E2E tests (Playwright)
+npm run test:e2e:ui     # Run E2E with UI
 npm run test:e2e:headed # Run E2E with headed browser
 
 # Linting & Formatting
 npm run lint            # ESLint check
 npm run format          # Prettier format
+```
+
+### Frontend Commands (frontend/)
+```bash
+npm run dev             # Start Vite dev server (port 5173)
+npm run build           # Build for production
+npm run preview         # Preview production build locally
+```
+
+### Backend Commands (backend/)
+```bash
+npm run dev             # Start Express server (port 3001)
+npm run start           # Start Express server
 ```
 
 ## Architecture
@@ -35,7 +60,8 @@ npm run format          # Prettier format
 
 **Deployment**:
 - Frontend: Vercel (https://ticket-apw.vercel.app)
-- Serverless API: Vercel (https://ticket-apw.vercel.app/api)
+- Backend API: Vercel (https://ticket-apw-api.vercel.app)
+- Architecture: Separated frontend and backend services (see DEPLOYMENT_FIX_GUIDE.md)
 
 ## Code Style & Conventions
 

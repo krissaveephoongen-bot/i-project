@@ -1,8 +1,8 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { db } from '../../lib/db.js';
-import { users } from '../../src/lib/schema.js';
+import { db } from '../lib/db.js';
+import { users } from '../lib/schema.js';
 import { eq, desc } from 'drizzle-orm';
 
 const router = express.Router();
