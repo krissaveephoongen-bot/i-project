@@ -34,17 +34,22 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// API Routes - Note: Route files reference TS schema, disabled for Vercel deployment
-// TODO: Convert routes to use JavaScript instead of importing TS schema
-// import projectRoutes from './routes/project-routes.js';
-// import taskRoutes from './routes/task-routes.js';
-// import userRoutes from './routes/user-routes.js';
-// import authRoutes from './routes/auth-routes.js';
+// API Routes
+(async () => {
+  try {
+    const projectRoutes = await import('./routes/project-routes.js').then(m => m.default).catch(() => null);
+    const taskRoutes = await import('./routes/task-routes.js').then(m => m.default).catch(() => null);
+    const userRoutes = await import('./routes/user-routes.js').then(m => m.default).catch(() => null);
+    const authRoutes = await import('./routes/auth-routes.js').then(m => m.default).catch(() => null);
 
-// app.use('/api/projects', projectRoutes);
-// app.use('/api/tasks', taskRoutes);
-// app.use('/api/users', userRoutes);
-// app.use('/api/auth', authRoutes);
+    if (projectRoutes) app.use('/api/projects', projectRoutes);
+    if (taskRoutes) app.use('/api/tasks', taskRoutes);
+    if (userRoutes) app.use('/api/users', userRoutes);
+    if (authRoutes) app.use('/api/auth', authRoutes);
+  } catch (error) {
+    console.log('Routes not available in production:', error.message);
+  }
+})();
 
 // Note: In Vercel deployment, static files and SPA routing are handled separately
 // This Express app only serves API routes
