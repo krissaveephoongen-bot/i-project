@@ -9,6 +9,7 @@ import ErrorState from '@/components/ErrorState';
 import { parseApiError } from '@/lib/error-handler';
 import LoadingState from '@/components/LoadingState';
 import EmptyState from '@/components/EmptyState';
+import { apiRequest } from '@/lib/api-client';
 
 interface ActivityItem {
   id: string;
@@ -141,11 +142,7 @@ export default function Activity() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/activities');
-      if (!response.ok) {
-        throw new Error('Failed to fetch activities');
-      }
-      const data = await response.json();
+      const data = await apiRequest<ActivityItem[]>('/api/activities');
       setActivities(data || []);
     } catch (err) {
       console.error('Error loading activities:', err);

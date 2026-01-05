@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { timesheetService } from '@/services/timesheetService';
+import { apiRequest } from '@/lib/api-client';
 
 // Note: All mock data has been removed. Real database queries are now used.
 
@@ -46,11 +47,7 @@ export function useTimeEntries(userId: number, date: Date = new Date()) {
   } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
-       const response = await fetch('/api/projects');
-       if (!response.ok) {
-         throw new Error('Failed to fetch projects');
-       }
-       const result = await response.json();
+       const result = await apiRequest<any>('/api/projects');
        // Handle both wrapped and unwrapped responses
        const projects = result.data || result;
        console.log('Fetched projects:', projects);
@@ -67,9 +64,7 @@ export function useTimeEntries(userId: number, date: Date = new Date()) {
     queryKey: ['tasks', selectedProjectId],
     queryFn: async () => {
       if (!selectedProjectId) return [];
-      const response = await fetch(`/api/projects/${selectedProjectId}/tasks`);
-      if (!response.ok) throw new Error('Failed to fetch tasks');
-      const result = await response.json();
+      const result = await apiRequest<any>(`/api/projects/${selectedProjectId}/tasks`);
       return result.data || result;
     },
     enabled: !!selectedProjectId,

@@ -21,6 +21,7 @@ import ErrorState from '@/components/ErrorState';
 import LoadingState from '@/components/LoadingState';
 import EmptyState from '@/components/EmptyState';
 import { parseApiError } from '@/lib/error-handler';
+import { apiRequest } from '@/lib/api-client';
 
 interface ProjectCharter {
     projectObjective: string;
@@ -103,15 +104,11 @@ const useProjects = () => {
         queryKey: ['projects'],
         queryFn: async (): Promise<Project[]> => {
             try {
-                const response = await fetch('/api/projects');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch projects');
-                }
-                const data = await response.json();
+                const data = await apiRequest<{ data: Project[] }>('/api/projects');
                 return (data.data || []) as Project[];
             } catch (error) {
                 console.error('Error fetching projects:', error);
-                toast.error('Failed to load projects');
+                toast.error(parseApiError(error).message);
                 return [];
             }
         },
@@ -335,20 +332,10 @@ const Projects: React.FC = () => {
                 planned_progress: 0,
             };
 
-            const response = await fetch('/api/projects', {
+            const result = await apiRequest<{ data: Project }>('/api/projects', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify(projectData),
             });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to create project');
-            }
-
-            const result = await response.json();
             toast.success(`Project "${result.data.name}" created successfully`);
 
             // Refetch projects to update the list
@@ -356,7 +343,7 @@ const Projects: React.FC = () => {
             resetForm();
             setIsNewProjectDialogOpen(false);
         } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : 'Failed to create project';
+            const errorMsg = parseApiError(err).message;
             handleError(errorMsg, 'CREATE_PROJECT_ERROR', true);
         }
     };

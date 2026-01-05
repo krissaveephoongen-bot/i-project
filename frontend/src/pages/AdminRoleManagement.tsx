@@ -18,6 +18,10 @@ import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import * as roleService from '../services/roleService';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
 
 interface Role {
   id: string;
@@ -83,6 +87,7 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
 const AdminRoleManagement: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDialog, setShowDialog] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
@@ -97,10 +102,12 @@ const AdminRoleManagement: React.FC = () => {
   const fetchRoles = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await roleService.getAllRoles();
       setRoles(data);
     } catch (error) {
       console.error('Error fetching roles:', error);
+      setError(parseApiError(error));
       toast.error('Failed to fetch roles');
     } finally {
       setLoading(false);
@@ -278,18 +285,22 @@ const AdminRoleManagement: React.FC = () => {
             </div>
           </div>
 
-          {/* Roles Grid */}
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <p className="text-gray-600">Loading roles...</p>
-            </div>
+          {/* Error and loading states */}
+          {error && !loading ? (
+            <ErrorState 
+              error={error}
+              onRetry={() => {
+                setError(null);
+                fetchRoles();
+              }}
+            />
+          ) : loading ? (
+            <LoadingState />
           ) : filteredRoles.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No roles found</p>
-              </CardContent>
-            </Card>
+            <EmptyState 
+              title="No Roles"
+              description="Create your first role to get started"
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredRoles.map(role => (

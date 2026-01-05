@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import ScrollContainer from '../components/layout/ScrollContainer';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import EmptyState from '@/components/EmptyState';
+import { parseApiError } from '@/lib/error-handler';
+import { apiRequest } from '@/lib/api-client';
 
 interface AdminUser {
   id: string;
@@ -26,11 +31,12 @@ interface UserStats {
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [stats, setStats] = useState<UserStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-  const [filter, setFilter] = useState({ role: '', search: '' });
+   const [stats, setStats] = useState<UserStats | null>(null);
+   const [loading, setLoading] = useState(true);
+   const [error, setError] = useState<any>(null);
+   const [showForm, setShowForm] = useState(false);
+   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+   const [filter, setFilter] = useState({ role: '', search: '' });
 
   const [formData, setFormData] = useState({
     email: '',
@@ -45,18 +51,16 @@ export default function AdminUsers() {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const params = new URLSearchParams();
       if (filter.role) params.append('role', filter.role);
       if (filter.search) params.append('search', filter.search);
 
-      const response = await fetch(`/api/admin/users?${params.toString()}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setUsers(data.data);
-      }
+      const data = await apiRequest<{ success: boolean; data: AdminUser[] }>(`/api/admin/users?${params.toString()}`);
+      setUsers(data.data);
     } catch (error) {
       console.error('Error fetching users:', error);
+      setError(parseApiError(error));
       toast.error('Failed to fetch users');
     } finally {
       setLoading(false);
@@ -66,12 +70,8 @@ export default function AdminUsers() {
   // Fetch statistics
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/stats');
-      const data = await response.json();
-
-      if (data.success) {
-        setStats(data.data);
-      }
+      const data = await apiRequest<{ success: boolean; data: UserStats }>('/api/admin/stats');
+      setStats(data.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
@@ -197,6 +197,30 @@ export default function AdminUsers() {
     setEditingUser(null);
     setShowForm(false);
   };
+
+  // Error and loading states
+  if (error && !loading) {
+    return (
+      <ScrollContainer>
+        <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-4xl font-bold text-gray-900 mb-8">Admin User Management</h1>
+            <ErrorState 
+              error={error}
+              onRetry={() => {
+                setError(null);
+                fetchUsers();
+              }}
+            />
+          </div>
+        </div>
+      </ScrollContainer>
+    );
+  }
+
+  if (loading) {
+    return <LoadingState />;
+  }
 
   return (
     <ScrollContainer>

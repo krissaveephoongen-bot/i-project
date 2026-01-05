@@ -66,6 +66,7 @@ const AdminConsole: React.FC = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       // Simulate API calls
       await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -116,6 +117,7 @@ const AdminConsole: React.FC = () => {
 
     } catch (error) {
       console.error('Error fetching admin data:', error);
+      setError(parseApiError(error));
       toast.error('Failed to load admin data');
     } finally {
       setIsLoading(false);
@@ -131,15 +133,27 @@ const AdminConsole: React.FC = () => {
     navigate('/menu');
   };
 
-  if (isLoading) {
+  // Error and loading states
+  if (error && !isLoading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2" />
-          <p className="text-gray-600">Loading admin console...</p>
-        </div>
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <Shield className="h-8 w-8 text-blue-600" />
+          Admin Console
+        </h1>
+        <ErrorState 
+          error={error}
+          onRetry={() => {
+            setError(null);
+            fetchData();
+          }}
+        />
       </div>
     );
+  }
+
+  if (isLoading) {
+    return <LoadingState />;
   }
 
   return (

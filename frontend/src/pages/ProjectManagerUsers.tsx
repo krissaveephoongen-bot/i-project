@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import { buildApiUrl } from '@/lib/api-config';
 import ScrollContainer from '@/components/layout/ScrollContainer';
+import { apiRequest } from '@/lib/api-client';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -55,18 +56,7 @@ const ProjectManagerUsers = () => {
     const fetchManagers = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('accessToken');
-            const response = await fetch('/api/project-managers', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch project managers');
-            }
-
-            const data = await response.json();
+            const data = await apiRequest<ProjectManager[]>('/api/project-managers');
             setManagers(data);
             setPagination({
                 ...pagination,
@@ -220,16 +210,11 @@ const ProjectManagerUsers = () => {
     const handleModalOk = async () => {
         try {
             const values = await form.validateFields();
-            const token = localStorage.getItem('accessToken');
 
             if (editingManager) {
                 // Update existing manager
-                const response = await fetch(`/api/project-managers/${editingManager.id}`, {
+                await apiRequest(`/api/project-managers/${editingManager.id}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
                     body: JSON.stringify({
                         name: values.name,
                         email: values.email,
@@ -237,22 +222,13 @@ const ProjectManagerUsers = () => {
                         status: values.status,
                     })
                 });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to update manager');
-                }
 
                 message.success('Project manager updated successfully');
                 await fetchManagers();
             } else {
                 // Add new manager
-                const response = await fetch('/api/project-managers', {
+                await apiRequest('/api/project-managers', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
                     body: JSON.stringify({
                         name: values.name,
                         email: values.email,
@@ -260,11 +236,6 @@ const ProjectManagerUsers = () => {
                         status: values.status,
                     })
                 });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to create manager');
-                }
 
                 message.success('Project manager added successfully');
                 await fetchManagers();

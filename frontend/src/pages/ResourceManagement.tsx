@@ -6,6 +6,7 @@ import ErrorState from '@/components/ErrorState';
 import LoadingState from '@/components/LoadingState';
 import EmptyState from '@/components/EmptyState';
 import { parseApiError } from '@/lib/error-handler';
+import { apiRequest } from '@/lib/api-client';
 
 interface Resource {
     id: string;
@@ -28,18 +29,8 @@ export default function ResourceManagement() {
         const fetchResources = async () => {
             try {
                 setIsLoading(true);
-                const token = localStorage.getItem('accessToken');
-                const response = await fetch('/api/resources', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch resources');
-                }
-
-                const result = await response.json();
+                setError(null);
+                const result = await apiRequest<{ resources: any[] }>('/api/resources');
 
                 // Transform API response to match Resource interface
                 const transformedResources: Resource[] = result.resources.map((resource: any) => ({
@@ -56,6 +47,7 @@ export default function ResourceManagement() {
                 setResources(transformedResources);
             } catch (error) {
                 console.error('Error fetching resources:', error);
+                setError(parseApiError(error));
             } finally {
                 setIsLoading(false);
             }

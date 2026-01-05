@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Lock, RefreshCw, Check, AlertCircle, Copy, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import { parseApiError } from '@/lib/error-handler';
 
 interface PINHistory {
   id: string;
@@ -38,6 +41,7 @@ export default function AdminPINManagement() {
   const [currentPinVerify, setCurrentPinVerify] = useState('');
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
   const [showPins, setShowPins] = useState({
     current: false,
     new: false,
@@ -91,6 +95,7 @@ export default function AdminPINManagement() {
     if (!validateNewPin()) return;
 
     setLoading(true);
+    setError(null);
 
     try {
       // Simulate API call
@@ -122,6 +127,7 @@ export default function AdminPINManagement() {
 
       toast.success('PIN changed successfully');
     } catch (error) {
+      setError(parseApiError(error));
       toast.error('Failed to change PIN');
     } finally {
       setLoading(false);
@@ -131,11 +137,13 @@ export default function AdminPINManagement() {
   const handleUpdateSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 500));
       toast.success('Settings updated successfully');
     } catch (error) {
+      setError(parseApiError(error));
       toast.error('Failed to update settings');
     } finally {
       setLoading(false);
@@ -146,6 +154,24 @@ export default function AdminPINManagement() {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard');
   };
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+          <Lock className="h-8 w-8 text-blue-600" />
+          Admin PIN Management
+        </h1>
+        <ErrorState 
+          error={error}
+          onRetry={() => {
+            setError(null);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

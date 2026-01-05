@@ -1,97 +1,149 @@
-import { ResourceCapacity, ResourceAllocation, ResourceUtilization, TeamCapacity } from '@/types/resource';
+import { apiClient } from './api-client';
+import { 
+  ResourceCapacity, 
+  ResourceAllocation, 
+  ResourceUtilization, 
+  TeamCapacity 
+} from '@/types/resource';
+
+interface ResourceAllocationRequest extends Omit<ResourceAllocation, 'projectName'> {
+  projectId: string;
+}
+
+interface ResourceUtilizationParams {
+  userId: string;
+  startDate: string;
+  endDate: string;
+}
+
+interface TeamCapacityParams {
+  projectId: string;
+  startDate: string;
+  endDate: string;
+}
 
 export const resourceService = {
-  // Resource Capacity
+  /**
+   * Get resource capacity for a user
+   * @param userId - The ID of the user
+   * @returns The resource capacity data
+   */
   async getResourceCapacity(userId: string): Promise<ResourceCapacity> {
-    const response = await fetch(`/api/resources/${userId}/capacity`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch resource capacity');
-    return response.json();
+    const response = await apiClient.get<ResourceCapacity>(`/api/resources/${userId}/capacity`);
+    return response.data;
   },
 
+  /**
+   * Update resource capacity for a user
+   * @param userId - The ID of the user
+   * @param totalCapacity - The total capacity to set
+   * @returns The updated resource capacity
+   */
   async updateResourceCapacity(userId: string, totalCapacity: number): Promise<ResourceCapacity> {
-    const response = await fetch(`/api/resources/${userId}/capacity`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-      body: JSON.stringify({ totalCapacity }),
-    });
-    if (!response.ok) throw new Error('Failed to update resource capacity');
-    return response.json();
+    const response = await apiClient.put<ResourceCapacity>(
+      `/api/resources/${userId}/capacity`,
+      { totalCapacity }
+    );
+    return response.data;
   },
 
-  // Resource Allocation
+  /**
+   * Allocate resource to a project
+   * @param userId - The ID of the user
+   * @param projectId - The ID of the project
+   * @param allocation - The allocation details
+   * @returns The updated resource capacity
+   */
   async allocateResource(
     userId: string,
     projectId: string,
     allocation: Omit<ResourceAllocation, 'projectName'>
   ): Promise<ResourceCapacity> {
-    const response = await fetch(`/api/resources/${userId}/allocate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-      body: JSON.stringify({ projectId, ...allocation }),
-    });
-    if (!response.ok) throw new Error('Failed to allocate resource');
-    return response.json();
+    const payload: ResourceAllocationRequest = {
+      ...allocation,
+      projectId
+    };
+    
+    const response = await apiClient.post<ResourceCapacity>(
+      `/api/resources/${userId}/allocate`,
+      payload
+    );
+    
+    return response.data;
   },
 
+  /**
+   * Deallocate resource from a project
+   * @param userId - The ID of the user
+   * @param projectId - The ID of the project to deallocate from
+   * @returns The updated resource capacity
+   */
   async deallocateResource(userId: string, projectId: string): Promise<ResourceCapacity> {
-    const response = await fetch(`/api/resources/${userId}/deallocate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-      body: JSON.stringify({ projectId }),
-    });
-    if (!response.ok) throw new Error('Failed to deallocate resource');
-    return response.json();
-  },
-
-  // Resource Utilization
-  async getResourceUtilization(userId: string, startDate: Date, endDate: Date): Promise<ResourceUtilization> {
-    const response = await fetch(
-      `/api/resources/${userId}/utilization?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      }
+    const response = await apiClient.post<ResourceCapacity>(
+      `/api/resources/${userId}/deallocate`,
+      { projectId }
     );
-    if (!response.ok) throw new Error('Failed to fetch resource utilization');
-    return response.json();
+    return response.data;
   },
 
-  // Team Capacity
-  async getTeamCapacity(projectId: string, startDate: Date, endDate: Date): Promise<TeamCapacity> {
-    const response = await fetch(
-      `/api/resources/team/capacity?projectId=${projectId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      }
+  /**
+   * Get resource utilization for a user in a date range
+   * @param userId - The ID of the user
+   * @param startDate - Start date of the period
+   * @param endDate - End date of the period
+   * @returns Resource utilization data
+   */
+  async getResourceUtilization(
+    userId: string, 
+    startDate: Date, 
+    endDate: Date
+  ): Promise<ResourceUtilization> {
+    const params: ResourceUtilizationParams = {
+      userId,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    };
+    
+    const response = await apiClient.get<ResourceUtilization>(
+      '/api/resource-utilization',
+      { params }
     );
-    if (!response.ok) throw new Error('Failed to fetch team capacity');
-    return response.json();
+    
+    return response.data;
   },
 
-  // All Resources
+  /**
+   * Get team capacity for a project
+   * @param projectId - The ID of the project
+   * @param startDate - Start date of the period
+   * @param endDate - End date of the period
+   * @returns Team capacity data
+   */
+  async getTeamCapacity(
+    projectId: string, 
+    startDate: Date, 
+    endDate: Date
+  ): Promise<TeamCapacity> {
+    const params: TeamCapacityParams = {
+      projectId,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    };
+    
+    const response = await apiClient.get<TeamCapacity>(
+      '/api/team-capacity',
+      { params }
+    );
+    
+    return response.data;
+  },
+
+  /**
+   * Get all resources with their capacities
+   * @returns Array of resource capacities
+   */
   async getAllResources(): Promise<ResourceCapacity[]> {
-    const response = await fetch('/api/resources', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch resources');
-    return response.json();
-  },
+    const response = await apiClient.get<ResourceCapacity[]>('/api/resources');
+    return response.data;
+  }
 };

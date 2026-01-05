@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ResourceAllocation } from '@/types/resource';
+import { apiRequest } from '@/lib/api-client';
 
 interface AllocationWithUser extends ResourceAllocation {
   userName?: string;
@@ -57,17 +58,7 @@ export default function AllocationManagement() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/resources', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch resources');
-      }
-
-      const resourcesData = await response.json();
+      const resourcesData = await apiRequest<any[]>('/api/resources');
 
       // Transform the API response to match UserWithAllocations format
       const transformedUsers: UserWithAllocations[] = resourcesData.map((resource: any) => {

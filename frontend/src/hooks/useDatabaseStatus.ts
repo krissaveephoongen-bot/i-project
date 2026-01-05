@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { apiRequest } from '@/lib/api-client';
 
 interface ConnectionStatus {
   connected: boolean;
@@ -30,8 +31,7 @@ export const useDatabaseStatus = (refreshInterval: number = 30000): UseDatabaseS
   const fetchStatus = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/health/db/status');
-      const data = await response.json();
+      const data = await apiRequest<{ success: boolean; data: ConnectionStatus; message?: string }>('/api/health/db/status');
 
       if (data.success) {
         setStatus(data.data);

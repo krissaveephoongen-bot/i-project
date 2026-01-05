@@ -18,6 +18,7 @@ import ErrorState from '@/components/ErrorState';
 import { parseApiError } from '@/lib/error-handler';
 import LoadingState from '@/components/LoadingState';
 import EmptyState from '@/components/EmptyState';
+import { apiRequest } from '@/lib/api-client';
 
 interface Task {
   id: string;
@@ -67,11 +68,7 @@ export default function TaskManagementFull() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/tasks');
-      if (!response.ok) {
-        throw new Error('Failed to fetch tasks');
-      }
-      const data = await response.json();
+      const data = await apiRequest<Task[]>('/api/tasks');
       setTasks(data || []);
     } catch (err) {
       console.error('Error loading tasks:', err);

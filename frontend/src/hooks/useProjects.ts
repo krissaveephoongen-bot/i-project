@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
+import { apiRequest } from '@/lib/api-client';
 
 interface ProjectsResponse {
   success: boolean;
@@ -23,18 +24,7 @@ export const useProjects = () => {
         setError(null);
         setIsEmpty(false);
         
-        const response = await fetch('/api/projects', {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch projects');
-        }
-
-        const data: ProjectsResponse = await response.json();
+        const data: ProjectsResponse = await apiRequest<ProjectsResponse>('/api/projects');
         
         if (data.isEmpty) {
           setIsEmpty(true);
