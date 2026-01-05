@@ -334,41 +334,39 @@ export default async function handler(
   res: NextApiResponse<AuthResponse>
 ) {
   try {
-    // Parse action from query or use method-based routing
-    const action = req.query.action as string | undefined;
-    const pathname = req.url?.split('?')[0] || '';
-    const routeAction = action || (
-      pathname.includes('/login') ? 'login' :
-      pathname.includes('/logout') ? 'logout' :
-      pathname.includes('/profile') ? 'profile' :
-      pathname.includes('/verify') ? 'verify' :
-      pathname.includes('/password') ? 'password' :
-      pathname.includes('/refresh') ? 'refresh' :
-      pathname.includes('/forgot-password') ? 'forgot-password' :
-      pathname.includes('/reset-password') ? 'reset-password' :
-      ''
-    );
+    const { slug } = req.query;
+    const action = Array.isArray(slug) ? slug[0] : slug;
 
-    // For direct route access like /api/auth/login
-    if (pathname === '/api/auth/login' || routeAction === 'login') {
-      if (req.method === 'POST') return handleLogin(req, res);
-    } else if (pathname === '/api/auth/logout' || routeAction === 'logout') {
-      if (req.method === 'POST') return handleLogout(req, res);
-    } else if (pathname === '/api/auth/profile' || routeAction === 'profile') {
-      if (req.method === 'GET' || req.method === 'PUT') return handleProfile(req, res);
-    } else if (pathname === '/api/auth/verify' || routeAction === 'verify') {
-      if (req.method === 'POST') return handleVerify(req, res);
-    } else if (pathname === '/api/auth/password' || routeAction === 'password') {
-      if (req.method === 'PUT') return handlePassword(req, res);
-    } else if (pathname === '/api/auth/refresh' || routeAction === 'refresh') {
-      if (req.method === 'POST') return handleRefresh(req, res);
-    } else if (pathname === '/api/auth/forgot-password' || routeAction === 'forgot-password') {
-      if (req.method === 'POST') return handleForgotPassword(req, res);
-    } else if (pathname === '/api/auth/reset-password' || routeAction === 'reset-password') {
-      if (req.method === 'POST') return handleResetPassword(req, res);
+    switch (action) {
+      case 'login':
+        if (req.method === 'POST') return handleLogin(req, res);
+        break;
+      case 'logout':
+        if (req.method === 'POST') return handleLogout(req, res);
+        break;
+      case 'profile':
+        if (req.method === 'GET' || req.method === 'PUT') return handleProfile(req, res);
+        break;
+      case 'verify':
+        if (req.method === 'POST') return handleVerify(req, res);
+        break;
+      case 'password':
+        if (req.method === 'PUT') return handlePassword(req, res);
+        break;
+      case 'refresh':
+        if (req.method === 'POST') return handleRefresh(req, res);
+        break;
+      case 'forgot-password':
+        if (req.method === 'POST') return handleForgotPassword(req, res);
+        break;
+      case 'reset-password':
+        if (req.method === 'POST') return handleResetPassword(req, res);
+        break;
+      default:
+        return res.status(404).json({ success: false, error: 'Not found' });
     }
 
-    return res.status(404).json({ success: false, error: 'Not found' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (error) {
     console.error('Auth error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
