@@ -37,8 +37,11 @@ export const getApiBaseUrl = (): string => {
     return 'http://localhost:5000/api';
   }
   
-  // In production, default to ticket-apw-backend on Vercel
-  return 'https://ticket-apw-backend.vercel.app/api';
+  // In production, use same origin for API (co-hosted)
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api`;
+  }
+  return '/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
