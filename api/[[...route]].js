@@ -344,6 +344,227 @@ async function handleUsers(req, res, user) {
   }
 }
 
+async function handleActivities(req, res, user) {
+  const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
+
+  try {
+    if (req.method === 'GET') {
+      const activities = await sql`
+        SELECT * FROM activities 
+        ORDER BY "createdAt" DESC 
+        LIMIT 100
+      `;
+      await sql.end();
+      return successResponse(res, activities);
+    } else if (req.method === 'POST') {
+      const { projectId, description, type } = req.body;
+      if (!projectId || !description) {
+        await sql.end();
+        return errorResponse(res, 'projectId and description required', 400);
+      }
+      const result = await sql`
+        INSERT INTO activities (projectId, description, type, "userId", "createdAt")
+        VALUES (${projectId}, ${description}, ${type || 'update'}, ${user.id}, NOW())
+        RETURNING *
+      `;
+      await sql.end();
+      return successResponse(res, result[0], 201);
+    } else {
+      await sql.end();
+      return errorResponse(res, 'Method not allowed', 405);
+    }
+  } catch (error) {
+    console.error('Activities error:', error);
+    await sql.end();
+    return errorResponse(res, error.message);
+  }
+}
+
+async function handleAdmin(req, res, user) {
+  const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
+
+  try {
+    if (user.role !== 'admin' && user.role !== 'superadmin') {
+      await sql.end();
+      return errorResponse(res, 'Admin access required', 403);
+    }
+
+    const roles = await sql`SELECT * FROM roles ORDER BY "createdAt" DESC`;
+    const permissions = await sql`SELECT * FROM permissions ORDER BY "createdAt" DESC`;
+    const teams = await sql`SELECT * FROM teams ORDER BY "createdAt" DESC`;
+
+    await sql.end();
+
+    return successResponse(res, {
+      roles,
+      permissions,
+      teams,
+      user: { id: user.id, email: user.email, role: user.role },
+    });
+  } catch (error) {
+    console.error('Admin error:', error);
+    await sql.end();
+    return errorResponse(res, error.message);
+  }
+}
+
+async function handleAnalytics(req, res) {
+  const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
+
+  try {
+    const projects = await sql`SELECT COUNT(*) as count FROM projects`;
+    const tasks = await sql`SELECT COUNT(*) as count FROM tasks`;
+    const users = await sql`SELECT COUNT(*) as count FROM users`;
+    const costs = await sql`SELECT SUM(amount) as total FROM costs`;
+
+    await sql.end();
+
+    return successResponse(res, {
+      totalProjects: projects[0]?.count || 0,
+      totalTasks: tasks[0]?.count || 0,
+      totalUsers: users[0]?.count || 0,
+      totalCosts: costs[0]?.total || 0,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Analytics error:', error);
+    await sql.end();
+    return errorResponse(res, error.message);
+  }
+}
+
+async function handleCosts(req, res, user) {
+  const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
+
+  try {
+    if (req.method === 'GET') {
+      const costs = await sql`SELECT * FROM costs ORDER BY "createdAt" DESC`;
+      await sql.end();
+      return successResponse(res, costs);
+    } else if (req.method === 'POST') {
+      const { projectId, amount, description } = req.body;
+      if (!projectId || !amount) {
+        await sql.end();
+        return errorResponse(res, 'projectId and amount required', 400);
+      }
+      const result = await sql`
+        INSERT INTO costs (projectId, amount, description, status, "createdAt")
+        VALUES (${projectId}, ${amount}, ${description || ''}, 'pending', NOW())
+        RETURNING *
+      `;
+      await sql.end();
+      return successResponse(res, result[0], 201);
+    } else {
+      await sql.end();
+      return errorResponse(res, 'Method not allowed', 405);
+    }
+  } catch (error) {
+    console.error('Costs error:', error);
+    await sql.end();
+    return errorResponse(res, error.message);
+  }
+}
+
+async function handleFiles(req, res, user) {
+  const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
+
+  try {
+    if (req.method === 'GET') {
+      const files = await sql`SELECT * FROM files ORDER BY "createdAt" DESC`;
+      await sql.end();
+      return successResponse(res, files);
+    } else if (req.method === 'POST') {
+      const { fileName, filePath, projectId } = req.body;
+      if (!fileName || !filePath) {
+        await sql.end();
+        return errorResponse(res, 'fileName and filePath required', 400);
+      }
+      const result = await sql`
+        INSERT INTO files (fileName, filePath, projectId, "uploadedBy", "createdAt")
+        VALUES (${fileName}, ${filePath}, ${projectId || null}, ${user.id}, NOW())
+        RETURNING *
+      `;
+      await sql.end();
+      return successResponse(res, result[0], 201);
+    } else {
+      await sql.end();
+      return errorResponse(res, 'Method not allowed', 405);
+    }
+  } catch (error) {
+    console.error('Files error:', error);
+    await sql.end();
+    return errorResponse(res, error.message);
+  }
+}
+
+async function handleNotifications(req, res, user) {
+  const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
+
+  try {
+    if (req.method === 'GET') {
+      const notifications = await sql`
+        SELECT * FROM notifications 
+        WHERE "userId" = ${user.id}
+        ORDER BY "createdAt" DESC
+      `;
+      await sql.end();
+      return successResponse(res, notifications);
+    } else if (req.method === 'POST') {
+      const { title, message, type } = req.body;
+      if (!title || !message) {
+        await sql.end();
+        return errorResponse(res, 'title and message required', 400);
+      }
+      const result = await sql`
+        INSERT INTO notifications (userId, title, message, type, "isRead", "createdAt")
+        VALUES (${user.id}, ${title}, ${message}, ${type || 'info'}, false, NOW())
+        RETURNING *
+      `;
+      await sql.end();
+      return successResponse(res, result[0], 201);
+    } else {
+      await sql.end();
+      return errorResponse(res, 'Method not allowed', 405);
+    }
+  } catch (error) {
+    console.error('Notifications error:', error);
+    await sql.end();
+    return errorResponse(res, error.message);
+  }
+}
+
+async function handleReports(req, res, user) {
+  const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
+
+  try {
+    if (req.method === 'GET') {
+      const reports = await sql`SELECT * FROM reports ORDER BY "createdAt" DESC`;
+      await sql.end();
+      return successResponse(res, reports);
+    } else if (req.method === 'POST') {
+      const { title, description, projectId } = req.body;
+      if (!title) {
+        await sql.end();
+        return errorResponse(res, 'title required', 400);
+      }
+      const result = await sql`
+        INSERT INTO reports (title, description, projectId, "createdBy", "createdAt")
+        VALUES (${title}, ${description || null}, ${projectId || null}, ${user.id}, NOW())
+        RETURNING *
+      `;
+      await sql.end();
+      return successResponse(res, result[0], 201);
+    } else {
+      await sql.end();
+      return errorResponse(res, 'Method not allowed', 405);
+    }
+  } catch (error) {
+    console.error('Reports error:', error);
+    await sql.end();
+    return errorResponse(res, error.message);
+  }
+}
+
 async function handleHealth(req, res) {
   try {
     if (req.query.db) {
@@ -391,6 +612,20 @@ export default async (req, res) => {
       return handleTasks(req, res, user);
     } else if (routes[0] === 'users') {
       return handleUsers(req, res, user);
+    } else if (routes[0] === 'activities') {
+      return handleActivities(req, res, user);
+    } else if (routes[0] === 'admin') {
+      return handleAdmin(req, res, user);
+    } else if (routes[0] === 'analytics') {
+      return handleAnalytics(req, res);
+    } else if (routes[0] === 'costs') {
+      return handleCosts(req, res, user);
+    } else if (routes[0] === 'files') {
+      return handleFiles(req, res, user);
+    } else if (routes[0] === 'notifications') {
+      return handleNotifications(req, res, user);
+    } else if (routes[0] === 'reports') {
+      return handleReports(req, res, user);
     } else {
       return errorResponse(res, 'Not found', 404);
     }
