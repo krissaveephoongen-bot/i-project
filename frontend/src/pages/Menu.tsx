@@ -35,6 +35,15 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
+  // Customers
+  {
+    title: 'Customers',
+    description: 'Manage customer database',
+    icon: Users,
+    path: '/customers',
+    category: 'Organization',
+    badge: 'New',
+  },
   // Dashboard
   {
     title: 'Dashboard',
