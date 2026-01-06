@@ -143,9 +143,6 @@ const ProjectBilling = React.lazy(() =>
   import('@/pages/ProjectBilling').catch(() => ({ default: () => <div>Loading...</div> }))
 );
 
-const AdminPINManagement = React.lazy(() => 
-  import('@/pages/AdminPINManagement').catch(() => ({ default: () => <div>Loading...</div> }))
-);
 
 const ProjectDetailIntegrated = React.lazy(() => 
   import('@/pages/ProjectDetailIntegrated').catch(() => ({ default: () => <div>Loading...</div> }))
@@ -421,14 +418,6 @@ export const router = createBrowserRouter([
       {
         path: '/favorites',
         element: <SuspenseWrapper><Favorites /></SuspenseWrapper>,
-      },
-      {
-        path: '/admin/pin-management',
-        element: (
-          <ProtectedRouteWrapper requiredRole={['admin']}>
-            <SuspenseWrapper><AdminPINManagement /></SuspenseWrapper>
-          </ProtectedRouteWrapper>
-        ),
       },
     ],
   },

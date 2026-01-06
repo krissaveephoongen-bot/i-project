@@ -16,6 +16,7 @@ import ErrorState from '@/components/ErrorState';
 import LoadingState from '@/components/LoadingState';
 import EmptyState from '@/components/EmptyState';
 import { parseApiError } from '@/lib/error-handler';
+import ReportSummary from '@/components/reports/ReportSummary';
 
 export default function Reports() {
   const { user } = useAuthContext();
@@ -25,6 +26,7 @@ export default function Reports() {
   const [endDate, setEndDate] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<any>(null);
+  const [reportData, setReportData] = useState<any>(null);
   const [filters, setFilters] = useState({
     projectId: '',
     userId: '',
@@ -36,8 +38,51 @@ export default function Reports() {
       setIsGenerating(true);
       setError(null);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let endpoint = '';
+      const params = new URLSearchParams();
+      
+      // Build endpoint and params based on report type
+      switch (reportType) {
+        case 'overview':
+          endpoint = '/api/analytics/dashboard';
+          break;
+        case 'financial':
+          endpoint = '/api/analytics/financial';
+          params.append('period', dateRange === 'custom' ? '365' : dateRange);
+          break;
+        case 'timesheet':
+          endpoint = '/api/reports/timesheets';
+          if (startDate) params.append('startDate', startDate);
+          if (endDate) params.append('endDate', endDate);
+          if (filters.userId) params.append('userId', filters.userId);
+          if (filters.projectId) params.append('projectId', filters.projectId);
+          break;
+        case 'cost':
+          endpoint = '/api/reports/expenses';
+          if (startDate) params.append('startDate', startDate);
+          if (endDate) params.append('endDate', endDate);
+          if (filters.projectId) params.append('projectId', filters.projectId);
+          break;
+        case 'resource':
+          endpoint = '/api/analytics/users';
+          params.append('period', dateRange === 'custom' ? '365' : dateRange);
+          break;
+        case 'project':
+          endpoint = '/api/analytics/projects';
+          params.append('period', dateRange === 'custom' ? '365' : dateRange);
+          break;
+        default:
+          endpoint = '/api/analytics/dashboard';
+      }
+      
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const url = `${apiUrl}${endpoint}${params.toString() ? '?' + params.toString() : ''}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to generate report');
+      
+      const data = await response.json();
+      setReportData(data);
       
       toast.success('Report generated successfully');
     } catch (err) {
@@ -282,32 +327,109 @@ export default function Reports() {
 
           {/* Overview Report */}
           <TabsContent value="overview" className="space-y-6 mt-6">
-            <EmptyReportState />
+            {isGenerating ? (
+              <LoadingState message="Generating report..." />
+            ) : reportData && reportType === 'overview' ? (
+              <ReportSummary data={reportData} type="overview" />
+            ) : (
+              <EmptyReportState />
+            )}
           </TabsContent>
 
           {/* Financial Report */}
           <TabsContent value="financial" className="space-y-6 mt-6">
-            <EmptyReportState />
+            {isGenerating ? (
+              <LoadingState message="Generating report..." />
+            ) : reportData && reportType === 'financial' ? (
+              <ReportSummary data={reportData} type="financial" />
+            ) : (
+              <EmptyReportState />
+            )}
           </TabsContent>
 
           {/* Timesheet Report */}
           <TabsContent value="timesheet" className="space-y-6 mt-6">
-            <EmptyReportState />
+            {isGenerating ? (
+              <LoadingState message="Generating report..." />
+            ) : reportData && reportType === 'timesheet' ? (
+              <ReportSummary data={reportData} type="timesheets" />
+            ) : (
+              <EmptyReportState />
+            )}
           </TabsContent>
 
           {/* Cost Report */}
           <TabsContent value="cost" className="space-y-6 mt-6">
-            <EmptyReportState />
+            {isGenerating ? (
+              <LoadingState message="Generating report..." />
+            ) : reportData && reportType === 'cost' ? (
+              <ReportSummary data={reportData} type="expenses" />
+            ) : (
+              <EmptyReportState />
+            )}
           </TabsContent>
 
           {/* Resource Report */}
           <TabsContent value="resource" className="space-y-6 mt-6">
-            <EmptyReportState />
+            {isGenerating ? (
+              <LoadingState message="Generating report..." />
+            ) : reportData && reportType === 'resource' ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Resource Utilization Report</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {Array.isArray(reportData) ? (
+                    <div className="space-y-4">
+                      {reportData.map((user: any) => (
+                        <div key={user.id} className="border-b pb-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <h4 className="font-semibold text-gray-900">{user.name}</h4>
+                              <p className="text-sm text-gray-500">{user.department} · {user.position}</p>
+                            </div>
+                            <span className="text-lg font-bold text-blue-600">{user.completionRate}%</span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <p className="text-gray-600">Total Tasks</p>
+                              <p className="font-medium">{user.totalTasks}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-600">Completed</p>
+                              <p className="font-medium text-green-600">{user.completedTasks}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-600">In Progress</p>
+                              <p className="font-medium text-orange-600">{user.inProgressTasks}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-600">Hours Logged</p>
+                              <p className="font-medium">{user.totalHours}h</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center py-8 text-gray-500">No data available</p>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <EmptyReportState />
+            )}
           </TabsContent>
 
           {/* Project Report */}
           <TabsContent value="project" className="space-y-6 mt-6">
-            <EmptyReportState />
+            {isGenerating ? (
+              <LoadingState message="Generating report..." />
+            ) : reportData && reportType === 'project' ? (
+              <ReportSummary data={reportData} type="projects" />
+            ) : (
+              <EmptyReportState />
+            )}
           </TabsContent>
         </Tabs>
 

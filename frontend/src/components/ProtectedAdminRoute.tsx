@@ -1,6 +1,5 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAdminPIN } from '@/contexts/AdminPINContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 
 interface ProtectedAdminRouteProps {
@@ -8,15 +7,13 @@ interface ProtectedAdminRouteProps {
 }
 
 /**
- * Protected route wrapper for Admin Console and PIN Management
+ * Protected route wrapper for Admin Console
  * Requires:
  * 1. User to be authenticated
- * 2. User to have admin role
- * 3. PIN verification (for Admin Console pages)
+ * 2. User to have admin or superadmin role
  */
 export const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({ children }) => {
   const { user } = useAuthContext();
-  const { isPINVerified, isSessionExpired } = useAdminPIN();
 
   // Check if user is authenticated
   if (!user) {
@@ -26,12 +23,6 @@ export const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({ childr
   // Check if user has admin role
   if (user.role !== 'admin' && user.role !== 'superadmin') {
     return <Navigate to="/menu" replace />;
-  }
-
-  // For Admin Console, check PIN verification
-  // Check if session is expired
-  if (isPINVerified && isSessionExpired()) {
-    return <Navigate to="/admin/console" replace />;
   }
 
   return children as React.ReactElement;

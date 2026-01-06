@@ -57,7 +57,7 @@ function SCurveAnalysis() {
       }
 
       const monthLabels = generateMonthlyLabels(
-        selectedProject.objectData.StartDate, 
+        selectedProject.objectData.StartDate,
         selectedProject.objectData.EndDate
       );
       const monthCount = monthLabels.length - 1;
@@ -67,9 +67,8 @@ function SCurveAnalysis() {
       }
 
       const actualProgress = parseFloat(selectedProject.objectData.Progress || 0);
-      const currentMonth = Math.floor(monthCount * actualProgress / 100);
-      const actualData = planData.map((val, idx) => 
-        idx <= currentMonth ? Math.min(val, actualProgress) : null
+      const actualData = planData.map((val, idx) =>
+        idx <= monthCount ? Math.min(val, actualProgress) : null
       );
 
       chartInstance.current = new window.Chart(ctx, {

@@ -5,7 +5,6 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ErrorProvider } from '@/contexts/ErrorContext';
-import { AdminPINProvider } from '@/contexts/AdminPINContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AppRouter } from '@/router';
 import { queryClient } from '@/lib/queryClient';
@@ -27,7 +26,6 @@ function App() {
                 <ThemeProvider defaultTheme="light" storageKey="project-management-theme">
                     <ErrorProvider>
                         <AuthProvider>
-                            <AdminPINProvider>
                                 <>
                                     <AppRouter />
 
@@ -66,7 +64,6 @@ function App() {
                                     {/* Vercel Speed Insights */}
                                     <SpeedInsights />
                                 </>
-                            </AdminPINProvider>
                         </AuthProvider>
                     </ErrorProvider>
                 </ThemeProvider>

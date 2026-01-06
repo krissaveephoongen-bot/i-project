@@ -182,33 +182,42 @@ router.get('/financial-summary', async (req, res) => {
   try {
     const { year = new Date().getFullYear() } = req.query;
 
-    // Monthly financial summary
+    // Monthly financial summary with proper aggregation
     const monthlySummary = await db
       .select({
-        month: sql<string>`to_char(date, 'YYYY-MM')`,
-        totalHours: sql<number>`sum(hours)`,
-        totalExpenses: sql<number>`sum(amount)`,
-        expenseCount: count()
+        month: sql<string>`to_char(time_entries.date, 'YYYY-MM')`,
+        totalHours: sql<number>`coalesce(sum(time_entries.hours), 0)`,
+        totalExpenses: sql<number>`coalesce((
+          select sum(amount) 
+          from expenses 
+          where date_part('month', expenses.date) = date_part('month', time_entries.date)
+          and date_part('year', expenses.date) = date_part('year', time_entries.date)
+        ), 0)`,
+        expenseCount: sql<number>`coalesce((
+          select count(*) 
+          from expenses 
+          where date_part('month', expenses.date) = date_part('month', time_entries.date)
+          and date_part('year', expenses.date) = date_part('year', time_entries.date)
+        ), 0)`
       })
       .from(timeEntries)
-      .leftJoin(expenses, and(
-        eq(timeEntries.userId, expenses.userId),
-        sql`date_part('month', time_entries.date) = date_part('month', expenses.date)`,
-        sql`date_part('year', time_entries.date) = date_part('year', expenses.date)`
-      ))
       .where(sql`date_part('year', time_entries.date) = ${year}`)
-      .groupBy(sql`to_char(date, 'YYYY-MM')`)
-      .orderBy(sql`to_char(date, 'YYYY-MM')`);
+      .groupBy(sql`to_char(time_entries.date, 'YYYY-MM')`)
+      .orderBy(sql`to_char(time_entries.date, 'YYYY-MM')`);
 
     // Project financial summary
     const projectSummary = await db
       .select({
         projectId: projects.id,
         projectName: projects.name,
+        projectCode: projects.code,
         budget: projects.budget,
         spent: projects.spent,
+        remaining: projects.remaining,
         hoursLogged: sql<number>`(select coalesce(sum(hours), 0) from time_entries where project_id = projects.id)`,
-        expensesTotal: sql<number>`(select coalesce(sum(amount), 0) from expenses where project_id = projects.id)`
+        expensesTotal: sql<number>`(select coalesce(sum(amount), 0) from expenses where project_id = projects.id)`,
+        taskCount: sql<number>`(select count(*) from tasks where project_id = projects.id)`,
+        completedTasks: sql<number>`(select count(*) from tasks where project_id = projects.id and status = 'done')`
       })
       .from(projects)
       .where(sql`date_part('year', projects.created_at) = ${year}`)
@@ -217,11 +226,104 @@ router.get('/financial-summary', async (req, res) => {
     res.json({
       monthlySummary,
       projectSummary,
-      year: year
+      year: parseInt(year)
     });
   } catch (error) {
     console.error('Error generating financial summary:', error);
     res.status(500).json({ error: 'Failed to generate financial summary' });
+  }
+});
+
+// GET /api/reports/team-performance - Team performance report
+router.get('/team-performance', async (req, res) => {
+  try {
+    const { startDate, endDate, department } = req.query;
+
+    let whereConditions = [eq(users.isActive, true)];
+
+    if (department) {
+      whereConditions.push(eq(users.department, department));
+    }
+
+    const teamPerformance = await db
+      .select({
+        userId: users.id,
+        userName: users.name,
+        department: users.department,
+        position: users.position,
+        totalTasks: sql<number>`(select count(*) from tasks where assigned_to = users.id)`,
+        completedTasks: sql<number>`(select count(*) from tasks where assigned_to = users.id and status = 'done')`,
+        inProgressTasks: sql<number>`(select count(*) from tasks where assigned_to = users.id and status = 'in_progress')`,
+        totalHours: sql<number>`(
+          select coalesce(sum(hours), 0) 
+          from time_entries 
+          where user_id = users.id 
+          ${startDate ? sql`and date >= ${new Date(startDate)}` : sql``}
+          ${endDate ? sql`and date <= ${new Date(endDate)}` : sql``}
+        )`,
+        completionRate: sql<number>`
+          round(
+            case 
+              when (select count(*) from tasks where assigned_to = users.id) > 0
+              then ((select count(*) from tasks where assigned_to = users.id and status = 'done')::float / 
+                    (select count(*) from tasks where assigned_to = users.id) * 100)::numeric
+              else 0
+            end, 2
+          )
+        `
+      })
+      .from(users)
+      .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
+      .orderBy(desc(sql`(select count(*) from tasks where assigned_to = users.id and status = 'done')`));
+
+    res.json(teamPerformance);
+  } catch (error) {
+    console.error('Error generating team performance report:', error);
+    res.status(500).json({ error: 'Failed to generate team performance report' });
+  }
+});
+
+// GET /api/reports/budget-utilization - Budget utilization report
+router.get('/budget-utilization', async (req, res) => {
+  try {
+    const budgetUtilization = await db
+      .select({
+        projectId: projects.id,
+        projectName: projects.name,
+        projectCode: projects.code,
+        budget: projects.budget,
+        spent: projects.spent,
+        remaining: projects.remaining,
+        utilizationRate: sql<number>`
+          round(
+            case 
+              when budget > 0 
+              then (spent / budget * 100)::numeric 
+              else 0 
+            end, 2
+          )
+        `,
+        status: projects.status,
+        laborCost: sql<number>`(
+          select coalesce(sum(time_entries.hours * users.hourly_rate), 0)
+          from time_entries
+          left join users on time_entries.user_id = users.id
+          where time_entries.project_id = projects.id
+        )`,
+        materialCost: sql<number>`(
+          select coalesce(sum(amount), 0)
+          from expenses
+          where project_id = projects.id
+        )`
+      })
+      .from(projects)
+      .where(sql`budget > 0`)
+      .orderBy(desc(sql`(spent / nullif(budget, 0))`));
+
+    res.json(budgetUtilization);
+  } catch (error) {
+    console.error('Error generating budget utilization report:', error);
+    res.status(500).json({ error: 'Failed to generate budget utilization report' });
   }
 });
 

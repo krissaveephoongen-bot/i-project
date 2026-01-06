@@ -10,6 +10,9 @@ function useProjectAnalytics(projectId) {
   React.useEffect(() => {
     if (projectId) {
       loadAnalytics();
+      // Auto-refresh every 5 minutes for real-time updates
+      const interval = setInterval(loadAnalytics, 5 * 60 * 1000);
+      return () => clearInterval(interval);
     } else {
       setAnalytics({
         scurveData: [],

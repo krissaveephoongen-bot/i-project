@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     X,
@@ -26,13 +26,11 @@ import {
     ClipboardList,
     LogOut,
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '../ui/button';
-import { useAuth } from '../../hooks/use-auth';
-import type { User } from '../../hooks/use-auth';
-import AdminPINModal from '../AdminPINModal';
-import { useAuth as useAuthContext } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface MenuItem {
     title: string;
@@ -47,6 +45,7 @@ interface SubMenuItem {
     icon: React.ComponentType<any>;
     path: string;
     requiredRole?: string[];
+    className?: string;
 }
 
 const menuItems: MenuItem[] = [
@@ -139,21 +138,10 @@ interface SidebarProps {
 const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { getCurrentUser } = useAuth();
-    const { logout, currentUser } = useAuthContext();
-    // Remove unused user state since we're using currentUser from context
-    const [, setUser] = useState<User | null>(null);
+    const { logout, user: currentUser } = useAuthContext();
     const [expandedItems, setExpandedItems] = useState<string[]>(['Dashboard']);
-    const [showPINModal, setShowPINModal] = useState(false);
-
-    useEffect(() => {
-        const fetchUser = async () => {
-            const currentUser = await getCurrentUser();
-            setUser(currentUser);
-        };
-
-        fetchUser();
-    }, [getCurrentUser]);
+    const [isAdminConsoleHovered, setIsAdminConsoleHovered] = useState(false);
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
 
     const toggleSubmenu = (title: string, e: React.MouseEvent) => {
         e.preventDefault();
@@ -164,20 +152,20 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
 
     const handleAdminConsoleClick = (e: React.MouseEvent) => {
         e.preventDefault();
-        setShowPINModal(true);
-    };
-
-    const handlePINSuccess = () => {
-        // Open Admin Console in new tab
-        window.open('/admin/index.html', '_blank');
+        if (!isAdmin) {
+            toast.error('คุณไม่มีสิทธิ์เข้าถึงส่วนนี้');
+            return;
+        }
+        navigate('/admin');
     };
 
     const handleLogout = async () => {
         try {
-            logout();
+            await logout();
             navigate('/login', { replace: true });
         } catch (error) {
             console.error('Logout error:', error);
+            toast.error('เกิดข้อผิดพลาดในการออกจากระบบ');
         }
     };
 
@@ -404,21 +392,6 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
                                                                     key={subitem.path}
                                                                     variants={submenuItemVariants}
                                                                     initial="hidden"
-                                                                    animate="visible"
-                                                                    custom={subIndex}
-                                                                >
-                                                                    <NavLink
-                                                                        to={subitem.path}
-                                                                        className={cn(
-                                                                            'group flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200 ml-2 pl-8 relative',
-                                                                            isSubActive
-                                                                                ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 shadow-sm'
-                                                                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
-                                                                            "before:absolute before:left-3 before:w-1.5 before:h-1.5 before:rounded-full before:bg-current before:opacity-40 before:transition-all before:duration-200 group-hover:before:scale-125"
-                                                                        )}
-                                                                        onClick={onClose}
-                                                                    >
-                                                                        <motion.div
                                                                             whileHover={{ scale: 1.15, rotate: 5 }}
                                                                             whileTap={{ scale: 0.95 }}
                                                                         >
@@ -592,12 +565,6 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
                 </motion.div>
             </motion.aside>
 
-            {/* Admin PIN Modal */}
-            <AdminPINModal
-                isOpen={showPINModal}
-                onClose={() => setShowPINModal(false)}
-                onSuccess={handlePINSuccess}
-            />
         </>
     );
 };

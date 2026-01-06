@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProjectChart } from '@/components/charts/ProjectChart';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   BarChart3,
   TrendingUp,
@@ -8,165 +9,259 @@ import {
   CheckCircle,
   AlertTriangle,
   Clock,
+  DollarSign,
+  FileText,
+  Activity,
+  RefreshCw
 } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api-config';
+import ErrorState from '@/components/ErrorState';
+import LoadingState from '@/components/LoadingState';
+import { parseApiError } from '@/lib/error-handler';
+import { Button } from '@/components/ui/button';
+import { formatCurrency } from '@/utils/formatCurrency';
 
-interface AnalyticsData {
-  totalProjects: number;
-  completedProjects: number;
-  activeProjects: number;
-  totalBudget: number;
-  spentBudget: number;
-  teamSize: number;
-  completionRate: number;
+interface DashboardAnalytics {
+  projects: {
+    total: number;
+    active: number;
+    completed: number;
+    overdue: number;
+    archived: number;
+  };
+  tasks: {
+    total: number;
+    todo: number;
+    inProgress: number;
+    inReview: number;
+    completed: number;
+    overdue: number;
+    completionRate: number;
+  };
+  users: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
+  budget: {
+    totalBudget: number;
+    totalSpent: number;
+    totalRemaining: number;
+    utilizationRate: number;
+  };
+  monthly: {
+    hours: number;
+    expenses: number;
+    pendingExpenses: number;
+    approvedExpenses: number;
+  };
 }
 
 export default function AnalyticsDashboard() {
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<DashboardAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
+  const [period, setPeriod] = useState('30');
+
+  const fetchAnalytics = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await fetch(`${API_BASE_URL}/analytics/dashboard`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setAnalyticsData(data);
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+      setError(parseApiError(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        setIsLoading(true);
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const response = await fetch(`${apiUrl}/analytics`, {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setAnalyticsData(data);
-        } else {
-          setAnalyticsData(null);
-        }
-      } catch (error) {
-        console.error('Error fetching analytics:', error);
-        setAnalyticsData(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchAnalytics();
   }, []);
 
-  if (isLoading || !analyticsData) {
+  if (error) {
     return (
-      <div className="space-y-6">
-        <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-        </div>
+      <div className="p-6">
+        <ErrorState error={error} onRetry={fetchAnalytics} />
       </div>
     );
   }
 
-  const chartData = [
-    { name: 'Completed', value: analyticsData.completedProjects },
-    { name: 'Active', value: analyticsData.activeProjects },
+  if (isLoading || !analyticsData) {
+    return <LoadingState message="Loading analytics..." />;
+  }
+
+  const projectChartData = [
+    { name: 'Completed', value: analyticsData.projects.completed, fill: '#10b981' },
+    { name: 'Active', value: analyticsData.projects.active, fill: '#3b82f6' },
+    { name: 'Overdue', value: analyticsData.projects.overdue, fill: '#ef4444' },
+  ];
+
+  const taskChartData = [
+    { name: 'Todo', value: analyticsData.tasks.todo, fill: '#6b7280' },
+    { name: 'In Progress', value: analyticsData.tasks.inProgress, fill: '#f59e0b' },
+    { name: 'In Review', value: analyticsData.tasks.inReview, fill: '#8b5cf6' },
+    { name: 'Completed', value: analyticsData.tasks.completed, fill: '#10b981' },
   ];
 
   const budgetChartData = [
-    { name: 'Spent', value: analyticsData.spentBudget },
-    { name: 'Remaining', value: analyticsData.totalBudget - analyticsData.spentBudget },
+    { name: 'Spent', value: analyticsData.budget.totalSpent, fill: '#ef4444' },
+    { name: 'Remaining', value: analyticsData.budget.totalRemaining, fill: '#10b981' },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics Dashboard</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Real-time project performance metrics</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+          <p className="text-gray-600 mt-1">Real-time project performance metrics</p>
+        </div>
+        <Button onClick={fetchAnalytics} variant="outline" className="gap-2">
+          <RefreshCw className="h-4 w-4" />
+          Refresh
+        </Button>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Projects</p>
-                <p className="text-2xl font-bold text-blue-600 mt-1">{analyticsData.totalProjects}</p>
-              </div>
-              <BarChart3 className="h-8 w-8 text-blue-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">{analyticsData.completedProjects}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
-                <p className="text-2xl font-bold text-orange-600 mt-1">{analyticsData.activeProjects}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-orange-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Team Size</p>
-                <p className="text-2xl font-bold text-purple-600 mt-1">{analyticsData.teamSize}</p>
-              </div>
-              <Users className="h-8 w-8 text-purple-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Budget Spent</p>
-                <p className="text-2xl font-bold text-red-600 mt-1">
-                  {((analyticsData.spentBudget / analyticsData.totalBudget) * 100).toFixed(1)}%
+                <p className="text-sm text-gray-600">Total Projects</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{analyticsData.projects.total}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {analyticsData.projects.active} active · {analyticsData.projects.completed} completed
                 </p>
               </div>
-              <Clock className="h-8 w-8 text-red-500 opacity-50" />
+              <BarChart3 className="h-10 w-10 text-blue-600" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-800/20">
+        <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Completion Rate</p>
-                <p className="text-2xl font-bold text-cyan-600 mt-1">{analyticsData.completionRate}%</p>
+                <p className="text-sm text-gray-600">Total Tasks</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{analyticsData.tasks.total}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {analyticsData.tasks.completionRate}% completion rate
+                </p>
               </div>
-              <AlertTriangle className="h-8 w-8 text-cyan-500 opacity-50" />
+              <CheckCircle className="h-10 w-10 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Active Users</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{analyticsData.users.active}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  of {analyticsData.users.total} total users
+                </p>
+              </div>
+              <Users className="h-10 w-10 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Budget Utilization</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{analyticsData.budget.utilizationRate}%</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formatCurrency(analyticsData.budget.totalSpent)} spent
+                </p>
+              </div>
+              <DollarSign className="h-10 w-10 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Monthly Metrics */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">This Month Hours</p>
+                <p className="text-2xl font-bold text-blue-600 mt-1">{analyticsData.monthly.hours.toFixed(1)}h</p>
+              </div>
+              <Clock className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Monthly Expenses</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(analyticsData.monthly.expenses)}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-gray-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Pending Expenses</p>
+                <p className="text-2xl font-bold text-orange-600 mt-1">{formatCurrency(analyticsData.monthly.pendingExpenses)}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Overdue Tasks</p>
+                <p className="text-2xl font-bold text-red-600 mt-1">{analyticsData.tasks.overdue}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-red-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         <ProjectChart
           title="Project Status Distribution"
           type="pie"
-          data={chartData}
+          data={projectChartData}
+          height={300}
+        />
+        <ProjectChart
+          title="Task Status Distribution"
+          type="pie"
+          data={taskChartData}
           height={300}
         />
         <ProjectChart
@@ -176,6 +271,62 @@ export default function AnalyticsDashboard() {
           height={300}
         />
       </div>
+
+      {/* Budget Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-3">
+            <div>
+              <p className="text-sm text-gray-600 mb-2">Total Budget</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(analyticsData.budget.totalBudget)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 mb-2">Total Spent</p>
+              <p className="text-2xl font-bold text-red-600">{formatCurrency(analyticsData.budget.totalSpent)}</p>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div 
+                  className="bg-red-500 h-2 rounded-full" 
+                  style={{ width: `${analyticsData.budget.utilizationRate}%` }}
+                />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 mb-2">Remaining</p>
+              <p className="text-2xl font-bold text-green-600">{formatCurrency(analyticsData.budget.totalRemaining)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Task Status Breakdown */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Task Progress Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="p-4 border rounded-lg">
+              <p className="text-sm text-gray-600">To Do</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{analyticsData.tasks.todo}</p>
+            </div>
+            <div className="p-4 border rounded-lg bg-orange-50">
+              <p className="text-sm text-gray-600">In Progress</p>
+              <p className="text-2xl font-bold text-orange-600 mt-1">{analyticsData.tasks.inProgress}</p>
+            </div>
+            <div className="p-4 border rounded-lg bg-purple-50">
+              <p className="text-sm text-gray-600">In Review</p>
+              <p className="text-2xl font-bold text-purple-600 mt-1">{analyticsData.tasks.inReview}</p>
+            </div>
+            <div className="p-4 border rounded-lg bg-green-50">
+              <p className="text-sm text-gray-600">Completed</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">{analyticsData.tasks.completed}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Performance Breakdown */}
       <Card>
