@@ -346,21 +346,20 @@ router.get('/users', async (req, res) => {
       .select({
         id: users.id,
         name: users.name,
-        email: users.email,
         department: users.department,
         position: users.position,
-        totalTasks: sql`(select count(*) from tasks where assigned_to = users.id)`,
-        completedTasks: sql`(select count(*) from tasks where assigned_to = users.id and status = 'done')`,
-        inProgressTasks: sql`(select count(*) from tasks where assigned_to = users.id and status = 'in_progress')`,
-        overdueTasks: sql`(select count(*) from tasks where assigned_to = users.id and due_date < now() and status != 'done')`,
+        totalTasks: sql`(select count(*) from tasks where assigned_to = users.id and created_at >= ${startDate})`,
+        completedTasks: sql`(select count(*) from tasks where assigned_to = users.id and status = 'done' and completed_at >= ${startDate})`,
+        inProgressTasks: sql`(select count(*) from tasks where assigned_to = users.id and status = 'in_progress' and created_at >= ${startDate})`,
+        overdueTasks: sql`(select count(*) from tasks where assigned_to = users.id and due_date < now() and status != 'done' and created_at >= ${startDate})`,
         totalHours: sql`coalesce((select sum(hours) from time_entries where user_id = users.id and date >= ${startDate}), 0)`,
         totalExpenses: sql`coalesce((select sum(amount) from expenses where user_id = users.id and date >= ${startDate}), 0)`,
         activeProjects: sql`(select count(distinct project_id) from tasks where assigned_to = users.id and status != 'done')`,
         completionRate: sql`round(
-          case 
-            when (select count(*) from tasks where assigned_to = users.id) > 0
-            then ((select count(*) from tasks where assigned_to = users.id and status = 'done')::float / 
-                  (select count(*) from tasks where assigned_to = users.id) * 100)::numeric
+          case
+            when (select count(*) from tasks where assigned_to = users.id and created_at >= ${startDate}) > 0
+            then ((select count(*) from tasks where assigned_to = users.id and status = 'done' and completed_at >= ${startDate})::float /
+                  (select count(*) from tasks where assigned_to = users.id and created_at >= ${startDate}) * 100)::numeric
             else 0
           end, 2
         )`
@@ -448,20 +447,56 @@ router.get('/summary', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    let dateFilter = sql`1=1`;
-    if (startDate && endDate) {
-      dateFilter = sql`${projects.createdAt} >= ${new Date(startDate)} and ${projects.createdAt} <= ${new Date(endDate)}`;
+    // Validate and parse dates
+    let startDateObj = null;
+    let endDateObj = null;
+
+    if (startDate) {
+      const parsed = new Date(startDate);
+      if (isNaN(parsed.getTime())) {
+        return res.status(400).json({ error: 'Invalid startDate format. Use ISO date string.' });
+      }
+      startDateObj = parsed;
     }
+
+    if (endDate) {
+      const parsed = new Date(endDate);
+      if (isNaN(parsed.getTime())) {
+        return res.status(400).json({ error: 'Invalid endDate format. Use ISO date string.' });
+      }
+      endDateObj = parsed;
+    }
+
+    if ((startDateObj && !endDateObj) || (!startDateObj && endDateObj)) {
+      return res.status(400).json({ error: 'Both startDate and endDate must be provided together.' });
+    }
+
+    // Build date filters for each table
+    const projectDateFilter = startDateObj && endDateObj
+      ? sql`${projects.createdAt} >= ${new Date(startDate)} and ${projects.createdAt} <= ${new Date(endDate)}`
+      : sql`1=1`;
+
+    const taskDateFilter = startDateObj && endDateObj
+      ? sql`${tasks.createdAt} >= ${new Date(startDate)} and ${tasks.createdAt} <= ${new Date(endDate)}`
+      : sql`1=1`;
+
+    const timeEntryDateFilter = startDateObj && endDateObj
+      ? sql`${timeEntries.date} >= ${new Date(startDate)} and ${timeEntries.date} <= ${new Date(endDate)}`
+      : sql`1=1`;
+
+    const expenseDateFilter = startDateObj && endDateObj
+      ? sql`${expenses.date} >= ${new Date(startDate)} and ${expenses.date} <= ${new Date(endDate)}`
+      : sql`1=1`;
 
     // Get comprehensive summary with error handling
     const summary = {
-      projects: await db.select({ count: count() }).from(projects).where(dateFilter).catch(() => [{ count: 0 }]),
-      tasks: await db.select({ count: count() }).from(tasks).catch(() => [{ count: 0 }]),
+      projects: await db.select({ count: count() }).from(projects).where(projectDateFilter).catch(() => [{ count: 0 }]),
+      tasks: await db.select({ count: count() }).from(tasks).where(taskDateFilter).catch(() => [{ count: 0 }]),
       users: await db.select({ count: count() }).from(users).where(eq(users.isActive, true)).catch(() => [{ count: 0 }]),
-      totalBudget: await db.select({ total: sql`coalesce(sum(budget), 0)` }).from(projects).catch(() => [{ total: 0 }]),
-      totalSpent: await db.select({ total: sql`coalesce(sum(spent), 0)` }).from(projects).catch(() => [{ total: 0 }]),
-      totalHours: await db.select({ total: sql`coalesce(sum(hours), 0)` }).from(timeEntries).catch(() => [{ total: 0 }]),
-      totalExpenses: await db.select({ total: sql`coalesce(sum(amount), 0)` }).from(expenses).catch(() => [{ total: 0 }])
+      totalBudget: await db.select({ total: sql`coalesce(sum(budget), 0)` }).from(projects).where(projectDateFilter).catch(() => [{ total: 0 }]),
+      totalSpent: await db.select({ total: sql`coalesce(sum(spent), 0)` }).from(projects).where(projectDateFilter).catch(() => [{ total: 0 }]),
+      totalHours: await db.select({ total: sql`coalesce(sum(hours), 0)` }).from(timeEntries).where(timeEntryDateFilter).catch(() => [{ total: 0 }]),
+      totalExpenses: await db.select({ total: sql`coalesce(sum(amount), 0)` }).from(expenses).where(expenseDateFilter).catch(() => [{ total: 0 }])
     };
 
     res.json({

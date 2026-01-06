@@ -1,18 +1,21 @@
+import React from 'react';
+
 function BacklogProjects({ projects = [] }) {
   try {
-    const currentYear = new Date().getFullYear();
-
     const backlogTotal = React.useMemo(() => {
       if (!Array.isArray(projects)) return 0;
+      const currentYear = new Date().getFullYear();
+
       return projects.reduce((sum, p) => {
         if (!p || !p.createdAt) return sum;
         const created = new Date(p.createdAt);
+        if (isNaN(created.getTime())) return sum; // Skip invalid dates
         if (created.getFullYear() < currentYear) {
           return sum + (p.totalExpenses || 0);
         }
         return sum;
       }, 0);
-    }, [projects, currentYear]);
+    }, [projects]);
 
     return (
       <div className="card bg-gradient-to-br from-gray-50 to-slate-50">
@@ -30,3 +33,5 @@ function BacklogProjects({ projects = [] }) {
     return null;
   }
 }
+
+export default BacklogProjects;

@@ -21,7 +21,6 @@ function ProjectSCurve({ project, projectData, onRefresh }) {
       // Calculate planned progress based on time elapsed
       const totalDuration = end.getTime() - start.getTime();
       const elapsedDuration = Math.min(now.getTime() - start.getTime(), totalDuration);
-      const plannedProgressPercent = totalDuration > 0 ? (elapsedDuration / totalDuration) * 100 : 0;
   
       let monthIndex = 0;
       const totalMonths = Math.ceil((endMonth - new Date(start.getFullYear(), start.getMonth(), 1)) / (1000 * 60 * 60 * 24 * 30));
@@ -102,7 +101,7 @@ function ProjectSCurve({ project, projectData, onRefresh }) {
     return (
       <div className="bg-white rounded-xl p-6 shadow-sm border border-[var(--slate-200)]">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">S-Curve Analysis</h3>
+          <h3 className="text-lg font-semibold">การวิเคราะห์ S-Curve</h3>
           {onRefresh && (
             <button
               onClick={onRefresh}

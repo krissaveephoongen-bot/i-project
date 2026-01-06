@@ -180,30 +180,59 @@ router.get('/expenses', async (req, res) => {
 // GET /api/reports/financial-summary - Financial summary report
 router.get('/financial-summary', async (req, res) => {
   try {
-    const { year = new Date().getFullYear() } = req.query;
+    const { year } = req.query;
 
-    // Monthly financial summary with proper aggregation
-    const monthlySummary = await db
+    // Validate and parse year parameter
+    let validatedYear;
+    if (year === undefined || year === null || year === '') {
+      validatedYear = new Date().getFullYear();
+    } else {
+      const parsedYear = parseInt(year, 10);
+      if (isNaN(parsedYear) || !isFinite(parsedYear) || parsedYear < 1970 || parsedYear > 9999) {
+        return res.status(400).json({ error: 'Invalid year parameter. Must be a valid year between 1970 and 9999.' });
+      }
+      validatedYear = parsedYear;
+    }
+
+    // Generate complete month series for the year and aggregate data
+    const monthsInYear = Array.from({ length: 12 }, (_, i) => {
+      const month = (i + 1).toString().padStart(2, '0');
+      return `${validatedYear}-${month}`;
+    });
+
+    // Get time entries aggregated by month
+    const timeEntriesByMonth = await db
       .select({
-        month: sql<string>`to_char(time_entries.date, 'YYYY-MM')`,
-        totalHours: sql<number>`coalesce(sum(time_entries.hours), 0)`,
-        totalExpenses: sql<number>`coalesce((
-          select sum(amount) 
-          from expenses 
-          where date_part('month', expenses.date) = date_part('month', time_entries.date)
-          and date_part('year', expenses.date) = date_part('year', time_entries.date)
-        ), 0)`,
-        expenseCount: sql<number>`coalesce((
-          select count(*) 
-          from expenses 
-          where date_part('month', expenses.date) = date_part('month', time_entries.date)
-          and date_part('year', expenses.date) = date_part('year', time_entries.date)
-        ), 0)`
+        month: sql<string>`to_char(date, 'YYYY-MM')`,
+        totalHours: sql<number>`coalesce(sum(hours), 0)`
       })
       .from(timeEntries)
-      .where(sql`date_part('year', time_entries.date) = ${year}`)
-      .groupBy(sql`to_char(time_entries.date, 'YYYY-MM')`)
-      .orderBy(sql`to_char(time_entries.date, 'YYYY-MM')`);
+      .where(sql`date_part('year', date) = ${validatedYear}`)
+      .groupBy(sql`to_char(date, 'YYYY-MM')`);
+
+    // Get expenses aggregated by month
+    const expensesByMonth = await db
+      .select({
+        month: sql<string>`to_char(date, 'YYYY-MM')`,
+        totalExpenses: sql<number>`coalesce(sum(amount), 0)`,
+        expenseCount: sql<number>`count(*)`
+      })
+      .from(expenses)
+      .where(sql`date_part('year', date) = ${validatedYear}`)
+      .groupBy(sql`to_char(date, 'YYYY-MM')`);
+
+    // Create monthly summary by joining month series with aggregated data
+    const monthlySummary = monthsInYear.map(monthKey => {
+      const timeEntry = timeEntriesByMonth.find(te => te.month === monthKey);
+      const expense = expensesByMonth.find(exp => exp.month === monthKey);
+
+      return {
+        month: monthKey,
+        totalHours: timeEntry?.totalHours || 0,
+        totalExpenses: expense?.totalExpenses || 0,
+        expenseCount: expense?.expenseCount || 0
+      };
+    });
 
     // Project financial summary
     const projectSummary = await db
@@ -220,13 +249,13 @@ router.get('/financial-summary', async (req, res) => {
         completedTasks: sql<number>`(select count(*) from tasks where project_id = projects.id and status = 'done')`
       })
       .from(projects)
-      .where(sql`date_part('year', projects.created_at) = ${year}`)
+      .where(sql`date_part('year', created_at) = ${validatedYear}`)
       .orderBy(desc(projects.createdAt));
 
     res.json({
       monthlySummary,
       projectSummary,
-      year: parseInt(year)
+      year: validatedYear
     });
   } catch (error) {
     console.error('Error generating financial summary:', error);
@@ -239,10 +268,39 @@ router.get('/team-performance', async (req, res) => {
   try {
     const { startDate, endDate, department } = req.query;
 
+    // Validate and parse dates
+    let startDateObj = null;
+    let endDateObj = null;
+
+    if (startDate) {
+      const parsed = new Date(startDate);
+      if (isNaN(parsed.getTime())) {
+        return res.status(400).json({ error: 'Invalid startDate format. Use ISO date string.' });
+      }
+      startDateObj = parsed;
+    }
+
+    if (endDate) {
+      const parsed = new Date(endDate);
+      if (isNaN(parsed.getTime())) {
+        return res.status(400).json({ error: 'Invalid endDate format. Use ISO date string.' });
+      }
+      endDateObj = parsed;
+    }
+
     let whereConditions = [eq(users.isActive, true)];
 
     if (department) {
       whereConditions.push(eq(users.department, department));
+    }
+
+    // Build time entries conditions
+    let timeEntryConditions = [sql`user_id = users.id`];
+    if (startDateObj) {
+      timeEntryConditions.push(sql`date >= ${startDateObj}`);
+    }
+    if (endDateObj) {
+      timeEntryConditions.push(sql`date <= ${endDateObj}`);
     }
 
     const teamPerformance = await db
@@ -255,17 +313,15 @@ router.get('/team-performance', async (req, res) => {
         completedTasks: sql<number>`(select count(*) from tasks where assigned_to = users.id and status = 'done')`,
         inProgressTasks: sql<number>`(select count(*) from tasks where assigned_to = users.id and status = 'in_progress')`,
         totalHours: sql<number>`(
-          select coalesce(sum(hours), 0) 
-          from time_entries 
-          where user_id = users.id 
-          ${startDate ? sql`and date >= ${new Date(startDate)}` : sql``}
-          ${endDate ? sql`and date <= ${new Date(endDate)}` : sql``}
+          select coalesce(sum(hours), 0)
+          from time_entries
+          where ${and(...timeEntryConditions)}
         )`,
         completionRate: sql<number>`
           round(
-            case 
+            case
               when (select count(*) from tasks where assigned_to = users.id) > 0
-              then ((select count(*) from tasks where assigned_to = users.id and status = 'done')::float / 
+              then ((select count(*) from tasks where assigned_to = users.id and status = 'done')::float /
                     (select count(*) from tasks where assigned_to = users.id) * 100)::numeric
               else 0
             end, 2
@@ -305,7 +361,7 @@ router.get('/budget-utilization', async (req, res) => {
         `,
         status: projects.status,
         laborCost: sql<number>`(
-          select coalesce(sum(time_entries.hours * users.hourly_rate), 0)
+          select coalesce(sum(time_entries.hours * coalesce(users.hourly_rate, 0)), 0)
           from time_entries
           left join users on time_entries.user_id = users.id
           where time_entries.project_id = projects.id

@@ -1,16 +1,19 @@
+import React from 'react';
+
 function OnGoingProjects({ projects = [] }) {
   try {
-    const currentYear = new Date().getFullYear();
-
-    const onGoingCount = React.useMemo(() => {
-      if (!Array.isArray(projects)) return 0;
-      return projects.filter(p => {
+    const onGoingData = React.useMemo(() => {
+      if (!Array.isArray(projects)) return { count: 0, currentYear: new Date().getFullYear() };
+      const currentYear = new Date().getFullYear();
+      const count = projects.filter(p => {
         if (!p || !p.createdAt) return false;
         const created = new Date(p.createdAt);
+        if (isNaN(created.getTime())) return false; // Skip invalid dates
         return (p.status === 'in_progress' || p.objectData?.Status === 'active' || p.objectData?.Status === 'on-going') &&
                created.getFullYear() === currentYear;
       }).length;
-    }, [projects, currentYear]);
+      return { count, currentYear };
+    }, [projects]);
 
     return (
       <div className="card bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -26,3 +29,5 @@ function OnGoingProjects({ projects = [] }) {
     return null;
   }
 }
+
+export default OnGoingProjects;
