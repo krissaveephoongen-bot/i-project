@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
       role: users.role,
       department: users.department,
       position: users.position,
-      capacity: users.capacity,
+      hourlyRate: users.hourlyRate,
     }).from(users).where(eq(users.isActive, true));
 
     res.json(allUsers);
@@ -32,7 +32,7 @@ router.get('/:userId/capacity', async (req, res) => {
     const user = await db.select({
       id: users.id,
       name: users.name,
-      capacity: users.capacity,
+      hourlyRate: users.hourlyRate,
     }).from(users).where(eq(users.id, userId)).limit(1);
 
     if (user.length === 0) {
@@ -42,7 +42,7 @@ router.get('/:userId/capacity', async (req, res) => {
     res.json({
       userId: user[0].id,
       userName: user[0].name,
-      totalCapacity: user[0].capacity || 40, // Default 40 hours/week
+      totalCapacity: 40, // Default 40 hours/week
       allocatedCapacity: 0, // TODO: Calculate from tasks
       availableCapacity: (user[0].capacity || 40) - 0,
     });
@@ -58,14 +58,16 @@ router.put('/:userId/capacity', async (req, res) => {
     const { userId } = req.params;
     const { totalCapacity } = req.body;
 
-    const result = await db.update(users)
-      .set({ capacity: totalCapacity, updatedAt: new Date() })
-      .where(eq(users.id, userId))
-      .returning({
-        id: users.id,
-        name: users.name,
-        capacity: users.capacity,
-      });
+    // Note: capacity is not stored in users table, using default calculation
+    const result = await db.select({
+      id: users.id,
+      name: users.name,
+      hourlyRate: users.hourlyRate,
+    }).from(users).where(eq(users.id, userId)).limit(1);
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     if (result.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -74,9 +76,9 @@ router.put('/:userId/capacity', async (req, res) => {
     res.json({
       userId: result[0].id,
       userName: result[0].name,
-      totalCapacity: result[0].capacity,
+      totalCapacity: totalCapacity || 40,
       allocatedCapacity: 0,
-      availableCapacity: result[0].capacity - 0,
+      availableCapacity: (totalCapacity || 40) - 0,
     });
   } catch (error) {
     console.error('Error updating resource capacity:', error);
@@ -95,7 +97,7 @@ router.post('/:userId/allocate', async (req, res) => {
     const user = await db.select({
       id: users.id,
       name: users.name,
-      capacity: users.capacity,
+      hourlyRate: users.hourlyRate,
     }).from(users).where(eq(users.id, userId)).limit(1);
 
     if (user.length === 0) {
@@ -105,7 +107,7 @@ router.post('/:userId/allocate', async (req, res) => {
     res.json({
       userId: user[0].id,
       userName: user[0].name,
-      totalCapacity: user[0].capacity || 40,
+      totalCapacity: 40,
       allocatedCapacity: hoursPerWeek || 0,
       availableCapacity: (user[0].capacity || 40) - (hoursPerWeek || 0),
     });
@@ -125,7 +127,7 @@ router.post('/:userId/deallocate', async (req, res) => {
     const user = await db.select({
       id: users.id,
       name: users.name,
-      capacity: users.capacity,
+      hourlyRate: users.hourlyRate,
     }).from(users).where(eq(users.id, userId)).limit(1);
 
     if (user.length === 0) {
@@ -135,7 +137,7 @@ router.post('/:userId/deallocate', async (req, res) => {
     res.json({
       userId: user[0].id,
       userName: user[0].name,
-      totalCapacity: user[0].capacity || 40,
+      totalCapacity: 40,
       allocatedCapacity: 0,
       availableCapacity: user[0].capacity || 40,
     });

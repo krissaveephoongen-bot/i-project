@@ -1,7 +1,7 @@
 import express from 'express';
 import { db } from '../lib/db.js';
 import { projects, tasks, users, clients } from '../lib/schema.js';
-import { sql, or, and, ilike } from 'drizzle-orm';
+import { sql, or, and, ilike, eq } from 'drizzle-orm';
 
 const router = express.Router();
 
