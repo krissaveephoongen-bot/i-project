@@ -98,10 +98,56 @@ export const timesheetService = {
     return response.data;
   },
 
-  // Timesheet Approvals
-  async getPendingApprovals(managerId?: string) {
-    const response = await api.get('/timesheets/pending-approval', {
+  // Two-tier approval methods
+  async getPendingPMApprovals(managerId?: string) {
+    const response = await api.get('/timesheets/pending-pm-approval', {
       params: { managerId }
+    });
+    return response.data;
+  },
+
+  async getPendingSupervisorApprovals(supervisorId?: string) {
+    const response = await api.get('/timesheets/pending-supervisor-approval', {
+      params: { supervisorId }
+    });
+    return response.data;
+  },
+
+  async getPMApprovedTimesheets(managerId?: string) {
+    const response = await api.get('/timesheets/pm-approved', {
+      params: { managerId }
+    });
+    return response.data;
+  },
+
+  async pmApproveTimesheet(timesheetId: string, approvedById: string, reason?: string) {
+    const response = await api.post(`/timesheets/${timesheetId}/pm-approve`, { 
+      approvedBy, 
+      reason 
+    });
+    return response.data;
+  },
+
+  async pmRejectTimesheet(timesheetId: string, approvedById: string, reason: string) {
+    const response = await api.post(`/timesheets/${timesheetId}/pm-reject`, { 
+      approvedBy, 
+      reason 
+    });
+    return response.data;
+  },
+
+  async supervisorApproveTimesheet(timesheetId: string, approvedById: string, reason?: string) {
+    const response = await api.post(`/timesheets/${timesheetId}/supervisor-approve`, { 
+      approvedBy, 
+      reason 
+    });
+    return response.data;
+  },
+
+  async supervisorRejectTimesheet(timesheetId: string, approvedById: string, reason: string) {
+    const response = await api.post(`/timesheets/${timesheetId}/supervisor-reject`, { 
+      approvedBy, 
+      reason 
     });
     return response.data;
   },

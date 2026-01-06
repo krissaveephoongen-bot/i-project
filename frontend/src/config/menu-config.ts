@@ -19,6 +19,7 @@ import {
   Users2,
   GitBranch,
   ClipboardList,
+  Heart,
 } from 'lucide-react';
 
 export interface MenuItemConfig {
@@ -57,6 +58,32 @@ export const MENU_CATEGORIES = [
 
 export const menuConfig: MenuItemConfig[] = [
   // Main Section
+  {
+    id: 'customers',
+    title: 'Customers',
+    description: 'Manage customer database and relationships',
+    icon: Users,
+    path: '/customers',
+    category: 'Main',
+    badge: 'New',
+    badgeType: 'success',
+    metadata: {
+      keywords: ['customers', 'clients', 'database', 'relationships'],
+      priority: 1.5,
+    },
+  },
+  {
+    id: 'tasks',
+    title: 'Tasks',
+    description: 'Manage tasks and project assignments',
+    icon: ClipboardList,
+    path: '/tasks',
+    category: 'Main',
+    metadata: {
+      keywords: ['tasks', 'assignments', 'todo', 'project tasks'],
+      priority: 1.7,
+    },
+  },
   {
     id: 'home',
     title: 'Home',
@@ -223,6 +250,21 @@ export const menuConfig: MenuItemConfig[] = [
     },
   },
   {
+    id: 'enhanced-analytics',
+    title: 'Enhanced Analytics',
+    description: 'Advanced analytics with enhanced features and insights',
+    icon: BarChart3,
+    path: '/analytics-enhanced',
+    category: 'Analytics',
+    requiredRole: ['admin', 'manager'],
+    badge: 'Pro',
+    badgeType: 'warning',
+    metadata: {
+      keywords: ['analytics', 'enhanced', 'advanced', 'insights', 'pro'],
+      priority: 5.5,
+    },
+  },
+  {
     id: 'activity',
     title: 'Activity Log',
     description: 'View system activity and changes',
@@ -235,7 +277,33 @@ export const menuConfig: MenuItemConfig[] = [
     },
   },
 
+  // Tasks Section
+  {
+    id: 'tasks',
+    title: 'Tasks',
+    description: 'Manage and view all tasks',
+    icon: ClipboardList,
+    path: '/tasks',
+    category: 'Tasks',
+    metadata: {
+      keywords: ['tasks', 'management', 'todo', 'assignments'],
+      priority: 6.5,
+    },
+  },
+
   // Tools Section
+  {
+    id: 'menu-management',
+    title: 'Menu Management',
+    description: 'Access menu management and settings',
+    icon: Activity,
+    path: '/menu',
+    category: 'Tools',
+    metadata: {
+      keywords: ['menu', 'management', 'settings', 'navigation'],
+      priority: 7.5,
+    },
+  },
   {
     id: 'search',
     title: 'Search',
@@ -250,6 +318,20 @@ export const menuConfig: MenuItemConfig[] = [
   },
 
   // Settings Section
+  {
+    id: 'favorites',
+    title: 'Favorites',
+    description: 'View your favorite items and shortcuts',
+    icon: Heart,
+    path: '/favorites',
+    category: 'Settings',
+    badge: '⭐',
+    badgeType: 'info',
+    metadata: {
+      keywords: ['favorites', 'bookmarks', 'shortcuts', 'starred'],
+      priority: 8.5,
+    },
+  },
   {
     id: 'settings',
     title: 'Settings',

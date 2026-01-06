@@ -87,6 +87,18 @@ const Search = React.lazy(() =>
   import('@/pages/Search').catch(() => ({ default: () => <div>Loading...</div> }))
 );
 
+const Customers = React.lazy(() => 
+  import('@/pages/Customers').catch(() => ({ default: () => <div>Loading...</div> }))
+);
+
+const TimesheetApproval = React.lazy(() => 
+  import('@/components/timesheet/TimesheetApprovalEnhanced').catch(() => ({ default: () => <div>Loading...</div> }))
+);
+
+const ThemeSelector = React.lazy(() => 
+  import('@/components/ThemeSelector').catch(() => ({ default: () => <div>Loading...</div> }))
+);
+
 const Favorites = React.lazy(() => 
   import('@/pages/Favorites').catch(() => ({ default: () => <div>Loading...</div> }))
 );
@@ -418,6 +430,14 @@ export const router = createBrowserRouter([
       {
         path: '/favorites',
         element: <SuspenseWrapper><Favorites /></SuspenseWrapper>,
+      },
+      {
+        path: '/approvals',
+        element: <SuspenseWrapper><TimesheetApproval /></SuspenseWrapper>,
+      },
+      {
+        path: '/customers',
+        element: <SuspenseWrapper><Customers /></SuspenseWrapper>,
       },
     ],
   },

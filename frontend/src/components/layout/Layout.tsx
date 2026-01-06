@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import MobileBottomNav from '../MobileBottomNav';
 import { EnhancedNavigation } from './EnhancedNavigation';
+import ThemeSelector from '../ThemeSelector';
 
 import { Toaster } from 'react-hot-toast';
 import { useAuthContext } from '../../contexts/AuthContext';

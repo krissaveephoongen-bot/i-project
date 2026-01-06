@@ -40,6 +40,23 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
+  // Organization
+  {
+    title: 'Customers',
+    description: 'Manage customer database',
+    icon: Users,
+    path: '/customers',
+    category: 'Organization',
+    badge: 'New',
+  },
+  // Dashboard
+  {
+    title: 'Tasks',
+    description: 'Manage tasks and project assignments',
+    icon: ClipboardList,
+    path: '/tasks',
+    category: 'Main',
+  },
   // Dashboard
   {
     title: 'Dashboard',
@@ -154,7 +171,22 @@ const menuItems: MenuItem[] = [
     path: '/analytics',
     category: 'Analytics',
   },
+  {
+    title: 'Enhanced Analytics',
+    description: 'Advanced analytics with enhanced features',
+    icon: BarChart3,
+    path: '/analytics-enhanced',
+    category: 'Analytics',
+    badge: 'Pro',
+  },
   // Organization
+  {
+    title: 'Menu Management',
+    description: 'Access menu management and settings',
+    icon: Activity,
+    path: '/menu',
+    category: 'Organization',
+  },
   {
     title: 'Activity Log',
     description: 'Track system activities and changes',
@@ -170,6 +202,14 @@ const menuItems: MenuItem[] = [
     category: 'Organization',
   },
   // Settings
+  {
+    title: 'Favorites',
+    description: 'View your favorite items and shortcuts',
+    icon: Heart,
+    path: '/favorites',
+    category: 'Settings',
+    badge: '⭐',
+  },
   {
     title: 'Settings',
     description: 'Manage your preferences and profile',

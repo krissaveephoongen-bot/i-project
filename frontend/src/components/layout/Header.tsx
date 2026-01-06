@@ -13,6 +13,8 @@ import { ThemeToggle } from '../ThemeToggle';
 import { NotificationCenter } from '../NotificationCenter';
 import { SearchBar } from '../SearchBar';
 import { ProjectSelector } from '../ProjectSelector';
+import { Button } from '../ui/button';
+import { Palette } from 'lucide-react';
 
 interface HeaderProps {
   user: {
@@ -88,7 +90,7 @@ const Header = ({ user, onLogout, onMenuClick }: HeaderProps) => {
         </div>
 
         {/* Right section */}
-        <div className="flex items-center space-x-1 sm:space-x-2">
+        <div className="flex items-center space-x-3">
           {/* Theme toggle */}
           <ThemeToggle />
 
@@ -98,6 +100,16 @@ const Header = ({ user, onLogout, onMenuClick }: HeaderProps) => {
             onClear={() => {}}
             onMarkAsRead={() => {}}
           />
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.location.href = '/theme-selector'}
+            className="flex items-center gap-2"
+          >
+            <Palette className="h-4 w-4" />
+            ธีม
+          </Button>
         </div>
         </div>
       </div>

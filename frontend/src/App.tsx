@@ -23,47 +23,47 @@ function App() {
     return (
         <ErrorBoundary>
             <QueryClientProvider client={queryClient}>
-                <ThemeProvider defaultTheme="light" storageKey="project-management-theme">
+                <ThemeProvider>
                     <ErrorProvider>
                         <AuthProvider>
-                                <>
-                                    <AppRouter />
+                            <>
+                                <AppRouter />
 
-                                    {/* Toast notifications */}
-                                    <Toaster
-                                        position="top-right"
-                                        toastOptions={{
-                                            duration: 5000,
-                                            style: {
-                                                background: 'white',
-                                                color: '#1e293b',
-                                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                                                borderRadius: '8px',
-                                                padding: '12px 16px',
+                                {/* Toast notifications */}
+                                <Toaster
+                                    position="top-right"
+                                    toastOptions={{
+                                        duration: 5000,
+                                        style: {
+                                            background: 'var(--color-surface)',
+                                            color: 'var(--color-text)',
+                                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                                            borderRadius: '8px',
+                                            padding: '12px 16px',
+                                        },
+                                        success: {
+                                            iconTheme: {
+                                                primary: 'var(--color-primary)',
+                                                secondary: 'var(--color-surface)',
                                             },
-                                            success: {
-                                                iconTheme: {
-                                                    primary: '#22c55e',
-                                                    secondary: 'white',
-                                                },
+                                        },
+                                        error: {
+                                            iconTheme: {
+                                                primary: 'var(--color-primary)',
+                                                secondary: 'var(--color-surface)',
                                             },
-                                            error: {
-                                                iconTheme: {
-                                                    primary: '#ef4444',
-                                                    secondary: 'white',
-                                                },
-                                            },
-                                        }}
-                                    />
+                                        },
+                                    }}
+                                />
 
-                                    {/* React Query DevTools - only in development */}
-                                    {process.env.NODE_ENV === 'development' && (
-                                        <ReactQueryDevtools initialIsOpen={false} />
-                                    )}
-                                    
-                                    {/* Vercel Speed Insights */}
-                                    <SpeedInsights />
-                                </>
+                                {/* React Query DevTools - only in development */}
+                                {process.env.NODE_ENV === 'development' && (
+                                    <ReactQueryDevtools initialIsOpen={false} />
+                                )}
+                                
+                                {/* Vercel Speed Insights */}
+                                <SpeedInsights />
+                            </>
                         </AuthProvider>
                     </ErrorProvider>
                 </ThemeProvider>
