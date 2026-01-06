@@ -388,18 +388,18 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
                                                             const isSubActive = location.pathname === subitem.path;
 
                                                             return (
-                                                                <motion.div
-                                                                    key={subitem.path}
-                                                                    variants={submenuItemVariants}
-                                                                    initial="hidden"
-                                                                            whileHover={{ scale: 1.15, rotate: 5 }}
-                                                                            whileTap={{ scale: 0.95 }}
-                                                                        >
-                                                                            <SubIcon className="h-4 w-4 flex-shrink-0" />
-                                                                        </motion.div>
+                                                                <NavLink to={subitem.path}>
+                                                                    <motion.div
+                                                                        key={subitem.path}
+                                                                        variants={submenuItemVariants}
+                                                                        initial="hidden"
+                                                                        whileHover={{ scale: 1.15, rotate: 5 }}
+                                                                        whileTap={{ scale: 0.95 }}
+                                                                    >
+                                                                        <SubIcon className="h-4 w-4 flex-shrink-0" />
                                                                         <span className="truncate">{subitem.title}</span>
-                                                                    </NavLink>
-                                                                </motion.div>
+                                                                    </motion.div>
+                                                                </NavLink>
                                                             );
                                                         })}
                                                     </motion.div>
