@@ -263,4 +263,47 @@ router.post('/:id/change-password', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /api/users/:id/admin-reset-password - Admin reset password (protected, admin only)
+router.post('/:id/admin-reset-password', authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({ error: 'New password is required' });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, parseInt(process.env.BCRYPT_ROUNDS) || 10);
+
+    // Update password
+    const result = await db.update(users)
+      .set({ 
+        password: hashedNewPassword,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        updatedAt: users.updatedAt,
+      });
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
 export default router;
