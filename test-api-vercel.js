@@ -8,89 +8,88 @@ const testUser = {
   password: "AppWorks@123!",
 };
 
+async function testEndpoint(name, url, options = {}) {
+  console.log(`Testing ${name}...`);
+  try {
+    const response = await fetch(url, options);
+    const data = await response.json();
+
+    if (response.ok) {
+      console.log(`✅ ${name} - Success`);
+      if (Array.isArray(data)) {
+        console.log(`   Found ${data.length} items`);
+      } else if (data.user || data.token) {
+        console.log(`   User: ${data.user?.name || 'N/A'}, Token: ${data.token ? 'Yes' : 'No'}`);
+      }
+      return { success: true, data };
+    } else {
+      console.log(`❌ ${name} - Failed (${response.status})`);
+      console.log(`   Error: ${data.error || 'Unknown error'}`);
+      return { success: false, error: data };
+    }
+  } catch (error) {
+    console.log(`❌ ${name} - Error: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
 async function testAPI() {
-  console.log('🧪 Testing API endpoints...\n');
+  console.log('🧪 Testing all API endpoints...\n');
 
   try {
     // 1. Test health check
-    console.log('1. Testing health check...');
-    const healthResponse = await fetch(`${API_BASE}/health`);
-    const healthData = await healthResponse.json();
-    console.log('Health check result:', healthData);
-
-    if (healthData.database !== 'connected') {
-      console.error('❌ Database connection failed!');
-      return;
-    }
-    console.log('✅ Health check passed\n');
-
-    // 2. Test login
-    console.log('2. Testing login...');
-    const loginResponse = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(testUser),
-    });
-
-    if (!loginResponse.ok) {
-      console.error('❌ Login failed:', loginResponse.status, loginResponse.statusText);
-      const errorData = await loginResponse.text();
-      console.error('Error details:', errorData);
-      return;
-    }
-
-    const loginData = await loginResponse.json();
-    console.log('✅ Login successful');
-    console.log('User:', loginData.user);
-    const token = loginData.token;
-    console.log('Token received:', token ? 'Yes' : 'No');
-
-    if (!token) {
-      console.error('❌ No token received from login');
+    const healthResult = await testEndpoint('Health Check', `${API_BASE}/health`);
+    if (!healthResult.success || healthResult.data?.database !== 'connected') {
+      console.error('❌ Database connection failed! Cannot proceed with tests.');
+      if (healthResult.data?.databaseDetails) {
+        console.log('Database details:', healthResult.data.databaseDetails);
+      } else if (healthResult.error) {
+        console.log('Health check error:', healthResult.error);
+      }
       return;
     }
     console.log('');
 
-    // 3. Test authenticated endpoints
+    // 2. Test login
+    const loginResult = await testEndpoint('Login', `${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testUser),
+    });
+
+    if (!loginResult.success) {
+      console.error('❌ Login failed! Cannot proceed with authenticated tests.');
+      return;
+    }
+
+    const token = loginResult.data.token;
     const headers = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     };
-
-    // Test users endpoint
-    console.log('3. Testing users endpoint...');
-    const usersResponse = await fetch(`${API_BASE}/users`, { headers });
-    if (usersResponse.ok) {
-      const users = await usersResponse.json();
-      console.log('✅ Users fetched successfully');
-      console.log(`Found ${users.length} users`);
-    } else {
-      console.error('❌ Users endpoint failed:', usersResponse.status, usersResponse.statusText);
-      const errorData = await usersResponse.text();
-      console.error('Error details:', errorData);
-    }
     console.log('');
 
-    // Test projects endpoint
-    console.log('4. Testing projects endpoint...');
-    const projectsResponse = await fetch(`${API_BASE}/projects`, { headers });
-    if (projectsResponse.ok) {
-      const projects = await projectsResponse.json();
-      console.log('✅ Projects fetched successfully');
-      console.log(`Found ${projects.length} projects`);
-    } else {
-      console.error('❌ Projects endpoint failed:', projectsResponse.status, projectsResponse.statusText);
-      const errorData = await projectsResponse.text();
-      console.error('Error details:', errorData);
-    }
-    console.log('');
+    // 3. Test all authenticated endpoints
+    const endpoints = [
+      { name: 'Users List', url: `${API_BASE}/users`, options: { headers } },
+      { name: 'Projects List', url: `${API_BASE}/projects`, options: { headers } },
+      { name: 'Tasks List', url: `${API_BASE}/tasks`, options: { headers } },
+      { name: 'Timesheets List', url: `${API_BASE}/timesheets`, options: { headers } },
+      { name: 'Expenses List', url: `${API_BASE}/expenses`, options: { headers } },
+      { name: 'Customers List', url: `${API_BASE}/customers`, options: { headers } },
+      { name: 'Teams List', url: `${API_BASE}/teams`, options: { headers } },
+      { name: 'Analytics', url: `${API_BASE}/analytics`, options: { headers } },
+      { name: 'Reports', url: `${API_BASE}/reports`, options: { headers } },
+    ];
 
-    console.log('🎉 All API tests completed!');
+    for (const endpoint of endpoints) {
+      await testEndpoint(endpoint.name, endpoint.url, endpoint.options);
+    }
+
+    console.log('\n🎉 All API tests completed!');
 
   } catch (error) {
-    console.error('❌ Test failed with error:', error);
+    console.error('❌ Test suite failed with error:', error);
   }
 }
 
