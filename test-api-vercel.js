@@ -80,6 +80,10 @@ async function testAPI() {
       { name: 'Teams List', url: `${API_BASE}/teams`, options: { headers } },
       { name: 'Analytics', url: `${API_BASE}/analytics`, options: { headers } },
       { name: 'Reports', url: `${API_BASE}/reports`, options: { headers } },
+      { name: 'Performance - Project Summaries', url: `${API_BASE}/performance/project-summaries`, options: { headers } },
+      { name: 'Performance - User Workloads', url: `${API_BASE}/performance/user-workloads`, options: { headers } },
+      { name: 'Performance - Task Progress', url: `${API_BASE}/performance/task-progress`, options: { headers } },
+      { name: 'Performance - Dashboard Metrics', url: `${API_BASE}/performance/dashboard-metrics`, options: { headers } },
     ];
 
     for (const endpoint of endpoints) {

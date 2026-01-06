@@ -23,7 +23,7 @@ export async function checkDatabaseConnection() {
   try {
     const result = await sql`SELECT 1 as health_check`;
     console.log('✅ Database connection successful');
-    return { success: true };
+    return { success: true, data: result };
   } catch (error) {
     console.error('❌ Database connection failed:', error);
     const err = error as any;

@@ -90,6 +90,7 @@ app.get('/api/health', async (req, res) => {
     const { default: resourceRoutes } = await import('./routes/resource-routes.js');
     const { default: resourceUtilizationRoutes } = await import('./routes/resource-utilization-routes.js');
     const { default: teamCapacityRoutes } = await import('./routes/team-capacity-routes.js');
+    const { default: performanceRoutes } = await import('./routes/performance-routes.js');
 
     app.use('/api/projects', projectRoutes);
     app.use('/api/tasks', taskRoutes);
@@ -106,6 +107,7 @@ app.get('/api/health', async (req, res) => {
     app.use('/api/resources', resourceRoutes);
     app.use('/api/resource-utilization', resourceUtilizationRoutes);
     app.use('/api/team-capacity', teamCapacityRoutes);
+    app.use('/api/performance', performanceRoutes);
   } catch (error) {
     console.error('Failed to load routes:', error.message);
     
