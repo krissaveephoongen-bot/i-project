@@ -2,8 +2,6 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import svgr from 'vite-plugin-svgr';
-import { visualizer } from 'rollup-plugin-visualizer';
-import type { Plugin } from 'vite';
 
 // Load environment variables
 const env = loadEnv('development', process.cwd(), '');
@@ -37,12 +35,6 @@ export default defineConfig({
         svgo: false,
       },
     }),
-    visualizer({
-      filename: './dist/stats.html',
-      open: process.env.NODE_ENV !== 'CI',
-      gzipSize: true,
-      brotliSize: true,
-    }) as Plugin,
   ],
   resolve: {
     alias: {
