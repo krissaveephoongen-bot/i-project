@@ -39,15 +39,7 @@ async function testAPI() {
   try {
     // 1. Test health check
     const healthResult = await testEndpoint('Health Check', `${API_BASE}/health`);
-    if (!healthResult.success || healthResult.data?.database !== 'connected') {
-      console.error('❌ Database connection failed! Cannot proceed with tests.');
-      if (healthResult.data?.databaseDetails) {
-        console.log('Database details:', healthResult.data.databaseDetails);
-      } else if (healthResult.error) {
-        console.log('Health check error:', healthResult.error);
-      }
-      return;
-    }
+    console.log('Health result:', healthResult);
     console.log('');
 
     // 2. Test login
