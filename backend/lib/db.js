@@ -9,12 +9,13 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not defined');
 }
 
-// Configure connection for Vercel serverless environment
+// Configure connection for Vercel serverless
 const connectionOptions = {
   prepare: false,
   max: 1, // Limit connections for serverless
   idle_timeout: 20, // Close idle connections after 20 seconds
   connect_timeout: 10, // Connection timeout
+  charset: 'utf8', // Ensure UTF-8 encoding for Thai characters
   onnotice: (notice) => console.log('PostgreSQL notice:', notice),
   onparameter: (key, value) => console.log('PostgreSQL parameter:', key, value),
 };
