@@ -1,20 +1,21 @@
-import { useContext } from 'react';
-import { useThemeContext } from '@/contexts/ThemeContext';
+import { useTheme as useThemeContext } from '@/contexts/ThemeContext';
 
 export type Theme = 'light' | 'dark' | 'system';
 
-export function useTheme() {
-  const { theme, setTheme, actualTheme } = useThemeContext();
+export function useThemeHook() {
+  const { state, setTheme } = useThemeContext();
+  const theme = state.currentTheme;
 
   const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark');
+    const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'blue' : 'dark';
+    setTheme(nextTheme as any);
   };
 
   return {
     theme,
     setTheme,
     toggleTheme,
-    actualTheme,
+    actualTheme: theme,
     mounted: true,
   };
 }

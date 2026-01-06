@@ -13,7 +13,6 @@ import { ThemeToggle } from '../ThemeToggle';
 import { NotificationCenter } from '../NotificationCenter';
 import { SearchBar } from '../SearchBar';
 import { ProjectSelector } from '../ProjectSelector';
-import { Button } from '../ui/button';
 import { Palette } from 'lucide-react';
 
 interface HeaderProps {

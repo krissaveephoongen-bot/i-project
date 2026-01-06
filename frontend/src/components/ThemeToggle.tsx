@@ -1,4 +1,4 @@
-import { useTheme } from '../hooks/use-theme';
+import { useThemeHook } from '../hooks/use-theme';
 import { Moon, Sun, Monitor } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -10,7 +10,7 @@ import {
 } from './ui/dropdown-menu';
 
 export function ThemeToggle() {
-  const { theme, setTheme, actualTheme } = useTheme();
+  const { theme, setTheme, actualTheme } = useThemeHook();
 
   const getIcon = () => {
     switch (theme) {
@@ -18,8 +18,6 @@ export function ThemeToggle() {
         return <Moon className="h-4 w-4" />;
       case 'light':
         return <Sun className="h-4 w-4" />;
-      case 'system':
-        return <Monitor className="h-4 w-4" />;
       default:
         return actualTheme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />;
     }
@@ -53,11 +51,11 @@ export function ThemeToggle() {
           Dark
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          checked={theme === 'system'}
-          onCheckedChange={() => setTheme('system')}
+          checked={theme === 'blue'}
+          onCheckedChange={() => setTheme('blue')}
         >
           <Monitor className="h-4 w-4 mr-2" />
-          System
+          Blue
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>
