@@ -41,9 +41,10 @@ export default function Dashboard() {
      const navigate = useNavigate();
      const [stats, setStats] = useState<any>(null);
      const [isLoading, setIsLoading] = useState(true);
-     const [error, setError] = useState<any>(null);
+     const [error, setError] = useState<{message: string, component: string} | null>(null);
      const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
      const [dateRange, setDateRange] = useState<'week' | 'month' | 'quarter'>('month');
+     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const [projects, setProjects] = useState<Project[]>([]);
     const [selectedProject, setSelectedProject] = useState<string>('all');
@@ -59,62 +60,102 @@ export default function Dashboard() {
 
     const [sCurveData, setSCurveData] = useState<Record<string, SCurveDataPoint[]>>({});
 
-    // Fetch dashboard data
-     useEffect(() => {
-         const fetchData = async () => {
-             try {
-                 setIsLoading(true);
-                 setError(null);
+    // Fetch dashboard data with error boundaries for each section
+    useEffect(() => {
+        let isMounted = true;
+        
+        const fetchData = async () => {
+            try {
+                setIsLoading(true);
+                setError(null);
 
-                 // Fetch projects from API
-                 const projectsResponse = await fetch(buildApiUrl('/projects?limit=10'));
+                // Fetch projects from API with error handling
+                const projectsResponse = await fetch(buildApiUrl('/projects?limit=10'));
 
-                 if (!projectsResponse.ok) {
-                     throw new Error(`Failed to fetch projects: ${projectsResponse.status}`);
-                 }
+                if (!projectsResponse.ok) {
+                    throw new Error(`Failed to fetch projects: ${projectsResponse.status}`);
+                }
 
-                 const projectsResult = await projectsResponse.json();
+                const projectsResult = await projectsResponse.json();
 
-                 if (projectsResult.success) {
-                     const apiProjects = projectsResult.data.map((p: any) => ({
-                         id: p.id,
-                         name: p.name,
-                         code: p.code,
-                         status: p.status,
-                         progress: p.progress || 0,
-                         budget: p.budget,
-                         actualCost: p.actualCost,
-                         startDate: p.startDate,
-                         endDate: p.endDate,
-                         client: p.client,
-                         projectManager: p.projectManager,
-                         _count: p._count
-                     }));
+                if (projectsResult.success) {
+                    const apiProjects = projectsResult.data.map((p: any) => ({
+                        id: p.id,
+                        name: p.name,
+                        code: p.code,
+                        status: p.status,
+                        progress: p.progress || 0,
+                        budget: p.budget,
+                        actualCost: p.actualCost,
+                        startDate: p.startDate,
+                        endDate: p.endDate,
+                        client: p.client,
+                        projectManager: p.projectManager,
+                        _count: p._count || { tasks: 0, timesheets: 0, timeLogs: 0 } // Provide default values
+                    }));
 
-                     setProjects(apiProjects);
+                    if (isMounted) {
+                        setProjects(apiProjects);
+                        
+                        // Generate S-Curve data in a non-blocking way
+                        setTimeout(() => {
+                            try {
+                                const sCurveDataMap: Record<string, SCurveDataPoint[]> = {};
+                                apiProjects.forEach((project: Project) => {
+                                    try {
+                                        const weeks = getWeeksFromDateRange(dateRange);
+                                        sCurveDataMap[project.id] = generateSCurveData(project.name, weeks, project.progress);
+                                    } catch (curveError) {
+                                        console.error(`Error generating S-curve for project ${project.id}:`, curveError);
+                                        // Continue with other projects even if one fails
+                                    }
+                                });
+                                setSCurveData(sCurveDataMap);
+                            } catch (batchError) {
+                                console.error('Error in batch S-curve generation:', batchError);
+                                setError({ 
+                                    message: 'Some visualization data could not be generated', 
+                                    component: 's-curve' 
+                                });
+                            }
+                        }, 0);
+                    }
+                } else {
+                    throw new Error(projectsResult.message || 'Failed to fetch projects');
+                }
 
-                     // Generate S-Curve data for each project based on dateRange
-                     const sCurveDataMap: Record<string, SCurveDataPoint[]> = {};
-                     apiProjects.forEach((project: Project) => {
-                         const weeks = getWeeksFromDateRange(dateRange);
-                         sCurveDataMap[project.id] = generateSCurveData(project.name, weeks, project.progress);
-                     });
+                if (isMounted) {
+                    setLastUpdated(new Date());
+                }
+            } catch (err) {
+                console.error('Error in dashboard data fetch:', err);
+                if (isMounted) {
+                    setError({ 
+                        message: parseApiError(err).message, 
+                        component: 'projects' 
+                    });
+                    
+                    // Set default empty projects to prevent UI from breaking
+                    setProjects([]);
+                    setSCurveData({});
+                }
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                    setIsRefreshing(false);
+                }
+            }
+        };
 
-                     setSCurveData(sCurveDataMap);
-                 } else {
-                     throw new Error(projectsResult.message || 'Failed to fetch projects');
-                 }
+        fetchData();
 
-                 setLastUpdated(new Date());
-             } catch (err) {
-                 console.error('Error fetching dashboard data:', err);
-                 setError(parseApiError(err));
-             } finally {
-                 setIsLoading(false);
-             }
-         };
+        return () => {
+            isMounted = false;
+        };
+    }, [dateRange]);
 
-        const getWeeksFromDateRange = (range: 'week' | 'month' | 'quarter'): number => {
+    const getWeeksFromDateRange = (range: 'week' | 'month' | 'quarter'): number => {
+        try {
             switch (range) {
                 case 'week':
                     return 1;
@@ -125,68 +166,134 @@ export default function Dashboard() {
                 default:
                     return 4;
             }
-        };
+        } catch (error) {
+            console.error('Error getting weeks from date range:', error);
+            return 4; // Default to month view on error
+        }
+    };
 
-        const generateSCurveData = (_projectName: string, weeks: number, currentProgress: number): SCurveDataPoint[] => {
+    const generateSCurveData = (_projectName: string, weeks: number, currentProgress: number): SCurveDataPoint[] => {
+        try {
             const data: SCurveDataPoint[] = [];
             const today = new Date();
 
-            for (let i = 0; i < weeks; i++) {
-                const date = new Date(today);
-                date.setDate(today.getDate() + (i * 7));
+            // Ensure weeks is a positive number
+            const safeWeeks = Math.max(1, Math.min(weeks || 4, 52)); // Clamp between 1 and 52 weeks
+            const safeProgress = Math.max(0, Math.min(currentProgress || 0, 100)); // Clamp between 0 and 100
 
-                const plannedProgress = Math.min(100, Math.round(100 / (1 + Math.exp(-0.5 * (i - weeks/2)))));
+            for (let i = 0; i < safeWeeks; i++) {
+                try {
+                    const date = new Date(today);
+                    date.setDate(today.getDate() + (i * 7));
 
-                const progressVariance = Math.random() * 10 - 5;
-                const actualProgress = Math.min(currentProgress, Math.max(0, plannedProgress + progressVariance));
+                    const plannedProgress = Math.min(100, Math.round(100 / (1 + Math.exp(-0.5 * (i - safeWeeks/2)))));
+                    const progressVariance = Math.random() * 10 - 5;
+                    const actualProgress = Math.min(safeProgress, Math.max(0, plannedProgress + progressVariance));
 
-                const dateString = date.toISOString().split('T')[0];
-                if (!dateString) continue; // Skip if date is invalid
+                    const dateString = date.toISOString()?.split('T')[0] || new Date().toISOString().split('T')[0];
 
-                data.push({
-                    month: date.toLocaleString('default', { month: 'short' }),
-                    date: dateString,
-                    plannedPercentage: plannedProgress,
-                    actualPercentage: i === weeks - 1 ? currentProgress : actualProgress,
-                    plannedWeight: plannedProgress * 1000,
-                    actualWeight: actualProgress * 1000
-                });
+                    data.push({
+                        month: date.toLocaleString('default', { month: 'short' }) || 'N/A',
+                        date: dateString,
+                        plannedPercentage: plannedProgress,
+                        actualPercentage: i === safeWeeks - 1 ? safeProgress : actualProgress,
+                        plannedWeight: plannedProgress * 1000,
+                        actualWeight: actualProgress * 1000
+                    });
+                } catch (dateError) {
+                    console.error(`Error processing week ${i}:`, dateError);
+                    // Skip this week if there's an error
+                    continue;
+                }
             }
 
             return data;
-        };
+        } catch (error) {
+            console.error('Error in generateSCurveData:', error);
+            // Return a minimal valid data structure to prevent UI crashes
+            return [{
+                month: 'N/A',
+                date: new Date().toISOString().split('T')[0],
+                plannedPercentage: 0,
+                actualPercentage: 0,
+                plannedWeight: 0,
+                actualWeight: 0
+            }];
+        }
+    };
 
-        fetchData();
-    }, [dateRange]);
+    // Function to manually refresh data
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        // Force a re-fetch of all data
+        setProjects([]);
+        setSCurveData({});
+        setError(null);
+        // The useEffect will trigger a new data fetch due to state changes
+    };
 
     const calculateStats = (projects: Project[]) => {
-        const totalProjects = projects.length;
-        const activeProjects = projects.filter(p => p.status === 'IN_PROGRESS' || p.status === 'PLANNING').length;
-        const totalTasks = projects.reduce((sum, p) => sum + (p._count?.tasks || 0), 0);
+        try {
+            if (!Array.isArray(projects)) {
+                console.error('Invalid projects data:', projects);
+                projects = []; // Reset to empty array if invalid
+            }
 
-        const totalBudget = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
-        const totalSpent = projects.reduce((sum, p) => sum + (p.actualCost || 0), 0);
-        const budgetRemaining = totalBudget - totalSpent;
-        const budgetUtilization = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+            const totalProjects = projects.length;
+            const activeProjects = projects.filter(p => p && (p.status === 'IN_PROGRESS' || p.status === 'PLANNING')).length;
+            const totalTasks = projects.reduce((sum, p) => sum + ((p?._count?.tasks) || 0), 0);
 
-        return {
-            projects: totalProjects,
-            activeProjects,
-            tasks: totalTasks,
-            completed: 0, // Will be calculated from actual task data
-            inProgress: 0,
-            overdueTasks: 0,
-            upcomingDeadlines: 0,
-            team: 0, // Will be calculated from user data
-            totalBudget,
-            totalSpent,
-            budgetRemaining,
-            budgetUtilization,
-            totalRevenue: 0,
-            totalHours: 0,
-            newMessages: 3,
-            completionRate: 0,
-        };
+            const totalBudget = projects.reduce((sum, p) => sum + (Number(p?.budget) || 0), 0);
+            const totalSpent = projects.reduce((sum, p) => sum + (Number(p?.actualCost) || 0), 0);
+            const budgetRemaining = Math.max(0, totalBudget - totalSpent); // Ensure non-negative
+            const budgetUtilization = totalBudget > 0 ? Math.min(100, (totalSpent / totalBudget) * 100) : 0;
+
+            // Calculate completion rate based on project progress
+            const validProjects = projects.filter(p => p && typeof p.progress === 'number');
+            const completionRate = validProjects.length > 0 
+                ? validProjects.reduce((sum, p) => sum + (p.progress || 0), 0) / validProjects.length
+                : 0;
+
+            return {
+                projects: totalProjects,
+                activeProjects,
+                tasks: totalTasks,
+                completed: Math.round(validProjects.filter(p => p.progress >= 100).length),
+                inProgress: validProjects.filter(p => p.progress > 0 && p.progress < 100).length,
+                overdueTasks: 0, // This would come from a separate API call
+                upcomingDeadlines: 0, // This would come from a separate API call
+                team: 0, // This would come from a separate API call
+                totalBudget,
+                totalSpent,
+                budgetRemaining,
+                budgetUtilization,
+                totalRevenue: 0, // This would come from a separate API call
+                totalHours: 0, // This would come from a separate API call
+                newMessages: 0, // This would come from a separate API call
+                completionRate: Math.round(completionRate),
+            };
+        } catch (error) {
+            console.error('Error calculating dashboard stats:', error);
+            // Return safe defaults if calculation fails
+            return {
+                projects: 0,
+                activeProjects: 0,
+                tasks: 0,
+                completed: 0,
+                inProgress: 0,
+                overdueTasks: 0,
+                upcomingDeadlines: 0,
+                team: 0,
+                totalBudget: 0,
+                totalSpent: 0,
+                budgetRemaining: 0,
+                budgetUtilization: 0,
+                totalRevenue: 0,
+                totalHours: 0,
+                newMessages: 0,
+                completionRate: 0,
+            };
+        }
     };
 
     useEffect(() => {
@@ -195,21 +302,6 @@ export default function Dashboard() {
             setStats(calculatedStats);
         }
     }, [projects, dateRange]);
-
-    // Error state
-     if (error && !isLoading) {
-         return (
-             <div className="p-6">
-                 <ErrorState 
-                     error={error}
-                     onRetry={() => {
-                         setError(null);
-                         setIsLoading(true);
-                     }}
-                 />
-             </div>
-         );
-     }
 
      if (isLoading) {
          return (
@@ -239,8 +331,49 @@ export default function Dashboard() {
         return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     };
 
+    // Handle error state with more granular error handling
+    const renderErrorState = (error: {message: string, component?: string}) => (
+        <div className="p-4 border border-red-200 bg-red-50 rounded-lg mb-4">
+            <div className="flex items-center">
+                <AlertOutlined className="text-red-500 mr-2" />
+                <h3 className="text-red-700 font-medium">
+                    {error.component ? `Error in ${error.component}: ` : 'Error: '}
+                    {error.message}
+                </h3>
+            </div>
+            <p className="mt-2 text-sm text-gray-600">
+                Some dashboard features may be limited. {isRefreshing ? 'Refreshing...' : ''}
+            </p>
+            <Button 
+                type="link" 
+                onClick={handleRefresh}
+                loading={isRefreshing}
+                className="mt-2 p-0 text-sm"
+                icon={<ReloadOutlined />}
+            >
+                {isRefreshing ? 'Refreshing...' : 'Try Again'}
+            </Button>
+        </div>
+    );
+
+    // Show error state if there's a critical error and no data
+    if (error && !isLoading && projects.length === 0) {
+        return (
+            <div className="p-4">
+                {renderErrorState(error)}
+            </div>
+        );
+    }
+
     return (
         <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+            {/* Error Banner */}
+            {error && (
+                <div style={{ marginBottom: '24px' }}>
+                    {renderErrorState(error)}
+                </div>
+            )}
+
             {/* Header with Controls */}
             <div style={{
                 display: 'flex',
