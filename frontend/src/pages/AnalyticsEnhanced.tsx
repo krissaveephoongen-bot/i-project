@@ -37,39 +37,17 @@ export default function AnalyticsEnhanced() {
         return;
       }
 
-      // Transform data for charts
-      setProjectData([
-        { month: 'Jan', planned: 20, actual: 18 },
-        { month: 'Feb', planned: 35, actual: 32 },
-        { month: 'Mar', planned: 28, actual: 30 },
-        { month: 'Apr', planned: 42, actual: 40 },
-        { month: 'May', planned: 38, actual: 39 },
-        { month: 'Jun', planned: 45, actual: 44 },
-      ]);
-
-      setBudgetData([
-        { month: 'Jan', budget: 50000, actual: 48000 },
-        { month: 'Feb', budget: 60000, actual: 58000 },
-        { month: 'Mar', budget: 55000, actual: 57000 },
-        { month: 'Apr', budget: 70000, actual: 69000 },
-        { month: 'May', budget: 65000, actual: 66000 },
-        { month: 'Jun', budget: 80000, actual: 78000 },
-      ]);
-
-      setTeamData([
-        { name: 'Sarah Chen', hours: 160, utilization: 95 },
-        { name: 'John Doe', hours: 155, utilization: 92 },
-        { name: 'Mike Johnson', hours: 150, utilization: 89 },
-        { name: 'Alice Brown', hours: 165, utilization: 98 },
-        { name: 'Jane Smith', hours: 145, utilization: 85 },
-      ]);
-
+      // Use real data from analytics service with proper null checks
+      setProjectData(analyticsData.trends?.projectProgress || []);
+      setBudgetData(analyticsData.budget?.monthlyBreakdown || []);
+      setTeamData(analyticsData.resources?.teamMembers || []);
+      
       setMetrics({
-        overallProgress: analyticsData.summary?.completionRate || 68,
+        overallProgress: (analyticsData.summary?.completionRate || 0) as number,
         budgetUtilization: analyticsData.budget?.budgetStatus === 'on-budget' ? 78 : 85,
-        teamUtilization: analyticsData.resources?.overallUtilization || 92,
-        onTimeProjects: analyticsData.summary?.onTimeCompletionRate || 85,
-        totalProjects: analyticsData.summary?.totalProjects || 8
+        teamUtilization: (analyticsData.resources?.overallUtilization || 0) as number,
+        onTimeProjects: (analyticsData.summary?.onTimeCompletionRate || 0) as number,
+        totalProjects: (analyticsData.summary?.totalProjects || 0) as number
       });
 
     } catch (err) {
@@ -239,7 +217,7 @@ export default function AnalyticsEnhanced() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip formatter={(value) => `$${value / 1000}K`} />
+                  <Tooltip formatter={(value) => value ? `$${(value as number) / 1000}K` : '$0K'} />
                   <Legend />
                   <Bar dataKey="budget" fill="#3b82f6" name="Budget" />
                   <Bar dataKey="actual" fill="#10b981" name="Actual" />
