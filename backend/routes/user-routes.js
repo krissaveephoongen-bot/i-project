@@ -170,4 +170,97 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// PUT /api/users/:id/notification-preferences - Update notification preferences (protected)
+router.put('/:id/notification-preferences', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const preferences = req.body;
+
+    // Check if user is updating their own preferences or is admin
+    if (req.user.id !== id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Update notification preferences in users table (we'll add these fields to schema later)
+    const result = await db.update(users)
+      .set({ 
+        updatedAt: new Date(),
+        // Store preferences as JSON string for now
+        notificationPreferences: JSON.stringify(preferences)
+      })
+      .where(eq(users.id, id))
+      .returning({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        notificationPreferences: users.notificationPreferences,
+        updatedAt: users.updatedAt,
+      });
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ message: 'Notification preferences updated successfully' });
+  } catch (error) {
+    console.error('Error updating notification preferences:', error);
+    res.status(500).json({ error: 'Failed to update notification preferences' });
+  }
+});
+
+// POST /api/users/:id/change-password - Change password (protected)
+router.post('/:id/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    // Check if user is changing their own password or is admin
+    if (req.user.id !== id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Get current user data
+    const currentUser = await db.select({
+      id: users.id,
+      password: users.password,
+    }).from(users).where(eq(users.id, id)).limit(1);
+
+    if (currentUser.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, currentUser[0].password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, parseInt(process.env.BCRYPT_ROUNDS) || 10);
+
+    // Update password
+    const result = await db.update(users)
+      .set({ 
+        password: hashedNewPassword,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        updatedAt: users.updatedAt,
+      });
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
 export default router;

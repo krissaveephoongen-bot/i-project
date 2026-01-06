@@ -42,6 +42,7 @@ export const users = pgTable('users', {
   lockedUntil: timestamp('locked_until'),
   resetToken: text('reset_token'),
   resetTokenExpiry: timestamp('reset_token_expiry'),
+  notificationPreferences: jsonb('notification_preferences'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
