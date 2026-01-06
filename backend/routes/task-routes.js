@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     let query = db.select().from(tasks).orderBy(desc(tasks.createdAt));
 
     if (projectId) {
-      query = query.where(eq(tasks.projectId, parseInt(projectId)));
+      query = query.where(eq(tasks.projectId, projectId));
     }
 
     const allTasks = await query;
@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const task = await db.select().from(tasks).where(eq(tasks.id, parseInt(id))).limit(1);
+    const task = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
 
     if (task.length === 0) {
       return res.status(404).json({ error: 'Task not found' });
@@ -88,9 +88,10 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const result = await db.update(tasks)
+    const result = await db
+      .update(tasks)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(tasks.id, parseInt(id)))
+      .where(eq(tasks.id, id))
       .returning();
 
     if (result.length === 0) {
@@ -109,7 +110,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await db.delete(tasks).where(eq(tasks.id, parseInt(id))).returning();
+    const result = await db.delete(tasks).where(eq(tasks.id, id)).returning();
 
     if (result.length === 0) {
       return res.status(404).json({ error: 'Task not found' });

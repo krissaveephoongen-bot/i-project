@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const project = await db.select().from(projects).where(eq(projects.id, parseInt(id))).limit(1);
+    const project = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
 
     if (project.length === 0) {
       return res.status(404).json({ error: 'Project not found' });
@@ -36,18 +36,20 @@ router.get('/:id', async (req, res) => {
 // POST /api/projects - Create new project
 router.post('/', async (req, res) => {
   try {
-    const { name, code, description, status, startDate, endDate, budget, managerId, clientId } = req.body;
+    const { name, code, description, status, startDate, endDate, budget, managerId, clientId, userId } = req.body;
 
     const newProject = {
       name,
       code,
       description,
       status: status || 'todo',
-      startDate,
-      endDate,
+      // Drizzle timestamp columns expect JS Date objects
+      startDate: startDate ? new Date(startDate) : null,
+      endDate: endDate ? new Date(endDate) : null,
       budget,
       managerId,
       clientId,
+      userId,
     };
 
     const result = await db.insert(projects).values(newProject).returning();
@@ -64,9 +66,10 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const result = await db.update(projects)
+    const result = await db
+      .update(projects)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(projects.id, parseInt(id)))
+      .where(eq(projects.id, id))
       .returning();
 
     if (result.length === 0) {
@@ -85,7 +88,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await db.delete(projects).where(eq(projects.id, parseInt(id))).returning();
+    const result = await db.delete(projects).where(eq(projects.id, id)).returning();
 
     if (result.length === 0) {
       return res.status(404).json({ error: 'Project not found' });

@@ -25,6 +25,12 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
@@ -60,6 +66,9 @@ app.get('/api/health', (req, res) => {
     const { default: searchRoutes } = await import('./routes/search-routes.js');
     const { default: teamsRoutes } = await import('./routes/teams-routes.js');
     const { default: timesheetsRoutes } = await import('./routes/timesheets-routes.js');
+    const { default: resourceRoutes } = await import('./routes/resource-routes.js');
+    const { default: resourceUtilizationRoutes } = await import('./routes/resource-utilization-routes.js');
+    const { default: teamCapacityRoutes } = await import('./routes/team-capacity-routes.js');
 
     app.use('/api/projects', projectRoutes);
     app.use('/api/tasks', taskRoutes);
@@ -72,6 +81,9 @@ app.get('/api/health', (req, res) => {
     app.use('/api/search', searchRoutes);
     app.use('/api/teams', teamsRoutes);
     app.use('/api/timesheets', timesheetsRoutes);
+    app.use('/api/resources', resourceRoutes);
+    app.use('/api/resource-utilization', resourceUtilizationRoutes);
+    app.use('/api/team-capacity', teamCapacityRoutes);
   } catch (error) {
     console.error('Failed to load routes:', error.message);
     
