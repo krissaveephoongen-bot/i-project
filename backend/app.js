@@ -59,6 +59,7 @@ app.get('/api/health', (req, res) => {
     const { default: taskRoutes } = await import('./routes/task-routes.js');
     const { default: userRoutes } = await import('./routes/user-routes.js');
     const { default: authRoutes } = await import('./routes/auth-routes.js');
+    const { default: customerRoutes } = await import('./routes/customer-routes.js');
     const { default: projectManagerRoutes } = await import('./routes/project-manager-routes.js');
     const { default: analyticsRoutes } = await import('./routes/analytics-routes.js');
     const { default: expensesRoutes } = await import('./routes/expenses-routes.js');
@@ -74,6 +75,7 @@ app.get('/api/health', (req, res) => {
     app.use('/api/tasks', taskRoutes);
     app.use('/api/users', userRoutes);
     app.use('/api/auth', authRoutes);
+    app.use('/api/customers', customerRoutes);
     app.use('/api/project-managers', projectManagerRoutes);
     app.use('/api/analytics', analyticsRoutes);
     app.use('/api/expenses', expensesRoutes);

@@ -86,14 +86,24 @@ export const teamService = {
    * Get all team members or members of a specific team
    */
   async getTeamMembers(teamId: string = 'all'): Promise<{ success: boolean; data: TeamMember[] }> {
-    if (teamId === 'all') {
-      // Get all team members from the users/team-members endpoint
-      const response = await apiClient.get('/team-members');
-      return response.data;
-    }
-    // Get members of a specific team
-    const response = await apiClient.get(`/teams/${teamId}/members`);
-    return response.data;
+    // For now, map active users to generic team members to power dropdowns & team views
+    // This keeps frontend UX working even without a dedicated teams backend.
+    const response = await apiClient.get('/users');
+    const users = (response.data as any).data || response.data || [];
+
+    const members: TeamMember[] = users.map((u: any) => ({
+      id: u.id,
+      name: u.name || u.email,
+      email: u.email,
+      user_role: u.role || u.user_role || 'member',
+      team_role: 'member',
+      joined_at: u.created_at || u.createdAt || new Date().toISOString(),
+    }));
+
+    return {
+      success: true,
+      data: members,
+    };
   },
 
   /**

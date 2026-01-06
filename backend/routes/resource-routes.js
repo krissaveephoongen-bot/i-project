@@ -44,7 +44,7 @@ router.get('/:userId/capacity', async (req, res) => {
       userName: user[0].name,
       totalCapacity: 40, // Default 40 hours/week
       allocatedCapacity: 0, // TODO: Calculate from tasks
-      availableCapacity: (user[0].capacity || 40) - 0,
+      availableCapacity: 40,
     });
   } catch (error) {
     console.error('Error fetching resource capacity:', error);
@@ -109,7 +109,7 @@ router.post('/:userId/allocate', async (req, res) => {
       userName: user[0].name,
       totalCapacity: 40,
       allocatedCapacity: hoursPerWeek || 0,
-      availableCapacity: (user[0].capacity || 40) - (hoursPerWeek || 0),
+      availableCapacity: 40 - (hoursPerWeek || 0),
     });
   } catch (error) {
     console.error('Error allocating resource:', error);
@@ -139,7 +139,7 @@ router.post('/:userId/deallocate', async (req, res) => {
       userName: user[0].name,
       totalCapacity: 40,
       allocatedCapacity: 0,
-      availableCapacity: user[0].capacity || 40,
+      availableCapacity: 40,
     });
   } catch (error) {
     console.error('Error deallocating resource:', error);
