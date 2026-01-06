@@ -176,4 +176,40 @@ router.get('/me', async (req, res) => {
   }
 });
 
+// GET /api/auth/verify - Verify JWT token
+router.get('/verify', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+
+    if (!token) {
+      return res.status(401).json({ error: 'Access token required' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    const userResult = await db.select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      avatar: users.avatar,
+      department: users.department,
+      position: users.position,
+      lastLogin: users.lastLogin,
+    }).from(users).where(eq(users.id, decoded.id)).limit(1);
+
+    if (userResult.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ 
+      valid: true, 
+      user: userResult[0] 
+    });
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
 export default router;

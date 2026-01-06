@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import postgres from '@vercel/postgres';
 import * as schema from './schema.js';
 
 // Create the connection
