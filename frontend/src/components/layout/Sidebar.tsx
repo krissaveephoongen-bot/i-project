@@ -41,23 +41,19 @@ const menuItems: MenuItem[] = [
             { title: 'Project Table', icon: FileText, path: '/projects/table' },
             { title: 'Create Project', icon: Plus, path: '/projects/create' },
             { title: 'My Projects', icon: Briefcase, path: '/projects/my-projects', className: 'text-black' },
-            { title: 'Project Billing', icon: DollarSign, path: '/project-billing' },
-            { title: 'Issue Log', icon: Activity, path: '/project-issues' },
         ],
     },
     {
         title: 'Tasks',
         icon: ClipboardList,
-        path: '/task-management',
+        path: '/tasks',
     },
     {
         title: 'Project Manager',
         icon: ClipboardList,
         submenu: [
             { title: 'Manager Dashboard', icon: LayoutDashboard, path: '/project-manager' },
-            { title: 'Project Managers', icon: Users, path: '/project-manager' },
             { title: 'All Users', icon: Users, path: '/project-manager-users', requiredRole: ['admin'] },
-            { title: 'Workload', icon: Activity, path: '/workload' },
         ],
     },
     {
@@ -65,10 +61,8 @@ const menuItems: MenuItem[] = [
         icon: Users,
         submenu: [
             { title: 'Resource Dashboard', icon: LayoutDashboard, path: '/resources' },
-            { title: 'Resource Planning', icon: Target, path: '/resources/planning' },
             { title: 'Team Members', icon: Users, path: '/resources/team' },
             { title: 'Resource Allocation', icon: Target, path: '/resources/allocation' },
-            { title: 'Resource Calendar', icon: Calendar, path: '/resources/calendar' },
         ],
     },
     {
@@ -76,9 +70,7 @@ const menuItems: MenuItem[] = [
         icon: Clock,
         submenu: [
             { title: 'My Timesheet', icon: Clock, path: '/timesheet' },
-            { title: 'Team Timesheets', icon: Clock, path: '/timesheets/team', requiredRole: ['manager', 'admin'] },
             { title: 'Expenses', icon: DollarSign, path: '/expenses' },
-            { title: 'Expense Reports', icon: FileText, path: '/expenses/reports' },
             { title: 'Cost Management', icon: TrendingUp, path: '/cost-management' },
         ],
     },
@@ -88,7 +80,7 @@ const menuItems: MenuItem[] = [
         submenu: [
             { title: 'Reports', icon: BarChart3, path: '/reports' },
             { title: 'Analytics', icon: TrendingUp, path: '/analytics' },
-            { title: 'Enhanced Analytics', icon: BarChart3, path: '/analytics/enhanced' },
+            { title: 'Enhanced Analytics', icon: BarChart3, path: '/analytics-enhanced' },
         ],
         requiredRole: ['admin', 'manager'],
     },
@@ -119,12 +111,8 @@ const menuItems: MenuItem[] = [
     {
         title: 'Admin Console',
         icon: Shield,
+        path: '/admin',
         requiredRole: ['admin'],
-        submenu: [
-            { title: 'User Management', icon: Users, path: '/admin/users' },
-            { title: 'Role Management', icon: Shield, path: '/admin/role-management' },
-            { title: 'Database Status', icon: Activity, path: '/admin/database' },
-        ],
     },
 ];
 
@@ -295,27 +283,7 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
                                     );
                                 }
 
-                                // Special handling for Admin Console
-                                if (item.title === 'Admin Console') {
-                                    return (
-                                        <div key={item.title}>
-                                            <button
-                                                onClick={handleAdminConsoleClick}
-                                                className={cn(
-                                                    'group w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
-                                                    'text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-red-50 hover:to-orange-50 dark:hover:from-red-900/20 dark:hover:to-orange-900/20',
-                                                    'relative overflow-hidden'
-                                                )}
-                                            >
-                                                <Icon className="h-5 w-5 flex-shrink-0" />
-                                                <span className="truncate relative z-10">{item.title}</span>
-                                                <div className="ml-auto text-xs bg-gradient-to-r from-red-500 to-orange-500 text-white px-2 py-1 rounded font-semibold relative z-10">
-                                                    🔐
-                                                </div>
-                                            </button>
-                                        </div>
-                                    );
-                                }
+
 
                                 return (
                                     <div key={item.path}>
