@@ -61,7 +61,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       position: users.position,
       status: users.status,
       createdAt: users.createdAt,
-    }).from(users).where(eq(users.id, parseInt(id))).limit(1);
+    }).from(users).where(eq(users.id, id)).limit(1);
 
     if (user.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -125,7 +125,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     const result = await db.update(users)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(users.id, parseInt(id)))
+      .where(eq(users.id, id))
       .returning({
         id: users.id,
         name: users.name,
@@ -157,7 +157,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await db.delete(users).where(eq(users.id, parseInt(id))).returning();
+    const result = await db.delete(users).where(eq(users.id, id)).returning();
 
     if (result.length === 0) {
       return res.status(404).json({ error: 'User not found' });

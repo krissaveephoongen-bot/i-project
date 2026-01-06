@@ -48,8 +48,28 @@ app.get('/', (req, res) => {
 });
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Import the database check function
+    const { checkDatabaseConnection } = await import('./lib/db.js');
+    const dbResult = await checkDatabaseConnection();
+
+    res.json({
+      status: dbResult.success ? 'ok' : 'error',
+      message: dbResult.success ? 'Server and database are running' : 'Server running but database connection failed',
+      database: dbResult.success ? 'connected' : 'disconnected',
+      databaseDetails: dbResult.success ? null : dbResult,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Health check failed',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // API Routes

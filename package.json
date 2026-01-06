@@ -63,6 +63,7 @@
     "framer-motion": "^11.0.5",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.330.0",
+    "node-fetch": "^3.3.2",
     "postgres": "^3.4.7",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.3.1",
