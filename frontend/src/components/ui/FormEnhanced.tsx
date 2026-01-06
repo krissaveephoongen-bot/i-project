@@ -12,6 +12,7 @@ interface FormField {
   disabled?: boolean;
   error?: string;
   helper?: string;
+  description?: string;
   icon?: React.ReactNode;
   rightElement?: React.ReactNode;
   options?: Array<{ label: string; value: string | number }>;

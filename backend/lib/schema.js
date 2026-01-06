@@ -11,12 +11,12 @@ export const activityTypeEnum = pgEnum('activity_type', [
   'assign',
   'status_change',
 ]);
-
 export const workTypeEnum = pgEnum('work_type', ['project', 'office', 'other']);
 export const expenseCategoryEnum = pgEnum('expense_category', ['travel', 'supplies', 'equipment', 'training', 'other']);
 export const expenseStatusEnum = pgEnum('expense_status', ['pending', 'approved', 'rejected', 'reimbursed']);
-
 export const userRoleEnum = pgEnum('user_role', ['admin', 'manager', 'employee']);
+export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'rejected']);
+export const approvalActionTypeEnum = pgEnum('approval_action_type', ['project_manager_approval', 'supervisor_approval']);
 
 // Tables
 export const users = pgTable('users', {
@@ -35,6 +35,8 @@ export const users = pgTable('users', {
   status: text('status').default('active'),
   isActive: boolean('is_active').default(true),
   isDeleted: boolean('is_deleted').default(false),
+  isProjectManager: boolean('is_project_manager').default(false),
+  isSupervisor: boolean('is_supervisor').default(false),
   failedLoginAttempts: integer('failed_login_attempts').default(0),
   lastLogin: timestamp('last_login'),
   lockedUntil: timestamp('locked_until'),
@@ -105,6 +107,12 @@ export const timeEntries = pgTable('time_entries', {
   status: statusEnum('status').notNull().default('pending'),
   approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
   approvedAt: timestamp('approved_at'),
+  projectManagerApprovalStatus: approvalStatusEnum('project_manager_approval_status').default('pending'),
+  projectManagerId: uuid('project_manager_id').references(() => users.id, { onDelete: 'set null' }),
+  projectManagerApprovalDate: timestamp('project_manager_approval_date'),
+  supervisorApprovalStatus: approvalStatusEnum('supervisor_approval_status').default('pending'),
+  supervisorId: uuid('supervisor_id').references(() => users.id, { onDelete: 'set null' }),
+  supervisorApprovalDate: timestamp('supervisor_approval_date'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -173,4 +181,16 @@ export const comments = pgTable('comments', {
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Timesheet Approval Actions Table
+export const timesheetApprovalActions = pgTable('timesheet_approval_actions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  timesheetId: uuid('timesheet_id').references(() => timeEntries.id, { onDelete: 'cascade' }).notNull(),
+  actionType: approvalActionTypeEnum('action_type').notNull(),
+  previousStatus: approvalStatusEnum('previous_status').notNull(),
+  newStatus: approvalStatusEnum('new_status').notNull(),
+  changedBy: uuid('changed_by').references(() => users.id, { onDelete: 'set null' }).notNull(),
+  reason: text('reason'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });

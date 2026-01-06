@@ -8,13 +8,21 @@ import {
   Search, 
   Bell, 
   ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Plus,
+  FolderKanban,
+  Building2,
+  Briefcase,
+  Target,
+  TrendingUp,
+  Package,
+  CreditCard,
+  User as UserIcon,
   Moon,
   Sun,
   Palette,
-  X,
-  Plus,
-  User as UserIcon,
-  Building2
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,25 +97,25 @@ const Header: React.FC<HeaderProps> = ({
 
   const menuItems = [
     {
-      icon: <Building2 className="h-4 w-4" />,
+      icon: Building2,
       label: 'โครงการ',
       href: '/projects',
       badge: '3',
     },
     {
-      icon: <UserIcon className="h-4 w-4" />,
+      icon: UserIcon,
       label: 'ทีมงาน',
       href: '/tasks',
       badge: '12',
     },
     {
-      icon: <Search className="h-4 w-4" />,
+      icon: Search,
       label: 'รายการอนุมัติ',
       href: '/approvals',
       badge: '5',
     },
     {
-      icon: <Bell className="h-4 w-4" />,
+      icon: Bell,
       label: 'การแจ้ง',
       href: '/notifications',
       badge: '8',
@@ -390,7 +398,7 @@ const Header: React.FC<HeaderProps> = ({
                       "text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                     )}
                   >
-                    {item.icon && <item.icon className="h-5 w-5" />}
+                    {item.icon && React.createElement(item.icon, { className: "h-5 w-5" })}
                     <div className="flex-1">
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
                         {item.label}
