@@ -43,6 +43,7 @@ export const users = pgTable('users', {
   resetToken: text('reset_token'),
   resetTokenExpiry: timestamp('reset_token_expiry'),
   notificationPreferences: jsonb('notification_preferences'),
+  timezone: text('timezone').default('Asia/Bangkok'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
