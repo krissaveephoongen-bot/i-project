@@ -17,6 +17,14 @@ export const users = [
     role: Role.PROJECT_MANAGER,
     position: "Senior Project Manager",
     department: "Project management"
+  },
+  {
+    email: "jakgrits.ph@appworks.co.th",
+    password: "$2b$10$CJbjAEbEsj23XWYU1GnWauwK51lWCgRmJt.NPH.2DbF6jkw.zwIAq",
+    name: "Jakgrits Phoongen",
+    role: Role.EMPLOYEE,
+    position: "Developer",
+    department: "Development"
   }
   // Add more users as needed
 ];
