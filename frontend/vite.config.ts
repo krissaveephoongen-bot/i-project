@@ -2,9 +2,8 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import svgr from 'vite-plugin-svgr';
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
-import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill';
-import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill';
+import { visualizer } from 'rollup-plugin-visualizer';
+import type { Plugin } from 'vite';
 
 // Load environment variables
 const env = loadEnv('development', process.cwd(), '');
@@ -32,32 +31,18 @@ export default defineConfig({
         ],
       },
     }),
-    svgr(),
-    nodePolyfills({
-      include: [
-        'crypto',
-        'events',
-        'stream',
-        'util',
-        'buffer',
-        'process',
-        'assert',
-        'url',
-        'path',
-        'os',
-        'querystring',
-        'string_decoder',
-        'timers',
-        'readline',
-        'zlib'
-      ],
-      globals: {
-        Buffer: true,
-        global: true,
-        process: true
+    svgr({
+      svgrOptions: {
+        // Disable SVGO optimization to prevent issues with some SVGs
+        svgo: false,
       },
-      protocolImports: true,
     }),
+    visualizer({
+      filename: './dist/stats.html',
+      open: process.env.NODE_ENV !== 'CI',
+      gzipSize: true,
+      brotliSize: true,
+    }) as Plugin,
   ],
   resolve: {
     alias: {
@@ -72,30 +57,35 @@ export default defineConfig({
       path: 'path-browserify',
       process: 'process/browser',
       zlib: 'browserify-zlib',
-      fs: 'empty-module',
-      net: 'empty-module',
-      tls: 'empty-module',
-      dns: 'empty-module',
-      child_process: 'empty-module',
-      module: 'empty-module',
+      fs: './empty-module.js',
+      net: './empty-module.js',
+      tls: './empty-module.js',
+      dns: './empty-module.js',
+      child_process: './empty-module.js',
+      module: './empty-module.js',
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom'],
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@tanstack/react-query',
+      'recharts',
+      'date-fns',
+      'lodash',
+      'zod',
+      'axios',
+    ],
     esbuildOptions: {
       // Node.js global to browser globalThis
       define: {
         global: 'globalThis',
       },
-      // Enable esbuild polyfill plugins
-      plugins: [
-        NodeGlobalsPolyfillPlugin({
-          process: true,
-          buffer: true,
-        }),
-        NodeModulesPolyfillPlugin()
-      ],
     },
+  },
+  worker: {
+    format: 'es',
   },
   server: {
     port: 5173,
@@ -112,16 +102,27 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
-    commonjsOptions: {
-      transformMixedEsModules: true,
+    minify: 'terser',
+    target: 'esnext',
+    chunkSizeWarningLimit: 1000, // Increase chunk size warning limit to 1000KB
+    modulePreload: {
+      polyfill: true,
     },
     rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+      },
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          charts: ['chart.js', 'react-chartjs-2'],
-          ui: ['@headlessui/react', '@heroicons/react'],
+          // Group large dependencies into separate chunks
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-charts': ['recharts', 'd3-shape', 'd3-scale', 'd3-array'],
+          'vendor-utils': ['date-fns', 'lodash', 'zod'],
+          'vendor-http': ['axios'],
         },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
       },
     },
   },
