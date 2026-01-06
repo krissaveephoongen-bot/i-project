@@ -1,33 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import {
-    X,
-    ChevronRight,
-    ChevronLeft,
-    LayoutDashboard,
-    FolderKanban,
-    Clock,
-    BarChart3,
-    Settings,
-    Activity,
-    Search as SearchIcon,
-    Home as HomeIcon,
-    DollarSign,
-    Star,
-    Users as UsersIcon,
-    TrendingUp,
-    FileText,
-    Package,
-    Target,
-    Briefcase,
-    ChevronDown,
-    Plus,
-    Shield,
-    ClipboardList,
-    LogOut,
-} from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, LayoutDashboard, FolderKanban, Clock, BarChart3, Settings, Activity, Search as SearchIcon, Home as HomeIcon, DollarSign, Star, Users, TrendingUp, FileText, Package, Target, Briefcase, ChevronDown, Plus, Shield, ClipboardList, LogOut, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -67,31 +41,44 @@ const menuItems: MenuItem[] = [
             { title: 'Project Table', icon: FileText, path: '/projects/table' },
             { title: 'Create Project', icon: Plus, path: '/projects/create' },
             { title: 'My Projects', icon: Briefcase, path: '/projects/my-projects', className: 'text-black' },
+            { title: 'Project Billing', icon: DollarSign, path: '/project-billing' },
+            { title: 'Issue Log', icon: Activity, path: '/project-issues' },
         ],
+    },
+    {
+        title: 'Tasks',
+        icon: ClipboardList,
+        path: '/task-management',
     },
     {
         title: 'Project Manager',
         icon: ClipboardList,
         submenu: [
-            { title: 'Project Managers', icon: ClipboardList, path: '/project-manager' },
-            { title: 'All Users', icon: UsersIcon, path: '/project-manager-users', requiredRole: ['admin'] },
+            { title: 'Manager Dashboard', icon: LayoutDashboard, path: '/project-manager' },
+            { title: 'Project Managers', icon: Users, path: '/project-manager' },
+            { title: 'All Users', icon: Users, path: '/project-manager-users', requiredRole: ['admin'] },
+            { title: 'Workload', icon: Activity, path: '/workload' },
         ],
     },
     {
         title: 'Resources',
-        icon: UsersIcon,
+        icon: Users,
         submenu: [
-            { title: 'Resource Management', icon: UsersIcon, path: '/resources' },
-            { title: 'Team Members', icon: Package, path: '/resources/team' },
-            { title: 'Allocation', icon: Target, path: '/resources/allocation' },
+            { title: 'Resource Dashboard', icon: LayoutDashboard, path: '/resources' },
+            { title: 'Resource Planning', icon: Target, path: '/resources/planning' },
+            { title: 'Team Members', icon: Users, path: '/resources/team' },
+            { title: 'Resource Allocation', icon: Target, path: '/resources/allocation' },
+            { title: 'Resource Calendar', icon: Calendar, path: '/resources/calendar' },
         ],
     },
     {
         title: 'Time & Expenses',
         icon: Clock,
         submenu: [
-            { title: 'Timesheet', icon: Clock, path: '/timesheet' },
+            { title: 'My Timesheet', icon: Clock, path: '/timesheet' },
+            { title: 'Team Timesheets', icon: Clock, path: '/timesheets/team', requiredRole: ['manager', 'admin'] },
             { title: 'Expenses', icon: DollarSign, path: '/expenses' },
+            { title: 'Expense Reports', icon: FileText, path: '/expenses/reports' },
             { title: 'Cost Management', icon: TrendingUp, path: '/cost-management' },
         ],
     },
@@ -101,8 +88,14 @@ const menuItems: MenuItem[] = [
         submenu: [
             { title: 'Reports', icon: BarChart3, path: '/reports' },
             { title: 'Analytics', icon: TrendingUp, path: '/analytics' },
+            { title: 'Enhanced Analytics', icon: BarChart3, path: '/analytics/enhanced' },
         ],
         requiredRole: ['admin', 'manager'],
+    },
+    {
+        title: 'Customers',
+        icon: Users,
+        path: '/customers',
     },
     {
         title: 'Organization',
@@ -110,6 +103,7 @@ const menuItems: MenuItem[] = [
         submenu: [
             { title: 'Activity Log', icon: Activity, path: '/activity' },
             { title: 'Search', icon: SearchIcon, path: '/search' },
+            { title: 'Menu Management', icon: Activity, path: '/menu' },
         ],
     },
     {
@@ -126,6 +120,11 @@ const menuItems: MenuItem[] = [
         title: 'Admin Console',
         icon: Shield,
         requiredRole: ['admin'],
+        submenu: [
+            { title: 'User Management', icon: Users, path: '/admin/users' },
+            { title: 'Role Management', icon: Shield, path: '/admin/role-management' },
+            { title: 'Database Status', icon: Activity, path: '/admin/database' },
+        ],
     },
 ];
 
@@ -140,18 +139,15 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
     const navigate = useNavigate();
     const { logout, user: currentUser } = useAuthContext();
     const [expandedItems, setExpandedItems] = useState<string[]>(['Dashboard']);
-    const [isAdminConsoleHovered, setIsAdminConsoleHovered] = useState(false);
     const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
 
-    const toggleSubmenu = (title: string, e: React.MouseEvent) => {
-        e.preventDefault();
+    const toggleSubmenu = (title: string) => {
         setExpandedItems((prev) =>
             prev.includes(title) ? prev.filter((item) => item !== title) : [...prev, title]
         );
     };
 
-    const handleAdminConsoleClick = (e: React.MouseEvent) => {
-        e.preventDefault();
+    const handleAdminConsoleClick = () => {
         if (!isAdmin) {
             toast.error('คุณไม่มีสิทธิ์เข้าถึงส่วนนี้');
             return;
@@ -179,106 +175,23 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
         return false;
     };
 
-    const containerVariants = {
-        hidden: { opacity: 0, x: -300 },
-        visible: {
-            opacity: 1,
-            x: 0,
-            transition: {
-                duration: 0.4,
-                ease: 'easeOut',
-            },
-        },
-        exit: {
-            opacity: 0,
-            x: -300,
-            transition: {
-                duration: 0.25,
-                ease: 'easeIn',
-            },
-        },
-    };
-
-    const submenuVariants = {
-        hidden: { opacity: 0, height: 0, y: -10 },
-        visible: {
-            opacity: 1,
-            height: 'auto',
-            y: 0,
-            transition: {
-                duration: 0.25,
-                ease: 'easeOut',
-                staggerChildren: 0.05,
-                delayChildren: 0.05,
-            },
-        },
-        exit: {
-            opacity: 0,
-            height: 0,
-            y: -10,
-            transition: {
-                duration: 0.2,
-                ease: 'easeIn',
-            },
-        },
-    };
-
-    const submenuItemVariants = {
-        hidden: { opacity: 0, x: -10 },
-        visible: {
-            opacity: 1,
-            x: 0,
-            transition: {
-                duration: 0.2,
-                ease: 'easeOut',
-            },
-        },
-    };
-
-    const menuItemVariants = {
-        hidden: { opacity: 0, y: -5 },
-        visible: (i: number) => ({
-            opacity: 1,
-            y: 0,
-            transition: {
-                delay: i * 0.03,
-                duration: 0.3,
-                ease: 'easeOut',
-            },
-        }),
-        hover: {
-            x: 4,
-            transition: {
-                duration: 0.2,
-                ease: 'easeOut',
-            },
-        },
-    };
-
     return (
         <>
             {/* Overlay */}
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="fixed inset-0 z-20 bg-black/50 lg:hidden"
-                    />
-                )}
-            </AnimatePresence>
+            {isOpen && (
+                <div 
+                    onClick={onClose}
+                    className="fixed inset-0 z-20 bg-black/50 lg:hidden"
+                />
+            )}
 
             {/* Sidebar */}
-            <motion.aside
-                variants={containerVariants}
-                initial="hidden"
-                animate={isOpen ? 'visible' : 'hidden'}
-                exit="exit"
+            <aside
                 className={cn(
-                    'fixed left-0 top-0 z-30 flex h-screen w-64 flex-col border-r border-gray-200 dark:border-gray-700 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 shadow-sm transition-all duration-300 lg:sticky lg:translate-x-0',
-                    !isOpen && '-translate-x-full'
+                    'fixed left-0 top-0 z-30 flex h-screen w-64 flex-col border-r bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800',
+                    isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+                    'lg:sticky lg:top-0 lg:z-10 lg:block lg:h-screen lg:border-r lg:bg-white lg:shadow-sm',
+                    'dark:border-gray-700 dark:bg-gray-800'
                 )}
             >
                 {/* Header */}
@@ -334,16 +247,9 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
 
                                 if (item.submenu) {
                                     return (
-                                        <motion.div
-                                            key={item.title}
-                                            variants={menuItemVariants}
-                                            initial="hidden"
-                                            animate="visible"
-                                            custom={index}
-                                        >
-                                            <motion.button
-                                                onClick={(e) => toggleSubmenu(item.title, e)}
-                                                whileHover="hover"
+                                        <div key={item.title}>
+                                            <button
+                                                onClick={() => toggleSubmenu(item.title)}
                                                 className={cn(
                                                     'group w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
                                                     isActive
@@ -352,149 +258,82 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
                                                 )}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <motion.div
-                                                        initial={{ scale: 1, rotate: 0 }}
-                                                        animate={{
-                                                            scale: isActive ? 1.1 : 1,
-                                                            rotate: isActive ? 0 : 0,
-                                                        }}
-                                                        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                                                    >
-                                                        <Icon className="h-5 w-5 flex-shrink-0" />
-                                                    </motion.div>
+                                                    <Icon className="h-5 w-5 flex-shrink-0" />
                                                     <span className="truncate">{item.title}</span>
                                                 </div>
-                                                <motion.div
-                                                    animate={{ rotate: isExpanded ? 180 : 0 }}
-                                                    transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                                                >
-                                                    <ChevronDown className="h-4 w-4 flex-shrink-0" />
-                                                </motion.div>
-                                            </motion.button>
+                                                <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                                            </button>
 
-                                            <AnimatePresence>
-                                                {isExpanded && (
-                                                    <motion.div
-                                                        variants={submenuVariants}
-                                                        initial="hidden"
-                                                        animate="visible"
-                                                        exit="exit"
-                                                        className="mt-2 space-y-0.5 overflow-hidden"
-                                                    >
-                                                        {item.submenu
-                                                            .filter((subitem) => !subitem.requiredRole || (currentUser && subitem.requiredRole.some((role) => currentUser.role === role)))
-                                                            .map((subitem, subIndex) => {
-                                                            const SubIcon = subitem.icon;
-                                                            const isSubActive = location.pathname === subitem.path;
-
-                                                            return (
-                                                                <NavLink to={subitem.path}>
-                                                                    <motion.div
-                                                                        key={subitem.path}
-                                                                        variants={submenuItemVariants}
-                                                                        initial="hidden"
-                                                                        whileHover={{ scale: 1.15, rotate: 5 }}
-                                                                        whileTap={{ scale: 0.95 }}
-                                                                    >
-                                                                        <SubIcon className="h-4 w-4 flex-shrink-0" />
-                                                                        <span className="truncate">{subitem.title}</span>
-                                                                    </motion.div>
-                                                                </NavLink>
-                                                            );
-                                                        })}
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </motion.div>
+                                            <div className={isExpanded ? 'block' : 'hidden'}>
+                                                {item.submenu
+                                                    .filter((subitem) => !subitem.requiredRole || (currentUser && subitem.requiredRole.some((role) => currentUser.role === role)))
+                                                    .map((subitem, subIndex) => (
+                                                        <div key={subIndex} className="pl-14">
+                                                            <NavLink
+                                                                to={subitem.path}
+                                                                onClick={(e) => {
+                                                                    if (subitem.requiredRole && !isAdmin) {
+                                                                        e.preventDefault();
+                                                                        toast.error('คุณไม่มีสิทธิ์เข้าถึงส่วนนี้');
+                                                                    }
+                                                                }}
+                                                                className={({ isActive }) =>
+                                                                    cn(
+                                                                        'flex items-center py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700',
+                                                                        isActive && 'bg-gray-100 font-medium text-indigo-600 dark:bg-gray-700 dark:text-indigo-400',
+                                                                        subitem.className
+                                                                    )
+                                                                }
+                                                            >
+                                                                <subitem.icon className="h-4 w-4" />
+                                                                <span className="ml-3">{subitem.title}</span>
+                                                            </NavLink>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </div>
                                     );
                                 }
 
                                 // Special handling for Admin Console
                                 if (item.title === 'Admin Console') {
                                     return (
-                                        <motion.div
-                                            key={item.title}
-                                            variants={menuItemVariants}
-                                            initial="hidden"
-                                            animate="visible"
-                                            custom={index}
-                                        >
-                                            <motion.button
+                                        <div key={item.title}>
+                                            <button
                                                 onClick={handleAdminConsoleClick}
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
                                                 className={cn(
                                                     'group w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
                                                     'text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-red-50 hover:to-orange-50 dark:hover:from-red-900/20 dark:hover:to-orange-900/20',
                                                     'relative overflow-hidden'
                                                 )}
                                             >
-                                                <motion.div
-                                                    className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10 dark:from-red-500/5 dark:to-orange-500/5"
-                                                    initial={{ x: -100 }}
-                                                    whileHover={{ x: 100 }}
-                                                    transition={{ duration: 0.5 }}
-                                                />
-                                                <motion.div
-                                                    className="relative z-10"
-                                                    whileHover={{ rotate: 10 }}
-                                                    transition={{ type: 'spring', stiffness: 200, damping: 10 }}
-                                                >
-                                                    <Icon className="h-5 w-5 flex-shrink-0" />
-                                                </motion.div>
+                                                <Icon className="h-5 w-5 flex-shrink-0" />
                                                 <span className="truncate relative z-10">{item.title}</span>
-                                                <motion.div
-                                                    className="ml-auto text-xs bg-gradient-to-r from-red-500 to-orange-500 text-white px-2 py-1 rounded font-semibold relative z-10"
-                                                    animate={{
-                                                        scale: [1, 1.08, 1],
-                                                        y: [0, -2, 0]
-                                                    }}
-                                                    transition={{ duration: 2, repeat: Infinity }}
-                                                >
+                                                <div className="ml-auto text-xs bg-gradient-to-r from-red-500 to-orange-500 text-white px-2 py-1 rounded font-semibold relative z-10">
                                                     🔐
-                                                </motion.div>
-                                            </motion.button>
-                                        </motion.div>
+                                                </div>
+                                            </button>
+                                        </div>
                                     );
                                 }
 
                                 return (
-                                    <motion.div
-                                        key={item.path}
-                                        variants={menuItemVariants}
-                                        initial="hidden"
-                                        animate="visible"
-                                        custom={index}
-                                    >
+                                    <div key={item.path}>
                                         <NavLink
                                             to={item.path!}
-                                            className={cn(
-                                                'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
-                                                isActive
-                                                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-sm'
-                                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
-                                                'w-full'
-                                            )}
+                                            className={({ isActive }) =>
+                                                cn(
+                                                    'flex items-center py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700',
+                                                    isActive && 'bg-gray-100 font-medium text-indigo-600 dark:bg-gray-700 dark:text-indigo-400',
+                                                    'w-full'
+                                                )
+                                            }
                                             onClick={onClose}
                                         >
-                                            <motion.div
-                                                initial={{ scale: 1 }}
-                                                whileHover={{ scale: 1.15 }}
-                                                whileTap={{ scale: 0.9 }}
-                                                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                                            >
-                                                <Icon className="h-5 w-5 flex-shrink-0" />
-                                            </motion.div>
+                                            <Icon className="h-5 w-5 flex-shrink-0" />
                                             <span className="truncate">{item.title}</span>
                                             {isActive && (
-                                                <motion.div
-                                                    layoutId="activeIndicator"
-                                                    className="absolute right-2 h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-400"
-                                                    initial={{ scale: 0 }}
-                                                    animate={{ scale: 1 }}
-                                                    exit={{ scale: 0 }}
-                                                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                                                />
+                                                <div className="absolute right-2 h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-400" />
                                             )}
                                         </NavLink>
                                     </motion.div>
@@ -504,24 +343,13 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
                 </div>
 
                 {/* User Profile Footer */}
-                <motion.div
-                    className="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800/50 sticky bottom-0"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.2 }}
-                >
+                <div className="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800/50 sticky bottom-0">
                     {/* User Info */}
                     <NavLink
                         to="/settings"
                         className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
-                        <motion.div
-                            className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0 text-white text-xs font-semibold shadow-sm overflow-hidden"
-                            whileHover={{
-                                scale: 1.1,
-                                boxShadow: '0 0 20px rgba(59, 130, 246, 0.4)'
-                            }}
-                        >
+                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0 text-white text-xs font-semibold shadow-sm overflow-hidden">
                             {currentUser?.avatar ? (
                                 <img
                                     src={currentUser.avatar}
@@ -533,37 +361,25 @@ const Sidebar = ({ isOpen, onClose, onToggle }: SidebarProps) => {
                             )}
                         </motion.div>
                         <div className="min-w-0 flex-1">
-                            <motion.p
-                                className="text-xs font-semibold text-gray-900 dark:text-white truncate"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3, delay: 0.3 }}
-                            >
+                            <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
                                 {currentUser?.name || 'User'}
                             </motion.p>
-                            <motion.p
-                                className="text-[10px] text-gray-500 dark:text-gray-400 truncate"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3, delay: 0.35 }}
-                            >
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
                                 {currentUser?.email || 'user@example.com'}
                             </motion.p>
                         </div>
                     </NavLink>
 
                     {/* Logout Button */}
-                    <motion.button
+                    <button
                         onClick={handleLogout}
                         className="w-full mt-2 flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors hover:text-red-600 dark:hover:text-red-400"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
                     >
                         <LogOut className="h-4 w-4" />
                         <span>Logout</span>
-                    </motion.button>
-                </motion.div>
-            </motion.aside>
+                    </button>
+                </div>
+            </aside>
 
         </>
     );
