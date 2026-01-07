@@ -18,21 +18,21 @@ export { default as Layout } from './layout/Layout';
 export { default as Sidebar } from './layout/Sidebar';
 
 // Feature Components
-export { CommandPalette } from './CommandPalette';
-export { DatabaseStatus } from './DatabaseStatus';
-export { FileManager } from './FileManager';
-export { FileUpload } from './FileUpload';
-export { MobileBottomNav } from './MobileBottomNav';
-export { MobileFAB } from './MobileFAB';
-export { SearchBar } from './SearchBar';
-export { ThemeToggle } from './ThemeToggle';
+export { default as FileManager } from './FileManager';
+export { default as FileUpload } from './FileUpload';
+export { default as MobileBottomNav } from './MobileBottomNav';
+export { default as MobileFAB } from './MobileFAB';
+export { default as SearchBar } from './SearchBar';
+export { default as ThemeToggle } from './ThemeToggle';
 
 // Error Components
-export { ErrorFallback } from './error/ErrorFallback';
+export { default as ErrorFallback } from './error/ErrorFallback';
 
 // Chart Components
-export { ProjectChart } from './charts/ProjectChart';
+export { default as ProjectChart } from './charts/ProjectChart';
 
 // Loading Components
-export { LoadingSpinner } from './ui/LoadingSpinner';
-export { LoadingState } from './ui/LoadingState';
+export { default as LoadingSpinner } from './ui/LoadingSpinner';
+export { default as LoadingState } from './ui/LoadingState';
+export { ProgressLoading } from './ProgressLoading';
+export { DataLoader, useProgressLoading } from './DataLoader';

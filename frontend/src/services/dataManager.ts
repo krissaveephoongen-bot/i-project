@@ -78,7 +78,20 @@ export interface LoadProgress {
   loaded: number;
   failed: number;
   currentItem?: string;
+  currentItemName?: string;
   percentage: number;
+  stages: LoadingStageInfo[];
+}
+
+export interface LoadingStageInfo {
+  id: string;
+  name: string;
+  description?: string;
+  status: 'pending' | 'loading' | 'completed' | 'error';
+}
+
+export interface ProgressCallback {
+  (progress: LoadProgress): void;
 }
 
 interface UserData { role?: string }
@@ -88,24 +101,80 @@ class DataManager {
   private pendingRequests: Map<string, Promise<unknown>> = new Map();
   private abortController: AbortController | null = null;
   private isInitialized = false;
+  private progressCallback: ProgressCallback | null = null;
+  private stages: Map<string, LoadingStageInfo> = new Map();
 
-  async initialize(): Promise<LoadProgress> {
+  // Stage display names mapping
+  private readonly stageDisplayNames: Record<string, { name: string; description?: string }> = {
+    [DATA_CACHE_KEYS.USER_PROFILE]: { name: 'User Profile', description: 'Loading your account information' },
+    [DATA_CACHE_KEYS.PROJECTS]: { name: 'Projects', description: 'Loading your projects and tasks' },
+    [DATA_CACHE_KEYS.USERS]: { name: 'Team Members', description: 'Loading user data' },
+    [DATA_CACHE_KEYS.TASKS]: { name: 'Tasks', description: 'Loading task assignments' },
+    [DATA_CACHE_KEYS.CUSTOMERS]: { name: 'Customers', description: 'Loading customer information' },
+    [DATA_CACHE_KEYS.ANALYTICS]: { name: 'Analytics', description: 'Loading dashboard statistics' },
+    [DATA_CACHE_KEYS.EXPENSES]: { name: 'Expenses', description: 'Loading expense records' },
+    [DATA_CACHE_KEYS.TIMESHEETS]: { name: 'Timesheets', description: 'Loading time tracking data' },
+    [DATA_CACHE_KEYS.TEAMS]: { name: 'Teams', description: 'Loading team information' },
+    [DATA_CACHE_KEYS.PERFORMANCE]: { name: 'Performance', description: 'Loading performance metrics' },
+    [DATA_CACHE_KEYS.RESOURCES]: { name: 'Resources', description: 'Loading resource allocation' },
+  };
+
+  // Set progress callback
+  setProgressCallback(callback: ProgressCallback | null): void {
+    this.progressCallback = callback;
+  }
+
+  // Get current loading stages
+  getLoadingStages(): LoadingStageInfo[] {
+    return Array.from(this.stages.values());
+  }
+
+  // Get stage info by key
+  private getStageInfo(key: string): LoadingStageInfo {
+    const displayName = this.stageDisplayNames[key] || { name: key.replace('cache_', '').replace(/_/g, ' ') };
+    return {
+      id: key,
+      name: displayName.name.charAt(0).toUpperCase() + displayName.name.slice(1),
+      description: displayName.description,
+      status: this.stages.get(key)?.status || 'pending',
+    };
+  }
+
+  // Notify progress update
+  private notifyProgress(progress: LoadProgress): void {
+    if (this.progressCallback) {
+      this.progressCallback(progress);
+    }
+  }
+
+  async initialize(callback?: ProgressCallback): Promise<LoadProgress> {
     if (this.isInitialized) {
-      return { total: 0, loaded: 0, failed: 0, percentage: 100 };
+      return { total: 0, loaded: 0, failed: 0, percentage: 100, stages: [] };
+    }
+
+    if (callback) {
+      this.setProgressCallback(callback);
     }
 
     try {
       this.abortController = new AbortController();
       this.cache.clear();
+      this.stages.clear();
       this.loadCachedData();
       
       const definitions = this.getDataDefinitions();
+      
+      // Initialize stages
+      definitions.forEach(def => {
+        this.stages.set(def.key, this.getStageInfo(def.key));
+      });
+      
       const progress = await this.loadAllData(definitions);
       this.isInitialized = true;
       return progress;
     } catch (error) {
       console.error('DataManager initialization error:', error);
-      return { total: 0, loaded: 0, failed: 0, percentage: 0 };
+      return { total: 0, loaded: 0, failed: 0, percentage: 0, stages: [] };
     }
   }
 
@@ -262,22 +331,45 @@ class DataManager {
   }
 
   async loadAllData(definitions: LoadDataDefinition[]): Promise<LoadProgress> {
-    const progress: LoadProgress = { total: definitions.length, loaded: 0, failed: 0, percentage: 0 };
+    const progress: LoadProgress = { 
+      total: definitions.length, 
+      loaded: 0, 
+      failed: 0, 
+      percentage: 0,
+      stages: [] 
+    };
     const sorted = [...definitions].sort((a, b) => a.priority - b.priority);
     
     for (const item of sorted) {
       if (this.abortController?.signal.aborted) break;
+      
+      // Update stage to loading
+      const stageInfo = this.getStageInfo(item.key);
+      stageInfo.status = 'loading';
+      this.stages.set(item.key, stageInfo);
       progress.currentItem = item.key;
+      progress.currentItemName = stageInfo.name;
+      progress.stages = this.getLoadingStages();
+      this.notifyProgress(progress);
       
       try {
         const result = await this.loadWithDeduplication(item);
-        if (result.success) progress.loaded++;
-        else progress.failed++;
+        if (result.success) {
+          progress.loaded++;
+          stageInfo.status = 'completed';
+        } else {
+          progress.failed++;
+          stageInfo.status = 'error';
+        }
       } catch {
         progress.failed++;
+        stageInfo.status = 'error';
       }
       
+      this.stages.set(item.key, stageInfo);
       progress.percentage = Math.round(((progress.loaded + progress.failed) / progress.total) * 100);
+      progress.stages = this.getLoadingStages();
+      this.notifyProgress(progress);
     }
 
     if (progress.loaded > 0) {
