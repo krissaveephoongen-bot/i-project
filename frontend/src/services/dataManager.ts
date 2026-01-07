@@ -1,29 +1,24 @@
 /**
- * Enhanced Data Manager Service - Production Ready
+ * Data Manager Service - Production Ready
  * 
- * Features:
- * - Priority-based loading
- * - Request deduplication
- * - Background refresh
- * - Graceful error handling
- * - Production-safe with error boundaries
+ * Only calls endpoints that exist in the backend:
+ * - /api/auth/me
+ * - /api/users
+ * - /api/projects
+ * - /api/tasks
+ * - /api/customers
+ * - /api/analytics/*
  */
 
 import { apiClient } from './api-client';
 
 export const DATA_CACHE_KEYS = {
   USER_PROFILE: 'cache_user_profile',
-  USER_PERMISSIONS: 'cache_user_permissions',
   PROJECTS: 'cache_projects',
   USERS: 'cache_users',
-  TEAMS: 'cache_teams',
   TASKS: 'cache_tasks',
   CUSTOMERS: 'cache_customers',
-  TIMESHEETS: 'cache_timesheets',
-  EXPENSES: 'cache_expenses',
-  NOTIFICATIONS: 'cache_notifications',
-  DASHBOARD_STATS: 'cache_dashboard_stats',
-  SETTINGS: 'cache_settings',
+  ANALYTICS: 'cache_analytics',
   LAST_UPDATED: 'cache_last_updated',
 };
 
@@ -53,7 +48,6 @@ export interface LoadDataDefinition {
   priority: number;
   required: boolean;
   transform?: (data: unknown) => unknown;
-  refreshInterval?: number;
 }
 
 export interface LoadResult {
@@ -75,16 +69,12 @@ export interface LoadProgress {
 
 interface UserData { role?: string }
 
-class EnhancedDataManager {
+class DataManager {
   private cache: Map<string, { data: unknown; timestamp: number }> = new Map();
   private pendingRequests: Map<string, Promise<unknown>> = new Map();
   private abortController: AbortController | null = null;
-  private refreshTimers: Map<string, NodeJS.Timeout> = new Map();
   private isInitialized = false;
 
-  /**
-   * Initialize with safe error handling
-   */
   async initialize(): Promise<LoadProgress> {
     if (this.isInitialized) {
       return { total: 0, loaded: 0, failed: 0, percentage: 100 };
@@ -97,10 +87,7 @@ class EnhancedDataManager {
       
       const definitions = this.getDataDefinitions();
       const progress = await this.loadAllData(definitions);
-      
       this.isInitialized = true;
-      this.startBackgroundRefresh();
-      
       return progress;
     } catch (error) {
       console.error('DataManager initialization error:', error);
@@ -113,15 +100,18 @@ class EnhancedDataManager {
     const isAdmin = user?.role === 'admin' || user?.role === 'ADMIN';
     const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'project_manager';
 
-    // Only define endpoints that exist in the backend
     return [
+      // Critical - User profile is essential
       { key: DATA_CACHE_KEYS.USER_PROFILE, endpoint: '/auth/me', priority: DataPriority.CRITICAL, required: true },
+      
+      // High priority - Main data for dashboard
       { key: DATA_CACHE_KEYS.PROJECTS, endpoint: '/projects', priority: DataPriority.HIGH, required: false },
+      { key: DATA_CACHE_KEYS.ANALYTICS, endpoint: '/analytics/dashboard-stats', priority: DataPriority.HIGH, required: false },
+      
+      // Medium priority - Additional data
       ...(isAdmin || isPM ? [{ key: DATA_CACHE_KEYS.USERS, endpoint: '/users', priority: DataPriority.MEDIUM, required: false }] : []),
-      { key: DATA_CACHE_KEYS.TEAMS, endpoint: '/teams', priority: DataPriority.MEDIUM, required: false },
       { key: DATA_CACHE_KEYS.TASKS, endpoint: '/tasks', priority: DataPriority.MEDIUM, required: false },
       { key: DATA_CACHE_KEYS.CUSTOMERS, endpoint: '/customers', priority: DataPriority.LOW, required: false },
-      { key: DATA_CACHE_KEYS.TIMESHEETS, endpoint: '/timesheets', priority: DataPriority.LOW, required: false },
     ];
   }
 
@@ -188,38 +178,6 @@ class EnhancedDataManager {
     }
   }
 
-  private startBackgroundRefresh(): void {
-    this.stopBackgroundRefresh();
-    // Only start refresh for critical data
-    const criticalKeys = [DATA_CACHE_KEYS.USER_PROFILE];
-    
-    for (const key of criticalKeys) {
-      if (this.cache.has(key)) {
-        const timer = setTimeout(() => {
-          const def = this.getDataDefinitions().find(d => d.key === key);
-          if (def) this.refreshItem(key, def);
-        }, CACHE_CONFIG.BACKGROUND_REFRESH_INTERVAL);
-        this.refreshTimers.set(key, timer);
-      }
-    }
-  }
-
-  private async refreshItem(key: string, definition: LoadDataDefinition): Promise<void> {
-    try {
-      const data = await this.fetchWithRetry(definition.endpoint);
-      const processed = definition.transform ? definition.transform(data) : data;
-      this.cache.set(key, { data: processed, timestamp: Date.now() });
-      this.persistAllData();
-    } catch (error) {
-      console.warn(`Background refresh skipped for ${key}:`, error);
-    }
-  }
-
-  stopBackgroundRefresh(): void {
-    for (const timer of this.refreshTimers.values()) clearTimeout(timer);
-    this.refreshTimers.clear();
-  }
-
   private async fetchWithRetry(endpoint: string, attempts = DATA_LOAD_CONFIG.RETRY_ATTEMPTS): Promise<unknown> {
     let lastError: Error | null = null;
     
@@ -233,11 +191,6 @@ class EnhancedDataManager {
         return response.data;
       } catch (error: unknown) {
         lastError = error instanceof Error ? error : new Error('Unknown');
-        
-        // Don't retry on network/CORS errors in production
-        if (i < attempts - 1) {
-          await this.delay(DATA_LOAD_CONFIG.RETRY_DELAY * (i + 1));
-        }
       }
     }
     
@@ -302,7 +255,6 @@ class EnhancedDataManager {
     this.cache.clear();
     Object.values(DATA_CACHE_KEYS).forEach(k => localStorage.removeItem(k));
     localStorage.removeItem('app_data_cache');
-    this.stopBackgroundRefresh();
     this.isInitialized = false;
   }
 
@@ -318,5 +270,5 @@ class EnhancedDataManager {
   }
 }
 
-export const dataManager = new EnhancedDataManager();
-export { EnhancedDataManager };
+export const dataManager = new DataManager();
+export { DataManager };
