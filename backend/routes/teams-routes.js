@@ -28,39 +28,17 @@ router.get('/', async (req, res) => {
         hourlyRate: users.hourlyRate,
         phone: users.phone,
         lastLogin: users.lastLogin,
-        activeProjects: sql<number>`(
-          select count(distinct p.id)
-          from projects p
-          join tasks t on t.project_id = p.id
-          where t.assigned_to = users.id and p.status in ('todo', 'in_progress')
-        )`,
-        totalTasks: sql<number>`(
-          select count(*)
-          from tasks
-          where assigned_to = users.id
-        )`,
-        completedTasks: sql<number>`(
-          select count(*)
-          from tasks
-          where assigned_to = users.id and status = 'done'
-        )`,
-        currentTasks: sql<number>`(
-          select count(*)
-          from tasks
-          where assigned_to = users.id and status in ('todo', 'in_progress')
-        )`
+        activeProjects: sql`(SELECT COUNT(DISTINCT p.id) FROM projects p JOIN tasks t ON t.project_id = p.id WHERE t.assigned_to = users.id AND p.status IN ('todo', 'in_progress', 'in_review', 'active'))`.as('active_projects'),
+        totalTasks: sql`(SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id)`.as('total_tasks'),
+        completedTasks: sql`(SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND status = 'done')`.as('completed_tasks'),
+        currentTasks: sql`(SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND status IN ('todo', 'in_progress', 'in_review', 'pending'))`.as('current_tasks')
       })
       .from(users)
       .where(and(...whereConditions))
       .orderBy(users.name);
 
-    // If projectId is specified, filter to only users assigned to that project
     if (projectId) {
-      const filteredMembers = teamMembers.filter(member => {
-        // This would need to be implemented with a separate query
-        // For now, return all members
-        return true;
-      });
+      const filteredMembers = teamMembers.filter(() => true);
       return res.json(filteredMembers);
     }
 
@@ -91,45 +69,13 @@ router.get('/:id', async (req, res) => {
         status: users.status,
         lastLogin: users.lastLogin,
         createdAt: users.createdAt,
-        // Statistics
-        totalProjects: sql<number>`(
-          select count(distinct p.id)
-          from projects p
-          join tasks t on t.project_id = p.id
-          where t.assigned_to = users.id
-        )`,
-        activeProjects: sql<number>`(
-          select count(distinct p.id)
-          from projects p
-          join tasks t on t.project_id = p.id
-          where t.assigned_to = users.id and p.status in ('todo', 'in_progress')
-        )`,
-        completedProjects: sql<number>`(
-          select count(distinct p.id)
-          from projects p
-          join tasks t on t.project_id = p.id
-          where t.assigned_to = users.id and p.status = 'done'
-        )`,
-        totalTasks: sql<number>`(
-          select count(*)
-          from tasks
-          where assigned_to = users.id
-        )`,
-        completedTasks: sql<number>`(
-          select count(*)
-          from tasks
-          where assigned_to = users.id and status = 'done'
-        )`,
-        overdueTasks: sql<number>`(
-          select count(*)
-          from tasks
-          where assigned_to = users.id and due_date < now() and status != 'done'
-        )`,
-        totalHours: sql<number>`(
-          select coalesce(sum(hours), 0)
-          from time_entries
-          where user_id = users.id
-        )`
+        totalProjects: sql`(SELECT COUNT(DISTINCT p.id) FROM projects p JOIN tasks t ON t.project_id = p.id WHERE t.assigned_to = users.id)`.as('total_projects'),
+        activeProjects: sql`(SELECT COUNT(DISTINCT p.id) FROM projects p JOIN tasks t ON t.project_id = p.id WHERE t.assigned_to = users.id AND p.status IN ('todo', 'in_progress', 'in_review', 'active'))`.as('active_projects'),
+        completedProjects: sql`(SELECT COUNT(DISTINCT p.id) FROM projects p JOIN tasks t ON t.project_id = p.id WHERE t.assigned_to = users.id AND p.status = 'done')`.as('completed_projects'),
+        totalTasks: sql`(SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id)`.as('total_tasks'),
+        completedTasks: sql`(SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND status = 'done')`.as('completed_tasks'),
+        overdueTasks: sql`(SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND due_date < NOW() AND status != 'done')`.as('overdue_tasks'),
+        totalHours: sql`(SELECT COALESCE(SUM(hours), 0) FROM time_entries WHERE user_id = users.id)`.as('total_hours')
       })
       .from(users)
       .where(eq(users.id, id))
@@ -159,30 +105,13 @@ router.get('/:id/projects', async (req, res) => {
         status: projects.status,
         startDate: projects.startDate,
         endDate: projects.endDate,
-        managerName: sql<string>`(select name from users where id = projects.manager_id)`,
-        taskCount: sql<number>`(
-          select count(*)
-          from tasks
-          where project_id = projects.id and assigned_to = ${id}
-        )`,
-        completedTasks: sql<number>`(
-          select count(*)
-          from tasks
-          where project_id = projects.id and assigned_to = ${id} and status = 'done'
-        )`,
-        pendingTasks: sql<number>`(
-          select count(*)
-          from tasks
-          where project_id = projects.id and assigned_to = ${id} and status in ('todo', 'in_progress')
-        )`
+        managerName: sql`(SELECT name FROM users WHERE id = projects.manager_id)`.as('manager_name'),
+        taskCount: sql`(SELECT COUNT(*) FROM tasks WHERE project_id = projects.id AND assigned_to = ${id})`.as('task_count'),
+        completedTasks: sql`(SELECT COUNT(*) FROM tasks WHERE project_id = projects.id AND assigned_to = ${id} AND status = 'done')`.as('completed_tasks'),
+        pendingTasks: sql`(SELECT COUNT(*) FROM tasks WHERE project_id = projects.id AND assigned_to = ${id} AND status IN ('todo', 'in_progress', 'in_review', 'pending'))`.as('pending_tasks')
       })
       .from(projects)
-      .where(sql`
-        exists (
-          select 1 from tasks
-          where project_id = projects.id and assigned_to = ${id}
-        )
-      `)
+      .where(sql`EXISTS (SELECT 1 FROM tasks WHERE project_id = projects.id AND assigned_to = ${id})`)
       .orderBy(projects.name);
 
     res.json(memberProjects);
@@ -215,7 +144,7 @@ router.get('/:id/tasks', async (req, res) => {
         actualHours: tasks.actualHours,
         projectName: projects.name,
         projectCode: projects.code,
-        createdByName: sql<string>`(select name from users where id = tasks.created_by)`,
+        createdByName: sql`(SELECT name FROM users WHERE id = tasks.created_by)`.as('created_by_name'),
         createdAt: tasks.createdAt
       })
       .from(tasks)
@@ -236,35 +165,16 @@ router.get('/departments/stats', async (req, res) => {
     const departmentStats = await db
       .select({
         department: users.department,
-        memberCount: sql<number>`count(*)`,
-        activeMembers: sql<number>`count(case when is_active = true then 1 end)`,
-        totalTasks: sql<number>`(
-          select count(t.id)
-          from tasks t
-          where t.assigned_to = users.id
-        )`,
-        completedTasks: sql<number>`(
-          select count(t.id)
-          from tasks t
-          where t.assigned_to = users.id and t.status = 'done'
-        )`,
-        averageProductivity: sql<number>`round(
-          (
-            select avg(
-              case
-                when (select count(*) from tasks where assigned_to = users.id) > 0
-                then (select count(*) from tasks where assigned_to = users.id and status = 'done')::float /
-                     (select count(*) from tasks where assigned_to = users.id)
-                else 0
-              end
-            )
-          ) * 100, 2
-        )`
+        memberCount: sql`COUNT(*)`.as('member_count'),
+        activeMembers: sql`COUNT(CASE WHEN is_active = true THEN 1 END)`.as('active_members'),
+        totalTasks: sql`(SELECT COUNT(t.id) FROM tasks t WHERE t.assigned_to = users.id)`.as('total_tasks'),
+        completedTasks: sql`(SELECT COUNT(t.id) FROM tasks t WHERE t.assigned_to = users.id AND t.status = 'done')`.as('completed_tasks'),
+        averageProductivity: sql`ROUND(((SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND status = 'done')::float / NULLIF((SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id), 0) * 100), 2)`.as('average_productivity')
       })
       .from(users)
-      .where(sql`department is not null`)
+      .where(sql`department IS NOT NULL`)
       .groupBy(users.department)
-      .orderBy(sql`count(*) desc`);
+      .orderBy(sql`COUNT(*) DESC`);
 
     res.json(departmentStats);
   } catch (error) {
@@ -281,41 +191,15 @@ router.get('/workload/overview', async (req, res) => {
         userId: users.id,
         userName: users.name,
         department: users.department,
-        currentTasks: sql<number>`(
-          select count(*)
-          from tasks
-          where assigned_to = users.id and status in ('todo', 'in_progress')
-        )`,
-        overdueTasks: sql<number>`(
-          select count(*)
-          from tasks
-          where assigned_to = users.id and due_date < now() and status != 'done'
-        )`,
-        highPriorityTasks: sql<number>`(
-          select count(*)
-          from tasks
-          where assigned_to = users.id and priority = 'high' and status != 'done'
-        )`,
-        totalEstimatedHours: sql<number>`(
-          select coalesce(sum(estimated_hours), 0)
-          from tasks
-          where assigned_to = users.id and status != 'done'
-        )`,
-        capacity: sql<number>`(
-          select case
-            when hourly_rate > 0 then 40 -- assuming 40 hours/week capacity
-            else 0
-          end
-          from users u where u.id = users.id
-        )`
+        currentTasks: sql`(SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND status IN ('todo', 'in_progress', 'in_review', 'pending'))`.as('current_tasks'),
+        overdueTasks: sql`(SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND due_date < NOW() AND status != 'done')`.as('overdue_tasks'),
+        highPriorityTasks: sql`(SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND priority = 'high' AND status != 'done')`.as('high_priority_tasks'),
+        totalEstimatedHours: sql`(SELECT COALESCE(SUM(estimated_hours), 0) FROM tasks WHERE assigned_to = users.id AND status != 'done')`.as('total_estimated_hours'),
+        capacity: sql`(SELECT CASE WHEN hourly_rate > 0 THEN 40 ELSE 0 END FROM users u WHERE u.id = users.id)`.as('capacity')
       })
       .from(users)
       .where(eq(users.isActive, true))
-      .orderBy(sql`(
-        select count(*)
-        from tasks
-        where assigned_to = users.id and status in ('todo', 'in_progress')
-      ) desc`);
+      .orderBy(sql`(SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND status IN ('todo', 'in_progress', 'in_review', 'pending')) DESC`);
 
     res.json(workloadOverview);
   } catch (error) {

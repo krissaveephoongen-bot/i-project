@@ -1,12 +1,12 @@
 /**
- * API Test Script for Ticket APW Backend
+ * API Test Script for Local Backend
  * Tests all available API endpoints including authentication
  */
 
 import fetch from 'node-fetch';
 
-// Configuration
-const API_BASE_URL = 'https://ticket-apw-api.vercel.app/api';
+// Configuration - Testing local backend
+const API_BASE_URL = 'http://localhost:3001/api';
 const TEST_EMAIL = 'jakgrits.ph@appworks.co.th';
 const TEST_PASSWORD = 'AppWorks@123!';
 
@@ -68,14 +68,14 @@ function printResult(testName, passed, message = '') {
 // Test suite
 async function runTests() {
   console.log(`\n${colors.blue}========================================${colors.reset}`);
-  console.log(`${colors.blue}  Ticket APW API Test Suite${colors.reset}`);
+  console.log(`${colors.blue}  Local Backend API Test Suite${colors.reset}`);
   console.log(`${colors.blue}========================================${colors.reset}\n`);
 
   // 1. Health Check
   console.log(`${colors.yellow}--- Public Endpoints ---${colors.reset}`);
   
   const healthResult = await apiRequest('/health', 'GET', null, false);
-  printResult('Health Check', healthResult.status === 200, healthResult.status === 200 ? 'Server is running' : `Status: ${healthResult.status}`);
+  printResult('Health Check', healthResult.status === 200, healthResult.status === 200 ? `Database: ${healthResult.data?.database || 'unknown'}` : `Status: ${healthResult.status}`);
 
   // 2. Root Endpoint
   const rootResult = await apiRequest('/', 'GET', null, false);
@@ -129,7 +129,7 @@ async function runTests() {
     const projects = await apiRequest('/projects', 'GET', null, true);
     printResult('Get Projects', projects.ok, projects.ok ? `Found ${Array.isArray(projects.data) ? projects.data.length : 0} projects` : 'Failed');
 
-    // Test project creation (will fail if no permission)
+    // Test project creation
     const newProject = await apiRequest('/projects', 'POST', {
       name: 'Test Project',
       description: 'Created by API test',
@@ -147,7 +147,6 @@ async function runTests() {
     const tasks = await apiRequest('/tasks', 'GET', null, true);
     printResult('Get Tasks', tasks.ok, tasks.ok ? `Found ${Array.isArray(tasks.data) ? tasks.data.length : 0} tasks` : 'Failed');
 
-    // Test task creation
     const newTask = await apiRequest('/tasks', 'POST', {
       title: 'Test Task',
       description: 'Created by API test',

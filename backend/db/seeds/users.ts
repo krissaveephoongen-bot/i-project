@@ -1,12 +1,21 @@
-import { Role } from '@prisma/client';
-import prisma from '../config/prisma';
+import { db } from '../../lib/db';
+import { users as usersTable } from '../../lib/schema';
 
-export const users = [
+interface SeedUser {
+  email: string;
+  password: string;
+  name: string;
+  role: 'admin' | 'manager' | 'employee';
+  position: string;
+  department: string;
+}
+
+export const seedUsersData: SeedUser[] = [
   {
     email: "thanongsak.th@appworks.co.th",
     password: "$2a$10$eVqTZGiPUOm22au61x9ziem09rW5YAMHR4FnQDdiR/xxF1vMrCG/K",
     name: "Thanongsak Thongkwid",
-    role: Role.ADMIN,
+    role: 'admin',
     position: "Vice President",
     department: "Project management"
   },
@@ -14,7 +23,7 @@ export const users = [
     email: "pratya.fu@appworks.co.th",
     password: "$2a$10$putjQ/EZ8TTEgpCA11yVS.7ut62ikfsVgfB8wAMRdz5Ry/Yt4Bs7K",
     name: "Pratya Fufueng",
-    role: Role.PROJECT_MANAGER,
+    role: 'manager',
     position: "Senior Project Manager",
     department: "Project management"
   },
@@ -22,7 +31,7 @@ export const users = [
     email: "jakgrits.ph@appworks.co.th",
     password: "$2b$10$CJbjAEbEsj23XWYU1GnWauwK51lWCgRmJt.NPH.2DbF6jkw.zwIAq",
     name: "Jakgrits Phoongen",
-    role: Role.EMPLOYEE,
+    role: 'employee',
     position: "Developer",
     department: "Development"
   }
@@ -32,11 +41,17 @@ export const users = [
 export async function seedUsers() {
   console.log('🌱 Seeding users...');
   
-  for (const user of users) {
-    await prisma.user.upsert({
-      where: { email: user.email },
-      update: {},
-      create: user,
+  for (const user of seedUsersData) {
+    await db.insert(usersTable).values(user).onConflictDoUpdate({
+      target: usersTable.email,
+      set: {
+        name: user.name,
+        password: user.password,
+        role: user.role as any,
+        position: user.position,
+        department: user.department,
+        updatedAt: new Date()
+      }
     });
   }
   
