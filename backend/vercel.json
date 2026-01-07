@@ -12,16 +12,5 @@
       "src": "/(.*)",
       "dest": "app.js"
     }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "x-vercel-disable-speed-insights",
-          "value": "true"
-        }
-      ]
-    }
   ]
 }
