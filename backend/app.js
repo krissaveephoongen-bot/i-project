@@ -31,27 +31,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// 404 handler for unmatched routes
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: `Route ${req.method} ${req.path} not found`,
-    path: req.path,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error('Global error:', err);
-  res.status(err.status || 500).json({
-    error: err.name || 'Internal Server Error',
-    message: err.message || 'An unexpected error occurred',
-    path: req.path,
-    timestamp: new Date().toISOString()
-  });
-});
-
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
@@ -162,6 +141,27 @@ app.get('/api/health', async (req, res) => {
     });
   }
 })();
+
+// 404 handler for unmatched routes (MUST be after all routes)
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.method} ${req.path} not found`,
+    path: req.path,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Global error handler (MUST be last)
+app.use((err, req, res, next) => {
+  console.error('Global error:', err);
+  res.status(err.status || 500).json({
+    error: err.name || 'Internal Server Error',
+    message: err.message || 'An unexpected error occurred',
+    path: req.path,
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Note: In Vercel deployment, static files and SPA routing are handled separately
 // This Express app only serves API routes
