@@ -37,9 +37,9 @@ export const getApiBaseUrl = (): string => {
     return 'http://localhost:3001/api';
   }
   
-  // In production, use separate Vercel backend project
+  // In production, use relative URL to work with any deployment domain
   if (typeof window !== 'undefined') {
-    return 'https://ticket-apw-api.vercel.app/api';
+    return '/api';
   }
   return '/api';
 };
