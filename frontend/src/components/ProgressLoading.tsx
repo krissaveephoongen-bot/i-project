@@ -169,101 +169,101 @@ export const ProgressLoading: React.FC<ProgressLoadingProps> = ({
 
   // Detailed variant (game-style)
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="w-full max-w-2xl px-6 py-12">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="w-full max-w-4xl mx-auto py-8">
         {/* Header */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900 mb-6">
-            <span className="text-4xl">🚀</span>
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900 mb-4">
+            <span className="text-3xl">🚀</span>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{title}</h2>
-          <p className="text-gray-600 dark:text-gray-400">{subtitle}</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">{title}</h2>
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">{subtitle}</p>
         </div>
 
         {/* Main progress bar */}
-        <div className="relative mb-8">
-          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
+        <div className="relative mb-6">
+          <div className="h-4 md:h-5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
             <div
               className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 animate-pulse transition-all duration-500 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-lg font-bold text-white drop-shadow-md">
+            <span className="text-sm md:text-base font-bold text-white drop-shadow-md">
               {progress}%
             </span>
           </div>
         </div>
 
         {/* Stats row */}
-        <div className="flex justify-center gap-8 mb-8">
+        <div className="flex justify-center gap-4 md:gap-8 mb-6">
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
               {stages.filter(s => s.status === 'completed').length}
             </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Completed</div>
+            <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Completed</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
               {stages.filter(s => s.status === 'loading').length}
             </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Loading</div>
+            <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Loading</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
               {stages.filter(s => s.status === 'pending').length}
             </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Pending</div>
+            <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Pending</div>
           </div>
           {showTimer && (
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+              <div className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                 {formatTime(elapsedTime)}
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Elapsed</div>
+              <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Elapsed</div>
             </div>
           )}
         </div>
 
         {/* Stage list */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Loading Stages</h3>
-          <div className="space-y-3">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 md:p-6 mb-6">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 md:mb-4">Loading Stages</h3>
+          <div className="space-y-2 md:space-y-3">
             {stages.map((stage) => (
               <div
                 key={stage.id}
-                className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-300 ${
+                className={`flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-lg transition-all duration-300 ${
                   stage.status === 'loading' ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                 }`}
               >
                 {/* Status icon */}
-                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                <div className={`flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center ${
                   stage.status === 'completed' ? 'bg-green-100 dark:bg-green-900' :
                   stage.status === 'error' ? 'bg-red-100 dark:bg-red-900' :
                   stage.status === 'loading' ? 'bg-blue-100 dark:bg-blue-900 animate-pulse' :
                   'bg-gray-100 dark:bg-gray-700'
                 }`}>
                   {stage.status === 'completed' && (
-                    <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 md:w-6 md:h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                   {stage.status === 'error' && (
-                    <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 md:w-6 md:h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   )}
                   {stage.status === 'loading' && (
-                    <LoadingSpinner size={20} className="text-blue-500" />
+                    <LoadingSpinner size={16} className="text-blue-500" />
                   )}
                   {stage.status === 'pending' && (
-                    <span className="text-xl">{getStageIcon(stage)}</span>
+                    <span className="text-lg md:text-xl">{getStageIcon(stage)}</span>
                   )}
                 </div>
 
                 {/* Stage info */}
                 <div className="flex-1 min-w-0">
-                  <div className={`font-medium ${
+                  <div className={`text-sm md:text-base font-medium ${
                     stage.status === 'completed' ? 'text-green-700 dark:text-green-400' :
                     stage.status === 'error' ? 'text-red-700 dark:text-red-400' :
                     stage.status === 'loading' ? 'text-blue-700 dark:text-blue-400' :
@@ -272,14 +272,14 @@ export const ProgressLoading: React.FC<ProgressLoadingProps> = ({
                     {stage.name}
                   </div>
                   {stage.description && (
-                    <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                    <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400 truncate">
                       {stage.description}
                     </div>
                   )}
                 </div>
 
                 {/* Status text */}
-                <div className={`text-sm font-medium ${getStatusClass(stage.status)}`}>
+                <div className={`text-xs md:text-sm font-medium ${getStatusClass(stage.status)}`}>
                   {stage.status === 'completed' && 'Done'}
                   {stage.status === 'error' && (
                     <button
@@ -298,12 +298,12 @@ export const ProgressLoading: React.FC<ProgressLoadingProps> = ({
         </div>
 
         {/* Loading tip */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-3 md:p-4 border border-blue-100 dark:border-blue-800">
           <div className="flex items-start gap-3">
-            <span className="text-xl">💡</span>
+            <span className="text-lg md:text-xl">💡</span>
             <div className="flex-1">
               <div className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">Loading Tip</div>
-              <div key={animationKey} className="text-sm text-blue-700 dark:text-blue-300 transition-opacity duration-500">
+              <div key={animationKey} className="text-xs md:text-sm text-blue-700 dark:text-blue-300 transition-opacity duration-500">
                 {currentTip}
               </div>
             </div>
@@ -311,7 +311,7 @@ export const ProgressLoading: React.FC<ProgressLoadingProps> = ({
         </div>
 
         {/* Powered by */}
-        <div className="text-center mt-8 text-sm text-gray-500 dark:text-gray-400">
+        <div className="text-center mt-6 text-xs md:text-sm text-gray-500 dark:text-gray-400">
           Project Management System
         </div>
       </div>

@@ -169,12 +169,31 @@ class DataManager {
         this.stages.set(def.key, this.getStageInfo(def.key));
       });
       
-      const progress = await this.loadAllData(definitions);
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<LoadProgress>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Data initialization timeout - forcing completion'));
+        }, 15000); // 15 second timeout
+      });
+      
+      const loadPromise = this.loadAllData(definitions);
+      
+      // Race between loading and timeout
+      const progress = await Promise.race([loadPromise, timeoutPromise]).catch(() => {
+        // Return current progress on timeout
+        const currentProgress = this.getCurrentProgress();
+        console.warn('Data initialization timed out, completing with partial data');
+        return currentProgress;
+      });
+      
       this.isInitialized = true;
       return progress;
     } catch (error) {
       console.error('DataManager initialization error:', error);
-      return { total: 0, loaded: 0, failed: 0, percentage: 0, stages: [] };
+      // Return current progress even on error
+      const currentProgress = this.getCurrentProgress();
+      this.isInitialized = true; // Mark as initialized to prevent retry loops
+      return currentProgress;
     }
   }
 
@@ -189,21 +208,12 @@ class DataManager {
       
       // High priority - Main data for dashboard
       { key: DATA_CACHE_KEYS.PROJECTS, endpoint: '/projects', priority: DataPriority.HIGH, required: false },
-      { key: DATA_CACHE_KEYS.ANALYTICS, endpoint: '/analytics/dashboard-stats', priority: DataPriority.HIGH, required: false },
       
-      // Medium priority - Additional data for PM/Admin
+      // Medium priority - Only for admin/PM users
       ...(isAdmin || isPM ? [
         { key: DATA_CACHE_KEYS.USERS, endpoint: '/users', priority: DataPriority.MEDIUM, required: false },
-        { key: DATA_CACHE_KEYS.EXPENSES, endpoint: '/expenses', priority: DataPriority.MEDIUM, required: false },
-        { key: DATA_CACHE_KEYS.TIMESHEETS, endpoint: '/timesheets', priority: DataPriority.MEDIUM, required: false },
-        { key: DATA_CACHE_KEYS.TEAMS, endpoint: '/teams', priority: DataPriority.MEDIUM, required: false },
-        { key: DATA_CACHE_KEYS.PERFORMANCE, endpoint: '/performance/dashboard-metrics', priority: DataPriority.MEDIUM, required: false },
+        { key: DATA_CACHE_KEYS.TASKS, endpoint: '/tasks', priority: DataPriority.MEDIUM, required: false },
       ] : []),
-      
-      // Low priority - Secondary data
-      { key: DATA_CACHE_KEYS.TASKS, endpoint: '/tasks', priority: DataPriority.LOW, required: false },
-      { key: DATA_CACHE_KEYS.CUSTOMERS, endpoint: '/customers', priority: DataPriority.LOW, required: false },
-      { key: DATA_CACHE_KEYS.RESOURCES, endpoint: '/resources', priority: DataPriority.LOW, required: false },
     ];
   }
 
@@ -328,6 +338,23 @@ class DataManager {
       ? '/timesheets/pending-pm-approval' 
       : '/timesheets/pending-supervisor-approval';
     return apiClient.get(endpoint).then(response => response.data);
+  }
+
+  private getCurrentProgress(): LoadProgress {
+    const stages = this.getLoadingStages();
+    const loaded = stages.filter(s => s.status === 'completed').length;
+    const failed = stages.filter(s => s.status === 'error').length;
+    const total = stages.length;
+    
+    return {
+      total,
+      loaded,
+      failed,
+      percentage: total > 0 ? Math.round(((loaded + failed) / total) * 100) : 0,
+      stages,
+      currentItem: stages.find(s => s.status === 'loading')?.id,
+      currentItemName: stages.find(s => s.status === 'loading')?.name,
+    };
   }
 
   async loadAllData(definitions: LoadDataDefinition[]): Promise<LoadProgress> {
