@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "name": "ticket-apw",
+  "alias": ["ticket-apw.vercel.app"],
   "builds": [
     {
       "src": "frontend/package.json",
