@@ -16,8 +16,18 @@
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "backend/app.js" },
+    { "source": "/landing", "destination": "/index.html" },
     { "source": "/dashboard", "destination": "/index.html" },
     { "source": "/dashboard/(.*)", "destination": "/index.html" },
+    { "source": "/projects", "destination": "/index.html" },
+    { "source": "/projects/(.*)", "destination": "/index.html" },
+    { "source": "/tasks", "destination": "/index.html" },
+    { "source": "/tasks/(.*)", "destination": "/index.html" },
+    { "source": "/analytics", "destination": "/index.html" },
+    { "source": "/analytics/(.*)", "destination": "/index.html" },
+    { "source": "/settings", "destination": "/index.html" },
+    { "source": "/settings/(.*)", "destination": "/index.html" },
+    { "source": "/auth/(.*)", "destination": "/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
