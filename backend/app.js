@@ -66,63 +66,35 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// Import routes synchronously
-let routesLoaded = false;
-let routeLoadError = null;
+// Import routes using dynamic import with await
+async function loadRoutes() {
+  try {
+    const authRoutes = (await import('./routes/auth-routes.js')).default;
+    const userRoutes = (await import('./routes/user-routes.js')).default;
+    const projectRoutes = (await import('./routes/project-routes.js')).default;
+    const taskRoutes = (await import('./routes/task-routes.js')).default;
+    const customerRoutes = (await import('./routes/customer-routes.js')).default;
+    const analyticsRoutes = (await import('./routes/analytics-routes.js')).default;
 
-import('./routes/auth-routes.js').then(authRoutes => {
-  app.use('/api/auth', authRoutes.default);
-  console.log('Loaded auth routes');
+    app.use('/api/auth', authRoutes);
+    app.use('/api/users', userRoutes);
+    app.use('/api/projects', projectRoutes);
+    app.use('/api/tasks', taskRoutes);
+    app.use('/api/customers', customerRoutes);
+    app.use('/api/analytics', analyticsRoutes);
+
+    console.log('All routes loaded successfully');
+  } catch (error) {
+    console.error('Failed to load routes:', error);
+  }
+}
+
+// Load routes and then export for Vercel
+loadRoutes().then(() => {
+  // Routes are now loaded, export the app
 }).catch(err => {
-  routeLoadError = err;
-  console.error('Failed to load auth routes:', err.message);
+  console.error('Route loading failed:', err);
 });
-
-import('./routes/user-routes.js').then(userRoutes => {
-  app.use('/api/users', userRoutes.default);
-  console.log('Loaded user routes');
-}).catch(err => {
-  routeLoadError = err;
-  console.error('Failed to load user routes:', err.message);
-});
-
-import('./routes/project-routes.js').then(projectRoutes => {
-  app.use('/api/projects', projectRoutes.default);
-  console.log('Loaded project routes');
-}).catch(err => {
-  routeLoadError = err;
-  console.error('Failed to load project routes:', err.message);
-});
-
-import('./routes/task-routes.js').then(taskRoutes => {
-  app.use('/api/tasks', taskRoutes.default);
-  console.log('Loaded task routes');
-}).catch(err => {
-  routeLoadError = err;
-  console.error('Failed to load task routes:', err.message);
-});
-
-import('./routes/customer-routes.js').then(customerRoutes => {
-  app.use('/api/customers', customerRoutes.default);
-  console.log('Loaded customer routes');
-}).catch(err => {
-  routeLoadError = err;
-  console.error('Failed to load customer routes:', err.message);
-});
-
-import('./routes/analytics-routes.js').then(analyticsRoutes => {
-  app.use('/api/analytics', analyticsRoutes.default);
-  console.log('Loaded analytics routes');
-}).catch(err => {
-  routeLoadError = err;
-  console.error('Failed to load analytics routes:', err.message);
-});
-
-// Wait for routes to load, then set flag
-setTimeout(() => {
-  routesLoaded = true;
-  console.log('Route loading complete');
-}, 1000);
 
 // 404 handler
 app.use((req, res) => {
