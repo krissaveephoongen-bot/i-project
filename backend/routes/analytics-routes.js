@@ -155,6 +155,13 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
+// GET /api/analytics/dashboard-stats - Alias for dashboard (for DataManager compatibility)
+router.get('/dashboard-stats', async (req, res, next) => {
+  // Redirect to dashboard endpoint
+  req.url = '/dashboard';
+  router.handle(req, res, next);
+});
+
 // GET /api/analytics/project/:id - Individual project analytics
 router.get('/project/:id', async (req, res) => {
   try {

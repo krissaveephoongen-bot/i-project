@@ -1,13 +1,20 @@
 /**
  * Data Manager Service - Production Ready
  * 
- * Only calls endpoints that exist in the backend:
+ * Calls all available backend endpoints:
  * - /api/auth/me
  * - /api/users
  * - /api/projects
  * - /api/tasks
  * - /api/customers
  * - /api/analytics/*
+ * - /api/expenses
+ * - /api/timesheets
+ * - /api/reports/*
+ * - /api/teams
+ * - /api/search
+ * - /api/performance/*
+ * - /api/resources
  */
 
 import { apiClient } from './api-client';
@@ -19,6 +26,13 @@ export const DATA_CACHE_KEYS = {
   TASKS: 'cache_tasks',
   CUSTOMERS: 'cache_customers',
   ANALYTICS: 'cache_analytics',
+  EXPENSES: 'cache_expenses',
+  TIMESHEETS: 'cache_timesheets',
+  TEAMS: 'cache_teams',
+  PERFORMANCE: 'cache_performance',
+  SEARCH: 'cache_search',
+  REPORTS: 'cache_reports',
+  RESOURCES: 'cache_resources',
   LAST_UPDATED: 'cache_last_updated',
 };
 
@@ -108,11 +122,143 @@ class DataManager {
       { key: DATA_CACHE_KEYS.PROJECTS, endpoint: '/projects', priority: DataPriority.HIGH, required: false },
       { key: DATA_CACHE_KEYS.ANALYTICS, endpoint: '/analytics/dashboard-stats', priority: DataPriority.HIGH, required: false },
       
-      // Medium priority - Additional data
-      ...(isAdmin || isPM ? [{ key: DATA_CACHE_KEYS.USERS, endpoint: '/users', priority: DataPriority.MEDIUM, required: false }] : []),
-      { key: DATA_CACHE_KEYS.TASKS, endpoint: '/tasks', priority: DataPriority.MEDIUM, required: false },
+      // Medium priority - Additional data for PM/Admin
+      ...(isAdmin || isPM ? [
+        { key: DATA_CACHE_KEYS.USERS, endpoint: '/users', priority: DataPriority.MEDIUM, required: false },
+        { key: DATA_CACHE_KEYS.EXPENSES, endpoint: '/expenses', priority: DataPriority.MEDIUM, required: false },
+        { key: DATA_CACHE_KEYS.TIMESHEETS, endpoint: '/timesheets', priority: DataPriority.MEDIUM, required: false },
+        { key: DATA_CACHE_KEYS.TEAMS, endpoint: '/teams', priority: DataPriority.MEDIUM, required: false },
+        { key: DATA_CACHE_KEYS.PERFORMANCE, endpoint: '/performance/dashboard-metrics', priority: DataPriority.MEDIUM, required: false },
+      ] : []),
+      
+      // Low priority - Secondary data
+      { key: DATA_CACHE_KEYS.TASKS, endpoint: '/tasks', priority: DataPriority.LOW, required: false },
       { key: DATA_CACHE_KEYS.CUSTOMERS, endpoint: '/customers', priority: DataPriority.LOW, required: false },
+      { key: DATA_CACHE_KEYS.RESOURCES, endpoint: '/resources', priority: DataPriority.LOW, required: false },
     ];
+  }
+
+  // Load additional data on demand
+  async loadData(key: string, endpoint: string, priority: number = DataPriority.MEDIUM): Promise<LoadResult> {
+    const definition: LoadDataDefinition = {
+      key,
+      endpoint,
+      priority,
+      required: false
+    };
+    return this.loadWithDeduplication(definition);
+  }
+
+  // Load analytics data
+  async loadAnalytics(analyticsType: string): Promise<LoadResult> {
+    const endpoint = `/analytics/${analyticsType}`;
+    const key = `${DATA_CACHE_KEYS.ANALYTICS}_${analyticsType}`;
+    return this.loadData(key, endpoint, DataPriority.MEDIUM);
+  }
+
+  // Load reports data
+  async loadReports(reportType: string, params?: Record<string, string>): Promise<LoadResult> {
+    let endpoint = `/reports/${reportType}`;
+    if (params) {
+      const searchParams = new URLSearchParams(params);
+      endpoint += `?${searchParams.toString()}`;
+    }
+    const key = `${DATA_CACHE_KEYS.REPORTS}_${reportType}`;
+    return this.loadData(key, endpoint, DataPriority.MEDIUM);
+  }
+
+  // Search data
+  async search(query: string, type?: string): Promise<unknown> {
+    let endpoint = `/search?q=${encodeURIComponent(query)}`;
+    if (type) {
+      endpoint += `&type=${encodeURIComponent(type)}`;
+    }
+    return apiClient.get(endpoint).then(response => response.data);
+  }
+
+  // Get team member details
+  async getTeamMember(memberId: string): Promise<unknown> {
+    return apiClient.get(`/teams/${memberId}`).then(response => response.data);
+  }
+
+  // Get team member projects
+  async getTeamMemberProjects(memberId: string): Promise<unknown> {
+    return apiClient.get(`/teams/${memberId}/projects`).then(response => response.data);
+  }
+
+  // Get team member tasks
+  async getTeamMemberTasks(memberId: string, filters?: { status?: string; priority?: string }): Promise<unknown> {
+    let endpoint = `/teams/${memberId}/tasks`;
+    if (filters) {
+      const searchParams = new URLSearchParams(filters as Record<string, string>);
+      endpoint += `?${searchParams.toString()}`;
+    }
+    return apiClient.get(endpoint).then(response => response.data);
+  }
+
+  // Get team workload
+  async getTeamWorkload(): Promise<unknown> {
+    return apiClient.get('/teams/workload/overview').then(response => response.data);
+  }
+
+  // Get department stats
+  async getDepartmentStats(): Promise<unknown> {
+    return apiClient.get('/teams/departments/stats').then(response => response.data);
+  }
+
+  // Get project performance
+  async getProjectPerformance(): Promise<unknown> {
+    return apiClient.get('/performance/project-summaries').then(response => response.data);
+  }
+
+  // Get user workloads
+  async getUserWorkloads(filters?: { department?: string; role?: string }): Promise<unknown> {
+    let endpoint = '/performance/user-workloads';
+    if (filters) {
+      const searchParams = new URLSearchParams(filters as Record<string, string>);
+      endpoint += `?${searchParams.toString()}`;
+    }
+    return apiClient.get(endpoint).then(response => response.data);
+  }
+
+  // Get resource utilization
+  async getResourceUtilization(userId: string, startDate: string, endDate: string): Promise<unknown> {
+    return apiClient.get(`/resource-utilization?userId=${userId}&startDate=${startDate}&endDate=${endDate}`)
+      .then(response => response.data);
+  }
+
+  // Get team capacity
+  async getTeamCapacity(projectId: string, startDate: string, endDate: string): Promise<unknown> {
+    return apiClient.get(`/team-capacity?projectId=${projectId}&startDate=${startDate}&endDate=${endDate}`)
+      .then(response => response.data);
+  }
+
+  // Get expenses with filters
+  async getExpenses(filters?: { userId?: string; projectId?: string; startDate?: string; endDate?: string }): Promise<unknown> {
+    let endpoint = '/expenses';
+    if (filters) {
+      const searchParams = new URLSearchParams(filters as Record<string, string>);
+      endpoint += `?${searchParams.toString()}`;
+    }
+    return apiClient.get(endpoint).then(response => response.data);
+  }
+
+  // Get timesheets with filters
+  async getTimesheets(filters?: { userId?: string; projectId?: string; startDate?: string; endDate?: string; status?: string }): Promise<unknown> {
+    let endpoint = '/timesheets';
+    if (filters) {
+      const searchParams = new URLSearchParams(filters as Record<string, string>);
+      endpoint += `?${searchParams.toString()}`;
+    }
+    return apiClient.get(endpoint).then(response => response.data);
+  }
+
+  // Get pending approvals
+  async getPendingApprovals(approvalType: 'pm' | 'supervisor'): Promise<unknown> {
+    const endpoint = approvalType === 'pm' 
+      ? '/timesheets/pending-pm-approval' 
+      : '/timesheets/pending-supervisor-approval';
+    return apiClient.get(endpoint).then(response => response.data);
   }
 
   async loadAllData(definitions: LoadDataDefinition[]): Promise<LoadProgress> {

@@ -37,9 +37,21 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/api/health',
       auth: '/api/auth',
+      users: '/api/users',
       projects: '/api/projects',
       tasks: '/api/tasks',
-      users: '/api/users'
+      customers: '/api/customers',
+      analytics: '/api/analytics',
+      expenses: '/api/expenses',
+      timesheets: '/api/timesheets',
+      reports: '/api/reports',
+      search: '/api/search',
+      teams: '/api/teams',
+      performance: '/api/performance',
+      projectManager: '/api/project-manager',
+      resources: '/api/resources',
+      resourceUtilization: '/api/resource-utilization',
+      teamCapacity: '/api/team-capacity'
     }
   });
 });
@@ -73,6 +85,16 @@ import projectRoutes from './routes/project-routes.js';
 import taskRoutes from './routes/task-routes.js';
 import customerRoutes from './routes/customer-routes.js';
 import analyticsRoutes from './routes/analytics-routes.js';
+import expensesRoutes from './routes/expenses-routes.js';
+import timesheetsRoutes from './routes/timesheets-routes.js';
+import reportsRoutes from './routes/reports-routes.js';
+import searchRoutes from './routes/search-routes.js';
+import teamsRoutes from './routes/teams-routes.js';
+import performanceRoutes from './routes/performance-routes.js';
+import projectManagerRoutes from './routes/project-manager-routes.js';
+import resourceRoutes from './routes/resource-routes.js';
+import resourceUtilizationRoutes from './routes/resource-utilization-routes.js';
+import teamCapacityRoutes from './routes/team-capacity-routes.js';
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -81,6 +103,16 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/expenses', expensesRoutes);
+app.use('/api/timesheets', timesheetsRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/teams', teamsRoutes);
+app.use('/api/performance', performanceRoutes);
+app.use('/api/project-manager', projectManagerRoutes);
+app.use('/api/resources', resourceRoutes);
+app.use('/api/resource-utilization', resourceUtilizationRoutes);
+app.use('/api/team-capacity', teamCapacityRoutes);
 
 console.log('Routes registered');
 
