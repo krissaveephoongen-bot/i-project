@@ -38,7 +38,11 @@ class ApiClient {
     // Request interceptor
     this.instance.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        // Check for both token formats for compatibility
+        const token = localStorage.getItem('accessToken') || 
+                      localStorage.getItem('token') || 
+                      sessionStorage.getItem('accessToken') || 
+                      sessionStorage.getItem('token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -82,7 +86,9 @@ class ApiClient {
   }
 
   private handleUnauthorized() {
+    localStorage.removeItem('accessToken');
     localStorage.removeItem('token');
+    sessionStorage.removeItem('accessToken');
     sessionStorage.removeItem('token');
     // Use window.location.href instead of useNavigate to avoid React context issues
     window.location.href = '/login';
