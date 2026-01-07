@@ -16,6 +16,8 @@
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "backend/app.js" },
+    { "source": "/dashboard", "destination": "/index.html" },
+    { "source": "/dashboard/(.*)", "destination": "/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
