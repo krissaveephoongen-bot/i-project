@@ -52,6 +52,10 @@ export const API_TIMEOUT = 10000; // 10 seconds
  */
 export const buildApiUrl = (endpoint: string): string => {
   const baseUrl = getApiBaseUrl();
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  return `${baseUrl}${cleanEndpoint}`;
+  
+  // Remove /api/ from endpoint if it exists to avoid double /api/api/
+  const cleanEndpoint = endpoint.replace(/^\/api\//, '/');
+  const finalEndpoint = cleanEndpoint.startsWith('/') ? cleanEndpoint : `/${cleanEndpoint}`;
+  
+  return `${baseUrl}${finalEndpoint}`;
 };
