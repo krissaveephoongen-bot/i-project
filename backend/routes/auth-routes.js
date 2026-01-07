@@ -149,10 +149,30 @@ router.get('/me', async (req, res) => {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-      return res.status(401).json({ error: 'Access token required' });
+      return res.status(401).json({ 
+        error: 'Unauthorized',
+        message: 'Access token is required',
+        code: 'TOKEN_MISSING'
+      });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ 
+          error: 'Unauthorized',
+          message: 'Token has expired. Please login again.',
+          code: 'TOKEN_EXPIRED'
+        });
+      }
+      return res.status(401).json({ 
+        error: 'Unauthorized',
+        message: 'Invalid token',
+        code: 'TOKEN_INVALID'
+      });
+    }
 
     const userResult = await db.select({
       id: users.id,
@@ -166,13 +186,20 @@ router.get('/me', async (req, res) => {
     }).from(users).where(eq(users.id, decoded.id)).limit(1);
 
     if (userResult.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        error: 'Not Found',
+        message: 'User not found',
+        code: 'USER_NOT_FOUND'
+      });
     }
 
     res.json({ user: userResult[0] });
   } catch (error) {
     console.error('Error getting current user:', error);
-    res.status(401).json({ error: 'Invalid token' });
+    res.status(500).json({ 
+      error: 'Internal Server Error',
+      message: 'Failed to get current user'
+    });
   }
 });
 
@@ -182,10 +209,30 @@ router.get('/verify', async (req, res) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
 
     if (!token) {
-      return res.status(401).json({ error: 'Access token required' });
+      return res.status(401).json({ 
+        error: 'Unauthorized',
+        message: 'Access token is required',
+        code: 'TOKEN_MISSING'
+      });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ 
+          error: 'Unauthorized',
+          message: 'Token has expired. Please login again.',
+          code: 'TOKEN_EXPIRED'
+        });
+      }
+      return res.status(401).json({ 
+        error: 'Unauthorized',
+        message: 'Invalid token',
+        code: 'TOKEN_INVALID'
+      });
+    }
     
     const userResult = await db.select({
       id: users.id,
@@ -199,7 +246,11 @@ router.get('/verify', async (req, res) => {
     }).from(users).where(eq(users.id, decoded.id)).limit(1);
 
     if (userResult.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        error: 'Not Found',
+        message: 'User not found',
+        code: 'USER_NOT_FOUND'
+      });
     }
 
     res.json({ 
@@ -208,7 +259,10 @@ router.get('/verify', async (req, res) => {
     });
   } catch (error) {
     console.error('Error verifying token:', error);
-    res.status(401).json({ error: 'Invalid token' });
+    res.status(500).json({ 
+      error: 'Internal Server Error',
+      message: 'Failed to verify token'
+    });
   }
 });
 

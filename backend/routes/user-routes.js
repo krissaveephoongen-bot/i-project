@@ -13,12 +13,27 @@ const authenticateToken = (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
+    return res.status(401).json({ 
+      error: 'Unauthorized',
+      message: 'Access token is required',
+      code: 'TOKEN_MISSING'
+    });
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ 
+          error: 'Unauthorized',
+          message: 'Token has expired. Please login again.',
+          code: 'TOKEN_EXPIRED'
+        });
+      }
+      return res.status(403).json({ 
+        error: 'Forbidden',
+        message: 'Invalid token',
+        code: 'TOKEN_INVALID'
+      });
     }
     req.user = user;
     next();
