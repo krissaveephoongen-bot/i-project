@@ -335,14 +335,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       name: state.user.name,
       email: state.user.email,
       role: state.user.role,
-      permissions: state.user.permissions
+      permissions: state.user.permissions,
+      avatar: state.user.avatar,
+      phone: state.user.phone,
+      department: state.user.department,
     } : null,
     currentUser: state.user ? {
       id: state.user.id,
       name: state.user.name,
       email: state.user.email,
       role: state.user.role,
-      permissions: state.user.permissions
+      permissions: state.user.permissions,
+      avatar: state.user.avatar,
+      phone: state.user.phone,
+      department: state.user.department,
     } : null,
     isLoading: state.isLoading
   };

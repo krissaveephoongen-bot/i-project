@@ -155,7 +155,7 @@ export default function Settings() {
             }
 
             // Call API to update user profile
-            const response = await fetch(buildApiUrl(`/prisma/users/${contextUser.id}`), {
+            const response = await fetch(buildApiUrl(`/api/users/${contextUser.id}`), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -215,7 +215,7 @@ export default function Settings() {
             }
 
             // Call API to change password
-            const response = await fetch(buildApiUrl(`/prisma/users/${contextUser.id}/change-password`), {
+            const response = await fetch(buildApiUrl(`/api/users/${contextUser.id}/change-password`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -259,7 +259,7 @@ export default function Settings() {
             }
 
             // Call API to save notification preferences
-            const response = await fetch(buildApiUrl(`/prisma/users/${contextUser.id}/notification-preferences`), {
+            const response = await fetch(buildApiUrl(`/api/users/${contextUser.id}/notification-preferences`), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

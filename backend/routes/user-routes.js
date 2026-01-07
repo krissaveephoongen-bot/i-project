@@ -146,6 +146,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
         name: users.name,
         email: users.email,
         role: users.role,
+        avatar: users.avatar,
+        phone: users.phone,
         department: users.department,
         position: users.position,
         updatedAt: users.updatedAt,
