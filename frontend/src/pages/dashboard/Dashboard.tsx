@@ -78,8 +78,27 @@ export default function Dashboard() {
 
                 const projectsResult = await projectsResponse.json();
 
-                if (projectsResult.success) {
-                    const apiProjects = projectsResult.data.map((p: any) => ({
+                // Handle different API response structures
+                let apiProjects = [];
+                if (projectsResult.success && projectsResult.data) {
+                    // Standard success response with data
+                    apiProjects = projectsResult.data;
+                } else if (Array.isArray(projectsResult)) {
+                    // Direct array response
+                    apiProjects = projectsResult;
+                } else if (projectsResult.data && Array.isArray(projectsResult.data)) {
+                    // Response with data array
+                    apiProjects = projectsResult.data;
+                } else if (projectsResult.projects && Array.isArray(projectsResult.projects)) {
+                    // Response with projects array
+                    apiProjects = projectsResult.projects;
+                } else {
+                    // Fallback: try to use whatever we got
+                    console.warn('Unexpected API response structure:', projectsResult);
+                    apiProjects = [];
+                }
+
+                const apiProjectsMapped = apiProjects.map((p: any) => ({
                         id: p.id,
                         name: p.name,
                         code: p.code,
@@ -95,7 +114,7 @@ export default function Dashboard() {
                     }));
 
                     if (isMounted) {
-                        setProjects(apiProjects);
+                        setProjects(apiProjectsMapped);
                         
                         // Generate S-Curve data in a non-blocking way
                         setTimeout(() => {
@@ -120,9 +139,6 @@ export default function Dashboard() {
                             }
                         }, 0);
                     }
-                } else {
-                    throw new Error(projectsResult.message || 'Failed to fetch projects');
-                }
 
                 if (isMounted) {
                     setLastUpdated(new Date());
