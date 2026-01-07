@@ -125,11 +125,12 @@ export const InitialDataLoader: React.FC<InitialDataLoaderProps> = ({
   return (
     <div 
       className={`
-        fixed inset-0 z-50 flex items-center justify-center
+        fixed inset-0 z-50 flex items-center justify-center p-4
         bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900
         transition-opacity duration-500 ease-in-out
         ${fadeIn ? 'opacity-100' : 'opacity-0'}
       `}
+      style={{ minHeight: '100vh' }}
     >
       {/* Game-style Progress Loading */}
       <ProgressLoading
