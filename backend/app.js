@@ -66,35 +66,23 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// Import routes using dynamic import with await
-async function loadRoutes() {
-  try {
-    const authRoutes = (await import('./routes/auth-routes.js')).default;
-    const userRoutes = (await import('./routes/user-routes.js')).default;
-    const projectRoutes = (await import('./routes/project-routes.js')).default;
-    const taskRoutes = (await import('./routes/task-routes.js')).default;
-    const customerRoutes = (await import('./routes/customer-routes.js')).default;
-    const analyticsRoutes = (await import('./routes/analytics-routes.js')).default;
+// Import routes at build time
+import authRoutes from './routes/auth-routes.js';
+import userRoutes from './routes/user-routes.js';
+import projectRoutes from './routes/project-routes.js';
+import taskRoutes from './routes/task-routes.js';
+import customerRoutes from './routes/customer-routes.js';
+import analyticsRoutes from './routes/analytics-routes.js';
 
-    app.use('/api/auth', authRoutes);
-    app.use('/api/users', userRoutes);
-    app.use('/api/projects', projectRoutes);
-    app.use('/api/tasks', taskRoutes);
-    app.use('/api/customers', customerRoutes);
-    app.use('/api/analytics', analyticsRoutes);
+// Use routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
-    console.log('All routes loaded successfully');
-  } catch (error) {
-    console.error('Failed to load routes:', error);
-  }
-}
-
-// Load routes and then export for Vercel
-loadRoutes().then(() => {
-  // Routes are now loaded, export the app
-}).catch(err => {
-  console.error('Route loading failed:', err);
-});
+console.log('Routes registered');
 
 // 404 handler
 app.use((req, res) => {
