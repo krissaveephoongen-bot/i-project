@@ -69,8 +69,26 @@ export default function Dashboard() {
                 setIsLoading(true);
                 setError(null);
 
+                // Set safety timeout - forces loading to false after 15 seconds
+                const safetyTimeoutId = setTimeout(() => {
+                    if (isMounted) {
+                        console.warn('Fetch safety timeout - continuing with partial data');
+                        setIsLoading(false);
+                        setIsRefreshing(false);
+                    }
+                }, 15000);
+
+                // Create timeout controller for API call
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
                 // Fetch projects from API with error handling
-                const projectsResponse = await fetch(buildApiUrl('/projects?limit=10'));
+                const projectsResponse = await fetch(buildApiUrl('/projects?limit=10'), {
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                clearTimeout(safetyTimeoutId);
 
                 if (!projectsResponse.ok) {
                     throw new Error(`Failed to fetch projects: ${projectsResponse.status}`);
@@ -145,13 +163,15 @@ export default function Dashboard() {
                 }
             } catch (err) {
                 console.error('Error in dashboard data fetch:', err);
+                
                 if (isMounted) {
-                    setError({ 
-                        message: parseApiError(err).message, 
-                        component: 'projects' 
-                    });
+                    // Handle timeout gracefully - continue with partial/empty data
+                    const errorMessage = err instanceof Error && err.name === 'AbortError'
+                        ? 'Data loading timed out - showing available data'
+                        : parseApiError(err).message;
                     
-                    // Set default empty projects to prevent UI from breaking
+                    console.warn('Continuing with partial data due to:', errorMessage);
+                    // Don't block UI - continue with empty projects
                     setProjects([]);
                     setSCurveData({});
                 }

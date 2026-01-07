@@ -34,5 +34,6 @@ export { ProjectChart } from './charts/ProjectChart';
 // Loading Components
 export { default as LoadingSpinner } from './ui/LoadingSpinner';
 export { LoadingState } from './ui/LoadingState';
-export { ProgressLoading } from './ProgressLoading';
+export { ProgressLoading, LoadingStage } from './ProgressLoading';
+export { default as InitialDataLoader } from './InitialDataLoader';
 export { DataLoader, useProgressLoading } from './DataLoader';
