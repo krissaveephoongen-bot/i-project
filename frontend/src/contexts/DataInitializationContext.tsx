@@ -1,19 +1,23 @@
-/**
- * Data Initialization Context
- * 
- * Manages the state of data loading after login.
- * Provides loading progress, error handling, and completion status.
- */
-
-import React, { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react';
-import { dataManager, DATA_CACHE_KEYS, LoadProgress } from '@/services/dataManager';
+import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Types
 type InitializationStatus = 'idle' | 'loading' | 'completed' | 'error' | 'cancelled';
 
+interface User {
+  role?: string;
+}
+
 interface DataInitializationState {
   status: InitializationStatus;
-  progress: LoadProgress;
+  progress: {
+    total: number;
+    loaded: number;
+    failed: number;
+    percentage: number;
+    currentItem?: string;
+    currentItemName?: string;
+  };
   error: string | null;
   isDataComplete: boolean;
   lastLoadedAt: number | null;
@@ -21,7 +25,7 @@ interface DataInitializationState {
 
 type InitializationAction =
   | { type: 'START_LOADING' }
-  | { type: 'UPDATE_PROGRESS'; payload: LoadProgress }
+  | { type: 'UPDATE_PROGRESS'; payload: DataInitializationState['progress'] }
   | { type: 'COMPLETE_LOADING'; payload: { isDataComplete: boolean } }
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'RESET' }
@@ -94,7 +98,7 @@ const initializationReducer = (state: DataInitializationState, action: Initializ
 // Context type
 interface DataInitializationContextType {
   status: InitializationStatus;
-  progress: LoadProgress;
+  progress: DataInitializationState['progress'];
   error: string | null;
   isDataComplete: boolean;
   lastLoadedAt: number | null;
@@ -119,18 +123,16 @@ export const DataInitializationProvider: React.FC<DataInitializationProviderProp
   onInitialized 
 }) => {
   const [state, dispatch] = useReducer(initializationReducer, initialState);
-  const initializationPromise = useRef<Promise<void> | null>(null);
-  const isMounted = useRef(true);
+  const queryClient = useQueryClient();
 
   // Cleanup on unmount
   useEffect(() => {
-    isMounted.current = true;
     return () => {
-      isMounted.current = false;
+      // Cleanup if needed
     };
   }, []);
 
-  // Start data initialization
+  // Start data initialization using React Query
   const startInitialization = useCallback(async () => {
     if (state.status === 'loading') {
       return;
@@ -139,73 +141,113 @@ export const DataInitializationProvider: React.FC<DataInitializationProviderProp
     dispatch({ type: 'START_LOADING' });
 
     try {
-      // Load cached data first for instant display
-      dataManager.loadCachedData();
+      // Use React Query to fetch data in parallel with proper deduplication
+      const promises = [];
+      
+      // Essential data
+      promises.push(
+        queryClient.prefetchQuery({
+          queryKey: ['auth', 'me'],
+          queryFn: () => fetch('/api/auth/me').then(res => res.json()),
+          staleTime: 5 * 60 * 1000, // 5 minutes
+        })
+      );
 
-      // Start fresh initialization
-      const progress = await dataManager.initialize();
+      // Main data
+      promises.push(
+        queryClient.prefetchQuery({
+          queryKey: ['projects'],
+          queryFn: () => fetch('/api/projects').then(res => res.json()),
+          staleTime: 5 * 60 * 1000,
+        })
+      );
 
-      if (!isMounted.current) {
-        return;
+      // Admin/PM data
+      const userQuery = queryClient.getQueryData(['auth', 'me']) as User | undefined;
+      const isAdmin = userQuery?.role === 'admin' || userQuery?.role === 'ADMIN';
+      const isPM = userQuery?.role === 'PROJECT_MANAGER' || userQuery?.role === 'project_manager';
+
+      if (isAdmin || isPM) {
+        promises.push(
+          queryClient.prefetchQuery({
+            queryKey: ['users'],
+            queryFn: () => fetch('/api/users').then((res: any) => res.json()),
+            staleTime: 5 * 60 * 1000,
+          })
+        );
+
+        promises.push(
+          queryClient.prefetchQuery({
+            queryKey: ['tasks'],
+            queryFn: () => fetch('/api/tasks').then((res: any) => res.json()),
+            staleTime: 5 * 60 * 1000,
+          })
+        );
       }
+
+      // Wait for all critical data with timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Initialization timeout')), 10000); // 10 seconds
+      });
+
+      const results = await Promise.race([
+        Promise.allSettled(promises),
+        timeoutPromise
+      ]);
 
       // Update progress
-      dispatch({ type: 'UPDATE_PROGRESS', payload: progress });
-
-      // Check if critical data is complete
-      const isComplete = dataManager.isDataComplete();
-
-      if (isComplete) {
-        dispatch({ type: 'COMPLETE_LOADING', payload: { isDataComplete: true } });
-        onInitialized?.();
-      } else {
-        // Some required data failed to load
-        const failedItems = progress.failed > 0;
-        if (failedItems) {
-          dispatch({ 
-            type: 'SET_ERROR', 
-            payload: `Failed to load ${progress.failed} data sources. Some features may not work correctly.` 
-          });
-        } else {
-          dispatch({ type: 'COMPLETE_LOADING', payload: { isDataComplete: true } });
-          onInitialized?.();
+      const totalPromises = promises.length;
+      const completedPromises = results.filter(r => r.status === 'fulfilled').length;
+      
+      dispatch({ 
+        type: 'UPDATE_PROGRESS', 
+        payload: {
+          total: totalPromises,
+          loaded: completedPromises,
+          failed: 0,
+          percentage: Math.round((completedPromises / totalPromises) * 100),
         }
-      }
-    } catch (error: any) {
-      if (!isMounted.current) {
-        return;
-      }
+      });
 
+      // Complete initialization
+      dispatch({ 
+        type: 'COMPLETE_LOADING', 
+        payload: { isDataComplete: true } 
+      });
+      
+      onInitialized?.();
+    } catch (error: any) {
       console.error('Data initialization failed:', error);
       dispatch({ 
         type: 'SET_ERROR', 
         payload: error.message || 'Failed to initialize data. Please try again.' 
       });
     }
-  }, [state.status, onInitialized]);
+  }, [state.status, onInitialized, queryClient]);
 
-  // Retry initialization after error
+  // Retry initialization
   const retryInitialization = useCallback(async () => {
     dispatch({ type: 'RESET' });
+    await queryClient.invalidateQueries();
     await startInitialization();
-  }, [startInitialization]);
+  }, [startInitialization, queryClient]);
 
-  // Cancel ongoing initialization
+  // Cancel initialization
   const cancelInitialization = useCallback(() => {
-    dataManager.abort();
+    // Cancel any ongoing queries
     dispatch({ type: 'CANCEL_LOADING' });
   }, []);
 
-  // Reset initialization state
+  // Reset
   const reset = useCallback(() => {
-    dataManager.clearCache();
+    queryClient.clear();
     dispatch({ type: 'RESET' });
-  }, []);
+  }, [queryClient]);
 
   // Get cached data
   const getData = useCallback((key: string) => {
-    return dataManager.getData(key);
-  }, []);
+    return queryClient.getQueryData([key]);
+  }, [queryClient]);
 
   // Computed values
   const isInitialized = state.status === 'completed' && state.isDataComplete;
