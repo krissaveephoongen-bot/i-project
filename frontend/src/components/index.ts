@@ -23,7 +23,7 @@ export { FileUpload } from './FileUpload';
 export { default as MobileBottomNav } from './MobileBottomNav';
 export { default as MobileFAB } from './MobileFAB';
 export { SearchBar } from './SearchBar';
-export { default as ThemeToggle } from './ThemeToggle';
+export { ThemeToggle } from './ThemeToggle';
 
 // Error Components
 export { default as ErrorFallback } from './error/ErrorFallback';
