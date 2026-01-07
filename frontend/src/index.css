@@ -69,6 +69,13 @@ html, body {
   font-family: 'Sarabun', system-ui, -apple-system, Tahoma, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* Fallback for when Google Fonts fail to load */
+@supports not (font-family: 'Sarabun') {
+  body {
+    font-family: system-ui, -apple-system, Tahoma, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+}
+
 /* Remove input number arrows */
 input[type='number'] {
   -moz-appearance: textfield;

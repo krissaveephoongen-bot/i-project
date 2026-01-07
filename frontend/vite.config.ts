@@ -94,7 +94,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
-    minify: 'terser',
+    minify: 'esbuild', // Change from terser to esbuild for better font handling
     target: 'esnext',
     chunkSizeWarningLimit: 1000, // Increase chunk size warning limit to 1000KB
     modulePreload: {
@@ -115,6 +115,10 @@ export default defineConfig({
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
+      },
+      external: (id) => {
+        // Don't bundle external font URLs
+        return id.includes('fonts.googleapis.com') || id.includes('fonts.gstatic.com');
       },
     },
   },
