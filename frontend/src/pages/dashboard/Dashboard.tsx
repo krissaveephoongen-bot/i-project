@@ -46,6 +46,25 @@ export default function Dashboard() {
      const [dateRange, setDateRange] = useState<'week' | 'month' | 'quarter'>('month');
      const [isRefreshing, setIsRefreshing] = useState(false);
 
+     // Fallback redirect if dashboard route is not working
+     useEffect(() => {
+        const checkRouteAccess = async () => {
+            try {
+                // Test if the current route is accessible
+                const response = await fetch('/dashboard', { method: 'HEAD' });
+                if (response.status === 404) {
+                    console.warn('Dashboard route not accessible, redirecting to projects');
+                    navigate('/projects', { replace: true });
+                }
+            } catch (error) {
+                console.warn('Route check failed, redirecting to projects');
+                navigate('/projects', { replace: true });
+            }
+        };
+        
+        checkRouteAccess();
+     }, [navigate]);
+
     const [projects, setProjects] = useState<Project[]>([]);
     const [selectedProject, setSelectedProject] = useState<string>('all');
     // Define the S-curve data point type

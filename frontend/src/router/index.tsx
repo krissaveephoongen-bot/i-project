@@ -222,7 +222,7 @@ const PublicRouteWrapper: React.FC<{ children?: React.ReactNode }> = ({ children
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/projects" replace />;
   }
 
   return children ? <>{children}</> : <Outlet />;
