@@ -19,20 +19,20 @@ export { default as Sidebar } from './layout/Sidebar';
 
 // Feature Components
 export { default as FileManager } from './FileManager';
-export { default as FileUpload } from './FileUpload';
+export { FileUpload } from './FileUpload';
 export { default as MobileBottomNav } from './MobileBottomNav';
 export { default as MobileFAB } from './MobileFAB';
-export { default as SearchBar } from './SearchBar';
+export { SearchBar } from './SearchBar';
 export { default as ThemeToggle } from './ThemeToggle';
 
 // Error Components
 export { default as ErrorFallback } from './error/ErrorFallback';
 
 // Chart Components
-export { default as ProjectChart } from './charts/ProjectChart';
+export { ProjectChart } from './charts/ProjectChart';
 
 // Loading Components
 export { default as LoadingSpinner } from './ui/LoadingSpinner';
-export { default as LoadingState } from './ui/LoadingState';
+export { LoadingState } from './ui/LoadingState';
 export { ProgressLoading } from './ProgressLoading';
 export { DataLoader, useProgressLoading } from './DataLoader';
