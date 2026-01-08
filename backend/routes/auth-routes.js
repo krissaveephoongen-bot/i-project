@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { db } from '../lib/db.js';
+import { getDbClient } from '../lib/db.js';
 import { users } from '../lib/schema.js';
 import { eq } from 'drizzle-orm';
 
@@ -14,6 +14,11 @@ router.post('/login', async (req, res) => {
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const { db } = getDbClient();
+    if (!db) {
+      return res.status(500).json({ error: 'Database not configured' });
     }
 
     // Find user by email
