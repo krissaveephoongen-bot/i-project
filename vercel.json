@@ -16,16 +16,6 @@
       "use": "@vercel/node@latest"
     }
   ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "backend/app.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "frontend/index.html"
-    }
-  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "backend/app.js" },
     { "source": "/landing", "destination": "/index.html" },
