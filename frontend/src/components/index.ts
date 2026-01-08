@@ -36,4 +36,5 @@ export { default as LoadingSpinner } from './ui/LoadingSpinner';
 export { LoadingState } from './ui/LoadingState';
 export { ProgressLoading, LoadingStage } from './ProgressLoading';
 export { default as InitialDataLoader } from './InitialDataLoader';
+export { default as BackgroundDataLoader } from './BackgroundDataLoader';
 export { DataLoader, useProgressLoading } from './DataLoader';

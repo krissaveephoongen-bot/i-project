@@ -60,7 +60,8 @@ app.get('/', (req, res) => {
       projectManager: '/api/project-manager',
       resources: '/api/resources',
       resourceUtilization: '/api/resource-utilization',
-      teamCapacity: '/api/team-capacity'
+      teamCapacity: '/api/team-capacity',
+      progress: '/api/progress'
     }
   });
 });
@@ -104,6 +105,7 @@ import projectManagerRoutes from './routes/project-manager-routes.js';
 import resourceRoutes from './routes/resource-routes.js';
 import resourceUtilizationRoutes from './routes/resource-utilization-routes.js';
 import teamCapacityRoutes from './routes/team-capacity-routes.js';
+import progressRoutes from './routes/progress-routes.js';
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -122,6 +124,7 @@ app.use('/api/project-manager', projectManagerRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/resource-utilization', resourceUtilizationRoutes);
 app.use('/api/team-capacity', teamCapacityRoutes);
+app.use('/api/progress', progressRoutes);
 
 console.log('Routes registered');
 

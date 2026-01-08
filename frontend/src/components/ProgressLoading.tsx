@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import LoadingSpinner from './ui/LoadingSpinner';
 
 export interface LoadingStage {
@@ -12,15 +12,16 @@ export interface LoadingStage {
 
 interface ProgressLoadingProps {
   stages: LoadingStage[];
-  currentStage?: string;
   progress: number;
   title?: string;
   subtitle?: string;
   showPercentage?: boolean;
   showTimer?: boolean;
   tips?: string[];
-  variant?: 'default' | 'minimal' | 'detailed';
+  variant?: 'default' | 'minimal' | 'detailed' | 'toast';
   onRetry?: (stageId: string) => void;
+  onClose?: () => void;
+  showStages?: boolean; // Option for toast variant
 }
 
 const STAGE_ICONS: Record<string, string> = {
@@ -50,7 +51,6 @@ const LOADING_TIPS = [
 
 export const ProgressLoading: React.FC<ProgressLoadingProps> = ({
   stages,
-  currentStage,
   progress,
   title = 'Loading Application',
   subtitle = 'Please wait while we prepare your data',
@@ -59,10 +59,22 @@ export const ProgressLoading: React.FC<ProgressLoadingProps> = ({
   tips = LOADING_TIPS,
   variant = 'detailed',
   onRetry,
+  onClose,
+  showStages = false,
 }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [currentTip, setCurrentTip] = useState(tips[0]);
   const [animationKey, setAnimationKey] = useState(0);
+
+  // Derive current stage from the stages array
+  const currentStageName = useMemo(() => {
+    const loadingStage = stages.find(s => s.status === 'loading');
+    if (loadingStage) return loadingStage.name;
+    const pendingStage = stages.find(s => s.status === 'pending');
+    if (pendingStage) return pendingStage.name;
+    if (stages.length > 0) return stages[stages.length - 1].name;
+    return 'Initializing...';
+  }, [stages]);
 
   // Timer effect
   useEffect(() => {
@@ -75,12 +87,13 @@ export const ProgressLoading: React.FC<ProgressLoadingProps> = ({
 
   // Rotate tips
   useEffect(() => {
+    if (variant !== 'detailed' && variant !== 'toast') return;
     const tipInterval = setInterval(() => {
       setCurrentTip(tips[Math.floor(Math.random() * tips.length)]);
       setAnimationKey(prev => prev + 1);
     }, 5000);
     return () => clearInterval(tipInterval);
-  }, [tips]);
+  }, [tips, variant]);
 
   // Get status class based on stage status
   const getStatusClass = (status: LoadingStage['status']) => {
@@ -104,17 +117,61 @@ export const ProgressLoading: React.FC<ProgressLoadingProps> = ({
     return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
   };
 
+  if (variant === 'toast') {
+    return (
+      <div className="fixed bottom-4 right-4 w-full max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-4 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-start">
+          <div className="flex-shrink-0 pt-1">
+            <LoadingSpinner size={20} className="text-blue-500" />
+          </div>
+          <div className="flex-1 ml-3">
+            <div className="flex justify-between items-center">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{title}</p>
+              {onClose && (
+                 <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"></path></svg>
+                 </button>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{currentStageName}</p>
+            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-3">
+              <div
+                className="h-full bg-blue-500 animate-pulse transition-all duration-300 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+             <div className="flex items-center justify-between mt-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400">{progress}%</span>
+              {showTimer && <span className="text-xs text-gray-500 dark:text-gray-400">{formatTime(elapsedTime)}</span>}
+            </div>
+            {showStages && (
+              <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-2 space-y-1">
+                {stages.map(stage => (
+                  <div key={stage.id} className="flex items-center text-xs">
+                     <span className={`mr-2 ${getStatusClass(stage.status)}`}>•</span>
+                     <span className="flex-1 text-gray-600 dark:text-gray-300">{stage.name}</span>
+                     <span className={`font-medium ${getStatusClass(stage.status)}`}>{stage.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (variant === 'minimal') {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4">
         <div className="w-full max-w-md">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">{currentStage || title}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{currentStageName}</span>
             <span className="text-sm font-medium text-gray-900 dark:text-white">{progress}%</span>
           </div>
           <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-500 transition-all duration-300 ease-out"
+              className="h-full bg-blue-500 animate-pulse transition-all duration-300 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -137,7 +194,7 @@ export const ProgressLoading: React.FC<ProgressLoadingProps> = ({
           <div className="relative mb-8">
             <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 ease-out"
+                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 animate-pulse transition-all duration-500 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -152,7 +209,7 @@ export const ProgressLoading: React.FC<ProgressLoadingProps> = ({
           <div className="flex items-center justify-center gap-3 mb-6">
             <LoadingSpinner size={20} />
             <span className="text-gray-700 dark:text-gray-300 font-medium">
-              {currentStage || 'Initializing...'}
+              {currentStageName}
             </span>
           </div>
 

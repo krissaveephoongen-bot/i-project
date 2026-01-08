@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Types
@@ -21,15 +21,17 @@ interface DataInitializationState {
   error: string | null;
   isDataComplete: boolean;
   lastLoadedAt: number | null;
+  backgroundMode: boolean;
 }
 
 type InitializationAction =
-  | { type: 'START_LOADING' }
+  | { type: 'START_LOADING'; payload?: { backgroundMode?: boolean } }
   | { type: 'UPDATE_PROGRESS'; payload: DataInitializationState['progress'] }
   | { type: 'COMPLETE_LOADING'; payload: { isDataComplete: boolean } }
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'RESET' }
-  | { type: 'CANCEL_LOADING' };
+  | { type: 'CANCEL_LOADING' }
+  | { type: 'SET_BACKGROUND_MODE'; payload: boolean };
 
 // Initial state
 const initialState: DataInitializationState = {
@@ -43,6 +45,7 @@ const initialState: DataInitializationState = {
   error: null,
   isDataComplete: false,
   lastLoadedAt: null,
+  backgroundMode: false,
 };
 
 // Reducer
@@ -52,6 +55,7 @@ const initializationReducer = (state: DataInitializationState, action: Initializ
       return {
         ...initialState,
         status: 'loading',
+        backgroundMode: action.payload?.backgroundMode ?? state.backgroundMode,
         progress: {
           total: 0,
           loaded: 0,
@@ -84,11 +88,17 @@ const initializationReducer = (state: DataInitializationState, action: Initializ
     case 'RESET':
       return {
         ...initialState,
+        backgroundMode: state.backgroundMode,
       };
     case 'CANCEL_LOADING':
       return {
         ...state,
         status: 'cancelled',
+      };
+    case 'SET_BACKGROUND_MODE':
+      return {
+        ...state,
+        backgroundMode: action.payload,
       };
     default:
       return state;
@@ -102,12 +112,14 @@ interface DataInitializationContextType {
   error: string | null;
   isDataComplete: boolean;
   lastLoadedAt: number | null;
-  startInitialization: () => Promise<void>;
+  backgroundMode: boolean;
+  startInitialization: (options?: { backgroundMode?: boolean }) => Promise<void>;
   retryInitialization: () => Promise<void>;
   cancelInitialization: () => void;
   reset: () => void;
   getData: (key: string) => any;
   isInitialized: boolean;
+  setBackgroundMode: (enabled: boolean) => void;
 }
 
 const DataInitializationContext = createContext<DataInitializationContextType | undefined>(undefined);
@@ -116,13 +128,19 @@ const DataInitializationContext = createContext<DataInitializationContextType | 
 interface DataInitializationProviderProps {
   children: React.ReactNode;
   onInitialized?: () => void;
+  /** Default mode for data loading */
+  defaultBackgroundMode?: boolean;
 }
 
 export const DataInitializationProvider: React.FC<DataInitializationProviderProps> = ({ 
   children,
-  onInitialized 
+  onInitialized,
+  defaultBackgroundMode = true,
 }) => {
-  const [state, dispatch] = useReducer(initializationReducer, initialState);
+  const [state, dispatch] = useReducer(initializationReducer, {
+    ...initialState,
+    backgroundMode: defaultBackgroundMode,
+  });
   const queryClient = useQueryClient();
 
   // Cleanup on unmount
@@ -132,17 +150,23 @@ export const DataInitializationProvider: React.FC<DataInitializationProviderProp
     };
   }, []);
 
+  // Set background mode
+  const setBackgroundMode = useCallback((enabled: boolean) => {
+    dispatch({ type: 'SET_BACKGROUND_MODE', payload: enabled });
+  }, []);
+
   // Start data initialization using React Query
-  const startInitialization = useCallback(async () => {
+  const startInitialization = useCallback(async (options?: { backgroundMode?: boolean }) => {
     if (state.status === 'loading') {
       return;
     }
 
-    dispatch({ type: 'START_LOADING' });
+    const backgroundMode = options?.backgroundMode ?? state.backgroundMode;
+    dispatch({ type: 'START_LOADING', payload: { backgroundMode } });
 
     try {
       // Use React Query to fetch data in parallel with proper deduplication
-      const promises = [];
+      const promises: Promise<unknown>[] = [];
       
       // Essential data
       promises.push(
@@ -186,8 +210,10 @@ export const DataInitializationProvider: React.FC<DataInitializationProviderProp
       }
 
       // Wait for all critical data with timeout
+      // In background mode, use a longer timeout since we don't block the UI
+      const timeoutDuration = backgroundMode ? 30000 : 10000;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Initialization timeout')), 10000); // 10 seconds
+        setTimeout(() => reject(new Error('Initialization timeout')), timeoutDuration);
       });
 
       const results = await Promise.race([
@@ -223,7 +249,7 @@ export const DataInitializationProvider: React.FC<DataInitializationProviderProp
         payload: error.message || 'Failed to initialize data. Please try again.' 
       });
     }
-  }, [state.status, onInitialized, queryClient]);
+  }, [state.status, state.backgroundMode, onInitialized, queryClient]);
 
   // Retry initialization
   const retryInitialization = useCallback(async () => {
@@ -258,12 +284,14 @@ export const DataInitializationProvider: React.FC<DataInitializationProviderProp
     error: state.error,
     isDataComplete: state.isDataComplete,
     lastLoadedAt: state.lastLoadedAt,
+    backgroundMode: state.backgroundMode,
     startInitialization,
     retryInitialization,
     cancelInitialization,
     reset,
     getData,
     isInitialized,
+    setBackgroundMode,
   };
 
   return (

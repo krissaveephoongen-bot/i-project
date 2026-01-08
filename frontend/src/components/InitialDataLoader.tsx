@@ -1,14 +1,18 @@
 /**
  * Initial Data Loader Component
  * 
- * Full-screen loading overlay shown after login while data is being loaded.
- * Displays progress bar, current loading item, and status messages.
- * Uses game-style ProgressLoading component.
+ * Loading overlay shown while data is being loaded.
+ * Can work in two modes:
+ * - Blocking mode: Full-screen overlay that prevents interaction until loading is complete
+ * - Background mode: Non-blocking toast notification that allows interaction
+ * 
+ * Uses game-style ProgressLoading component for detailed progress display.
  */
 
 import React, { useEffect, useState } from 'react';
 import { useDataInitialization } from '@/contexts/DataInitializationContext';
 import ProgressLoading, { LoadingStage } from './ProgressLoading';
+import BackgroundDataLoader from './BackgroundDataLoader';
 
 // Loading step labels with icons
 const LOADING_STEPS: Record<string, { name: string; description?: string }> = {
@@ -36,20 +40,26 @@ interface InitialDataLoaderProps {
   showDetails?: boolean;
   /** Brand color for the loader */
   brandColor?: string;
+  /** Whether to use blocking mode (full-screen) or background mode (non-blocking) */
+  blockingMode?: boolean;
+  /** Children to render when in non-blocking mode */
+  children?: React.ReactNode;
 }
 
 export const InitialDataLoader: React.FC<InitialDataLoaderProps> = ({
   onComplete,
   showDetails = true,
   brandColor = '#3B82F6',
+  blockingMode = false,
+  children,
 }) => {
   const { 
     status, 
     progress, 
     error, 
     retryInitialization, 
-    cancelInitialization,
-    isInitialized 
+    isInitialized,
+    backgroundMode,
   } = useDataInitialization();
 
   const [fadeIn, setFadeIn] = useState(false);
@@ -70,26 +80,25 @@ export const InitialDataLoader: React.FC<InitialDataLoaderProps> = ({
   // Convert progress to stages for ProgressLoading
   const getStages = (): LoadingStage[] => {
     const stages: LoadingStage[] = [];
-    const total = progress.total || 8; // Default to 8 if not set
     
     // Create stages based on LOADING_STEPS
     Object.entries(LOADING_STEPS).forEach(([key, info]) => {
       const index = stages.length;
-      let status: LoadingStage['status'] = 'pending';
+      let stageStatus: LoadingStage['status'] = 'pending';
       
       if (progress.currentItem === key) {
-        status = 'loading';
+        stageStatus = 'loading';
       } else if (progress.loaded > index) {
-        status = 'completed';
+        stageStatus = 'completed';
       } else if (progress.failed > 0 && progress.loaded + progress.failed >= index + 1) {
-        status = 'error';
+        stageStatus = 'error';
       }
       
       stages.push({
         id: key,
         name: info.name,
         description: info.description,
-        status,
+        status: stageStatus,
       });
     });
     
@@ -121,7 +130,30 @@ export const InitialDataLoader: React.FC<InitialDataLoaderProps> = ({
 
   const stages = getStages();
   const currentStageName = getCurrentStageName();
+  const isLoading = status === 'loading';
+  const hasError = status === 'error';
 
+  // If in non-blocking mode and children are provided, render children with background loader
+  if (!blockingMode && children) {
+    return (
+      <>
+        {children}
+        <BackgroundDataLoader
+          onComplete={onComplete}
+          position="bottom-right"
+          showStages={true}
+          autoHideDelay={3000}
+        />
+      </>
+    );
+  }
+
+  // If background mode is enabled (non-blocking), use BackgroundDataLoader
+  if (backgroundMode && !blockingMode) {
+    return <BackgroundDataLoader onComplete={onComplete} />;
+  }
+
+  // Blocking mode: Full-screen overlay
   return (
     <div 
       className={`
@@ -135,13 +167,19 @@ export const InitialDataLoader: React.FC<InitialDataLoaderProps> = ({
       {/* Game-style Progress Loading */}
       <ProgressLoading
         stages={stages}
-        currentStage={currentStageName}
         progress={progress.percentage}
-        title="Loading Your Workspace"
-        subtitle="Please wait while we prepare your data"
+        title={hasError ? 'Loading Failed' : 'Loading Your Workspace'}
+        subtitle={hasError 
+          ? error || 'Failed to load data. Please try again.'
+          : 'Please wait while we prepare your data'
+        }
         variant="detailed"
         showTimer={true}
         onRetry={handleRetry}
+        tips={hasError 
+          ? ['Tap "Retry" to try loading again', 'Check your connection and try again']
+          : undefined
+        }
       />
     </div>
   );

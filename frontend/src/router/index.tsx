@@ -180,6 +180,10 @@ const AllUsersPage = React.lazy(() =>
   import('@/pages/AllUsers').catch(() => ({ default: () => <div>Loading...</div> }))
 );
 
+const ProgressDemoPage = React.lazy(() => 
+  import('@/pages/ProgressDemoPage').catch(() => ({ default: () => <div>Loading...</div> }))
+);
+
 // Loading fallback component
 const PageLoader: React.FC = () => (
   <div className="flex justify-center items-center h-64">
@@ -438,6 +442,11 @@ export const router = createBrowserRouter([
       {
         path: '/customers',
         element: <SuspenseWrapper><Customers /></SuspenseWrapper>,
+      },
+      // Dev/Demo routes
+      {
+        path: '/dev/progress-demo',
+        element: <SuspenseWrapper><ProgressDemoPage /></SuspenseWrapper>,
       },
     ],
   },

@@ -1,4 +1,16 @@
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryCache, MutationCache } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
+
+const handleGlobalError = (error: unknown) => {
+  // Check if error is an actual error object
+  if (error instanceof Error) {
+    // We can add more sophisticated logic here, e.g., inspect error.response.status
+    // For now, a generic message is sufficient.
+    toast.error(`An error occurred: ${error.message}`);
+  } else {
+    toast.error('An unknown error occurred.');
+  }
+};
 
 /**
  * Optimized React Query configuration
@@ -8,8 +20,15 @@ import { QueryClient } from '@tanstack/react-query';
  * - Proper cache time management
  * - Disabled refetch on window focus (can trigger unnecessary requests)
  * - Retry logic to handle temporary failures
+ * - Global error handling via toast notifications
  */
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: handleGlobalError,
+  }),
+  mutationCache: new MutationCache({
+    onError: handleGlobalError,
+  }),
   defaultOptions: {
     queries: {
       // How long until fetched data is considered "stale"

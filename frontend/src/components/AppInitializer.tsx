@@ -1,142 +1,87 @@
-/**
- * App Initializer Component
- * 
- * Root component that handles the complete initialization flow:
- * 1. Auth check
- * 2. Data loading (with progress spinner)
- * 3. Ready state
- */
-
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDataInitialization } from '@/contexts/DataInitializationContext';
-import { InitialDataLoader } from './InitialDataLoader';
-import { DataLoader } from './DataLoader';
+import { BackgroundDataLoader } from './BackgroundDataLoader';
+
+// A simple full-page loader for the initial auth check.
+const AuthLoader: React.FC = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+    <div className="text-center">
+      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <p className="text-gray-600 dark:text-slate-400">Authenticating...</p>
+    </div>
+  </div>
+);
 
 interface AppInitializerProps {
   children: React.ReactNode;
-  /** Custom loading component to show during initialization */
-  loadingComponent?: React.ReactNode;
-  /** Whether to skip data loading (for debugging) */
-  skipDataLoading?: boolean;
-  /** Callback when app is fully ready */
-  onReady?: () => void;
-  /** Callback when initialization fails */
   onError?: (error: Error) => void;
+  /** Whether to use background loading (non-blocking) or full-screen loading */
+  useBackgroundLoading?: boolean;
 }
 
 export const AppInitializer: React.FC<AppInitializerProps> = ({
   children,
-  loadingComponent,
-  skipDataLoading = false,
-  onReady,
   onError,
+  useBackgroundLoading = true, // Default to background loading (non-blocking)
 }) => {
-  const { isAuthenticated, isLoading: authLoading, user, login } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const {
     status: dataStatus,
-    progress,
     error: dataError,
     startInitialization,
     isInitialized,
   } = useDataInitialization();
 
-  const [appReady, setAppReady] = useState(false);
-  const [initStarted, setInitStarted] = useState(false);
-
-  // Determine if we should show the data loader
-  const showDataLoader = !skipDataLoading && 
-    isAuthenticated && 
-    authLoading === false &&
-    !isInitialized &&
-    dataStatus !== 'idle';
-
-  // Handle initialization complete
-  const handleDataReady = useCallback(() => {
-    setAppReady(true);
-    onReady?.();
-  }, [onReady]);
-
-  // Start data initialization after auth is ready
+  // Effect to start data initialization once authentication is confirmed.
   useEffect(() => {
-    if (isAuthenticated && !authLoading && !initStarted && !skipDataLoading) {
-      setInitStarted(true);
+    if (isAuthenticated && !isInitialized && dataStatus === 'idle') {
       startInitialization();
     }
-  }, [isAuthenticated, authLoading, initStarted, skipDataLoading, startInitialization]);
+  }, [isAuthenticated, isInitialized, dataStatus, startInitialization]);
 
-  // Handle errors
+  // Effect to bubble up errors.
   useEffect(() => {
-    if (dataStatus === 'error' && dataError) {
-      onError?.(new Error(dataError));
+    if (dataError && onError) {
+      onError(new Error(dataError));
     }
-  }, [dataStatus, dataError, onError]);
+  }, [dataError, onError]);
 
-  // Show data loader during initialization
-  if (showDataLoader) {
-    return (
-      <>
-        <InitialDataLoader 
-          onComplete={handleDataReady}
-          brandColor="#3B82F6"
-          showDetails={true}
-        />
-        {/* Keep rendering children in background but hidden */}
-        <div className="hidden">
+  // 1. While authentication status is being determined, show a simple loader.
+  if (authLoading) {
+    return <AuthLoader />;
+  }
+
+  // 2. If authenticated but data is still loading
+  if (isAuthenticated && !isInitialized) {
+    if (useBackgroundLoading) {
+      // Background loading mode: render children and show non-blocking progress indicator
+      return (
+        <>
           {children}
-        </div>
-      </>
-    );
-  }
-
-  // If using custom loading component
-  if (loadingComponent && (authLoading || (isAuthenticated && !isInitialized))) {
-    return (
-      <>
-        {loadingComponent}
-        <div className="hidden">
+          <BackgroundDataLoader
+            position="bottom-right"
+            showStages={true}
+            autoHideDelay={3000}
+          />
+        </>
+      );
+    } else {
+      // Blocking mode: show full-screen loader (legacy behavior)
+      return (
+        <>
+          {/* @ts-ignore - InitialDataLoader is imported via index.ts */}
+          <InitialDataLoader />
           {children}
-        </div>
-      </>
-    );
+        </>
+      );
+    }
   }
 
-  // App is ready
-  if (appReady || (!isAuthenticated && !authLoading)) {
-    return <>{children}</>;
-  }
-
-  // Fallback loading state
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900">
-      <div className="text-center">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-slate-400">Loading...</p>
-      </div>
-    </div>
-  );
+  // 3. If authentication is complete and not authenticated OR 
+  //    if authentication is complete and data is initialized, the app is ready.
+  //    The router's own protected routes will handle redirecting unauthenticated users.
+  return <>{children}</>;
 };
-
-// Higher-order component version
-export function withAppInitializer<P extends object>(
-  Component: React.ComponentType<P>,
-  options?: {
-    skipDataLoading?: boolean;
-    onReady?: () => void;
-    onError?: (error: Error) => void;
-  }
-) {
-  return function WrappedComponent(props: P) {
-    return (
-      <AppInitializer
-        skipDataLoading={options?.skipDataLoading}
-        onReady={options?.onReady}
-        onError={options?.onError}
-      >
-        <Component {...props} />
-      </AppInitializer>
-    );
-  };
-}
 
 export default AppInitializer;
