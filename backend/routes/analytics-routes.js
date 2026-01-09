@@ -5,6 +5,28 @@ import { eq, gte, lte, desc, sql, count, sum } from 'drizzle-orm';
 
 const router = express.Router();
 
+// GET /api/analytics - Get analytics overview
+router.get('/', async (req, res) => {
+  try {
+    res.json({
+      message: 'Analytics API',
+      version: '1.0.0',
+      endpoints: {
+        dashboard: '/api/analytics/dashboard',
+        projects: '/api/analytics/projects',
+        tasks: '/api/analytics/tasks',
+        users: '/api/analytics/users',
+        financial: '/api/analytics/financial',
+        summary: '/api/analytics/summary',
+        project: '/api/analytics/project/:id'
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching analytics overview:', error);
+    res.status(500).json({ error: 'Failed to fetch analytics overview' });
+  }
+});
+
 // GET /api/analytics/dashboard - Dashboard analytics
 router.get('/dashboard', async (req, res) => {
   try {

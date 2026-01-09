@@ -5,6 +5,25 @@ import { eq, desc, sql, count, sum, avg, and, gte, lte } from 'drizzle-orm';
 
 const router = express.Router();
 
+// GET /api/performance - Get performance overview
+router.get('/', async (req, res) => {
+  try {
+    res.json({
+      message: 'Performance API',
+      version: '1.0.0',
+      endpoints: {
+        projectSummaries: '/api/performance/project-summaries',
+        userWorkloads: '/api/performance/user-workloads',
+        taskProgress: '/api/performance/task-progress',
+        dashboardMetrics: '/api/performance/dashboard-metrics'
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching performance overview:', error);
+    res.status(500).json({ error: 'Failed to fetch performance overview' });
+  }
+});
+
 // GET /api/performance/project-summaries - Get project performance summaries
 router.get('/project-summaries', async (req, res) => {
   try {

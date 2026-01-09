@@ -40,6 +40,34 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// GET /api/users/me - Get current user's profile
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await db.select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      avatar: users.avatar,
+      department: users.department,
+      position: users.position,
+      status: users.status,
+      phone: users.phone,
+      createdAt: users.createdAt,
+    }).from(users).where(eq(users.id, userId)).limit(1);
+
+    if (user.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ user: user[0] });
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
 // GET /api/users - Get all users (protected)
 router.get('/', authenticateToken, async (req, res) => {
   try {

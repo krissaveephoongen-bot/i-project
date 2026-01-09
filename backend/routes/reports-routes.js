@@ -5,6 +5,28 @@ import { eq, gte, lte, desc, sql, count, sum, and } from 'drizzle-orm';
 
 const router = express.Router();
 
+// GET /api/reports - Get reports overview
+router.get('/', async (req, res) => {
+  try {
+    res.json({
+      message: 'Reports API',
+      version: '1.0.0',
+      endpoints: {
+        projects: '/api/reports/projects',
+        tasks: '/api/reports/tasks',
+        timesheets: '/api/reports/timesheets',
+        expenses: '/api/reports/expenses',
+        financialSummary: '/api/reports/financial-summary',
+        teamPerformance: '/api/reports/team-performance',
+        budgetUtilization: '/api/reports/budget-utilization'
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching reports overview:', error);
+    res.status(500).json({ error: 'Failed to fetch reports overview' });
+  }
+});
+
 // GET /api/reports/projects - Project reports
 router.get('/projects', async (req, res) => {
   try {

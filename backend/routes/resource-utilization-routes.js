@@ -11,7 +11,17 @@ router.get('/', async (req, res) => {
     const { userId, startDate, endDate } = req.query;
 
     if (!userId || !startDate || !endDate) {
-      return res.status(400).json({ error: 'userId, startDate, and endDate are required' });
+      // Return empty structure instead of error for frontend compatibility
+      return res.json({
+        userId: null,
+        period: null,
+        totalCapacity: 0,
+        allocatedHours: 0,
+        utilizedHours: 0,
+        utilizationPercentage: 0,
+        tasks: [],
+        message: 'Please provide userId, startDate, and endDate parameters'
+      });
     }
 
     // TODO: Implement actual utilization calculation

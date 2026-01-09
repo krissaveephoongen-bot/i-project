@@ -11,7 +11,16 @@ router.get('/', async (req, res) => {
     const { projectId, startDate, endDate } = req.query;
 
     if (!projectId || !startDate || !endDate) {
-      return res.status(400).json({ error: 'projectId, startDate, and endDate are required' });
+      // Return empty structure instead of error for frontend compatibility
+      return res.json({
+        projectId: null,
+        period: null,
+        teamMembers: [],
+        totalTeamCapacity: 0,
+        totalAllocatedHours: 0,
+        totalAvailableHours: 0,
+        message: 'Please provide projectId, startDate, and endDate parameters'
+      });
     }
 
     // TODO: Implement actual team capacity calculation

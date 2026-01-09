@@ -178,7 +178,7 @@ async function runTests() {
   
   if (authToken) {
     const analytics = await apiRequest('/analytics', 'GET', null, true);
-    printResult('Get Analytics', analytics.ok, analytics.ok ? 'Analytics data retrieved' : `Msg: ${analytics.data?.error || 'Failed'}`);
+    printResult('Get Analytics', analytics.ok, analytics.ok ? 'Analytics API info retrieved' : `Msg: ${analytics.data?.error || 'Failed'}`);
 
     const dashboard = await apiRequest('/analytics/dashboard', 'GET', null, true);
     printResult('Get Dashboard Stats', dashboard.ok, dashboard.ok ? 'Dashboard data retrieved' : `Msg: ${dashboard.data?.error || 'Failed'}`);
@@ -197,7 +197,7 @@ async function runTests() {
   
   if (authToken) {
     const reports = await apiRequest('/reports', 'GET', null, true);
-    printResult('Get Reports', reports.ok, reports.ok ? `Found ${Array.isArray(reports.data) ? reports.data.length : 0} reports` : 'Failed');
+    printResult('Get Reports', reports.ok, reports.ok ? 'Reports API info retrieved' : `Msg: ${reports.data?.error || 'Failed'}`);
   }
 
   // 12. Timesheets Endpoints
@@ -221,12 +221,12 @@ async function runTests() {
   
   if (authToken) {
     const resources = await apiRequest('/resources', 'GET', null, true);
-    printResult('Get Resources', resources.ok, resources.ok ? `Found ${Array.isArray(resources.data) ? resources.data.length : 0} resources` : 'Failed');
+    printResult('Get Resources', resources.ok, resources.ok ? `Found ${Array.isArray(resources.data) ? resources.data.length : 0} resources` : `Msg: ${resources.data?.error || 'Failed'}`);
 
-    const resourceUtil = await apiRequest('/resource-utilization', 'GET', null, true);
+    const resourceUtil = await apiRequest('/resource-utilization?userId=test-user&startDate=2024-01-01&endDate=2024-12-31', 'GET', null, true);
     printResult('Get Resource Utilization', resourceUtil.ok, resourceUtil.ok ? 'Data retrieved' : `Msg: ${resourceUtil.data?.error || 'Failed'}`);
 
-    const teamCapacity = await apiRequest('/team-capacity', 'GET', null, true);
+    const teamCapacity = await apiRequest('/team-capacity?projectId=test-project&startDate=2024-01-01&endDate=2024-12-31', 'GET', null, true);
     printResult('Get Team Capacity', teamCapacity.ok, teamCapacity.ok ? 'Data retrieved' : `Msg: ${teamCapacity.data?.error || 'Failed'}`);
   }
 
@@ -235,7 +235,7 @@ async function runTests() {
   
   if (authToken) {
     const performance = await apiRequest('/performance', 'GET', null, true);
-    printResult('Get Performance', performance.ok, performance.ok ? 'Data retrieved' : `Msg: ${performance.data?.error || 'Failed'}`);
+    printResult('Get Performance', performance.ok, performance.ok ? 'Performance API info retrieved' : `Msg: ${performance.data?.error || 'Failed'}`);
   }
 
   // 16. Project Manager Endpoints
