@@ -26,6 +26,7 @@ function ensureConnection() {
       max: 1,
       idle_timeout: 20,
       connect_timeout: 10,
+      ssl: true, // Explicitly enable SSL
     });
     _db = drizzle(_client, { schema });
     console.log('Database connection created successfully');

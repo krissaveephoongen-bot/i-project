@@ -184,6 +184,10 @@ const ProgressDemoPage = React.lazy(() =>
   import('@/pages/ProgressDemoPage').catch(() => ({ default: () => <div>Loading...</div> }))
 );
 
+const UserProfilePage = React.lazy(() =>
+  import('@/pages/UserProfilePage').catch(() => ({ default: () => <div>Loading...</div> }))
+);
+
 // Loading fallback component
 const PageLoader: React.FC = () => (
   <div className="flex justify-center items-center h-64">
@@ -406,6 +410,10 @@ export const router = createBrowserRouter([
       {
         path: '/settings',
         element: <SuspenseWrapper><Settings /></SuspenseWrapper>,
+      },
+      {
+        path: '/settings/profile',
+        element: <SuspenseWrapper><UserProfilePage /></SuspenseWrapper>,
       },
       {
         path: '/activity',

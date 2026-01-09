@@ -1,0 +1,59 @@
+To ensure the quality and stability of the changes before committing and pushing, it's crucial to run the full suite of tests. This includes unit tests for both frontend and backend, as well as end-to-end (E2E) integration tests that verify the interaction between the frontend and backend APIs.
+
+Please follow these steps to run the tests:
+
+### 1. Start Local Backend and Database
+
+For the E2E tests, you need a running backend server and a populated database.
+From the project root directory:
+
+```bash
+# Start your local PostgreSQL database (if not already running)
+docker-compose up -d
+
+# Navigate to the backend directory and seed the database with test data
+cd backend
+npm run db:seed
+
+# Start the local backend server (on http://localhost:3001)
+npm run dev
+```
+
+### 2. Run Backend Unit Tests
+
+These tests verify individual backend functions, including the `db.js` connection logic I added tests for previously.
+From the `backend` directory:
+
+```bash
+npm run test:unit
+```
+**Expected Outcome:** All backend unit tests should pass. You should see output similar to what I described for `backend/lib/db.test.ts`, indicating 1 test file and 4 tests passed.
+
+### 3. Run Frontend Unit Tests
+
+These tests verify individual frontend components, hooks, and utilities.
+From the `frontend` directory:
+
+```bash
+cd ../frontend
+npm run test:unit
+```
+**Expected Outcome:** All frontend unit tests should pass.
+
+### 4. Run End-to-End (E2E) Integration Tests
+
+These tests launch a browser, start the frontend development server, log in, and interact with the application as a real user, making API calls to your local backend.
+
+From the project root directory:
+
+```bash
+# Ensure your local backend is running (as per step 1)
+npm run test:e2e
+```
+**Expected Outcome:** All E2E tests (including `tests/e2e/api.spec.ts`, `auth.spec.ts`, etc.) should pass. This confirms that the frontend successfully integrates with the backend API, covering user flows, data persistence, and error handling.
+
+---
+
+**Note:** I am unable to execute these commands directly due to tool limitations. You will need to run them in your terminal. If any tests fail, please provide the error output, and I can help debug.
+
+Once all tests pass, your changes are ready for commit and push.
