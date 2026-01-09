@@ -1,9 +1,9 @@
-# Project Management System
+# i Project - Project Management System
 
 [![Vercel Status](https://vercel.com/appworks-jakgrits-projects/ticket-apw/F3aPLVRGrsm83n7f2xkJ8T49fG5A)](https://ticket-apw.vercel.app/)
 
 ## Overview
-This is a comprehensive project management system built with a modern web stack, featuring a React frontend and a Node.js (Express) backend.
+i Project is a comprehensive project management system built with a modern web stack, featuring a React frontend and a Node.js (Express) backend.
 
 ## Local Development Setup
 

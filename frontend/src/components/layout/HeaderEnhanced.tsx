@@ -36,6 +36,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Logo } from '@/components/Logo';
 
 interface HeaderProps {
   user?: {
@@ -129,15 +130,13 @@ const Header: React.FC<HeaderProps> = ({
           {/* Logo and Brand */}
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                PM
-              </div>
+              <Logo size="sm" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                  Project Management
+                  i Project
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  ระบบระบบโครงการอย่าง
+                  ระบบจัดการโครงการ
                 </p>
               </div>
             </div>
@@ -368,15 +367,13 @@ const Header: React.FC<HeaderProps> = ({
             <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 shadow-xl">
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                    PM
-                  </div>
+                  <Logo size="sm" />
                   <div>
                     <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                      Project Management
+                      i Project
                     </h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      ระบบระบบโครงการอย่าง
+                      ระบบจัดการโครงการ
                     </p>
                   </div>
                 </div>

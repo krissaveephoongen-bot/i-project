@@ -1,7 +1,7 @@
 {
-  "name": "ticket-apw-frontend",
+  "name": "i-project-frontend",
   "version": "1.0.0",
-  "description": "Frontend for Project Management System",
+  "description": "i Project - Frontend Application",
   "private": true,
   "type": "module",
   "scripts": {

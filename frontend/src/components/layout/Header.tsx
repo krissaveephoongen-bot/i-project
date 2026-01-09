@@ -14,6 +14,7 @@ import { NotificationCenter } from '../NotificationCenter';
 import { SearchBar } from '../SearchBar';
 import { ProjectSelector } from '../ProjectSelector';
 import { Palette } from 'lucide-react';
+import { Logo } from '../Logo';
 
 interface HeaderProps {
   user: {
@@ -42,6 +43,9 @@ const Header = ({ user, onLogout, onMenuClick }: HeaderProps) => {
         <div className="flex flex-1 items-center justify-between">
         {/* Left section */}
         <div className="flex items-center gap-2 lg:gap-4">
+          {/* Logo */}
+          <Logo size="sm" />
+          
           {/* Menu button for mobile/desktop */}
           <Button 
             variant="ghost" 
