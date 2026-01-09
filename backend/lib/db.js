@@ -1,15 +1,18 @@
+import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import * as schema from './schema.js';
 
-// Lazy database connection
-let client = null;
-let db = null;
-let connectionPromise = null;
+// Create the connection lazily
+let _client = null;
+let _db = null;
 
 function getConnectionString() {
   return process.env.DATABASE_URL;
 }
 
-function createConnection() {
+function ensureConnection() {
+  if (_db) return { client: _client, db: _db };
+  
   const connectionString = getConnectionString();
   
   if (!connectionString) {
@@ -19,49 +22,25 @@ function createConnection() {
 
   console.log('Creating database connection...');
   try {
-    const sql = postgres(connectionString, {
+    _client = postgres(connectionString, {
       max: 1,
       idle_timeout: 20,
       connect_timeout: 10,
     });
+    _db = drizzle(_client, { schema });
     console.log('Database connection created successfully');
-    return { client: sql, db: null };
+    return { client: _client, db: _db };
   } catch (error) {
     console.error('Failed to create database connection:', error.message);
+    _client = null;
+    _db = null;
     return { client: null, db: null };
   }
 }
 
-function getDb() {
-  if (!client && !connectionPromise) {
-    connectionPromise = createConnection();
-  }
-  if (client && !db) {
-    // Import drizzle dynamically to avoid circular dependencies
-    import('drizzle-orm/postgres-js').then(({ drizzle }) => {
-      import('./schema.js').then(({ default: schema }) => {
-        db = drizzle(client, { schema });
-      }).catch(() => {
-        // Schema might already be imported
-        import('./schema.js').then(schemaModule => {
-          db = drizzle(client, { schema: schemaModule });
-        }).catch(() => {});
-      });
-    }).catch(() => {});
-  }
-  return db;
-}
-
-function getClient() {
-  if (!client && !connectionPromise) {
-    connectionPromise = createConnection();
-  }
-  return client;
-}
-
 // Health check function
 export async function checkDatabaseConnection() {
-  const sql = getClient();
+  const { client: sql } = ensureConnection();
   
   if (!sql) {
     return {
@@ -85,15 +64,32 @@ export async function checkDatabaseConnection() {
   }
 }
 
-// Lazy exports for db and client
+// Export db for backward compatibility (lazy)
+export const db = new Proxy({}, {
+  get(target, prop) {
+    const { db: dbInstance } = ensureConnection();
+    if (!dbInstance) return undefined;
+    return dbInstance[prop];
+  }
+});
+
+// Export client for backward compatibility
+export const client = null;
+
+// New lazy accessor for new code
 export function getDbClient() {
-  return {
-    db: getDb(),
-    client: getClient()
-  };
+  const { client: sql, db: dbInstance } = ensureConnection();
+  return { db: dbInstance, client: sql };
 }
 
 export default {
   checkDatabaseConnection,
-  getDbClient
+  getDbClient,
+  db: new Proxy({}, {
+    get(target, prop) {
+      const { db: dbInstance } = ensureConnection();
+      if (!dbInstance) return undefined;
+      return dbInstance[prop];
+    }
+  })
 };
