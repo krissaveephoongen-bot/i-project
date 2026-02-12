@@ -16,7 +16,8 @@ import {
   Send,
   MoreHorizontal,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  ChevronDown
 } from 'lucide-react';
 import Header from '../components/Header';
 import { useAuth } from '../components/AuthProvider';
@@ -99,6 +100,7 @@ export default function TimesheetPage() {
   const [modalDate, setModalDate] = useState<string>('');
   const [modalRows, setModalRows] = useState<Array<{ id?: string; taskId?: string; hours: number; description?: string; start?: string; end?: string; deleted?: boolean }>>([]);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
 
   // Derived Data
   const userOptions = useMemo(() => {
@@ -204,12 +206,39 @@ export default function TimesheetPage() {
   };
 
   // Actions
-  const openDayEditor = (projectId: string, day: number) => {
+  const toggleExpand = (projectId: string) => {
+    const newSet = new Set(expandedProjects);
+    if (newSet.has(projectId)) {
+      newSet.delete(projectId);
+    } else {
+      newSet.add(projectId);
+    }
+    setExpandedProjects(newSet);
+  };
+
+  const openDayEditor = (projectId: string, day: number, taskId?: string | null) => {
     const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
-    const existingEntries = entries.filter(entry => entry.projectId === projectId && entry.date === dateStr);
+    let existingEntries = entries.filter(entry => entry.projectId === projectId && entry.date === dateStr);
+    
+    // If specific task requested, filter only that task (or no-task if null)
+    // If taskId is undefined (summary row click), show all
+    if (taskId !== undefined) {
+        if (taskId === null) {
+            existingEntries = existingEntries.filter(e => !e.taskId);
+        } else {
+            existingEntries = existingEntries.filter(e => e.taskId === taskId);
+        }
+    }
+
     setModalProjectId(projectId);
     setModalDate(dateStr);
-    setModalRows(existingEntries.length > 0 ? existingEntries.map(e => ({ id: e.id, taskId: e.taskId, hours: e.hours, description: (e as any).description })) : [{ hours: 0 }]);
+    
+    if (existingEntries.length > 0) {
+        setModalRows(existingEntries.map(e => ({ id: e.id, taskId: e.taskId, hours: e.hours, description: (e as any).description })));
+    } else {
+        // Pre-fill task if provided
+        setModalRows([{ hours: 0, taskId: taskId === null ? undefined : taskId }]);
+    }
     setModalOpen(true);
   };
 
@@ -387,51 +416,164 @@ export default function TimesheetPage() {
                   </TableHeader>
                   <TableBody>
                     {projects.map(project => {
+                       // Calculate Project Total (Filter logic fixed)
                        const projectTotal = daysInMonth.reduce((sum, day) => {
                          const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
-                         const entry = entries.find(e => e.projectId === project.id && e.date === dateStr);
-                         return sum + (entry?.hours || 0);
+                         const dayEntries = entries.filter(e => e.projectId === project.id && e.date === dateStr);
+                         return sum + dayEntries.reduce((s, e) => s + e.hours, 0);
                        }, 0);
 
+                       const isExpanded = expandedProjects.has(project.id);
+                       
+                       // Determine which rows to show
+                       // 1. Tasks that have hours logged
+                       // 2. Tasks defined in project (if we want to show empty rows for quick entry) - Let's show all project tasks
+                       // 3. Ad-hoc (No Task) row if entries exist or always?
+                       
+                       // Let's just iterate project tasks + Ad-hoc row
+                       const projectTasks = project.tasks || [];
+                       const hasAdHoc = entries.some(e => e.projectId === project.id && !e.taskId);
+
                        return (
-                         <TableRow key={project.id}>
-                           <TableCell className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                             <div className="flex items-center gap-2">
-                               <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: project.color }} />
-                               <Link href={`/projects/${project.id}`} className="font-medium hover:underline truncate max-w-[180px]">
-                                 {project.name}
-                               </Link>
-                             </div>
-                           </TableCell>
-                           {daysInMonth.map(day => {
-                             const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
-                             const dayEntries = entries.filter(e => e.projectId === project.id && e.date === dateStr);
-                             const daySum = dayEntries.reduce((s, e) => s + (e.hours || 0), 0);
-                             
-                             return (
-                               <TableCell key={day} className="p-1 text-center">
-                                 {isEditing && canEdit ? (
-                                   <div 
-                                     onClick={() => openDayEditor(project.id, day)}
-                                     className={`
-                                       h-8 w-full min-w-[2rem] rounded flex items-center justify-center cursor-pointer text-xs font-medium transition-colors
-                                       ${daySum > 0 ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}
-                                     `}
-                                   >
-                                     {daySum > 0 ? daySum : '+'}
-                                   </div>
-                                 ) : (
-                                   <span className={`text-sm ${daySum > 0 ? 'font-medium text-slate-900' : 'text-slate-300'}`}>
-                                     {daySum || '-'}
-                                   </span>
-                                 )}
-                               </TableCell>
-                             );
-                           })}
-                           <TableCell className="text-center font-bold text-slate-700 bg-slate-50">
-                             {projectTotal > 0 ? projectTotal : '-'}
-                           </TableCell>
-                         </TableRow>
+                         <>
+                           {/* Project Header Row */}
+                           <TableRow key={project.id} className="bg-slate-50/50 hover:bg-slate-100">
+                             <TableCell className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r">
+                               <div className="flex items-center gap-2 py-1">
+                                 <button onClick={() => toggleExpand(project.id)} className="p-1 hover:bg-slate-100 rounded text-slate-400">
+                                     {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                 </button>
+                                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: project.color }} />
+                                 <Link href={`/projects/${project.id}`} className="font-semibold text-slate-900 hover:underline truncate max-w-[180px]">
+                                   {project.name}
+                                 </Link>
+                               </div>
+                             </TableCell>
+                             {daysInMonth.map(day => {
+                               const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
+                               const dayEntries = entries.filter(e => e.projectId === project.id && e.date === dateStr);
+                               const daySum = dayEntries.reduce((s, e) => s + (e.hours || 0), 0);
+                               
+                               return (
+                                 <TableCell key={day} className="p-1 text-center border-r border-slate-100 bg-slate-50/30">
+                                   {isEditing && canEdit ? (
+                                     <div 
+                                       onClick={() => openDayEditor(project.id, day)}
+                                       className={`
+                                         h-8 w-full min-w-[2rem] rounded flex items-center justify-center cursor-pointer text-xs font-bold transition-colors
+                                         ${daySum > 0 ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'hover:bg-slate-200 text-slate-300'}
+                                       `}
+                                     >
+                                       {daySum > 0 ? daySum : '+'}
+                                     </div>
+                                   ) : (
+                                     <span className={`text-sm ${daySum > 0 ? 'font-bold text-slate-900' : 'text-slate-300'}`}>
+                                       {daySum || '-'}
+                                     </span>
+                                   )}
+                                 </TableCell>
+                               );
+                             })}
+                             <TableCell className="text-center font-bold text-slate-900 bg-slate-100 border-l">
+                               {projectTotal > 0 ? projectTotal : '-'}
+                             </TableCell>
+                           </TableRow>
+
+                           {/* Task Rows (Expanded) */}
+                           {isExpanded && (
+                               <>
+                                   {projectTasks.map(task => {
+                                       const taskTotal = daysInMonth.reduce((sum, day) => {
+                                            const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
+                                            const dayEntries = entries.filter(e => e.projectId === project.id && e.taskId === task.id && e.date === dateStr);
+                                            return sum + dayEntries.reduce((s, e) => s + e.hours, 0);
+                                       }, 0);
+
+                                       return (
+                                           <TableRow key={`${project.id}-${task.id}`} className="hover:bg-slate-50">
+                                               <TableCell className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r pl-10">
+                                                   <div className="flex items-center gap-2 text-sm text-slate-600 truncate max-w-[200px]">
+                                                       <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                                       {task.name}
+                                                   </div>
+                                               </TableCell>
+                                               {daysInMonth.map(day => {
+                                                   const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
+                                                   const dayEntries = entries.filter(e => e.projectId === project.id && e.taskId === task.id && e.date === dateStr);
+                                                   const daySum = dayEntries.reduce((s, e) => s + (e.hours || 0), 0);
+
+                                                   return (
+                                                       <TableCell key={day} className="p-1 text-center border-r border-slate-50">
+                                                           {isEditing && canEdit ? (
+                                                               <div 
+                                                                   onClick={() => openDayEditor(project.id, day, task.id)}
+                                                                   className={`
+                                                                       h-7 w-full min-w-[2rem] rounded flex items-center justify-center cursor-pointer text-xs transition-colors
+                                                                       ${daySum > 0 ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'hover:bg-slate-50 text-transparent hover:text-slate-400'}
+                                                                   `}
+                                                               >
+                                                                   {daySum > 0 ? daySum : '+'}
+                                                               </div>
+                                                           ) : (
+                                                               <span className={`text-xs ${daySum > 0 ? 'text-slate-600' : 'text-slate-200'}`}>
+                                                                   {daySum || '-'}
+                                                               </span>
+                                                           )}
+                                                       </TableCell>
+                                                   );
+                                               })}
+                                               <TableCell className="text-center text-xs font-medium text-slate-500 bg-slate-50/50 border-l">
+                                                   {taskTotal > 0 ? taskTotal : ''}
+                                               </TableCell>
+                                           </TableRow>
+                                       );
+                                   })}
+
+                                   {/* Ad-hoc Row */}
+                                   <TableRow key={`${project.id}-adhoc`} className="hover:bg-slate-50">
+                                       <TableCell className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r pl-10">
+                                           <div className="flex items-center gap-2 text-sm text-slate-500 italic truncate max-w-[200px]">
+                                               <MoreHorizontal className="w-3 h-3" />
+                                               Ad-hoc / Other
+                                           </div>
+                                       </TableCell>
+                                       {daysInMonth.map(day => {
+                                           const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
+                                           const dayEntries = entries.filter(e => e.projectId === project.id && !e.taskId && e.date === dateStr);
+                                           const daySum = dayEntries.reduce((s, e) => s + (e.hours || 0), 0);
+
+                                           return (
+                                               <TableCell key={day} className="p-1 text-center border-r border-slate-50">
+                                                   {isEditing && canEdit ? (
+                                                       <div 
+                                                           onClick={() => openDayEditor(project.id, day, null)}
+                                                           className={`
+                                                               h-7 w-full min-w-[2rem] rounded flex items-center justify-center cursor-pointer text-xs transition-colors
+                                                               ${daySum > 0 ? 'bg-orange-50 text-orange-600 hover:bg-orange-100' : 'hover:bg-slate-50 text-transparent hover:text-slate-400'}
+                                                           `}
+                                                       >
+                                                           {daySum > 0 ? daySum : '+'}
+                                                       </div>
+                                                   ) : (
+                                                       <span className={`text-xs ${daySum > 0 ? 'text-slate-600' : 'text-slate-200'}`}>
+                                                           {daySum || '-'}
+                                                       </span>
+                                                   )}
+                                               </TableCell>
+                                           );
+                                       })}
+                                       <TableCell className="text-center text-xs font-medium text-slate-500 bg-slate-50/50 border-l">
+                                            {/* Calculate adhoc total */}
+                                            {daysInMonth.reduce((sum, day) => {
+                                                const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
+                                                const dayEntries = entries.filter(e => e.projectId === project.id && !e.taskId && e.date === dateStr);
+                                                return sum + dayEntries.reduce((s, e) => s + e.hours, 0);
+                                            }, 0) || ''}
+                                       </TableCell>
+                                   </TableRow>
+                               </>
+                           )}
+                         </>
                        );
                     })}
                     {/* Daily Totals Row */}
