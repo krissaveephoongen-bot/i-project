@@ -1,0 +1,355 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  admin
+  manager
+  employee
+}
+
+enum ProjectStatus {
+  planning
+  active
+  onHold
+  completed
+  cancelled
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  in_review
+  done
+  cancelled
+  inactive
+}
+
+enum TimeEntryStatus {
+  pending
+  approved
+  rejected
+}
+
+enum Priority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum ExpenseStatus {
+  pending
+  approved
+  rejected
+}
+
+enum ExpenseCategory {
+  travel
+  meal
+  equipment
+  office
+  training
+  other
+}
+
+model User {
+  id                   String   @id
+  objectId             String?
+  name                 String
+  email                String   @unique
+  password             String?
+  role                 UserRole @default(employee)
+  avatar               String?
+  department           String?
+  position             String?
+  employeeCode         String?
+  hourlyRate           Decimal  @default(0.0)
+  phone                String?
+  status               String   @default("active")
+  isActive             Boolean  @default(true)
+  isDeleted            Boolean  @default(false)
+  failedLoginAttempts  Int      @default(0)
+  lastLogin            DateTime?
+  lockedUntil          DateTime?
+  resetToken           String?
+  resetTokenExpiry     DateTime?
+  isProjectManager     Boolean  @default(false)
+  isSupervisor         Boolean  @default(false)
+  notificationPreferences Json?
+  timezone             String   @default("Asia/Bangkok")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime
+  name_th              String?
+
+  projectsManaged      Project[] @relation("ProjectManager")
+  tasksAssigned        Task[]    @relation("TaskAssignee")
+  timeEntries          TimeEntry[]
+  expenses             Expense[]
+  // Back-relations
+  tasksCreated         Task[]    @relation("TaskCreator")
+  approvedTimeEntries  TimeEntry[] @relation("TimeEntryApprover")
+  approvedExpenses     Expense[]  @relation("ExpenseApprover")
+  comments             Comment[]
+  uploadedDocuments    Document[] @relation("DocumentUploader")
+  activityLogs         ActivityLog[]
+  budgetChanges        BudgetRevision[]
+  projectMemberships   ProjectMember[]
+  risksAssigned        Risk[]
+}
+
+model Client {
+  id        String   @id
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  taxId     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  projects  Project[]
+}
+
+model Project {
+  id           String        @id
+  name         String
+  code         String?
+  description  String?
+  status       ProjectStatus @default(planning)
+  progress     Int           @default(0)
+  progressPlan Int           @default(0)
+  spi          Decimal       @default(1.0)
+  riskLevel    String        @default("low")
+  startDate    DateTime?
+  endDate      DateTime?
+  budget       Decimal?
+  spent        Decimal       @default(0.0)
+  remaining    Decimal       @default(0.0)
+  hourlyRate   Decimal       @default(0.0)
+  priority     String        @default("medium")
+  category     String?
+  isArchived   Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime
+
+  managerId    String?
+  clientId     String?
+  manager      User?         @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
+  client       Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  tasks        Task[]
+  milestones   Milestone[]
+  timeEntries  TimeEntry[]
+  expenses     Expense[]
+  documents    Document[]
+  budgetRevisions BudgetRevision[]
+  members      ProjectMember[]
+  progressHistory ProjectProgressHistory[]
+  risks        Risk[]
+}
+
+model Task {
+  id             String      @id
+  title          String
+  description    String?
+  status         TaskStatus  @default(todo)
+  priority       Priority    @default(medium)
+  dueDate        DateTime?
+  estimatedHours Decimal?
+  actualHours    Decimal     @default(0.0)
+  weight         Decimal     @default(1.0)
+  completedAt    DateTime?
+  category       String?
+  storyPoints    Int?
+  blockedBy      String?
+  blockedReason  String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime
+
+  projectId      String
+  assignedTo     String?
+  createdBy      String
+  parentTaskId   String?
+
+  project        Project     @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  assignee       User?       @relation("TaskAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  creator        User        @relation("TaskCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  parentTask     Task?       @relation("ParentTask", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subTasks       Task[]      @relation("ParentTask")
+  comments       Comment[]
+  documents      Document[]
+  timeEntries    TimeEntry[]
+  expenses       Expense[]
+}
+
+model TimeEntry {
+  id           String          @id
+  date         DateTime
+  workType     String
+  startTime    String
+  endTime      String?
+  hours        Decimal
+  description  String?
+  status       TimeEntryStatus @default(pending)
+  approvedBy   String?
+  approvedAt   DateTime?
+  rejectedReason String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime
+
+  projectId    String?
+  taskId       String?
+  userId       String
+
+  project      Project?        @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  task         Task?           @relation(fields: [taskId], references: [id], onDelete: Restrict)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  approver     User?           @relation("TimeEntryApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+}
+
+model Expense {
+  id            String        @id
+  date          DateTime
+  amount        Decimal
+  category      ExpenseCategory
+  description   String
+  receiptUrl    String?
+  status        ExpenseStatus @default(pending)
+  approvedBy    String?
+  approvedAt    DateTime?
+  rejectedReason String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+
+  projectId     String
+  taskId        String?
+  userId        String
+
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  task          Task?         @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  approver      User?         @relation("ExpenseApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+}
+
+model Milestone {
+  id          String   @id
+  title       String
+  name        String?
+  description String?
+  dueDate     DateTime
+  amount      Decimal?
+  percentage  Decimal? @default(0.0)
+  status      String   @default("pending")
+  progress    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+}
+
+model Comment {
+  id        String   @id
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  taskId    String
+  userId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Restrict)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+}
+
+model Document {
+  id         String   @id
+  name       String
+  type       String?
+  size       String?
+  url        String?
+  milestone  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+
+  projectId  String?
+  taskId     String?
+  uploadedBy String?
+
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  task       Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  uploader   User?    @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: SetNull)
+}
+
+model ActivityLog {
+  id          String   @id
+  entityType  String
+  entityId    String
+  type        String
+  action      String
+  description String?
+  changes     Json?
+  createdAt   DateTime @default(now())
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+}
+
+model BudgetRevision {
+  id             String   @id
+  previousBudget Decimal
+  newBudget      Decimal
+  reason         String
+  changedAt      DateTime @default(now())
+
+  projectId      String
+  changedBy      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  changer        User     @relation(fields: [changedBy], references: [id], onDelete: Restrict)
+}
+
+model ProjectMember {
+  id        String   @id
+  role      String   @default("member")
+  joinedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  projectId String
+  userId    String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+}
+
+model ProjectProgressHistory {
+  id        String   @id
+  progress  Int
+  weekDate  DateTime
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+}
+
+model Risk {
+  id             String   @id
+  title          String
+  description    String?
+  impact         String
+  probability    String
+  riskScore      Int?
+  mitigationPlan String?
+  status         String   @default("open")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime
+
+  projectId      String?
+  assignedTo     String?
+  project        Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  assignee       User?    @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
+}

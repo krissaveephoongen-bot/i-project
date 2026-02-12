@@ -1,0 +1,7 @@
+{
+  "extends": "general",
+  "rules": {
+    "typescript/enforce-non-nullAssertions": "off",
+    "typescript/disallow-any": "warn"
+  }
+}

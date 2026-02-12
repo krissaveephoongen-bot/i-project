@@ -14,9 +14,86 @@ export const activityTypeEnum = pgEnum('activity_type', [
 export const workTypeEnum = pgEnum('work_type', ['project', 'office', 'other']);
 export const expenseCategoryEnum = pgEnum('expense_category', ['travel', 'supplies', 'equipment', 'training', 'other']);
 export const expenseStatusEnum = pgEnum('expense_status', ['pending', 'approved', 'rejected', 'reimbursed']);
-export const userRoleEnum = pgEnum('user_role', ['admin', 'manager', 'employee']);
+export const userRoleEnum = pgEnum('user_role', ['admin', 'manager', 'employee', 'vendor']);
 export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'rejected']);
 export const approvalActionTypeEnum = pgEnum('approval_action_type', ['project_manager_approval', 'supervisor_approval']);
+
+// Stakeholder/Contact table
+export const contacts = pgTable('contacts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  position: text('position'),
+  email: text('email'),
+  phone: text('phone'),
+  department: text('department'),
+  type: text('type').notNull(), // 'client', 'stakeholder', 'team_member'
+  clientId: uuid('client_id').references(() => clients.id),
+  projectId: uuid('project_id').references(() => projects.id),
+  userId: uuid('user_id').references(() => users.id),
+  isKeyPerson: boolean('is_key_person').default(false),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Team Structure table
+export const teamStructure = pgTable('team_structure', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id).notNull(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  role: text('role').notNull(), // 'project_manager', 'team_lead', 'developer', 'designer', etc.
+  level: integer('level').notNull().default(1), // 1=PM, 2=Team Lead, 3=Member
+  parentId: uuid('parent_id').references(() => teamStructure.id),
+  responsibilities: text('responsibilities'),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Approval Workflows table
+export const approvalWorkflows = pgTable('approval_workflows', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description'),
+  type: text('type').notNull(), // 'timesheet', 'expense', 'task', 'purchase_order'
+  requiredRole: text('required_role').notNull(), // 'manager', 'admin', 'finance'
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Approval Requests table
+export const approvalRequests = pgTable('approval_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  type: text('type').notNull(), // 'timesheet', 'expense', 'task', 'purchase_order'
+  requestId: uuid('request_id').notNull(), // ID of the item being approved
+  title: text('title').notNull(),
+  description: text('description'),
+  requestedBy: uuid('requested_by').references(() => users.id).notNull(),
+  requestedAt: timestamp('requested_at').defaultNow().notNull(),
+  status: approvalStatusEnum('status').default('pending'),
+  priority: text('priority').default('medium'), // 'low', 'medium', 'high', 'urgent'
+  amount: numeric('amount', { precision: 15, scale: 2 }), // For expense/purchase approvals
+  currency: text('currency').default('THB'),
+  projectId: uuid('project_id').references(() => projects.id),
+  workflowId: uuid('workflow_id').references(() => approvalWorkflows.id),
+  metadata: jsonb('metadata'), // Additional data specific to approval type
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Approval Actions table
+export const approvalActions = pgTable('approval_actions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  requestId: uuid('request_id').references(() => approvalRequests.id).notNull(),
+  actionBy: uuid('action_by').references(() => users.id).notNull(),
+  action: approvalActionTypeEnum('action').notNull(), // 'approve', 'reject', 'request_changes'
+  comments: text('comments'),
+  actionAt: timestamp('action_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
 
 // Tables
 export const users = pgTable('users', {

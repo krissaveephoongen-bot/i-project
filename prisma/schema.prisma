@@ -1,0 +1,409 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  admin
+  manager
+  employee
+  }
+
+enum Status {
+  todo
+  in_progress
+  in_review
+  done
+  pending
+  approved
+  rejected
+  active
+  inactive
+  }
+
+enum Priority {
+  low
+  medium
+  high
+  }
+
+enum ActivityType {
+  create
+  update
+  delete
+  comment
+  assign
+  status_change
+  }
+
+enum WorkType {
+  project
+  office
+  other
+  }
+
+enum ExpenseCategory {
+  travel
+  supplies
+  equipment
+  training
+  other
+  }
+
+enum ExpenseStatus {
+  pending
+  approved
+  rejected
+  reimbursed
+  }
+
+// Models
+model User {
+  id                        String    @id @default(cuid())
+  objectId                  String?   @unique
+  name                      String
+  email                     String    @unique
+  password                  String?
+  role                      UserRole  @default(employee)
+  avatar                    String?
+  department                String?
+  position                  String?
+  employeeCode              String?
+  hourlyRate                Decimal   @default(0.00) @db.Decimal(10, 2)
+  phone                     String?
+  status                    String    @default("active")
+  isActive                  Boolean   @default(true)
+  isDeleted                 Boolean   @default(false)
+  failedLoginAttempts       Int       @default(0)
+  lastLogin                 DateTime?
+  lockedUntil               DateTime?
+  resetToken                String?
+  resetTokenExpiry          DateTime?
+  isProjectManager          Boolean   @default(false)
+  isSupervisor              Boolean   @default(false)
+  notificationPreferences   Json?
+  timezone                  String    @default("Asia/Bangkok")
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  // Relations
+  managedProjects           Project[] @relation("ProjectManager")
+  assignedProjects          Project[] @relation("ProjectAssignee")
+  createdTasks              Task[]    @relation("TaskCreator")
+  assignedTasks             Task[]    @relation("TaskAssignee")
+  timeEntries               TimeEntry[]
+  expenses                  Expense[]
+  approvedTimeEntries       TimeEntry[] @relation("TimeEntryApprover")
+  approvedExpenses          Expense[]  @relation("ExpenseApprover")
+  activityLogs              ActivityLog[]
+  comments                  Comment[]
+  budgetRevisions            BudgetRevision[]
+  assignedRisks             Risk[]    @relation("RiskAssignee")
+  uploadedDocuments         Document[]
+  projectMemberships        ProjectMember[]
+
+  @@map("users")
+  }
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  taxId     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  projects  Project[]
+
+  @@map("clients")
+  }
+
+model Project {
+  id             String    @id @default(cuid())
+  name           String
+  code           String?   @unique
+  description    String?
+  status         Status    @default(todo)
+  progress       Int       @default(0)
+  progressPlan   Int       @default(0)
+  spi            Decimal   @default(1.00) @db.Decimal(5, 2)
+  riskLevel      String    @default("low")
+  startDate      DateTime?
+  endDate        DateTime?
+  budget         Decimal?  @db.Decimal(12, 2)
+  spent          Decimal   @default(0.00) @db.Decimal(12, 2)
+  remaining      Decimal   @default(0.00) @db.Decimal(12, 2)
+  managerId      String?
+  clientId       String?
+  hourlyRate     Decimal   @default(0.00) @db.Decimal(10, 2)
+  priority       String    @default("medium")
+  category       String?
+  isArchived     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  manager        User?     @relation("ProjectManager", fields: [managerId], references: [id])
+  client         Client?   @relation(fields: [clientId], references: [id])
+  assignees      User[]    @relation("ProjectAssignee")
+  tasks          Task[]
+  timeEntries    TimeEntry[]
+  expenses       Expense[]
+  budgetRevisions BudgetRevision[]
+  milestones      Milestone[]
+  risks          Risk[]
+  documents      Document[]
+  progressHistory ProjectProgressHistory[]
+  projectMembers ProjectMember[]
+
+  @@map("projects")
+  }
+
+model Task {
+  id             String    @id @default(cuid())
+  title          String
+  description    String?
+  status         Status    @default(todo)
+  priority       Priority  @default(medium)
+  dueDate        DateTime?
+  estimatedHours Decimal?  @db.Decimal(6, 2)
+  actualHours    Decimal   @default(0.00) @db.Decimal(6, 2)
+  weight         Decimal   @default(1.00) @db.Decimal(10, 2)
+  completedAt    DateTime?
+  projectId      String
+  assignedTo     String?
+  createdBy      String
+  parentTaskId   String?
+  category       String?
+  storyPoints    Int?
+  sprintId       String?
+  blockedBy      String?
+  blockedReason  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee       User?     @relation("TaskAssignee", fields: [assignedTo], references: [id])
+  creator        User      @relation("TaskCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  parentTask     Task?     @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
+  subtasks       Task[]    @relation("TaskHierarchy")
+  timeEntries    TimeEntry[]
+  expenses       Expense[]
+  comments       Comment[]
+  documents      Document[]
+
+  @@map("tasks")
+  }
+
+model TimeEntry {
+  id          String      @id @default(cuid())
+  date        DateTime
+  workType    WorkType
+  projectId   String?
+  taskId      String?
+  userId      String
+  startTime   String
+  endTime     String?
+  hours       Decimal     @db.Decimal(5, 2)
+  description String?
+  status      Status      @default(pending)
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  project     Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task        Task?       @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approver    User?       @relation("TimeEntryApprover", fields: [approvedBy], references: [id])
+
+  @@map("time_entries")
+  }
+
+model Expense {
+  id          String           @id @default(cuid())
+  date        DateTime
+  projectId   String
+  taskId      String?
+  userId      String
+  amount      Decimal          @db.Decimal(12, 2)
+  category    ExpenseCategory
+  description String
+  receiptUrl  String?
+  status      ExpenseStatus    @default(pending)
+  approvedBy  String?
+  approvedAt  DateTime?
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task        Task?            @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approver    User?            @relation("ExpenseApprover", fields: [approvedBy], references: [id])
+
+  @@map("expenses")
+  }
+
+model BudgetRevision {
+  id             String   @id @default(cuid())
+  projectId      String
+  previousBudget Decimal  @db.Decimal(12, 2)
+  newBudget      Decimal  @db.Decimal(12, 2)
+  reason         String
+  changedBy      String
+  changedAt      DateTime @default(now())
+
+  // Relations
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  changer        User     @relation(fields: [changedBy], references: [id])
+
+  @@map("budget_revisions")
+  }
+
+model ActivityLog {
+  id          String       @id @default(cuid())
+  entityType  String
+  entityId    String
+  type        ActivityType
+  action      String
+  description String?
+  userId      String
+  changes     Json?
+  createdAt   DateTime     @default(now())
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id])
+
+  @@map("activity_log")
+  }
+
+model Comment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("comments")
+  }
+
+model ProjectProgressHistory {
+  id        String   @id @default(cuid())
+  projectId String
+  progress  Int
+  weekDate  DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_progress_history")
+  }
+
+model FinancialData {
+  id        String   @id @default(cuid())
+  month     DateTime @unique
+  revenue   Decimal  @default(0.00) @db.Decimal(15, 2)
+  cost      Decimal  @default(0.00) @db.Decimal(15, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("financial_data")
+  }
+
+model Milestone {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime
+  amount      Decimal? @db.Decimal(15, 2)
+  status      String   @default("pending")
+  progress    Int      @default(0)
+  projectId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("milestones")
+  }
+
+model Risk {
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  impact         String
+  probability    String
+  riskScore      Int?
+  mitigationPlan String?
+  status         String   @default("open")
+  project_id     String?  @map("project_id")
+  assigned_to    String?  @map("assigned_to")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project        Project? @relation(fields: [project_id], references: [id], onDelete: SetNull)
+  assignee       User?    @relation("RiskAssignee", fields: [assigned_to], references: [id])
+
+  @@map("risks")
+  }
+
+model Document {
+  id          String   @id @default(cuid())
+  name        String
+  type        String?
+  size        String?
+  url         String?
+  projectId   String?
+  taskId      String?
+  uploadedBy  String?
+  milestone   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader    User?    @relation(fields: [uploadedBy], references: [id])
+  task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@map("documents")
+  }
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String   @default("member")
+  joinedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("project_members")
+  }

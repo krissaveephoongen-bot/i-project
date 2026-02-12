@@ -3,7 +3,7 @@
 [![Vercel Status](https://vercel.com/appworks-jakgrits-projects/ticket-apw/F3aPLVRGrsm83n7f2xkJ8T49fG5A)](https://ticket-apw.vercel.app/)
 
 ## Overview
-i Project is a comprehensive project management system built with a modern web stack, featuring a React frontend and a Node.js (Express) backend.
+i Project is a comprehensive project management system built with Next.js frontend and a Node.js (Express) backend.
 
 ## Local Development Setup
 
@@ -24,16 +24,8 @@ First, clone the repository and install the dependencies for both the frontend a
 git clone <your-repo-url>
 cd project-mgnt
 
-# Install backend dependencies
-cd backend
-npm install
-
-# Install frontend dependencies
-cd ../frontend
-npm install
-
-# Go back to the root directory
-cd ..
+# Install all dependencies (root, next-app, and backend)
+npm run install:all
 ```
 
 ### 2. Start the Local Database
@@ -74,19 +66,18 @@ The backend API will now be running on `http://localhost:3001`.
 
 ### 5. Run the Frontend Server
 
-The frontend is a React application built with Vite.
+The frontend is a Next.js application.
 
-In a separate terminal window, navigate to the `frontend` directory and run:
+In a separate terminal window, run:
 
 ```bash
-cd frontend
 npm run dev
 ```
-The frontend development server will start, and you can access the application at `http://localhost:5173`.
+The frontend development server will start, and you can access the application at `http://localhost:3000`.
 
 ### Accessing the Local Application
 
-- **Frontend:** `http://localhost:5173`
+- **Frontend:** `http://localhost:3000` (Next.js)
 - **Backend API:** `http://localhost:3001`
 - **Login Credentials:**
     - **Email:** `jakgrits.ph@appworks.co.th` (or `manager@example.com`, `employee@example.com`)
@@ -96,23 +87,36 @@ You are now fully set up for local development! Any changes you make to the fron
 
 ### Testing Frontend Against Live Backend
 
-If you need to test your local frontend changes against the deployed backend API (e.g., on Vercel), you can configure the Vite development server to proxy API requests to the live backend URL.
+If you need to test your local frontend changes against the deployed backend API (e.g., on Vercel), you can configure the Next.js development server to proxy API requests to the live backend URL.
 
 1.  **Ensure your local backend is NOT running** (or at least, not on port `3001`).
-2.  Create a file named `.env.development.local` in your `frontend/` directory (or modify `frontend/.env.local`).
-3.  Add the following lines to `frontend/.env.development.local`:
+2.  Create a file named `.env.local` in your `next-app/` directory.
+3.  Add the following lines to `next-app/.env.local`:
     ```
-    VITE_API_PROXY_TARGET="https://ticket-apw-api.vercel.app"
-    VITE_WS_URL="wss://ticket-apw-api.vercel.app" # Use wss for secure WebSocket
+    NEXT_PUBLIC_API_URL="https://ticket-apw-api.vercel.app"
+    NEXT_PUBLIC_WS_URL="wss://ticket-apw-api.vercel.app" # Use wss for secure WebSocket
     ```
 4.  Run your frontend development server as usual:
     ```bash
-    cd frontend
     npm run dev
     ```
-    Now, all `/api` requests from your local frontend will be proxied to `https://ticket-apw-api.vercel.app`, and your WebSocket connection will attempt to connect to `wss://ticket-apw-api.vercel.app`.
+    Now, all API requests from your local frontend will be proxied to `https://ticket-apw-api.vercel.app`, and your WebSocket connection will attempt to connect to `wss://ticket-apw-api.vercel.app`.
 
 This allows you to test your frontend against the production-like environment without needing to deploy your frontend changes.
+
+## Available Scripts
+
+From the project root directory:
+
+- `npm run dev` - Start Next.js frontend development server
+- `npm run build` - Build Next.js frontend for production
+- `npm run start` - Start Next.js production server
+- `npm run dev:backend` - Start backend development server
+- `npm run dev:all` - Start both frontend and backend concurrently
+- `npm run install:all` - Install dependencies for all packages
+- `npm run test` - Run all tests
+- `npm run lint` - Run linting on frontend code
+- `npm run format` - Format frontend code
 
 ## Features
 - User Authentication (Admin, Manager, Employee roles)

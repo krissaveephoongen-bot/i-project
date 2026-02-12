@@ -1,6 +1,13 @@
-import { Client } from '@neondatabase/serverless';
+import { Client } from 'pg';
+import 'dotenv/config';
 
-const client = new Client('postgresql://neondb_owner:npg_BJ1iUjpYv7fo@ep-withered-river-a1o8uvr3-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require');
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
+
+const client = new Client({ connectionString });
 
 async function optimizeDatabase() {
   try {

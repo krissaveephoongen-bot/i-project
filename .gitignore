@@ -101,3 +101,5 @@ server/.env
 .netlify
 
 .vercel
+
+/generated/prisma

@@ -1,0 +1,292 @@
+datasource db {
+  provider = "postgresql"
+}
+ 
+ generator client {
+   provider = "prisma-client-js"
+ }
+ 
+// enums exist in DB via migrations
+
+ model User {
+     id                 String   @id @db.Text
+     objectId           String?  @map("object_id") @db.Text
+     name               String   @db.Text
+     email              String   @db.Text
+     password           String?  @db.Text
+     role               String   @db.Text
+     avatar             String?  @db.Text
+     department         String?  @db.Text
+     position           String?  @db.Text
+     employeeCode       String?  @map("employee_code") @db.Text
+     hourlyRate         Decimal? @map("hourly_rate") @db.Decimal(10,2)
+     phone              String?  @db.Text
+     status             String   @db.Text
+     isActive           Boolean  @map("is_active")
+     isDeleted          Boolean  @map("is_deleted")
+     failedLoginAttempts Int     @map("failed_login_attempts")
+     lastLogin          DateTime? @map("last_login")
+     lockedUntil        DateTime? @map("locked_until")
+     resetToken         String?  @map("reset_token") @db.Text
+     resetTokenExpiry   DateTime? @map("reset_token_expiry")
+     isProjectManager   Boolean  @map("is_project_manager")
+     isSupervisor       Boolean  @map("is_supervisor")
+     notificationPreferences Json? @map("notification_preferences")
+     timezone           String   @db.Text
+     createdAt          DateTime @map("created_at")
+     updatedAt          DateTime @map("updated_at")
+     
+     authTokens        AuthToken[]
+     sessions          Session[]
+     activityLogs      ActivityLog[]
+   
+     @@map("users")
+   }
+
+   model AuthToken {
+     id                String   @id @db.Text
+     userId            String   @map("user_id") @db.Text
+     token             String   @unique @db.Text
+     tokenType         String   @map("token_type") @db.Text @default("access")
+     expiresAt         DateTime @map("expires_at")
+     revokedAt         DateTime? @map("revoked_at")
+     revokedReason     String?  @map("revoked_reason") @db.Text
+     createdAt         DateTime @map("created_at") @default(now())
+     updatedAt         DateTime @map("updated_at") @default(now())
+     
+     user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+     
+     @@unique([userId, tokenType])
+     @@index([userId])
+     @@index([token])
+     @@index([expiresAt])
+     @@map("auth_tokens")
+   }
+
+   model Session {
+     id                String   @id @db.Text
+     userId            String   @map("user_id") @db.Text
+     ipAddress         String?  @map("ip_address") @db.Text
+     userAgent         String?  @map("user_agent") @db.Text
+     lastActivity      DateTime @map("last_activity") @default(now())
+     expiresAt         DateTime @map("expires_at")
+     createdAt         DateTime @map("created_at") @default(now())
+     
+     user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+     
+     @@unique([userId, id])
+     @@index([userId])
+     @@index([expiresAt])
+     @@map("sessions")
+   }
+
+   model ActivityLog {
+     id                String   @id @db.Text
+     entityType        String   @map("entity_type") @db.Text
+     entityId          String   @map("entity_id") @db.Text
+     action            String   @db.Text
+     description       String?  @db.Text
+     userId            String   @map("user_id") @db.Text
+     changes           Json?
+     ipAddress         String?  @map("ip_address") @db.Text
+     userAgent         String?  @map("user_agent") @db.Text
+     createdAt         DateTime @map("created_at") @default(now())
+     
+     user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+     
+     @@index([userId])
+     @@index([entityType])
+     @@index([entityId])
+     @@index([createdAt])
+     @@map("activity_log")
+   }
+ 
+ model Project {
+   id           String   @id @db.Text
+   name         String   @db.Text
+   code         String?  @db.Text
+   description  String?  @db.Text
+   status       String   @db.Text
+   progress     Int
+   progressPlan Int
+   spi          Decimal  @db.Decimal(10,2)
+   riskLevel    String   @db.Text
+   startDate    DateTime?
+   endDate      DateTime?
+   budget       Decimal? @db.Decimal(12,2)
+   spent        Decimal  @db.Decimal(12,2)
+   remaining    Decimal  @db.Decimal(12,2)
+   managerId    String?  @map("manager_id") @db.Text
+   clientId     String?  @map("client_id") @db.Text
+   hourlyRate   Decimal  @map("hourly_rate") @db.Decimal(10,2)
+   priority     String   @db.Text
+   category     String?
+   isArchived   Boolean  @map("is_archived")
+   createdAt    DateTime @map("created_at")
+   updatedAt    DateTime @map("updated_at")
+ 
+   @@map("projects")
+ }
+ 
+ model Contact {
+   id          String  @id @db.Text
+   projectId   String  @map("project_id") @db.Text
+   name        String? @db.Text
+   position    String? @db.Text
+   email       String? @db.Text
+   phone       String? @db.Text
+   type        String? @db.Text
+   isKeyPerson Boolean @map("is_key_person")
+ 
+   @@map("contacts")
+ }
+ 
+ model SalesPipeline {
+   id        String   @id @db.Text
+   name      String   @db.Text
+   createdAt DateTime @map("created_at")
+   updatedAt DateTime @map("updated_at")
+ 
+   stages SalesStage[]
+   deals  SalesDeal[]
+ 
+   @@map("sales_pipelines")
+ }
+ 
+ model SalesStage {
+   id          String   @id @db.Text
+   pipelineId  String   @map("pipeline_id") @db.Text
+   name        String   @db.Text
+   orderIndex  Int      @map("order_index")
+   probability Int
+   createdAt   DateTime @map("created_at")
+   updatedAt   DateTime @map("updated_at")
+ 
+   pipeline SalesPipeline @relation(fields: [pipelineId], references: [id])
+   deals    SalesDeal[]
+ 
+   @@map("sales_stages")
+ }
+ 
+ model SalesDeal {
+   id         String   @id @db.Text
+   pipelineId String   @map("pipeline_id") @db.Text
+   stageId    String?  @map("stage_id") @db.Text
+   name       String   @db.Text
+   amount     Decimal  @db.Decimal(12,2)
+   currency   String   @db.Text
+   ownerId    String?  @map("owner_id") @db.Text
+   clientId   String?  @map("client_id") @db.Text
+   clientOrg  String?  @map("client_org") @db.Text
+   status     String   @db.Text
+   expectedCloseDate DateTime? @map("expected_close_date")
+   probability Int
+   createdAt  DateTime @map("created_at")
+   updatedAt  DateTime @map("updated_at")
+ 
+   pipeline SalesPipeline @relation(fields: [pipelineId], references: [id])
+   stage    SalesStage?   @relation(fields: [stageId], references: [id])
+ 
+   @@map("sales_deals")
+ }
+ 
+ model SalesActivity {
+   id        String   @id @db.Text
+   dealId    String   @map("deal_id") @db.Text
+   type      String   @db.Text
+   note      String?  @db.Text
+   userId    String?  @map("user_id") @db.Text
+   createdAt DateTime @map("createdAt")
+ 
+   @@map("sales_activities")
+ }
+
+model Timesheet {
+  id        String   @id @db.Text
+  userId    String   @map("user_id") @db.Text
+  projectId String   @map("project_id") @db.Text
+  date      DateTime
+  hours     Decimal  @db.Decimal(10,2)
+  createdAt DateTime @map("created_at")
+  updatedAt DateTime @map("updated_at")
+
+  @@map("timesheets")
+}
+
+model TimesheetSubmission {
+  id              String   @id @db.Text
+  userId          String   @map("user_id") @db.Text
+  periodStartDate DateTime @map("period_start_date")
+  periodEndDate   DateTime? @map("period_end_date")
+  totalHours      Decimal   @map("total_hours") @db.Decimal(10,2)
+  status          String    @db.Text
+  submittedAt     DateTime? @map("submitted_at")
+
+  @@map("timesheet_submissions")
+}
+
+model TeamStructure {
+  id        String   @id @db.Text
+  userId    String   @map("user_id") @db.Text
+  projectId String   @map("project_id") @db.Text
+  isActive  Boolean? @map("is_active")
+  createdAt DateTime @map("created_at")
+  updatedAt DateTime @map("updated_at")
+
+  @@map("team_structure")
+}
+model Task {
+  id          String   @id @db.Text
+  projectId   String   @map("project_id") @db.Text
+  name        String   @db.Text
+  assignedTo  String?  @map("assigned_to") @db.Text
+  status      String   @db.Text
+  phase       String?  @db.Text
+  weight      Decimal? @db.Decimal(10,2)
+  progressPlan Decimal? @map("progress_plan") @db.Decimal(5,2)
+  progressActual Decimal? @map("progress_actual") @db.Decimal(5,2)
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  createdAt   DateTime @map("created_at")
+  updatedAt   DateTime @map("updated_at")
+
+  @@map("tasks")
+}
+
+model Document {
+  id          String   @id @db.Text
+  projectId   String   @map("project_id") @db.Text
+  name        String   @db.Text
+  url         String?  @db.Text
+  createdAt   DateTime @map("created_at")
+  updatedAt   DateTime @map("updated_at")
+
+  @@map("documents")
+}
+
+model Risk {
+  id          String   @id @db.Text
+  projectId   String   @map("project_id") @db.Text
+  name        String   @db.Text
+  severity    String?  @db.Text
+  status      String   @db.Text
+  createdAt   DateTime @map("created_at")
+  updatedAt   DateTime @map("updated_at")
+
+  @@map("risks")
+}
+
+model Milestone {
+  id          String   @id @db.Text
+  projectId   String   @map("project_id") @db.Text
+  name        String   @db.Text
+  percentage  Decimal  @db.Decimal(5,2)
+  amount      Decimal  @db.Decimal(12,2)
+  dueDate     DateTime? @map("due_date")
+  status      String   @db.Text
+  note        String?  @db.Text
+  createdAt   DateTime @map("created_at")
+  updatedAt   DateTime @map("updated_at")
+
+  @@map("milestones")
+}

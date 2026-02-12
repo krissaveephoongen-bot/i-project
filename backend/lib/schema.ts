@@ -40,6 +40,10 @@ export const users = pgTable('users', {
   lockedUntil: timestamp('locked_until'),
   resetToken: text('reset_token'),
   resetTokenExpiry: timestamp('reset_token_expiry'),
+  isProjectManager: boolean('is_project_manager').default(false),
+  isSupervisor: boolean('is_supervisor').default(false),
+  notificationPreferences: jsonb('notification_preferences'),
+  timezone: text('timezone').default('Asia/Bangkok'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -50,6 +54,10 @@ export const projects = pgTable('projects', {
   code: text('code').unique(),
   description: text('description'),
   status: statusEnum('status').notNull().default('todo'),
+  progress: integer('progress').default(0), // Actual progress percentage
+  progressPlan: integer('progress_plan').default(0), // Planned progress percentage
+  spi: numeric('spi', { precision: 5, scale: 2 }).default('1.00'), // Schedule Performance Index
+  riskLevel: text('risk_level').default('low'), // Risk level: low, medium, high, critical
   startDate: timestamp('start_date'),
   endDate: timestamp('end_date'),
   budget: numeric('budget', { precision: 12, scale: 2 }),
@@ -222,3 +230,95 @@ export const comments = pgTable('comments', {
 
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
+
+// Project Progress History Table
+export const projectProgressHistory = pgTable('project_progress_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  progress: integer('progress').notNull(),
+  weekDate: timestamp('week_date').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Financial Data Table
+export const financialData = pgTable('financial_data', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  month: timestamp('month').notNull().unique(),
+  revenue: numeric('revenue', { precision: 15, scale: 2 }).default('0.00'),
+  cost: numeric('cost', { precision: 15, scale: 2 }).default('0.00'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Milestones Table (with amount column)
+export const milestones = pgTable('milestones', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  description: text('description'),
+  dueDate: timestamp('due_date').notNull(),
+  amount: numeric('amount', { precision: 15, scale: 2 }),
+  status: text('status').notNull().default('pending'),
+  progress: integer('progress').default(0),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Risks Table (for dashboard)
+export const risks = pgTable('risks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  description: text('description'),
+  impact: text('impact').notNull(),
+  probability: text('probability').notNull(),
+  riskScore: integer('risk_score'),
+  mitigationPlan: text('mitigation_plan'),
+  status: text('status').notNull().default('open'),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
+  assignedTo: uuid('assigned_to').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type ProjectProgressHistory = typeof projectProgressHistory.$inferSelect;
+export type NewProjectProgressHistory = typeof projectProgressHistory.$inferInsert;
+
+export type FinancialData = typeof financialData.$inferSelect;
+export type NewFinancialData = typeof financialData.$inferInsert;
+
+export type Milestone = typeof milestones.$inferSelect;
+export type NewMilestone = typeof milestones.$inferInsert;
+
+export type Risk = typeof risks.$inferSelect;
+export type NewRisk = typeof risks.$inferInsert;
+
+// Documents Table
+export const documents = pgTable('documents', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  type: text('type'),
+  size: text('size'),
+  url: text('url'),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  uploadedBy: uuid('uploaded_by').references(() => users.id),
+  milestone: text('milestone'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Project Members Table
+export const projectMembers = pgTable('project_members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  role: text('role').default('member'),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type Document = typeof documents.$inferSelect;
+export type NewDocument = typeof documents.$inferInsert;
+
+export type ProjectMember = typeof projectMembers.$inferSelect;
+export type NewProjectMember = typeof projectMembers.$inferInsert;

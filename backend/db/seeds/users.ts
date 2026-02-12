@@ -13,7 +13,7 @@ interface SeedUser {
 export const seedUsersData: SeedUser[] = [
   {
     email: "thanongsak.th@appworks.co.th",
-    password: "$2a$10$eVqTZGiPUOm22au61x9ziem09rW5YAMHR4FnQDdiR/xxF1vMrCG/K",
+    password: "$2b$10$2HPQ1EDY3iZqBNrOG5wdbO6CRhY/LqOejv/eNyhz2WHKmHCGwlnV2", // AppWorks@123!
     name: "Thanongsak Thongkwid",
     role: 'admin',
     position: "Vice President",
@@ -21,7 +21,7 @@ export const seedUsersData: SeedUser[] = [
   },
   {
     email: "pratya.fu@appworks.co.th",
-    password: "$2a$10$putjQ/EZ8TTEgpCA11yVS.7ut62ikfsVgfB8wAMRdz5Ry/Yt4Bs7K",
+    password: "$2b$10$2HPQ1EDY3iZqBNrOG5wdbO6CRhY/LqOejv/eNyhz2WHKmHCGwlnV2", // AppWorks@123!
     name: "Pratya Fufueng",
     role: 'manager',
     position: "Senior Project Manager",
@@ -29,11 +29,19 @@ export const seedUsersData: SeedUser[] = [
   },
   {
     email: "jakgrits.ph@appworks.co.th",
-    password: "$2b$10$CJbjAEbEsj23XWYU1GnWauwK51lWCgRmJt.NPH.2DbF6jkw.zwIAq",
+    password: "$2b$10$2HPQ1EDY3iZqBNrOG5wdbO6CRhY/LqOejv/eNyhz2WHKmHCGwlnV2", // AppWorks@123!
     name: "Jakgrits Phoongen",
     role: 'employee',
     position: "Developer",
     department: "Development"
+  },
+  {
+    email: "employee@company.com",
+    password: "$2b$10$2HPQ1EDY3iZqBNrOG5wdbO6CRhY/LqOejv/eNyhz2WHKmHCGwlnV2", // AppWorks@123!
+    name: "Demo Employee",
+    role: 'employee',
+    position: "Staff",
+    department: "General"
   }
   // Add more users as needed
 ];

@@ -4,6 +4,7 @@ import postgres from 'postgres';
 import * as schema from '../lib/schema.js';
 import bcrypt from 'bcryptjs';
 import { config } from 'dotenv';
+import { eq } from 'drizzle-orm';
 
 // Load environment variables from .env.development
 config({ path: '.env.development' });
@@ -57,11 +58,19 @@ const main = async () => {
         role: 'employee',
         position: 'Software Engineer',
       },
+      {
+        name: 'Staff User',
+        email: 'staff@appworks.com',
+        password: hashedPassword,
+        role: 'employee',
+        position: 'Developer',
+      },
     ]).returning();
     console.log(`✅ ${users.length} users seeded.`);
     const adminUser = users.find(u => u.role === 'admin');
     const managerUser = users.find(u => u.role === 'manager');
-    const employeeUser = users.find(u => u.role === 'employee');
+    const employeeUser = users.find(u => u.email === 'employee@example.com');
+    const staffUser = users.find(u => u.email === 'staff@appworks.com');
 
     // --------------------
     // Seeding Clients
@@ -140,8 +149,25 @@ const main = async () => {
         title: 'Create Charting Components',
         projectId: projects[1].id,
         status: 'todo',
-        priority: 'medium',
+        priority: 'high',
         assignedTo: employeeUser.id,
+        createdBy: managerUser.id,
+      },
+      // Tasks assigned to Staff User
+      {
+        title: 'Design Database Schema',
+        projectId: projects[0].id,
+        status: 'in_progress',
+        priority: 'high',
+        assignedTo: staffUser.id,
+        createdBy: managerUser.id,
+      },
+      {
+        title: 'Implement User Authentication',
+        projectId: projects[0].id,
+        status: 'todo',
+        priority: 'medium',
+        assignedTo: staffUser.id,
         createdBy: managerUser.id,
       },
     ]).returning();

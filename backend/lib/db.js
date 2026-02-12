@@ -25,8 +25,10 @@ function ensureConnection() {
     _client = postgres(connectionString, {
       max: 1,
       idle_timeout: 20,
-      connect_timeout: 10,
-      ssl: true, // Explicitly enable SSL
+      connect_timeout: 5, // Reduced from 10 to 5 seconds
+      ssl: { rejectUnauthorized: false }, // Allow self-signed certificates
+      max_lifetime: 60 * 30, // 30 minutes
+      prepare: false, // Disable prepared statements for faster connection
     });
     _db = drizzle(_client, { schema });
     console.log('Database connection created successfully');
@@ -52,7 +54,14 @@ export async function checkDatabaseConnection() {
   }
   
   try {
-    const result = await sql`SELECT 1 as health_check`;
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 3000);
+    });
+    
+    const queryPromise = sql`SELECT 1 as health_check`;
+    const result = await Promise.race([queryPromise, timeoutPromise]);
+    
     console.log('✅ Database connection successful');
     return { success: true, data: result };
   } catch (error) {

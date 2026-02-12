@@ -32,8 +32,7 @@ export const setup = async () => {
   // 3. Return authentication state
 
   console.log('Setting up test environment...');
-  console.log('Using Neon database connection:');
-  console.log('postgresql://neondb_owner:npg_6FSH4YyQIoeb@ep-muddy-cherry-ah612m1a-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require');
+  console.log('Using configured database connection');
 };
 
 // Global teardown

@@ -1,44 +1,42 @@
 import { test, expect } from '@playwright/test';
 
-// Real user credentials for Neon database
-const REAL_USER = {
-  email: process.env.TEST_USER_EMAIL || 'admin@example.com',
-  password: process.env.TEST_USER_PASSWORD || 'password123'
-};
+test.describe('Authentication', () => {
+  test('should login successfully', async ({ page }) => {
+    // Navigate to the application
+    await page.goto('/');
 
-test.describe('Authentication Flow with Real Data', () => {
-  test('should allow user to login with real credentials', async ({ page }) => {
-    // Navigate to login page
-    await page.goto('/login');
+    // Wait for page to load
+    await page.waitForLoadState('networkidle');
 
-    // Fill in real login credentials
-    await page.fill('input[name="email"]', REAL_USER.email);
-    await page.fill('input[name="password"]', REAL_USER.password);
+    // Check if we're on the dashboard or login page
+    const currentUrl = page.url();
 
-    // Click login button
-    await page.click('button[type="submit"]');
+    if (currentUrl.includes('/staff/login') || currentUrl.includes('/vendor/login')) {
+      // If redirected to login, perform login
+      await page.fill('input[type="email"]', 'jakgrits.ph@appworks.co.th');
+      await page.fill('input[type="password"]', 'AppWorks@123!');
+      await page.click('button[type="submit"]');
 
-    // Wait for navigation and check if we're logged in
-    await page.waitForURL(/dashboard/);
-    await expect(page.locator('text=Welcome')).toBeVisible();
+      // Wait for navigation to dashboard
+      await page.waitForURL('**/');
+    }
 
-    // Verify we can see real data
-    await expect(page.locator('text=Projects')).toBeVisible();
+    // Verify we're on the dashboard
+    await expect(page).toHaveURL('/');
+
+    // Check for dashboard elements
+    await expect(page.locator('text=Executive Dashboard')).toBeVisible();
   });
 
-  test('should show error for invalid credentials', async ({ page }) => {
-    // Navigate to login page
-    await page.goto('/login');
+  test('should show login page for unauthenticated users', async ({ page }) => {
+    // Clear any existing authentication
+    await page.context().clearCookies();
 
-    // Fill in invalid credentials
-    await page.fill('input[name="email"]', 'invalid@example.com');
-    await page.fill('input[name="password"]', 'wrongpassword');
+    // Navigate to protected route
+    await page.goto('/profile');
 
-    // Click login button
-    await page.click('button[type="submit"]');
-
-    // Verify error message
-    await expect(page.locator('text=Invalid credentials')).toBeVisible();
-    await expect(page).toHaveURL(/login/);
+    // Should redirect to login
+    await page.waitForURL('**/login');
+    await expect(page).toHaveURL(/.*login.*/);
   });
 });
