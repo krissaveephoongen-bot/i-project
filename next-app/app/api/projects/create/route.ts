@@ -9,7 +9,9 @@ export async function POST(request: NextRequest) {
       name, code, description, status = 'in_progress', progress = 0,
       endDate, budget = 0, managerId, clientId, priority = 'medium', category,
       milestones = [],
-      members = []
+      members = [],
+      tasks = [],
+      contacts = []
     } = body || {};
 
     if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -85,6 +87,48 @@ export async function POST(request: NextRequest) {
           .insert(memberPayloads);
         if (memErr) console.error('Error creating project members:', memErr);
       }
+    }
+
+    // Handle Tasks (with Weights)
+    if (Array.isArray(tasks) && tasks.length > 0) {
+        const taskPayloads = tasks.map((t: any) => ({
+            projectId,
+            title: t.title,
+            description: t.description || null,
+            status: 'todo',
+            priority: t.priority || 'medium',
+            weight: Number(t.weight || 0),
+            startDate: t.startDate || null,
+            dueDate: t.dueDate || null,
+            createdBy: 'system', // or current user if available
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        }));
+        
+        const { error: taskErr } = await supabase
+            .from('tasks')
+            .insert(taskPayloads);
+            
+        if (taskErr) console.error('Error creating tasks:', taskErr);
+    }
+
+    // Handle Contacts (Stakeholders)
+    if (Array.isArray(contacts) && contacts.length > 0) {
+        const contactPayloads = contacts.map((c: any) => ({
+            project_id: projectId,
+            name: c.name,
+            position: c.position || c.role,
+            email: c.email,
+            phone: c.phone,
+            type: c.type || 'Stakeholder',
+            is_key_person: c.isKeyPerson || false
+        }));
+
+        const { error: contactErr } = await supabase
+            .from('contacts')
+            .insert(contactPayloads);
+
+        if (contactErr) console.error('Error creating contacts:', contactErr);
     }
 
     return NextResponse.json({ id: projectId }, { status: 201 });
