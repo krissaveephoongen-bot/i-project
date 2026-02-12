@@ -1,4 +1,4 @@
-import { ok, err } from '../../_lib/db';
+import { ok, err } from '../_lib/db';
 import { supabase } from '@/app/lib/supabaseClient';
 import crypto from 'node:crypto';
 import { NextRequest } from 'next/server';

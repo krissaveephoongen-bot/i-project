@@ -76,16 +76,16 @@
 
 ## Action Plan (ลำดับการแก้ไข)
 
-1.  **Fix Database Schema:**
+1.  ✅ **Fix Database Schema:**
     *   แก้ชื่อตารางใน API Timesheet ให้ตรงกับ Schema (`timesheets`)
     *   เพิ่มตาราง `stakeholders` ลงใน `schema.ts` และรัน Sync
-2.  **Clean Up Legacy UI:**
+2.  ✅ **Clean Up Legacy UI:**
     *   ลบหรือ Refactor Components เก่า (`ProjectSCurve.js`, `SCurveAnalysis.js`, `TasksDataTable.js`) ให้ใช้ Recharts และข้อมูลจริงจาก API หรือ `useQuery`
     *   ตรวจสอบหน้า `app/projects/[id]/page.tsx` ว่ามีการเรียกใช้ Component เก่าเหล่านี้หรือไม่
-3.  **Improve Error Handling:**
+3.  ✅ **Improve Error Handling:**
     *   รื้อถอน `try-catch` ที่กลืน Error ใน Timesheet API
     *   ปรับปรุง Response Code ให้ถูกต้อง (4xx, 5xx)
-4.  **Implement Missing CRUD:**
+4.  ✅ **Implement Missing CRUD:**
     *   เพิ่ม API สำหรับจัดการ Sales Pipeline (Stages)
 5.  **Refactor & Consistency:**
     *   ตรวจสอบ Field Name ให้ตรงกันทั้งระบบ (Snake Case vs Camel Case)

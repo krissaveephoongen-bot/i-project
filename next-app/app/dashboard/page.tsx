@@ -58,12 +58,28 @@ export default function UnifiedDashboard() {
               const dt = new Date(d);
               return dt < today && !['paid', 'approved', 'completed'].includes(status);
             }).length;
+
+            // Mock Weekly Delta for demo (random small change) if real not avail
+            // In real app, we compare with snapshot 7 days ago.
+            // Let's try to find snapshot 7 days ago from snap.points
+            // For now, let's assume 0 if not found.
+            const currentSPI = Number(last?.spi ?? 1);
+            let prevSPI = 1;
+            if (snap.points && snap.points.length > 0) {
+                 const sevenDaysAgo = new Date();
+                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                 const p = snap.points.find((x: any) => new Date(x.date) >= sevenDaysAgo);
+                 if (p) prevSPI = Number(p.spi ?? 1);
+            }
+            const weeklyDelta = ((currentSPI - prevSPI) / prevSPI) * 100; // % change in SPI
+
             aggregated.push({
               id: p.id,
               name: p.name,
               status: p.status || 'Active',
               progress: Number(overview?.project?.progress ?? p.progress ?? 0),
-              spi: Number(last?.spi ?? 1),
+              spi: currentSPI,
+              weeklyDelta,
               budget: Number(overview?.summary?.totalBudget ?? p.budget ?? 0),
               committed: Number(overview?.summary?.committedCost ?? 0),
               actual: Number(overview?.summary?.actualCost ?? p.spent ?? 0),
@@ -498,7 +514,7 @@ export default function UnifiedDashboard() {
             </div>
           </div>
 
-          {/* Weekly Summary Table */}
+          {/* Weekly Performance Table */}
           <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold text-slate-900">Weekly Performance</h3>
@@ -517,11 +533,11 @@ export default function UnifiedDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {(weeklySummary || []).slice(0, 6).map((w: any) => (
+                  {filteredRows.slice(0, 6).map((w: any) => (
                     <tr key={w.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="py-3 px-2 font-medium text-slate-900">{w.name}</td>
-                      <td className="py-3 px-2 text-right text-slate-600">{Number(w.progressActual || 0).toFixed(1)}%</td>
-                      <td className="py-3 px-2 text-right text-slate-600">{Number(w.progressPlan || 0).toFixed(1)}%</td>
+                      <td className="py-3 px-2 text-right text-slate-600">{Number(w.progress || 0).toFixed(1)}%</td>
+                      <td className="py-3 px-2 text-right text-slate-600">{Number((w.progress || 0) / (w.spi || 1)).toFixed(1)}%</td>
                       <td className="py-3 px-2 text-right font-medium">{Number(w.spi || 1).toFixed(2)}</td>
                       <td className="py-3 px-2 text-right">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${

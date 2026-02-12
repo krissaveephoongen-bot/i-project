@@ -459,7 +459,7 @@ export async function runSchemaSync() {
           ALTER TABLE budget_lines ADD CONSTRAINT budget_lines_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
         END IF;
         CREATE INDEX IF NOT EXISTS idx_budget_lines_project_date ON budget_lines(project_id, date);
-      END $$;`
+      END $$;`,
     `CREATE TABLE IF NOT EXISTS stakeholders (
         id text PRIMARY KEY,
         name text NOT NULL,
@@ -469,7 +469,65 @@ export async function runSchemaSync() {
         phone text,
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp without time zone NOT NULL
-      );`
+      );`,
+    `CREATE TABLE IF NOT EXISTS expenses (
+        id text PRIMARY KEY,
+        user_id text NOT NULL,
+        project_id text,
+        task_id text,
+        date date NOT NULL,
+        amount numeric NOT NULL DEFAULT 0,
+        category text NOT NULL,
+        description text,
+        rejected_reason text,
+        status text NOT NULL DEFAULT 'pending',
+        approved_by text,
+        approved_at timestamp without time zone,
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp without time zone NOT NULL
+    );`,
+    `DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='timesheets' AND column_name='status') THEN
+          ALTER TABLE timesheets ADD COLUMN status text NOT NULL DEFAULT 'pending';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='timesheets' AND column_name='description') THEN
+          ALTER TABLE timesheets ADD COLUMN description text;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='timesheets' AND column_name='rejected_reason') THEN
+          ALTER TABLE timesheets ADD COLUMN rejected_reason text;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='timesheets' AND column_name='approved_by') THEN
+          ALTER TABLE timesheets ADD COLUMN approved_by text;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='timesheets' AND column_name='approved_at') THEN
+          ALTER TABLE timesheets ADD COLUMN approved_at timestamp without time zone;
+        END IF;
+      END $$;`,
+    `DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_user_id_fkey') THEN
+          ALTER TABLE expenses ADD CONSTRAINT expenses_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_project_id_fkey') THEN
+          ALTER TABLE expenses ADD CONSTRAINT expenses_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_task_id_fkey') THEN
+          ALTER TABLE expenses ADD CONSTRAINT expenses_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id);
+        END IF;
+      END $$;`,
+    `DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'timesheets_user_id_fkey') THEN
+          ALTER TABLE timesheets ADD CONSTRAINT timesheets_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'timesheets_project_id_fkey') THEN
+          ALTER TABLE timesheets ADD CONSTRAINT timesheets_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'timesheets_task_id_fkey') THEN
+          ALTER TABLE timesheets ADD CONSTRAINT timesheets_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id);
+        END IF;
+      END $$;`
    ];
    const errors: Array<{ sql: string; error: string }> = [];
   for (const sql of queries) {

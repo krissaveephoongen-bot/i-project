@@ -17,7 +17,8 @@ import {
   CheckSquare,
   FileText,
   Briefcase,
-  UserCheck
+  UserCheck,
+  CreditCard
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from './AuthProvider';
@@ -129,6 +130,7 @@ export default function Sidebar() {
         { name: t('navigation.clients'), href: '/clients', icon: Users, roles: ['admin', 'manager'] },
         { name: t('navigation.tasks'), href: '/tasks', icon: CheckSquare, roles: ['admin', 'manager', 'employee'] },
         { name: t('navigation.timesheet'), href: '/timesheet', icon: Calendar, roles: ['admin', 'manager', 'employee'] },
+        { name: t('navigation.expenses'), href: '/expenses', icon: CreditCard, roles: ['admin', 'manager', 'employee'] },
         { name: t('navigation.sales'), href: '/sales', icon: FolderKanban, roles: ['admin', 'manager'] },
         {
           name: t('navigation.approvals'),

@@ -15,20 +15,35 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     const payload: any = {
       status: action === 'approve' ? 'approved' : 'rejected',
-      approvedBy,
-      approvedAt: new Date().toISOString(),
-      rejectedReason: action === 'reject' ? (reason || null) : null,
+      approved_by: approvedBy,
+      approved_at: new Date().toISOString(),
+      rejected_reason: action === 'reject' ? (reason || null) : null,
     }
 
     const { data, error } = await supabase
-      .from('time_entries')
+      .from('timesheets')
       .update(payload)
       .eq('id', id)
       .select()
       .single()
+    
+    // Map response
+    const res = data ? {
+        id: data.id,
+        userId: data.user_id,
+        projectId: data.project_id,
+        taskId: data.task_id,
+        date: data.date,
+        hours: data.hours,
+        description: data.description,
+        rejectedReason: data.rejected_reason,
+        status: data.status,
+        approvedBy: data.approved_by,
+        approvedAt: data.approved_at
+    } : null;
 
     if (error) throw error
-    return NextResponse.json(data, { status: 200 })
+    return NextResponse.json(res, { status: 200 })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'error' }, { status: 500 })
   }

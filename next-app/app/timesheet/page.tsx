@@ -66,6 +66,7 @@ interface TimesheetEntry {
   taskId?: string;
   date: string;
   hours: number;
+  description?: string;
 }
 
 type SubmissionStatus = 'Draft' | 'Submitted' | 'Approved' | 'Rejected';
@@ -96,7 +97,7 @@ export default function TimesheetPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalProjectId, setModalProjectId] = useState<string>('');
   const [modalDate, setModalDate] = useState<string>('');
-  const [modalRows, setModalRows] = useState<Array<{ id?: string; taskId?: string; hours: number; start?: string; end?: string; deleted?: boolean }>>([]);
+  const [modalRows, setModalRows] = useState<Array<{ id?: string; taskId?: string; hours: number; description?: string; start?: string; end?: string; deleted?: boolean }>>([]);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
 
   // Derived Data
@@ -195,7 +196,8 @@ export default function TimesheetPage() {
         projectId: d.project_id,
         taskId: d.task_id,
         date: d.date,
-        hours: d.hours
+        hours: d.hours,
+        description: d.description
       }));
       setEntries(mappedData);
     }
@@ -207,7 +209,7 @@ export default function TimesheetPage() {
     const existingEntries = entries.filter(entry => entry.projectId === projectId && entry.date === dateStr);
     setModalProjectId(projectId);
     setModalDate(dateStr);
-    setModalRows(existingEntries.length > 0 ? existingEntries.map(e => ({ id: e.id, taskId: e.taskId, hours: e.hours })) : [{ hours: 0 }]);
+    setModalRows(existingEntries.length > 0 ? existingEntries.map(e => ({ id: e.id, taskId: e.taskId, hours: e.hours, description: (e as any).description })) : [{ hours: 0 }]);
     setModalOpen(true);
   };
 
@@ -225,14 +227,14 @@ export default function TimesheetPage() {
           await fetch(`${API_BASE}/api/timesheet/entries`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: r.id, hours: r.hours, task_id: r.taskId, start_time: r.start || null, end_time: r.end || null }),
+            body: JSON.stringify({ id: r.id, hours: r.hours, task_id: r.taskId, description: r.description, start_time: r.start || null, end_time: r.end || null }),
           });
           setEntries(prev => prev.map(e => e.id === r.id ? { ...e, hours: r.hours, taskId: r.taskId, date: modalDate } : e));
         } else if (r.hours > 0) {
           const res = await fetch(`${API_BASE}/api/timesheet/entries`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: user?.id, project_id: modalProjectId, task_id: r.taskId, date: modalDate, hours: r.hours, start_time: r.start || null, end_time: r.end || null }),
+            body: JSON.stringify({ user_id: user?.id, project_id: modalProjectId, task_id: r.taskId, date: modalDate, hours: r.hours, description: r.description, start_time: r.start || null, end_time: r.end || null }),
           });
           const row = res.ok ? await res.json() : null;
           const newId = row?.id || `${modalProjectId}-${modalDate}-${Math.random().toString(36).slice(2,7)}`;
@@ -658,6 +660,16 @@ export default function TimesheetPage() {
                         </Select>
                       </div>
                       <div className="col-span-3 space-y-1">
+                        <label className="text-xs font-medium text-slate-500">Description</label>
+                        <Input 
+                          type="text"
+                          className="h-8 text-xs"
+                          placeholder="What did you do?"
+                          value={row.description || ''}
+                          onChange={e => setModalRows(prev => prev.map((r, i) => i === idx ? { ...r, description: e.target.value } : r))}
+                        />
+                      </div>
+                      <div className="col-span-2 space-y-1">
                         <label className="text-xs font-medium text-slate-500">Hours</label>
                         <Input 
                           type="number" 
@@ -669,7 +681,7 @@ export default function TimesheetPage() {
                           onChange={e => setModalRows(prev => prev.map((r, i) => i === idx ? { ...r, hours: parseFloat(e.target.value) || 0 } : r))} 
                         />
                       </div>
-                      <div className="col-span-2 space-y-1">
+                      <div className="col-span-1 space-y-1">
                          <label className="text-xs font-medium text-slate-500">&nbsp;</label>
                          <Button 
                            variant="destructive" 

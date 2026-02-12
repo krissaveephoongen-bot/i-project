@@ -55,7 +55,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { user_id, project_id, task_id, date, hours, start_time, end_time } = body || {};
+    const { user_id, project_id, task_id, date, hours, start_time, end_time, description } = body || {};
     if (!user_id || !project_id || !date) {
       return NextResponse.json({ error: 'user_id, project_id, date required' }, { status: 400 });
     }
@@ -70,10 +70,8 @@ export async function POST(request: NextRequest) {
       hours: Number(hours || 0),
       start_time: start_time || null,
       end_time: end_time || null,
-      // timesheets table in schema doesn't have createdAt/updatedAt based on schema.ts audit. 
-      // Checking schema.ts again:
-      // CREATE TABLE IF NOT EXISTS timesheets ( ... date date NOT NULL, hours numeric DEFAULT 0, start_time timestamp, end_time timestamp );
-      // No createdAt/updatedAt columns in schema.ts for timesheets!
+      description: description || null,
+      status: 'pending' // Default status
     };
 
     const { data, error } = await supabase.from('timesheets').insert(payload).select().single();
@@ -88,8 +86,10 @@ export async function POST(request: NextRequest) {
         id: data.id,
         userId: data.user_id,
         projectId: data.project_id,
+        taskId: data.task_id,
         date: data.date,
-        hours: data.hours
+        hours: data.hours,
+        description: data.description
     };
 
     return NextResponse.json(res, { status: 200 });
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, hours, task_id, start_time, end_time } = body || {};
+    const { id, hours, task_id, start_time, end_time, description } = body || {};
     if (!id) {
       return NextResponse.json({ error: 'id required' }, { status: 400 });
     }
@@ -112,6 +112,7 @@ export async function PUT(request: NextRequest) {
     if (typeof task_id !== 'undefined') payload.task_id = task_id || null;
     if (typeof start_time !== 'undefined') payload.start_time = start_time || null;
     if (typeof end_time !== 'undefined') payload.end_time = end_time || null;
+    if (typeof description !== 'undefined') payload.description = description || null;
 
     const { data, error } = await supabase.from('timesheets').update(payload).eq('id', id).select().single();
     
@@ -124,8 +125,10 @@ export async function PUT(request: NextRequest) {
         id: data.id,
         userId: data.user_id,
         projectId: data.project_id,
+        taskId: data.task_id,
         date: data.date,
-        hours: data.hours
+        hours: data.hours,
+        description: data.description
     };
 
     return NextResponse.json(res, { status: 200 });

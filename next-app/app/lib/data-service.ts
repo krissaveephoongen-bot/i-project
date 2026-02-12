@@ -137,9 +137,8 @@ export async function getDashboardFinancials(): Promise<FinancialData[]> {
 
 export async function getDashboardTeamLoad(): Promise<TeamLoadData[]> {
   try {
-    // Corrected to use time_entries instead of timesheets table which doesn't exist
     const { data: users } = await supabase.from('users').select('id,name');
-    const { data: entries } = await supabase.from('time_entries').select('userId,hours');
+    const { data: entries } = await supabase.from('timesheets').select('user_id,hours');
     
     const userMap = new Map<string, {name: string, hours: number}>();
     
@@ -148,8 +147,9 @@ export async function getDashboardTeamLoad(): Promise<TeamLoadData[]> {
     });
     
     (entries || []).forEach((e: any) => {
-        if (userMap.has(e.userId)) {
-            const u = userMap.get(e.userId)!;
+        const uid = e.user_id || e.userId;
+        if (userMap.has(uid)) {
+            const u = userMap.get(uid)!;
             u.hours += Number(e.hours || 0);
         }
     });
@@ -244,21 +244,31 @@ export async function getSunburstData(
     const end = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
 
     const { data: entries, error } = await supabase
-      .from('time_entries')
-      .select('id,date,hours,startTime,endTime,projectId,taskId,userId')
+      .from('timesheets')
+      .select('id,date,hours,start_time,end_time,project_id,task_id,user_id')
       .gte('date', start)
       .lte('date', end);
       
     if (error) throw error;
     
-    const pids = Array.from(new Set((entries || []).map((e: any) => e.projectId).filter(Boolean)));
-    const tids = Array.from(new Set((entries || []).map((e: any) => e.taskId).filter(Boolean)));
-    const uids = Array.from(new Set((entries || []).map((e: any) => e.userId).filter(Boolean)));
+    // Normalize snake_case to what logic expects or adjust logic
+    const normalizedEntries = (entries || []).map((e: any) => ({
+        ...e,
+        startTime: e.start_time,
+        endTime: e.end_time,
+        projectId: e.project_id,
+        taskId: e.task_id,
+        userId: e.user_id
+    }));
+    
+    const pids = Array.from(new Set(normalizedEntries.map((e: any) => e.projectId).filter(Boolean)));
+    const tids = Array.from(new Set(normalizedEntries.map((e: any) => e.taskId).filter(Boolean)));
+    const uids = Array.from(new Set(normalizedEntries.map((e: any) => e.userId).filter(Boolean)));
     
     const [{ data: projects }, { data: tasks }, { data: users }] = await Promise.all([
-      supabase.from('projects').select('id,name,title').in('id', pids),
-      supabase.from('tasks').select('id,name,title').in('id', tids),
-      supabase.from('users').select('id,name,full_name').in('id', uids),
+      supabase.from('projects').select('id,name,code').in('id', pids),
+      supabase.from('tasks').select('id,title').in('id', tids),
+      supabase.from('users').select('id,name').in('id', uids),
     ]);
 
     const safeName = (v: any, fallback: string) => (v && String(v)) || fallback;
@@ -268,13 +278,13 @@ export async function getSunburstData(
     const level2 = new Map<string, SunburstNode>();
 
     const pMap: Record<string, string> = {};
-    for (const p of projects || []) pMap[p.id] = p.name || p.title || p.id;
+    for (const p of projects || []) pMap[p.id] = p.name || p.code || p.id;
     const tMap: Record<string, string> = {};
-    for (const t of tasks || []) tMap[t.id] = t.name || t.title || t.id;
+    for (const t of tasks || []) tMap[t.id] = t.title || t.id;
     const uMap: Record<string, string> = {};
-    for (const u of users || []) uMap[u.id] = u.name || u.full_name || u.id;
+    for (const u of users || []) uMap[u.id] = u.name || u.id;
 
-    for (const r of entries || []) {
+    for (const r of normalizedEntries) {
       const { start: st, end: et } = inferTimes(r.startTime, r.endTime, r.date, r.hours);
       const proj = safeName(pMap[r.projectId], `Project ${r.projectId || ''}`);
       const task = safeName(tMap[r.taskId], `Task ${r.taskId || ''}`);
