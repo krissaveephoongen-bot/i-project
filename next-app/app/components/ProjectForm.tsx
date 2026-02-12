@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Project } from '../lib/projects';
 import { Button } from './ui/Button';
-import { getManagers, User } from '../lib/users';
+import { getUsers, User } from '../lib/users';
 import { getClients, Client } from '../lib/clients';
 
 interface ProjectFormProps {
@@ -36,7 +36,8 @@ export default function ProjectForm({ project, onSave, onCancel }: ProjectFormPr
   const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
-    getManagers().then(setManagers).catch(() => setManagers([]));
+    // Fetch all users for manager dropdown, not just those with manager role
+    getUsers({ status: 'active' }).then(setManagers).catch(() => setManagers([]));
     getClients().then(setClients).catch(() => setClients([]));
   }, []);
 
