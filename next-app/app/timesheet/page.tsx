@@ -335,6 +335,13 @@ export default function TimesheetPage() {
           </div>
 
           <div className="flex items-center gap-2">
+             <Link href="/timesheet/record">
+                <Button className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                  <Plus className="h-4 w-4" />
+                  Add Timesheet
+                </Button>
+             </Link>
+             
              {canEdit && (
                <Button 
                  variant={isEditing ? "secondary" : "outline"} 
