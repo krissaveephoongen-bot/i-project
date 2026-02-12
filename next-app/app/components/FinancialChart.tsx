@@ -1,8 +1,9 @@
 'use client';
 
 import {
-  BarChart,
+  ComposedChart,
   Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -20,22 +21,28 @@ interface FinancialChartProps {
 }
 
 export default function FinancialChart({ data }: FinancialChartProps) {
+  // Calculate profit for the chart
+  const chartData = data.map(d => ({
+    ...d,
+    profit: d.revenue - d.cost
+  }));
+
   return (
     <div>
-      <h2 className="text-lg font-semibold text-slate-900 mb-4">Financial Overview</h2>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
-          <YAxis stroke="#64748b" fontSize={12} tickFormatter={(value) => `฿${Number(value) / 1000000}M`} />
+      <ResponsiveContainer width="100%" height={350}>
+        <ComposedChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+          <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+          <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(value) => `฿${(Number(value) / 1000).toFixed(0)}k`} tickLine={false} axisLine={false} />
           <Tooltip
-            formatter={(value) => [`฿${Number(value).toLocaleString()}`, '']}
-            contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+            formatter={(value, name) => [`฿${Number(value).toLocaleString()}`, name]}
+            contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
           />
-          <Legend />
-          <Bar dataKey="revenue" name="Revenue" fill="#2563EB" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="cost" name="Cost (Sub-con + PM)" fill="#94A3B8" radius={[4, 4, 0, 0]} />
-        </BarChart>
+          <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+          <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
+          <Bar dataKey="cost" name="Cost" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
+          <Line type="monotone" dataKey="profit" name="Net Profit" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} />
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );

@@ -503,6 +503,9 @@ export async function runSchemaSync() {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='timesheets' AND column_name='approved_at') THEN
           ALTER TABLE timesheets ADD COLUMN approved_at timestamp without time zone;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='timesheets' AND column_name='billable') THEN
+          ALTER TABLE timesheets ADD COLUMN billable boolean DEFAULT true;
+        END IF;
       END $$;`,
     `DO $$
       BEGIN

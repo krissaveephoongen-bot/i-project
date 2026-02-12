@@ -29,14 +29,25 @@ export default function UnifiedDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
 
   const fetchDashboardData = async () => {
     try {
       if (!loading) setRefreshing(true);
       setError(null);
-      const res = await fetch('/api/projects/', { cache: 'no-store' });
+      
+      // Parallel fetch for better performance
+      const [res, act] = await Promise.all([
+        fetch('/api/projects/', { cache: 'no-store' }),
+        fetch('/api/dashboard/activities', { cache: 'no-store' })
+      ]);
+      
       const list = res.ok ? await res.json() : [];
       setProjects(list || []);
+
+      const actJson = act.ok ? await act.json() : [];
+      setActivities(actJson || []);
+
       const aggregated: any[] = [];
       for (const p of (list || [])) {
         try {
@@ -588,7 +599,7 @@ export default function UnifiedDashboard() {
         </div>
 
         {/* Reports Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Executive Summary */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center justify-between mb-6">
@@ -633,6 +644,41 @@ export default function UnifiedDashboard() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Recent Activities */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
+              <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold text-slate-900">Recent Activities</h3>
+                  <Activity className="w-5 h-5 text-slate-400" />
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-6 pr-2 max-h-[400px] custom-scrollbar">
+                  {activities.map((act) => (
+                      <div key={act.id} className="flex gap-4 group">
+                          <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
+                              act.type === 'audit' ? 'bg-purple-500' : 
+                              act.type === 'timesheet' ? 'bg-blue-500' : 
+                              'bg-green-500'
+                          }`} />
+                          <div>
+                              <p className="text-sm font-medium text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                                  {act.title}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                                  {act.description}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-400">
+                                  <span className="font-medium text-slate-600">{act.user}</span>
+                                  <span>•</span>
+                                  <span>{new Date(act.date).toLocaleDateString()}</span>
+                              </div>
+                          </div>
+                      </div>
+                  ))}
+                  {activities.length === 0 && (
+                      <div className="text-center text-slate-400 py-8 text-sm">No recent activities</div>
+                  )}
+              </div>
           </div>
 
           {/* Weekly Performance Table */}
