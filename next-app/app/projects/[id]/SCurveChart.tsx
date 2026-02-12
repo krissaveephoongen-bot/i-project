@@ -68,14 +68,25 @@ export default function SCurveChart() {
         </div>
       </div>
       <ResponsiveContainer width="100%" height={400}>
-        <ComposedChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="week" stroke="#64748b" fontSize={12} />
+        <ComposedChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+          <XAxis 
+            dataKey="week" 
+            stroke="#64748b" 
+            fontSize={12} 
+            tickLine={false}
+            axisLine={{ stroke: '#e2e8f0' }}
+            dy={10}
+            label={{ value: 'Week', position: 'insideBottom', offset: -10, fill: '#64748b', fontSize: 12 }}
+          />
           <YAxis 
             stroke="#64748b" 
             fontSize={12} 
             domain={[0, 100]}
             tickFormatter={(value) => `${value}%`}
+            tickLine={false}
+            axisLine={false}
+            width={45}
           />
           <Tooltip
             formatter={(value, name) => {
@@ -83,9 +94,10 @@ export default function SCurveChart() {
               if (name === 'milestone' && value === 0) return ['', ''];
               return [`${value}%`, name === 'milestone' ? 'Financial Milestone' : name];
             }}
-            contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+            contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+            cursor={{ fill: '#f1f5f9' }}
           />
-          <Legend />
+          <Legend wrapperStyle={{ paddingTop: '20px' }} />
           <Line 
             type="monotone" 
             dataKey="plan" 
@@ -94,6 +106,7 @@ export default function SCurveChart() {
             strokeDasharray="5 5" 
             strokeWidth={2}
             dot={false}
+            activeDot={{ r: 6 }}
           />
           <Line 
             type="monotone" 
@@ -102,15 +115,17 @@ export default function SCurveChart() {
             stroke="#2563EB" 
             strokeWidth={2}
             dot={false}
+            activeDot={{ r: 6 }}
           />
           <Bar 
             dataKey="milestone" 
             name="Financial Milestone" 
             fill="#A855F7" 
             radius={[4, 4, 0, 0]}
+            barSize={20}
           />
-          <ReferenceLine y={50} stroke="#22c55e" strokeDasharray="3 3" label="50% Milestone" />
-          <ReferenceLine y={100} stroke="#2563EB" strokeDasharray="3 3" label="100% Complete" />
+          <ReferenceLine y={50} stroke="#22c55e" strokeDasharray="3 3" label={{ value: '50% Milestone', fill: '#22c55e', fontSize: 12, position: 'insideTopLeft' }} />
+          <ReferenceLine y={100} stroke="#2563EB" strokeDasharray="3 3" label={{ value: '100% Complete', fill: '#2563EB', fontSize: 12, position: 'insideTopLeft' }} />
         </ComposedChart>
       </ResponsiveContainer>
       {/* SPI Alert */}
