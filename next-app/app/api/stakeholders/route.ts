@@ -3,6 +3,8 @@ import { supabase } from '@/app/lib/supabaseClient';
 import crypto from 'node:crypto';
 import { NextRequest } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const u = new URL(req.url);

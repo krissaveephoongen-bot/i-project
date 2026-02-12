@@ -7,7 +7,18 @@ import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'react-hot-toast';
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = React.useState(() => new QueryClient());
+  const [queryClient] = React.useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        // With SSR, we usually want to set some default staleTime
+        // above 0 to avoid refetching immediately on the client
+        staleTime: 0, 
+        refetchOnWindowFocus: true,
+        refetchOnMount: true,
+        retry: 1,
+      },
+    },
+  }));
 
   return (
     <ThemeProvider
