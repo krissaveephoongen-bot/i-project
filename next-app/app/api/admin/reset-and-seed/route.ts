@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabaseAdminClient';
+import { runSchemaSync } from '../../_lib/schema';
 import crypto from 'node:crypto';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,16 @@ export async function POST(request: NextRequest) {
     };
 
     addLog('Starting System Reset & Seed Process...');
+
+    // 0. SYNC SCHEMA
+    // ====================================================
+    const schemaRes = await runSchemaSync();
+    if (!schemaRes.ok) {
+        addLog(`Schema Sync Errors: ${JSON.stringify(schemaRes.errors)}`);
+        // We continue anyway as some errors might be "already exists"
+    } else {
+        addLog('✓ Schema Synced Successfully');
+    }
 
     // 1. CLEAN DATA (Order is critical for FK constraints)
     // ====================================================

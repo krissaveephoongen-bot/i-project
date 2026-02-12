@@ -460,6 +460,16 @@ export async function runSchemaSync() {
         END IF;
         CREATE INDEX IF NOT EXISTS idx_budget_lines_project_date ON budget_lines(project_id, date);
       END $$;`
+    `CREATE TABLE IF NOT EXISTS stakeholders (
+        id text PRIMARY KEY,
+        name text NOT NULL,
+        role text,
+        organization text,
+        email text,
+        phone text,
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp without time zone NOT NULL
+      );`
    ];
    const errors: Array<{ sql: string; error: string }> = [];
   for (const sql of queries) {
