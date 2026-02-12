@@ -16,8 +16,8 @@ export async function GET() {
     if (!projects || projects.length === 0) return ok([], 200);
 
     // Manually fetch managers and clients to avoid "ambiguous relationship" errors
-    const managerIds = [...new Set(projects.map((p: any) => p.managerId || p.manager_id).filter(Boolean))];
-    const clientIds = [...new Set(projects.map((p: any) => p.clientId || p.client_id).filter(Boolean))];
+    const managerIds = Array.from(new Set(projects.map((p: any) => p.managerId || p.manager_id).filter(Boolean)));
+    const clientIds = Array.from(new Set(projects.map((p: any) => p.clientId || p.client_id).filter(Boolean)));
 
     let managersMap: Record<string, any> = {};
     let clientsMap: Record<string, any> = {};
