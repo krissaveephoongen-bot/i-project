@@ -51,8 +51,11 @@ export interface SunburstNode {
 
 export async function getDashboardKPI(): Promise<KpiData> {
   try {
-    const { data: projRows } = await supabase.from('projects').select('budget,remaining,spi');
-    const { data: riskRows } = await supabase.from('risks').select('id,status');
+    const { data: projRows, error: projError } = await supabase.from('projects').select('budget,remaining,spi');
+    if (projError) console.error('Error fetching projects for KPI:', projError);
+
+    const { data: riskRows, error: riskError } = await supabase.from('risks').select('id,status');
+    if (riskError) console.error('Error fetching risks for KPI:', riskError);
     
     const totalValue = (projRows || []).reduce((s: number, p: any) => s + Number(p.budget || 0), 0);
     const billingForecast = (projRows || []).reduce((s: number, p: any) => s + Number(p.remaining || 0), 0);
@@ -68,8 +71,13 @@ export async function getDashboardKPI(): Promise<KpiData> {
 
 export async function getDashboardProjects(): Promise<ProjectHealth[]> {
   try {
-    const { data: rows } = await supabase.from('projects').select('*').order('id', { ascending: false });
+    const { data: rows, error } = await supabase.from('projects').select('*').order('id', { ascending: false });
     
+    if (error) {
+      console.error('Supabase error fetching projects:', error);
+      return [];
+    }
+
     const clientIds = (rows || [])
       .map((r: any) => r.clientId)
       .filter((v: any, i: number, a: any[]) => !!v && a.indexOf(v) === i);
