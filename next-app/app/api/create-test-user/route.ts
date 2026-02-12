@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const { data: existingUser } = await supabaseAdmin
+    const { data: existingUser } = await supabase
       .from('users')
       .select('id')
       .eq('email', email)
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const { data: user, error } = await supabaseAdmin
+    const { data: user, error } = await supabase
       .from('users')
       .insert({
         email,
