@@ -16,7 +16,7 @@ async function getStakeholders({ projectId }: { projectId?: string }) {
             type,
             projects (id, name)
         `)
-        .in('type', ['stakeholder', 'client']);
+        .in('type', ['stakeholder', 'client', 'Stakeholder', 'Client']);
 
     if (projectId) {
         query = query.eq('project_id', projectId);
@@ -85,7 +85,7 @@ export default async function StakeholdersPage({ searchParams }: { searchParams?
                                         <Phone className="w-4 h-4 text-slate-400"/>
                                         <span>{stakeholder.phone || 'N/A'}</span>
                                     </div>
-                                     {stakeholder.projects && (
+                                     {stakeholder.projects?.name && (
                                         <div className="flex items-center gap-2 text-slate-700">
                                             <Briefcase className="w-4 h-4 text-slate-400"/>
                                             <Link href={`/projects/${stakeholder.projects.id}`} className="text-blue-600 hover:underline">{stakeholder.projects.name}</Link>

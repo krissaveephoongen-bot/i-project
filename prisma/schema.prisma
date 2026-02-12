@@ -15,7 +15,7 @@ enum UserRole {
   admin
   manager
   employee
-  }
+}
 
 enum Status {
   todo
@@ -27,13 +27,13 @@ enum Status {
   rejected
   active
   inactive
-  }
+}
 
 enum Priority {
   low
   medium
   high
-  }
+}
 
 enum ActivityType {
   create
@@ -42,13 +42,13 @@ enum ActivityType {
   comment
   assign
   status_change
-  }
+}
 
 enum WorkType {
   project
   office
   other
-  }
+}
 
 enum ExpenseCategory {
   travel
@@ -56,14 +56,14 @@ enum ExpenseCategory {
   equipment
   training
   other
-  }
+}
 
 enum ExpenseStatus {
   pending
   approved
   rejected
   reimbursed
-  }
+}
 
 // Models
 model User {
@@ -109,9 +109,10 @@ model User {
   assignedRisks             Risk[]    @relation("RiskAssignee")
   uploadedDocuments         Document[]
   projectMemberships        ProjectMember[]
+  notifications             Notification[]
 
   @@map("users")
-  }
+}
 
 model Client {
   id        String   @id @default(cuid())
@@ -128,7 +129,7 @@ model Client {
   projects  Project[]
 
   @@map("clients")
-  }
+}
 
 model Project {
   id             String    @id @default(cuid())
@@ -167,9 +168,10 @@ model Project {
   documents      Document[]
   progressHistory ProjectProgressHistory[]
   projectMembers ProjectMember[]
+  issues         Issue[]
 
   @@map("projects")
-  }
+}
 
 model Task {
   id             String    @id @default(cuid())
@@ -206,7 +208,7 @@ model Task {
   documents      Document[]
 
   @@map("tasks")
-  }
+}
 
 model TimeEntry {
   id          String      @id @default(cuid())
@@ -232,7 +234,7 @@ model TimeEntry {
   approver    User?       @relation("TimeEntryApprover", fields: [approvedBy], references: [id])
 
   @@map("time_entries")
-  }
+}
 
 model Expense {
   id          String           @id @default(cuid())
@@ -258,7 +260,7 @@ model Expense {
   approver    User?            @relation("ExpenseApprover", fields: [approvedBy], references: [id])
 
   @@map("expenses")
-  }
+}
 
 model BudgetRevision {
   id             String   @id @default(cuid())
@@ -274,7 +276,7 @@ model BudgetRevision {
   changer        User     @relation(fields: [changedBy], references: [id])
 
   @@map("budget_revisions")
-  }
+}
 
 model ActivityLog {
   id          String       @id @default(cuid())
@@ -291,7 +293,7 @@ model ActivityLog {
   user        User         @relation(fields: [userId], references: [id])
 
   @@map("activity_log")
-  }
+}
 
 model Comment {
   id        String   @id @default(cuid())
@@ -306,7 +308,7 @@ model Comment {
   user      User     @relation(fields: [userId], references: [id])
 
   @@map("comments")
-  }
+}
 
 model ProjectProgressHistory {
   id        String   @id @default(cuid())
@@ -319,7 +321,7 @@ model ProjectProgressHistory {
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("project_progress_history")
-  }
+}
 
 model FinancialData {
   id        String   @id @default(cuid())
@@ -330,7 +332,7 @@ model FinancialData {
   updatedAt DateTime @updatedAt
 
   @@map("financial_data")
-  }
+}
 
 model Milestone {
   id          String   @id @default(cuid())
@@ -348,7 +350,7 @@ model Milestone {
   project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@map("milestones")
-  }
+}
 
 model Risk {
   id             String   @id @default(cuid())
@@ -369,7 +371,7 @@ model Risk {
   assignee       User?    @relation("RiskAssignee", fields: [assigned_to], references: [id])
 
   @@map("risks")
-  }
+}
 
 model Document {
   id          String   @id @default(cuid())
@@ -390,7 +392,7 @@ model Document {
   task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   @@map("documents")
-  }
+}
 
 model ProjectMember {
   id        String   @id @default(cuid())
@@ -406,4 +408,37 @@ model ProjectMember {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("project_members")
-  }
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Issue {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  priority    String   @default("Medium")
+  status      String   @default("Open")
+  project_id  String?
+  assigned_to String?
+  due_date    DateTime?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  project     Project? @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@map("issues")
+}

@@ -3,16 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --primary-navy: #0F172A;
-  --accent-blue: #2563EB;
-  --background-slate: #F8FAFC;
   --sidebar-width: 260px;
   --header-height: 64px;
-}
-
-body {
-  background-color: var(--background-slate);
-  color: #1E293B;
 }
 
 /* Scrollbar Styles */

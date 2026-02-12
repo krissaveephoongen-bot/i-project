@@ -6,13 +6,25 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-import { Plus, Edit, Trash2, Calendar, DollarSign, User, Clock, Eye } from 'lucide-react';
+import { 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Calendar, 
+  User, 
+  Eye, 
+  AlertTriangle,
+  Folder,
+  Activity,
+  CheckCircle,
+  Clock
+} from 'lucide-react';
 import { format } from 'date-fns';
-import { useTranslation } from 'react-i18next';
+import { th } from 'date-fns/locale';
 import { PermissionGuard, CanCreateProjects, CanEditProjects } from '../components/PermissionGuard';
 import { Permission } from '../lib/auth';
 import { usePermissions } from '../hooks/usePermissions';
-import { logProjectAction, AuditEventType } from '../lib/audit';
+import { logProjectAction } from '../lib/audit';
 
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/badge';
@@ -23,12 +35,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { DataTable } from '../components/data-table';
 import { PageFilter } from '../components/page-filter';
 import Header from '../components/Header';
-import ProjectForm from '../../components/ProjectForm';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProjects, createProject, updateProject, deleteProject, recalculateProjectData as recalculateProjectDataUtil, Project as ProjectType } from '../lib/projects';
+import { getProjects, createProject, updateProject, deleteProject, Project as ProjectType } from '../lib/projects';
 import { getManagers, User as UserType } from '../lib/users';
 import { ColumnDef } from '@tanstack/react-table';
+import PageTransition from '../components/PageTransition';
+import { Skeleton } from '../components/ui/Skeleton';
+import { clsx } from 'clsx';
 
 // Enhanced Project type with derived data
 interface EnhancedProject extends ProjectType {
@@ -39,14 +53,11 @@ interface EnhancedProject extends ProjectType {
 }
 
 export default function ProjectsPageRefactored() {
-  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { userId, userName, userRole } = usePermissions();
   const router = useRouter();
 
   // State management
-  const [showForm, setShowForm] = useState(false);
-  const [editingProject, setEditingProject] = useState<ProjectType | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   // Filter states
@@ -59,10 +70,6 @@ export default function ProjectsPageRefactored() {
   const { data: projectsData, isLoading: isLoadingProjects, error: projectsError } = useQuery<ProjectType[]>({
     queryKey: ['projects'],
     queryFn: async () => {
-      // getProjects from lib/projects.ts already has fallback logic to fetch from Supabase if API fails
-      // However, we want to ensure we get fresh data.
-      // If we are server-side, we should use direct DB. But this is a client component ('use client').
-      // Let's rely on the robust getProjects() we fixed earlier.
       const fetchedProjects = await getProjects();
       return fetchedProjects;
     },
@@ -112,20 +119,20 @@ export default function ProjectsPageRefactored() {
   const filterOptions = [
     {
       key: 'status',
-      label: t('projects.filters.status'),
+      label: 'สถานะ',
       value: statusFilter,
       options: [
-        { value: 'Planning', label: t('projects.status.planning') },
-        { value: 'Active', label: t('projects.status.active') },
-        { value: 'On Hold', label: t('projects.status.onHold') },
-        { value: 'Completed', label: t('projects.status.completed') },
-        { value: 'Cancelled', label: t('projects.status.cancelled') },
+        { value: 'Planning', label: 'กำลังวางแผน (Planning)' },
+        { value: 'Active', label: 'กำลังดำเนินการ (Active)' },
+        { value: 'On Hold', label: 'พักโครงการ (On Hold)' },
+        { value: 'Completed', label: 'เสร็จสิ้น (Completed)' },
+        { value: 'Cancelled', label: 'ยกเลิก (Cancelled)' },
       ],
       onChange: setStatusFilter,
     },
     {
       key: 'manager',
-      label: t('projects.filters.manager'),
+      label: 'ผู้จัดการ',
       value: managerFilter,
       options: managersData?.map(manager => ({
         value: manager.name,
@@ -135,12 +142,12 @@ export default function ProjectsPageRefactored() {
     },
     {
       key: 'priority',
-      label: t('projects.filters.priority'),
+      label: 'ความสำคัญ',
       value: priorityFilter,
       options: [
-        { value: 'low', label: t('projects.priority.low') },
-        { value: 'medium', label: t('projects.priority.medium') },
-        { value: 'high', label: t('projects.priority.high') },
+        { value: 'low', label: 'ต่ำ' },
+        { value: 'medium', label: 'ปานกลาง' },
+        { value: 'high', label: 'สูง' },
       ],
       onChange: setPriorityFilter,
     },
@@ -150,21 +157,21 @@ export default function ProjectsPageRefactored() {
   const columns: ColumnDef<EnhancedProject>[] = [
     {
       accessorKey: 'name',
-      header: t('projects.columns.name'),
+      header: 'ชื่อโครงการ',
       cell: ({ row }) => (
         <div className="flex items-center space-x-3">
-          <Avatar className="h-8 w-8">
+          <Avatar className="h-9 w-9 border-2 border-background shadow-sm">
             <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${row.original.name}`} />
             <AvatarFallback>{row.original.name.charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
             <Link
               href={`/projects/${row.original.id}`}
-              className="font-medium text-primary hover:underline"
+              className="font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               {row.original.name}
             </Link>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xs text-muted-foreground font-mono mt-0.5">
               {row.original.code && `#${row.original.code}`}
             </div>
           </div>
@@ -173,85 +180,92 @@ export default function ProjectsPageRefactored() {
     },
     {
       accessorKey: 'status',
-      header: t('projects.columns.status'),
+      header: 'สถานะ',
       cell: ({ row }) => (
-        <Badge variant={row.original.statusColor as any}>
+        <Badge variant={row.original.statusColor as any} className="shadow-sm">
           {row.original.status}
         </Badge>
       ),
     },
     {
       accessorKey: 'progress',
-      header: t('projects.columns.progress'),
+      header: 'ความคืบหน้า',
       cell: ({ row }) => (
-        <div className="flex items-center space-x-2 min-w-[120px]">
-          <Progress value={row.original.progress} className="flex-1" />
-          <span className="text-sm font-medium">{row.original.progress}%</span>
+        <div className="flex flex-col gap-1 min-w-[120px]">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Progress</span>
+            <span className="font-bold text-foreground">{row.original.progress}%</span>
+          </div>
+          <Progress value={row.original.progress} className="h-2" />
         </div>
       ),
     },
     {
       accessorKey: 'manager.name',
-      header: t('projects.columns.manager'),
+      header: 'ผู้รับผิดชอบ',
       cell: ({ row }) => (
         <div className="flex items-center space-x-2">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <span>{row.original.manager?.name || t('common.unassigned')}</span>
+          <div className="p-1.5 bg-muted rounded-full">
+            <User className="h-3 w-3 text-muted-foreground" />
+          </div>
+          <span className="text-sm text-foreground">{row.original.manager?.name || 'ไม่ระบุ'}</span>
         </div>
       ),
     },
     {
       accessorKey: 'budget',
-      header: t('projects.columns.budget'),
+      header: 'งบประมาณ',
       cell: ({ row }) => (
-        <div className="flex items-center space-x-1">
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
-          <span>{row.original.budget ? `$${row.original.budget.toLocaleString()}` : 'N/A'}</span>
+        <div className="flex items-center space-x-1 font-medium text-foreground">
+          <span className="text-muted-foreground">฿</span>
+          <span>{row.original.budget ? row.original.budget.toLocaleString() : '-'}</span>
         </div>
       ),
     },
     {
       accessorKey: 'endDate',
-      header: t('projects.columns.dueDate'),
+      header: 'กำหนดส่ง',
       cell: ({ row }) => {
-        if (!row.original.endDate) return <span className="text-muted-foreground">{t('projects.noDueDate')}</span>;
+        if (!row.original.endDate) return <span className="text-muted-foreground text-xs">-</span>;
 
         const dueDate = new Date(row.original.endDate);
         const isOverdue = row.original.isOverdue;
 
         return (
-          <div className="flex items-center space-x-1">
-            <Calendar className={`h-4 w-4 ${isOverdue ? 'text-destructive' : 'text-muted-foreground'}`} />
-            <span className={isOverdue ? 'text-destructive font-medium' : ''}>
-              {format(dueDate, 'MMM dd, yyyy')}
+          <div className={clsx(
+            'flex items-center space-x-1.5 rounded-md w-fit px-2 py-1',
+            isOverdue 
+              ? 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400' 
+              : 'text-muted-foreground'
+          )}>
+            <Calendar className="h-3.5 w-3.5" />
+            <span className="text-sm">
+              {format(dueDate, 'd MMM yyyy', { locale: th })}
             </span>
-            {isOverdue && (
-              <Badge variant="destructive" className="text-xs">
-                {t('common.overdue')}
-              </Badge>
-            )}
           </div>
         );
       },
     },
     {
       accessorKey: 'riskLevel',
-      header: t('projects.columns.risk'),
+      header: 'ความเสี่ยง',
       cell: ({ row }) => (
-        <Badge variant={getRiskVariant(row.original.riskLevel)}>
+        <Badge variant={getRiskVariant(row.original.riskLevel)} className="shadow-sm">
           {row.original.riskLevel}
         </Badge>
       ),
     },
     {
       id: 'actions',
-      header: t('projects.columns.actions'),
+      header: '',
       cell: ({ row }) => (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-end space-x-1">
           <Button
             variant="ghost"
             size="sm"
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
             onClick={() => window.open(`/projects/${row.original.id}`, '_blank')}
+            title="ดูรายละเอียด"
           >
             <Eye className="h-4 w-4" />
           </Button>
@@ -259,7 +273,9 @@ export default function ProjectsPageRefactored() {
             <Button
               variant="ghost"
               size="sm"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 dark:hover:text-orange-400"
               onClick={() => handleEditProject(row.original)}
+              title="แก้ไข"
             >
               <Edit className="h-4 w-4" />
             </Button>
@@ -268,7 +284,9 @@ export default function ProjectsPageRefactored() {
             <Button
               variant="ghost"
               size="sm"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:hover:text-red-400"
               onClick={() => setDeleteConfirm(row.original.id)}
+              title="ลบ"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -283,11 +301,8 @@ export default function ProjectsPageRefactored() {
     mutationFn: createProject,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      setShowForm(false);
-      setEditingProject(null);
-
       // Audit logging
-      const auditEntry = logProjectAction(
+      logProjectAction(
         userId,
         userName,
         userRole,
@@ -296,7 +311,6 @@ export default function ProjectsPageRefactored() {
         `Created new project: ${data.name}`,
         { name: data.name, budget: data.budget, managerId: data.managerId }
       );
-      console.log('Audit Log:', auditEntry);
     },
   });
 
@@ -305,11 +319,8 @@ export default function ProjectsPageRefactored() {
       updateProject(id, updatedFields),
     onSuccess: (_, { id, updatedFields }) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      setShowForm(false);
-      setEditingProject(null);
-
       // Audit logging
-      const auditEntry = logProjectAction(
+      logProjectAction(
         userId,
         userName,
         userRole,
@@ -318,7 +329,6 @@ export default function ProjectsPageRefactored() {
         `Updated project details`,
         updatedFields
       );
-      console.log('Audit Log:', auditEntry);
     },
   });
 
@@ -327,9 +337,8 @@ export default function ProjectsPageRefactored() {
     onSuccess: (_, projectId) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setDeleteConfirm(null);
-
       // Audit logging
-      const auditEntry = logProjectAction(
+      logProjectAction(
         userId,
         userName,
         userRole,
@@ -338,7 +347,6 @@ export default function ProjectsPageRefactored() {
         `Deleted project`,
         {}
       );
-      console.log('Audit Log:', auditEntry);
     },
   });
 
@@ -351,17 +359,6 @@ export default function ProjectsPageRefactored() {
     router.push(`/projects/${project.id}/edit`);
   };
 
-  const handleSaveProject = async (savedProject: ProjectType) => {
-    if (editingProject) {
-      await updateProjectMutation.mutateAsync({
-        id: editingProject.id,
-        updatedFields: savedProject
-      });
-    } else {
-      await createProjectMutation.mutateAsync(savedProject);
-    }
-  };
-
   const handleDeleteProject = async (id: string) => {
     await deleteProjectMutation.mutateAsync(id);
   };
@@ -369,10 +366,20 @@ export default function ProjectsPageRefactored() {
   // Loading and error states
   if (isLoadingProjects || isLoadingManagers) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading projects...</p>
+      <div className="min-h-screen bg-muted/30">
+        <Header
+            title="โครงการ (Projects)"
+            breadcrumbs={[{ label: 'แดชบอร์ด', href: '/' }, { label: 'โครงการ' }]}
+        />
+        <div className="container mx-auto px-6 py-8 pt-24 space-y-6">
+            <div className="flex justify-between items-center">
+                <Skeleton className="h-10 w-48" />
+                <Skeleton className="h-10 w-32" />
+            </div>
+            <div className="grid grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+            </div>
+            <Skeleton className="h-[500px] w-full rounded-xl" />
         </div>
       </div>
     );
@@ -380,19 +387,19 @@ export default function ProjectsPageRefactored() {
 
   if (projectsError) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <div className="text-6xl">⚠️</div>
-              <h3 className="text-lg font-semibold">Error Loading Projects</h3>
-              <p className="text-muted-foreground">
-                {projectsError.message || 'An unexpected error occurred'}
-              </p>
-              <Button onClick={() => window.location.reload()}>
-                Try Again
-              </Button>
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <Card className="w-full max-w-md shadow-lg border-red-100 dark:border-red-900/30">
+          <CardContent className="pt-8 pb-8 flex flex-col items-center text-center gap-4">
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-8 h-8 text-red-500 dark:text-red-400" />
             </div>
+            <h3 className="text-xl font-bold text-foreground">ไม่สามารถโหลดข้อมูลได้</h3>
+            <p className="text-muted-foreground">
+              {projectsError.message || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ'}
+            </p>
+            <Button onClick={() => window.location.reload()} variant="outline">
+              ลองใหม่อีกครั้ง
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -400,175 +407,166 @@ export default function ProjectsPageRefactored() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header
-        title="Projects"
-        breadcrumbs={[
-          { label: 'Dashboard', href: '/' },
-          { label: 'Projects' }
-        ]}
-      />
+    <PageTransition>
+      <div className="min-h-screen bg-muted/30">
+        <Header
+          title="โครงการ (Projects)"
+          breadcrumbs={[
+            { label: 'แดชบอร์ด', href: '/' },
+            { label: 'โครงการ' }
+          ]}
+        />
 
-      <div className="container mx-auto px-6 py-8 pt-24">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t('projects.title')}</h1>
-            <p className="text-muted-foreground">
-              {t('projects.subtitle')}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <CanCreateProjects>
-              <Button onClick={handleCreateProject} className="gap-2">
-                <Plus className="h-4 w-4" />
-                {t('projects.create')}
+        <div className="container mx-auto px-6 py-8 pt-24 max-w-[1600px]">
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">รายการโครงการ</h1>
+              <p className="text-muted-foreground mt-1">
+                จัดการและติดตามโครงการทั้งหมดของคุณได้ที่นี่
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <CanCreateProjects>
+                <Button onClick={handleCreateProject} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 rounded-xl dark:bg-blue-600 dark:hover:bg-blue-700">
+                  <Plus className="h-4 w-4" />
+                  สร้างโครงการใหม่
+                </Button>
+              </CanCreateProjects>
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => {
+                  const rows = filteredProjects || [];
+                  const header = ['Name','Code','Status','Progress','Manager','Budget','DueDate'];
+                  const lines = [header.join(','), ...rows.map(p => [
+                    p.name, p.code || '', p.status, p.progress, p.manager?.name || '', p.budget || 0, p.endDate || ''
+                  ].join(','))];
+                  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url; a.download = 'projects.csv'; a.click();
+                  window.URL.revokeObjectURL(url);
+                }}
+              >
+                Export CSV
               </Button>
-            </CanCreateProjects>
-            <Button
-              variant="outline"
-              onClick={() => {
-                const rows = filteredProjects || [];
-                const header = ['Name','Code','Status','Progress','Manager','Budget','DueDate'];
-                const lines = [header.join(','), ...rows.map(p => [
-                  p.name, p.code || '', p.status, p.progress, p.manager?.name || '', p.budget || 0, p.endDate || ''
-                ].join(','))];
-                const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = 'projects.csv'; a.click();
-                window.URL.revokeObjectURL(url);
-              }}
-            >
-              Export CSV
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                const rows = filteredProjects || [];
-                const header = ['Name','Code','Status','Progress','Manager','Budget','DueDate'];
-                const table = [
-                  '<table>',
-                  `<tr>${header.map(h => `<th>${h}</th>`).join('')}</tr>`,
-                  ...rows.map(p => `<tr><td>${p.name}</td><td>${p.code || ''}</td><td>${p.status}</td><td>${p.progress}</td><td>${p.manager?.name || ''}</td><td>${p.budget || 0}</td><td>${p.endDate || ''}</td></tr>`),
-                  '</table>'
-                ].join('');
-                const blob = new Blob([table], { type: 'application/vnd.ms-excel' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = 'projects.xls'; a.click();
-                window.URL.revokeObjectURL(url);
-              }}
-            >
-              Export Excel
-            </Button>
+            </div>
           </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <Card className="rounded-xl border-border shadow-sm hover:shadow-md transition-all">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">โครงการทั้งหมด</CardTitle>
+                <Folder className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">{projectsData?.length || 0}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-xl border-border shadow-sm hover:shadow-md transition-all">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">กำลังดำเนินการ</CardTitle>
+                <Activity className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {projectsData?.filter((p: any) => {
+                    const s = String(p.status || '').toLowerCase();
+                    return s === 'active' || s === 'in_progress' || s === 'in progress';
+                  }).length || 0}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-xl border-border shadow-sm hover:shadow-md transition-all">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">เสร็จสิ้น</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {projectsData?.filter((p: any) => String(p.status || '').toLowerCase() === 'completed').length || 0}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-xl border-border shadow-sm hover:shadow-md transition-all">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">ต้องแก้ไข/เสี่ยง</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                  {enhancedProjects.filter(p => {
+                    const s = String(p.status || '').toLowerCase();
+                    const risky = String(p.riskLevel || '').toLowerCase();
+                    return p.isOverdue || s === 'on hold' || s === 'cancelled' || risky === 'high' || risky === 'critical';
+                  }).length}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Content */}
+          <Card className="rounded-xl border-border shadow-sm overflow-hidden">
+            <CardHeader className="border-b border-border bg-card">
+              <CardTitle>รายชื่อโครงการ</CardTitle>
+              <CardDescription>
+                ค้นหาและกรองข้อมูลโครงการ
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="p-4 bg-muted/30">
+                  <PageFilter
+                  searchPlaceholder="ค้นหาชื่อโครงการ, รหัส, หรือผู้รับผิดชอบ..."
+                  searchValue={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  filters={filterOptions}
+                  />
+              </div>
+
+              <DataTable
+                columns={columns}
+                data={filteredProjects}
+                searchKey="name"
+                searchPlaceholder="ค้นหา..."
+              />
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t('projects.totalProjects')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{projectsData?.length || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t('projects.activeProjects')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {projectsData?.filter((p: any) => {
-                  const s = String(p.status || '').toLowerCase();
-                  return s === 'active' || s === 'in_progress' || s === 'in progress';
-                }).length || 0}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t('projects.completedProjects')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {projectsData?.filter((p: any) => String(p.status || '').toLowerCase() === 'completed').length || 0}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">โครงการที่มีปัญหา</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-destructive">
-                {enhancedProjects.filter(p => {
-                  const s = String(p.status || '').toLowerCase();
-                  const risky = String(p.riskLevel || '').toLowerCase();
-                  return p.isOverdue || s === 'on hold' || s === 'cancelled' || risky === 'high' || risky === 'critical';
-                }).length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('projects.title')}</CardTitle>
-            <CardDescription>
-              {t('projects.subtitle')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PageFilter
-              searchPlaceholder={t('projects.search')}
-              searchValue={searchTerm}
-              onSearchChange={setSearchTerm}
-              filters={filterOptions}
-            />
-
-            <DataTable
-              columns={columns}
-              data={filteredProjects}
-              searchKey="name"
-              searchPlaceholder="Search projects..."
-            />
-          </CardContent>
-        </Card>
+        {/* Delete Confirmation Modal */}
+        <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+          <DialogContent className="sm:max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-red-600 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5" />
+                  ยืนยันการลบโครงการ
+              </DialogTitle>
+              <DialogDescription className="pt-2">
+                คุณแน่ใจหรือไม่ที่จะลบโครงการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="rounded-xl">
+                ยกเลิก
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => deleteConfirm && handleDeleteProject(deleteConfirm)}
+                disabled={deleteProjectMutation.isPending}
+                className="rounded-xl"
+              >
+                {deleteProjectMutation.isPending ? 'กำลังลบ...' : 'ยืนยันลบ'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-
-  {/* Edit/Create now handled via dedicated pages */}
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t('projects.delete')}</DialogTitle>
-            <DialogDescription>
-              {t('projects.deleteConfirm')}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
-              {t('common.cancel')}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => deleteConfirm && handleDeleteProject(deleteConfirm)}
-              disabled={deleteProjectMutation.isPending}
-            >
-              {deleteProjectMutation.isPending ? t('common.loading') : t('projects.delete')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </PageTransition>
   );
 }
 

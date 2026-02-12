@@ -2,13 +2,13 @@
 
 import {
   Search,
-  Bell,
   ChevronRight,
   Home
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
+import NotificationCenter from './NotificationCenter';
 
 interface HeaderProps {
   title?: string;
@@ -17,7 +17,6 @@ interface HeaderProps {
 
 export default function Header({ title, breadcrumbs }: HeaderProps) {
   const { t } = useTranslation();
-  const notificationCount = 5;
 
   return (
     <header className="fixed top-0 left-[260px] right-0 h-[64px] bg-background border-b border-border flex items-center justify-between px-6 z-40">
@@ -65,14 +64,7 @@ export default function Header({ title, breadcrumbs }: HeaderProps) {
         <ThemeToggle />
 
         {/* Notifications */}
-        <button className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors">
-          <Bell className="w-5 h-5" />
-          {notificationCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
-              {notificationCount}
-            </span>
-          )}
-        </button>
+        <NotificationCenter />
       </div>
     </header>
   );

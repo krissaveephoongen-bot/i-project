@@ -4,9 +4,15 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Header from '@/app/components/Header';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-import { AlertTriangle, AlertCircle, TrendingUp, TrendingDown, Plus, Filter, X } from 'lucide-react';
+import { AlertTriangle, AlertCircle, TrendingUp, TrendingDown, Plus, Filter, X, Bug, CheckCircle, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
 import ProjectTabs from '@/app/components/ProjectTabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Badge } from '@/app/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/ui/Dialog';
+import { Button } from '@/app/components/ui/Button';
+import { Input } from '@/app/components/ui/Input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/Select';
 
 interface Risk {
   id: string;
@@ -16,14 +22,33 @@ interface Risk {
   severity: string;
 }
 
+interface Issue {
+  id: string;
+  title: string;
+  priority: 'Low' | 'Medium' | 'High' | 'Critical';
+  status: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
+  assigned_to?: string;
+  due_date?: string;
+}
+
 export default function ProjectRisksPage() {
   const [risks, setRisks] = useState<Risk[]>([]);
+  const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [filter, setFilter] = useState<'all' | 'High' | 'Medium' | 'Low'>('all');
   const [dbProjectId, setDbProjectId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  
+  // Issue Modal
+  const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
+  const [issueForm, setIssueForm] = useState<Partial<Issue>>({
+    title: '',
+    priority: 'Medium',
+    status: 'Open',
+    assigned_to: '',
+    due_date: ''
+  });
 
   const params = useParams() as Record<string, string | string[] | undefined> | null;
   const projectId =
@@ -35,28 +60,35 @@ export default function ProjectRisksPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchProjectAndRisks = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
         setDbProjectId(projectId);
-        const res = await fetch(`${API_BASE}/api/projects/risks?projectId=${projectId}`);
-        const rows = res.ok ? await res.json() : [];
-        setRisks(rows || []);
+        
+        // Fetch Risks
+        const risksRes = await fetch(`${API_BASE}/api/projects/risks?projectId=${projectId}`);
+        const risksData = risksRes.ok ? await risksRes.json() : [];
+        setRisks(risksData || []);
+
+        // Fetch Issues
+        const issuesRes = await fetch(`${API_BASE}/api/projects/issues?projectId=${projectId}`);
+        const issuesData = issuesRes.ok ? await issuesRes.json() : [];
+        setIssues(issuesData || []);
+
         setError(null);
       } catch (err) {
-        setError('Failed to fetch risks');
-        console.error('Error fetching risks:', err);
+        setError('Failed to fetch data');
+        console.error('Error fetching data:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProjectAndRisks();
+    loadData();
   }, [projectId]);
 
   const addRisk = async () => {
     if (!dbProjectId) return;
-
     try {
       const payload = { project_id: dbProjectId, title: 'New Risk', impact: 3, likelihood: 3, severity: 'Medium' };
       const res = await fetch(`${API_BASE}/api/projects/risks`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -64,298 +96,320 @@ export default function ProjectRisksPage() {
       if (data) setRisks(prev => [...prev, data]);
     } catch (err) {
       console.error('Error adding risk:', err);
-      setError('Failed to add risk');
     }
   };
+
   const updateRisk = async (id: string, updatedFields: any) => {
     const res = await fetch(`${API_BASE}/api/projects/risks`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, updatedFields }) });
     if (res.ok) {
       setRisks(prev => prev.map(r => r.id === id ? { ...r, ...updatedFields } : r));
     }
   };
+
   const deleteRisk = async (id: string) => {
     const res = await fetch(`${API_BASE}/api/projects/risks?id=${id}`, { method: 'DELETE' });
     if (res.ok) setRisks(prev => prev.filter(r => r.id !== id));
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'High':
-        return 'bg-red-100 text-red-700 border-red-200';
-      case 'Medium':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'Low':
-        return 'bg-green-100 text-green-700 border-green-200';
-      default:
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+  const handleCreateIssue = async () => {
+    if (!dbProjectId || !issueForm.title) return;
+    try {
+        const payload = { project_id: dbProjectId, ...issueForm };
+        const res = await fetch(`${API_BASE}/api/projects/issues`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = res.ok ? await res.json() : null;
+        if (data) {
+            setIssues(prev => [data, ...prev]);
+            setIsIssueModalOpen(false);
+            setIssueForm({ title: '', priority: 'Medium', status: 'Open', assigned_to: '', due_date: '' });
+        }
+    } catch (err) {
+        console.error('Error creating issue:', err);
     }
   };
 
-  const getImpactColor = (impact: number) => {
-    if (impact >= 4) return 'bg-red-500';
-    if (impact >= 3) return 'bg-yellow-500';
-    return 'bg-green-500';
+  const updateIssueStatus = async (id: string, newStatus: string) => {
+      // Optimistic
+      setIssues(prev => prev.map(i => i.id === id ? { ...i, status: newStatus as any } : i));
+      await fetch(`${API_BASE}/api/projects/issues`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, updatedFields: { status: newStatus } }) });
   };
 
-  const getLikelihoodColor = (likelihood: number) => {
-    if (likelihood >= 4) return 'bg-red-500';
-    if (likelihood >= 3) return 'bg-yellow-500';
-    return 'bg-green-500';
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'High': return 'bg-red-100 text-red-700 border-red-200';
+      case 'Medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'Low': return 'bg-green-100 text-green-700 border-green-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
   };
 
-  const filteredRisks = risks.filter(risk => {
-    if (filter === 'all') return true;
-    return risk.severity === filter;
-  });
+  const getImpactColor = (val: number) => val >= 4 ? 'bg-red-500' : val >= 3 ? 'bg-yellow-500' : 'bg-green-500';
 
-  const highRisks = risks.filter(r => r.severity === 'High').length;
-  const mediumRisks = risks.filter(r => r.severity === 'Medium').length;
-  const lowRisks = risks.filter(r => r.severity === 'Low').length;
+  const filteredRisks = risks.filter(risk => filter === 'all' || risk.severity === filter);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563EB] mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading risks...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">{error}</p>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563EB] mx-auto mb-4"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-slate-50/50">
       <Header 
-        title="Risk Management"
+        title="Risk & Issue Management"
         breadcrumbs={[
           { label: 'Dashboard', href: '/' },
           { label: 'Projects', href: '/projects' },
-          { label: 'ERP Implementation', href: '/projects/1' },
-          { label: 'Risks' }
+          { label: 'Risks & Issues' }
         ]}
       />
       
-      <div className="pt-20 px-6 pb-6">
+      <div className="pt-24 px-6 pb-6 container mx-auto space-y-6">
         <ProjectTabs />
-        {/* Risk Summary */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border border-red-200 p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600">High Risk</p>
-                <p className="text-2xl font-bold text-red-600">{highRisks}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-yellow-200 p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <AlertCircle className="w-5 h-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600">Medium Risk</p>
-                <p className="text-2xl font-bold text-yellow-600">{mediumRisks}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-green-200 p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <TrendingDown className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600">Low Risk</p>
-                <p className="text-2xl font-bold text-green-600">{lowRisks}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600">Total Risks</p>
-                <p className="text-2xl font-bold text-slate-900">{risks.length}</p>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-3 gap-6">
-          {/* Risk Matrix */}
-          <div className="col-span-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Risk Matrix</h2>
-            <div className="relative">
-              {/* Y-axis label */}
-              <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-xs text-slate-500">
-                IMPACT →
-              </div>
-              
-              <div className="ml-4">
-                {/* Matrix Grid */}
-                <div className="grid grid-cols-5 gap-1">
-                  {/* Y-axis (Impact 5 to 1) */}
-                  {[5, 4, 3, 2, 1].map((impact) => (
-                    <div key={impact} className="col-span-5 grid grid-cols-5 gap-1">
-                      <div className="col-span-1 flex items-center justify-center">
-                        <span className="text-xs text-slate-500">{impact}</span>
-                      </div>
-                      {/* Cells for each likelihood */}
-                      {[1, 2, 3, 4, 5].map((likelihood) => {
-                        const severity = impact * likelihood;
-                        const cellRisks = risks.filter(r => r.impact === impact && r.likelihood === likelihood);
-                        const cellColor = severity >= 15 ? 'bg-red-100' : severity >= 8 ? 'bg-yellow-100' : 'bg-green-100';
-                        const borderColor = severity >= 15 ? 'border-red-300' : severity >= 8 ? 'border-yellow-300' : 'border-green-300';
-                        
-                        return (
-                          <div 
-                            key={`${impact}-${likelihood}`}
-                            className={clsx(
-                              'h-12 border rounded-lg flex items-center justify-center cursor-pointer transition-colors',
-                              cellColor,
-                              borderColor,
-                              cellRisks.length > 0 && 'hover:ring-2 hover:ring-[#2563EB]'
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Left Column: Risks (2/3) */}
+            <div className="lg:col-span-2 space-y-6">
+                {/* Risk Matrix & Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card className="shadow-sm border-slate-200">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base font-medium">Risk Matrix (Real-time)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="relative aspect-square max-h-[250px] mx-auto">
+                                <div className="absolute -left-6 top-1/2 -translate-y-1/2 -rotate-90 text-xs text-slate-500 font-bold tracking-wider">IMPACT</div>
+                                <div className="absolute bottom-[-24px] left-1/2 -translate-x-1/2 text-xs text-slate-500 font-bold tracking-wider">LIKELIHOOD</div>
+                                <div className="grid grid-cols-5 gap-1 h-full w-full">
+                                    {[5, 4, 3, 2, 1].map((impact) => (
+                                        <div key={impact} className="contents">
+                                            {[1, 2, 3, 4, 5].map((likelihood) => {
+                                                const severity = impact * likelihood;
+                                                const count = risks.filter(r => r.impact === impact && r.likelihood === likelihood).length;
+                                                const color = severity >= 15 ? 'bg-red-500' : severity >= 8 ? 'bg-yellow-400' : 'bg-green-400';
+                                                
+                                                return (
+                                                    <div 
+                                                        key={`${impact}-${likelihood}`}
+                                                        className={clsx(
+                                                            "rounded flex items-center justify-center text-xs font-bold text-white transition-all hover:scale-105 cursor-default relative group",
+                                                            color,
+                                                            count === 0 && "opacity-20 hover:opacity-40"
+                                                        )}
+                                                    >
+                                                        {count > 0 && count}
+                                                        {count > 0 && (
+                                                            <div className="absolute z-10 bottom-full mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] p-2 rounded w-32 text-center pointer-events-none">
+                                                                {count} risks (Imp:{impact}, Lik:{likelihood})
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="shadow-sm border-slate-200">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base font-medium">Risk Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-red-100 rounded-full"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+                                    <span className="font-medium text-red-900">High Risk</span>
+                                </div>
+                                <span className="text-2xl font-bold text-red-600">{risks.filter(r => r.severity === 'High').length}</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-yellow-100 rounded-full"><AlertCircle className="w-5 h-5 text-yellow-600" /></div>
+                                    <span className="font-medium text-yellow-900">Medium Risk</span>
+                                </div>
+                                <span className="text-2xl font-bold text-yellow-600">{risks.filter(r => r.severity === 'Medium').length}</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-green-100 rounded-full"><TrendingDown className="w-5 h-5 text-green-600" /></div>
+                                    <span className="font-medium text-green-900">Low Risk</span>
+                                </div>
+                                <span className="text-2xl font-bold text-green-600">{risks.filter(r => r.severity === 'Low').length}</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Risk Register */}
+                <Card className="shadow-sm border-slate-200">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg">Risk Register</CardTitle>
+                        <Button onClick={addRisk} size="sm" className="bg-[#2563EB] hover:bg-blue-700">
+                            <Plus className="w-4 h-4 mr-2" /> Add Risk
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            {filteredRisks.map((risk) => (
+                                <div key={risk.id} className="p-4 border rounded-lg hover:bg-slate-50 transition-colors">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Badge variant="outline" className={clsx("font-semibold", getSeverityColor(risk.severity))}>
+                                                    {risk.severity}
+                                                </Badge>
+                                                <h4 className="font-medium text-slate-900">{risk.title}</h4>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-xs text-slate-500 mt-2">
+                                                <div className="flex items-center gap-1">
+                                                    <span>Impact:</span>
+                                                    <div className="flex gap-0.5">
+                                                        {[1,2,3,4,5].map(i => <div key={i} className={clsx('w-2 h-2 rounded-full', i <= risk.impact ? getImpactColor(risk.impact) : 'bg-slate-200')} />)}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <span>Likelihood:</span>
+                                                    <div className="flex gap-0.5">
+                                                        {[1,2,3,4,5].map(i => <div key={i} className={clsx('w-2 h-2 rounded-full', i <= risk.likelihood ? getImpactColor(risk.likelihood) : 'bg-slate-200')} />)}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button variant="ghost" size="sm" onClick={() => router.push(`/projects/${projectId}/risks/${risk.id}/edit`)}>Edit</Button>
+                                            <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => setDeleteConfirmId(risk.id)}>Delete</Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {filteredRisks.length === 0 && <p className="text-center text-slate-500 py-8">No risks found.</p>}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Right Column: Issue Log (1/3) */}
+            <div className="lg:col-span-1 space-y-6">
+                <Card className="shadow-sm border-slate-200 h-full flex flex-col">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-slate-100">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <Bug className="w-5 h-5 text-orange-500" />
+                            Issue Log
+                        </CardTitle>
+                        <Button size="sm" variant="outline" onClick={() => setIsIssueModalOpen(true)}>
+                            <Plus className="w-4 h-4" />
+                        </Button>
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-y-auto max-h-[800px] p-0">
+                        <div className="divide-y divide-slate-100">
+                            {issues.map((issue) => (
+                                <div key={issue.id} className="p-4 hover:bg-slate-50 transition-colors group">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <Badge variant={issue.priority === 'Critical' ? 'destructive' : issue.priority === 'High' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
+                                            {issue.priority}
+                                        </Badge>
+                                        <select 
+                                            className="text-xs border-none bg-transparent text-slate-500 focus:ring-0 cursor-pointer hover:text-slate-900"
+                                            value={issue.status}
+                                            onChange={(e) => updateIssueStatus(issue.id, e.target.value)}
+                                        >
+                                            <option value="Open">Open</option>
+                                            <option value="In Progress">In Progress</option>
+                                            <option value="Resolved">Resolved</option>
+                                            <option value="Closed">Closed</option>
+                                        </select>
+                                    </div>
+                                    <h4 className={clsx("text-sm font-medium mb-1", issue.status === 'Resolved' || issue.status === 'Closed' ? "text-slate-500 line-through" : "text-slate-900")}>
+                                        {issue.title}
+                                    </h4>
+                                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                                        {issue.assigned_to && (
+                                            <span className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                {issue.assigned_to}
+                                            </span>
+                                        )}
+                                        {issue.due_date && (
+                                            <span className="flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                {new Date(issue.due_date).toLocaleDateString()}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                            {issues.length === 0 && (
+                                <div className="text-center py-12 text-slate-400 text-sm">
+                                    <CheckCircle className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                                    No open issues
+                                </div>
                             )}
-                            onClick={() => {
-                              if (cellRisks.length > 0) {
-                                router.push(`/projects/${projectId}/risks/${cellRisks[0].id}/edit`);
-                              }
-                            }}
-                          >
-                            <span className="text-xs font-medium text-slate-700">{cellRisks.length}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-                
-                {/* X-axis labels */}
-                <div className="grid grid-cols-5 gap-1 ml-8 mt-2">
-                  {[1, 2, 3, 4, 5].map((l) => (
-                    <div key={l} className="text-center">
-                      <span className="text-xs text-slate-500">{l}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="text-center mt-1">
-                  <span className="text-xs text-slate-500">LIKELIHOOD →</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Risk List */}
-          <div className="col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-900">Risk Register</h2>
-              <div className="flex items-center gap-2">
-                <select
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value as typeof filter)}
-                  className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-                >
-                  <option value="all">All Severities</option>
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
-                <button
-                  onClick={addRisk}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Risk
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-3 max-h-[500px] overflow-y-auto">
-              {filteredRisks.map((risk) => (
-                <div 
-                  key={risk.id}
-                  className={clsx(
-                    'p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md',
-                    risk.severity === 'High' && 'border-red-200 bg-red-50',
-                    risk.severity === 'Medium' && 'border-yellow-200 bg-yellow-50',
-                    risk.severity === 'Low' && 'border-green-200 bg-green-50'
-                  )}
-                  onClick={() => router.push(`/projects/${projectId}/risks/${risk.id}/edit`)}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-900">{risk.id}</span>
-                      <span className={clsx('px-2 py-0.5 rounded text-xs font-medium', getSeverityColor(risk.severity))}>
-                        {risk.severity}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-slate-500">Impact:</span>
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((i) => (
-                            <div 
-                              key={i}
-                              className={clsx('w-3 h-3 rounded-sm', i <= risk.impact ? getImpactColor(risk.impact) : 'bg-slate-200')}
-                            />
-                          ))}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-slate-500">Likelihood:</span>
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((i) => (
-                            <div 
-                              key={i}
-                              className={clsx('w-3 h-3 rounded-sm', i <= risk.likelihood ? getLikelihoodColor(risk.likelihood) : 'bg-slate-200')}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <input className="font-medium text-slate-900 border rounded px-2 py-1" defaultValue={risk.title} onBlur={(e)=>updateRisk(risk.id, { title: e.target.value })} />
-                    <div className="flex gap-2">
-                      <button onClick={()=>router.push(`/projects/${projectId}/risks/${risk.id}/edit`)} className="px-3 py-1 bg-[#2563EB] text-white rounded text-xs">แก้ไข</button>
-                      <button onClick={()=>setDeleteConfirmId(risk.id)} className="px-3 py-1 bg-red-100 text-red-700 rounded text-xs">Delete</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                    </CardContent>
+                </Card>
             </div>
-          </div>
         </div>
 
-        {/* Editing moved to dedicated page */}
+        {/* Issue Modal */}
+        <Dialog open={isIssueModalOpen} onOpenChange={setIsIssueModalOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Report New Issue</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Issue Title</label>
+                        <Input value={issueForm.title} onChange={e => setIssueForm({...issueForm, title: e.target.value})} placeholder="e.g. System crash on login" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Priority</label>
+                            <Select value={issueForm.priority} onValueChange={(val: any) => setIssueForm({...issueForm, priority: val})}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Low">Low</SelectItem>
+                                    <SelectItem value="Medium">Medium</SelectItem>
+                                    <SelectItem value="High">High</SelectItem>
+                                    <SelectItem value="Critical">Critical</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Due Date</label>
+                            <Input type="date" value={issueForm.due_date} onChange={e => setIssueForm({...issueForm, due_date: e.target.value})} />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Assigned To</label>
+                        <Input value={issueForm.assigned_to} onChange={e => setIssueForm({...issueForm, assigned_to: e.target.value})} placeholder="Name" />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsIssueModalOpen(false)}>Cancel</Button>
+                    <Button onClick={handleCreateIssue}>Create Issue</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation */}
         {deleteConfirmId && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4">
-              <div className="p-4 border-b border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900">ยืนยันการลบความเสี่ยง</h3>
-                <p className="text-sm text-slate-600 mt-1">คุณต้องการลบรายการนี้หรือไม่</p>
-              </div>
-              <div className="p-4 flex justify-end gap-2">
-                <button onClick={()=>setDeleteConfirmId(null)} className="px-3 py-2 border border-slate-200 rounded-lg text-sm">ยกเลิก</button>
-                <button onClick={async ()=>{ await deleteRisk(deleteConfirmId!); setDeleteConfirmId(null); }} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">ลบ</button>
-              </div>
-            </div>
-          </div>
+          <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirm Delete</DialogTitle>
+              </DialogHeader>
+              <p>Are you sure you want to delete this risk? This action cannot be undone.</p>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+                <Button variant="destructive" onClick={async ()=>{ await deleteRisk(deleteConfirmId!); setDeleteConfirmId(null); }}>Delete</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
     </div>

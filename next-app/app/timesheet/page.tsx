@@ -45,6 +45,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/app/components/ui/Dialog";
+import PageTransition from '../components/PageTransition';
+import { Skeleton } from '../components/ui/Skeleton';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -118,7 +120,7 @@ export default function TimesheetPage() {
     return Array.from({ length: days }, (_, i) => i + 1);
   }, [currentMonth]);
 
-  const monthName = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthName = currentMonth.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
 
   // Fetch Data
   useEffect(() => {
@@ -220,8 +222,6 @@ export default function TimesheetPage() {
     const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
     let existingEntries = entries.filter(entry => entry.projectId === projectId && entry.date === dateStr);
     
-    // If specific task requested, filter only that task (or no-task if null)
-    // If taskId is undefined (summary row click), show all
     if (taskId !== undefined) {
         if (taskId === null) {
             existingEntries = existingEntries.filter(e => !e.taskId);
@@ -236,7 +236,6 @@ export default function TimesheetPage() {
     if (existingEntries.length > 0) {
         setModalRows(existingEntries.map(e => ({ id: e.id, taskId: e.taskId, hours: e.hours, description: (e as any).description })));
     } else {
-        // Pre-fill task if provided
         setModalRows([{ hours: 0, taskId: taskId === null ? undefined : taskId }]);
     }
     setModalOpen(true);
@@ -297,9 +296,9 @@ export default function TimesheetPage() {
     if (res.ok) {
       setSubmissionStatus('Submitted');
       setIsEditing(false);
-      toast.success('Submitted for approval');
+      toast.success('ส่งอนุมัติเรียบร้อยแล้ว');
     } else {
-      toast.error('Failed to submit timesheet');
+      toast.error('ส่งข้อมูลล้มเหลว');
     }
     setLoading(false);
   };
@@ -331,33 +330,48 @@ export default function TimesheetPage() {
 
   const getStatusBadge = (status: SubmissionStatus) => {
     switch (status) {
-      case 'Draft': return <Badge variant="secondary">Draft</Badge>;
-      case 'Submitted': return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">Submitted</Badge>;
-      case 'Approved': return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">Approved</Badge>;
-      case 'Rejected': return <Badge variant="destructive">Rejected</Badge>;
+      case 'Draft': return <Badge variant="secondary">แบบร่าง (Draft)</Badge>;
+      case 'Submitted': return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">รออนุมัติ (Submitted)</Badge>;
+      case 'Approved': return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">อนุมัติแล้ว (Approved)</Badge>;
+      case 'Rejected': return <Badge variant="destructive">ไม่อนุมัติ (Rejected)</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  if (!user) return <div className="p-8 text-center">Please log in.</div>;
+  if (!user) return <div className="p-8 text-center">กรุณาเข้าสู่ระบบ</div>;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50/50">
+        <Header title="บันทึกเวลาทำงาน (Timesheet)" breadcrumbs={[{ label: 'แดชบอร์ด', href: '/' }, { label: 'Timesheet' }]} />
+        <div className="container mx-auto px-6 py-8 pt-24 space-y-6">
+            <div className="flex justify-between">
+                <Skeleton className="h-12 w-64 rounded-xl" />
+                <Skeleton className="h-12 w-48 rounded-xl" />
+            </div>
+            <Skeleton className="h-[400px] w-full rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      <Header title="Monthly Timesheet" breadcrumbs={[{ label: 'Dashboard', href: '/' }, { label: 'Timesheet' }]} />
+    <PageTransition className="min-h-screen bg-slate-50/50">
+      <Header title="บันทึกเวลาทำงาน (Timesheet)" breadcrumbs={[{ label: 'แดชบอร์ด', href: '/' }, { label: 'Timesheet' }]} />
       
-      <div className="container mx-auto px-6 py-8 pt-24 space-y-6">
+      <div className="container mx-auto px-6 py-8 pt-24 space-y-6 max-w-[1600px]">
         
         {/* Top Controls */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4 bg-white p-2 rounded-lg border shadow-sm">
+          <div className="flex items-center gap-4 bg-white p-2 rounded-xl border shadow-sm">
             <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="flex flex-col items-center min-w-[140px]">
-              <span className="font-semibold text-lg">{monthName}</span>
+              <span className="font-semibold text-lg text-slate-900">{monthName}</span>
               <div className="flex items-center gap-2">
                 {getStatusBadge(submissionStatus)}
-                <span className="text-xs text-slate-500 font-medium">{totalHours}h Total</span>
+                <span className="text-xs text-slate-500 font-medium">{totalHours} ชม.</span>
               </div>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))}>
@@ -366,27 +380,20 @@ export default function TimesheetPage() {
           </div>
 
           <div className="flex items-center gap-2">
-             <Link href="/timesheet/record">
-                <Button className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-                  <Plus className="h-4 w-4" />
-                  Add Timesheet
-                </Button>
-             </Link>
-             
              {canEdit && (
                <Button 
                  variant={isEditing ? "secondary" : "outline"} 
                  onClick={() => setIsEditing(!isEditing)}
-                 className="gap-2"
+                 className="gap-2 rounded-xl"
                >
                  {isEditing ? <X className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
-                 {isEditing ? 'Stop Editing' : 'Edit Timesheet'}
+                 {isEditing ? 'หยุดแก้ไข' : 'แก้ไขเวลา'}
                </Button>
              )}
              
              {submissionStatus === 'Draft' && (
-               <Button onClick={() => setConfirmSubmit(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
-                 <Send className="h-4 w-4" /> Submit
+               <Button onClick={() => setConfirmSubmit(true)} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20">
+                 <Send className="h-4 w-4" /> ส่งอนุมัติ
                </Button>
              )}
           </div>
@@ -394,29 +401,28 @@ export default function TimesheetPage() {
 
         {/* Tabs */}
         <Tabs defaultValue="monthly" className="w-full">
-          <TabsList className="grid w-full md:w-[400px] grid-cols-3">
-            <TabsTrigger value="monthly">Monthly View</TabsTrigger>
-            <TabsTrigger value="weekly">Weekly Summary</TabsTrigger>
-            <TabsTrigger value="activities">Activities Log</TabsTrigger>
+          <TabsList className="grid w-full md:w-[450px] grid-cols-3 bg-slate-100 rounded-xl p-1">
+            <TabsTrigger value="monthly" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">มุมมองรายเดือน</TabsTrigger>
+            <TabsTrigger value="weekly" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">สรุปรายสัปดาห์</TabsTrigger>
+            <TabsTrigger value="activities" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">ประวัติกิจกรรม</TabsTrigger>
           </TabsList>
 
           {/* Monthly View */}
-          <TabsContent value="monthly" className="mt-6">
-            <Card>
+          <TabsContent value="monthly" className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden">
               <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[250px] bg-slate-50 sticky left-0 z-10">Project / Task</TableHead>
+                    <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                      <TableHead className="w-[280px] bg-slate-50 sticky left-0 z-20 font-semibold text-slate-700">โครงการ / งาน (Project / Task)</TableHead>
                       {daysInMonth.map(day => (
-                        <TableHead key={day} className="text-center w-12 px-1 text-xs">{day}</TableHead>
+                        <TableHead key={day} className="text-center w-12 px-1 text-xs font-medium text-slate-500">{day}</TableHead>
                       ))}
-                      <TableHead className="text-center bg-slate-50 font-bold">Total</TableHead>
+                      <TableHead className="text-center bg-slate-50 font-bold text-slate-700 min-w-[60px]">รวม</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {projects.map(project => {
-                       // Calculate Project Total (Filter logic fixed)
                        const projectTotal = daysInMonth.reduce((sum, day) => {
                          const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
                          const dayEntries = entries.filter(e => e.projectId === project.id && e.date === dateStr);
@@ -424,27 +430,18 @@ export default function TimesheetPage() {
                        }, 0);
 
                        const isExpanded = expandedProjects.has(project.id);
-                       
-                       // Determine which rows to show
-                       // 1. Tasks that have hours logged
-                       // 2. Tasks defined in project (if we want to show empty rows for quick entry) - Let's show all project tasks
-                       // 3. Ad-hoc (No Task) row if entries exist or always?
-                       
-                       // Let's just iterate project tasks + Ad-hoc row
                        const projectTasks = project.tasks || [];
-                       const hasAdHoc = entries.some(e => e.projectId === project.id && !e.taskId);
 
                        return (
                          <>
-                           {/* Project Header Row */}
-                           <TableRow key={project.id} className="bg-slate-50/50 hover:bg-slate-100">
-                             <TableCell className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r">
+                           <TableRow key={project.id} className="bg-slate-50/30 hover:bg-slate-100 transition-colors group">
+                             <TableCell className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] border-r group-hover:bg-slate-50 transition-colors">
                                <div className="flex items-center gap-2 py-1">
-                                 <button onClick={() => toggleExpand(project.id)} className="p-1 hover:bg-slate-100 rounded text-slate-400">
+                                 <button onClick={() => toggleExpand(project.id)} className="p-1 hover:bg-slate-200 rounded text-slate-400 transition-colors">
                                      {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                  </button>
-                                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: project.color }} />
-                                 <Link href={`/projects/${project.id}`} className="font-semibold text-slate-900 hover:underline truncate max-w-[180px]">
+                                 <div className="w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-white shadow-sm" style={{ backgroundColor: project.color }} />
+                                 <Link href={`/projects/${project.id}`} className="font-semibold text-slate-900 hover:text-blue-600 transition-colors truncate max-w-[180px]">
                                    {project.name}
                                  </Link>
                                </div>
@@ -455,31 +452,30 @@ export default function TimesheetPage() {
                                const daySum = dayEntries.reduce((s, e) => s + (e.hours || 0), 0);
                                
                                return (
-                                 <TableCell key={day} className="p-1 text-center border-r border-slate-100 bg-slate-50/30">
+                                 <TableCell key={day} className="p-1 text-center border-r border-slate-50 bg-slate-50/10">
                                    {isEditing && canEdit ? (
                                      <div 
                                        onClick={() => openDayEditor(project.id, day)}
                                        className={`
-                                         h-8 w-full min-w-[2rem] rounded flex items-center justify-center cursor-pointer text-xs font-bold transition-colors
-                                         ${daySum > 0 ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'hover:bg-slate-200 text-slate-300'}
+                                         h-8 w-full min-w-[2rem] rounded-lg flex items-center justify-center cursor-pointer text-xs font-bold transition-all
+                                         ${daySum > 0 ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 shadow-sm' : 'hover:bg-slate-100 text-slate-300'}
                                        `}
                                      >
                                        {daySum > 0 ? daySum : '+'}
                                      </div>
                                    ) : (
-                                     <span className={`text-sm ${daySum > 0 ? 'font-bold text-slate-900' : 'text-slate-300'}`}>
+                                     <span className={`text-sm ${daySum > 0 ? 'font-bold text-slate-900' : 'text-slate-200'}`}>
                                        {daySum || '-'}
                                      </span>
                                    )}
                                  </TableCell>
                                );
                              })}
-                             <TableCell className="text-center font-bold text-slate-900 bg-slate-100 border-l">
+                             <TableCell className="text-center font-bold text-slate-900 bg-slate-50 border-l">
                                {projectTotal > 0 ? projectTotal : '-'}
                              </TableCell>
                            </TableRow>
 
-                           {/* Task Rows (Expanded) */}
                            {isExpanded && (
                                <>
                                    {projectTasks.map(task => {
@@ -490,10 +486,10 @@ export default function TimesheetPage() {
                                        }, 0);
 
                                        return (
-                                           <TableRow key={`${project.id}-${task.id}`} className="hover:bg-slate-50">
-                                               <TableCell className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r pl-10">
+                                           <TableRow key={`${project.id}-${task.id}`} className="hover:bg-slate-50 transition-colors">
+                                               <TableCell className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] border-r pl-10">
                                                    <div className="flex items-center gap-2 text-sm text-slate-600 truncate max-w-[200px]">
-                                                       <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                                       <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
                                                        {task.name}
                                                    </div>
                                                </TableCell>
@@ -508,8 +504,8 @@ export default function TimesheetPage() {
                                                                <div 
                                                                    onClick={() => openDayEditor(project.id, day, task.id)}
                                                                    className={`
-                                                                       h-7 w-full min-w-[2rem] rounded flex items-center justify-center cursor-pointer text-xs transition-colors
-                                                                       ${daySum > 0 ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'hover:bg-slate-50 text-transparent hover:text-slate-400'}
+                                                                       h-7 w-full min-w-[2rem] rounded-md flex items-center justify-center cursor-pointer text-xs transition-colors
+                                                                       ${daySum > 0 ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' : 'hover:bg-slate-50 text-transparent hover:text-slate-400'}
                                                                    `}
                                                                >
                                                                    {daySum > 0 ? daySum : '+'}
@@ -529,12 +525,11 @@ export default function TimesheetPage() {
                                        );
                                    })}
 
-                                   {/* Ad-hoc Row */}
-                                   <TableRow key={`${project.id}-adhoc`} className="hover:bg-slate-50">
-                                       <TableCell className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r pl-10">
+                                   <TableRow key={`${project.id}-adhoc`} className="hover:bg-slate-50 transition-colors">
+                                       <TableCell className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] border-r pl-10">
                                            <div className="flex items-center gap-2 text-sm text-slate-500 italic truncate max-w-[200px]">
                                                <MoreHorizontal className="w-3 h-3" />
-                                               Ad-hoc / Other
+                                               งานอื่นๆ (Ad-hoc)
                                            </div>
                                        </TableCell>
                                        {daysInMonth.map(day => {
@@ -548,7 +543,7 @@ export default function TimesheetPage() {
                                                        <div 
                                                            onClick={() => openDayEditor(project.id, day, null)}
                                                            className={`
-                                                               h-7 w-full min-w-[2rem] rounded flex items-center justify-center cursor-pointer text-xs transition-colors
+                                                               h-7 w-full min-w-[2rem] rounded-md flex items-center justify-center cursor-pointer text-xs transition-colors
                                                                ${daySum > 0 ? 'bg-orange-50 text-orange-600 hover:bg-orange-100' : 'hover:bg-slate-50 text-transparent hover:text-slate-400'}
                                                            `}
                                                        >
@@ -563,7 +558,6 @@ export default function TimesheetPage() {
                                            );
                                        })}
                                        <TableCell className="text-center text-xs font-medium text-slate-500 bg-slate-50/50 border-l">
-                                            {/* Calculate adhoc total */}
                                             {daysInMonth.reduce((sum, day) => {
                                                 const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
                                                 const dayEntries = entries.filter(e => e.projectId === project.id && !e.taskId && e.date === dateStr);
@@ -577,77 +571,56 @@ export default function TimesheetPage() {
                        );
                     })}
                     {/* Daily Totals Row */}
-                    <TableRow className="bg-slate-50 font-bold border-t-2">
-                      <TableCell className="sticky left-0 bg-slate-50 z-10">Daily Total</TableCell>
+                    <TableRow className="bg-slate-50 font-bold border-t-2 border-slate-200">
+                      <TableCell className="sticky left-0 bg-slate-50 z-10 text-slate-700">รวมรายวัน (Daily Total)</TableCell>
                       {daysInMonth.map(day => {
                         const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
                         const dayTotal = entries.filter(e => e.date === dateStr).reduce((sum, e) => sum + e.hours, 0);
-                        return <TableCell key={day} className="text-center text-xs">{dayTotal > 0 ? dayTotal : '-'}</TableCell>;
+                        return <TableCell key={day} className="text-center text-xs text-slate-700">{dayTotal > 0 ? dayTotal : '-'}</TableCell>;
                       })}
-                      <TableCell className="text-center text-blue-600">{totalHours}</TableCell>
+                      <TableCell className="text-center text-blue-600 text-lg">{totalHours}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
-
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>My Active Projects</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-3">
-                  {projects.map(project => (
-                    <Link href={`/projects/${project.id}`} key={project.id}>
-                      <Badge variant="outline" className="px-3 py-1.5 gap-2 text-sm font-normal hover:border-blue-500 cursor-pointer">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: project.color }} />
-                        {project.name}
-                      </Badge>
-                    </Link>
-                  ))}
-                  <Button variant="ghost" size="sm" className="gap-2 border border-dashed text-slate-500">
-                    <Plus className="h-3 w-3" /> Add Project
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Weekly Summary */}
-          <TabsContent value="weekly" className="mt-6 space-y-6">
-            <Card>
+          <TabsContent value="weekly" className="mt-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Card className="rounded-2xl border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle>Weekly Summary</CardTitle>
-                <CardDescription>View total hours per person per day.</CardDescription>
+                <CardTitle>สรุปรายสัปดาห์</CardTitle>
+                <CardDescription>ดูชั่วโมงรวมรายบุคคลต่อวัน</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-4 mb-6">
                   <Input 
                     type="date" 
-                    className="w-auto" 
+                    className="w-auto rounded-xl" 
                     value={weeklyStart} 
                     onChange={e => setWeeklyStart(e.target.value)} 
                   />
                   <Select value={weeklyProject} onValueChange={setWeeklyProject}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="All Projects" />
+                    <SelectTrigger className="w-[200px] rounded-xl">
+                      <SelectValue placeholder="ทุกโครงการ" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Projects</SelectItem>
+                      <SelectItem value="all">ทุกโครงการ</SelectItem>
                       {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button onClick={handleWeeklySearch}>Apply Filter</Button>
+                  <Button onClick={handleWeeklySearch} className="rounded-xl">ค้นหา</Button>
                 </div>
 
-                <div className="rounded-md border">
+                <div className="rounded-xl border border-slate-200 overflow-hidden">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-slate-50">
                       <TableRow>
-                        <TableHead>Employee</TableHead>
+                        <TableHead>พนักงาน</TableHead>
                         {(weekly?.days || []).map(d => (
                           <TableHead key={d} className="text-center">
-                            {new Date(d).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
+                            {new Date(d).toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric' })}
                           </TableHead>
                         ))}
                       </TableRow>
@@ -658,7 +631,7 @@ export default function TimesheetPage() {
                           <TableCell className="font-medium">{row.name}</TableCell>
                           {(weekly?.days || []).map(d => (
                             <TableCell key={d} className="text-center">
-                              <span className={Number(row.hours[d] || 0) > 0 ? 'text-blue-600 font-medium' : 'text-slate-300'}>
+                              <span className={Number(row.hours[d] || 0) > 0 ? 'text-blue-600 font-bold' : 'text-slate-300'}>
                                 {row.hours[d] ? Number(row.hours[d]).toFixed(1) : '-'}
                               </span>
                             </TableCell>
@@ -668,7 +641,7 @@ export default function TimesheetPage() {
                       {(!weekly?.data || weekly.data.length === 0) && (
                         <TableRow>
                           <TableCell colSpan={(weekly?.days?.length || 0) + 1} className="h-24 text-center text-muted-foreground">
-                            No data found for this week.
+                            ไม่พบข้อมูลสำหรับสัปดาห์นี้
                           </TableCell>
                         </TableRow>
                       )}
@@ -680,61 +653,61 @@ export default function TimesheetPage() {
           </TabsContent>
 
           {/* Activities Log */}
-          <TabsContent value="activities" className="mt-6">
-             <Card>
+          <TabsContent value="activities" className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <Card className="rounded-2xl border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle>Activities Log</CardTitle>
-                <CardDescription>Detailed log of all time entries.</CardDescription>
+                <CardTitle>ประวัติกิจกรรม (Activity Log)</CardTitle>
+                <CardDescription>รายละเอียดการบันทึกเวลาทั้งหมด</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-4 mb-6">
                   <Input 
                     type="date" 
-                    className="w-auto" 
+                    className="w-auto rounded-xl" 
                     value={weeklyStart} 
                     onChange={e => setWeeklyStart(e.target.value)} 
                   />
                   <Select value={weeklyProject} onValueChange={setWeeklyProject}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="All Projects" />
+                    <SelectTrigger className="w-[180px] rounded-xl">
+                      <SelectValue placeholder="ทุกโครงการ" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Projects</SelectItem>
+                      <SelectItem value="all">ทุกโครงการ</SelectItem>
                       {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Select value={activityUser} onValueChange={setActivityUser}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="All Users" />
+                    <SelectTrigger className="w-[180px] rounded-xl">
+                      <SelectValue placeholder="ทุกคน" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Users</SelectItem>
+                      <SelectItem value="all">ทุกคน</SelectItem>
                       {userOptions.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button onClick={handleActivitySearch}>Search</Button>
+                  <Button onClick={handleActivitySearch} className="rounded-xl">ค้นหา</Button>
                 </div>
 
-                <div className="rounded-md border">
+                <div className="rounded-xl border border-slate-200 overflow-hidden">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-slate-50">
                       <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>User</TableHead>
-                        <TableHead>Project</TableHead>
-                        <TableHead>Task</TableHead>
-                        <TableHead className="text-center">Hours</TableHead>
-                        <TableHead>Time</TableHead>
+                        <TableHead>วันที่</TableHead>
+                        <TableHead>พนักงาน</TableHead>
+                        <TableHead>โครงการ</TableHead>
+                        <TableHead>งาน (Task)</TableHead>
+                        <TableHead className="text-center">ชั่วโมง</TableHead>
+                        <TableHead>เวลา</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {(activities?.rows || []).map((r, i) => (
                         <TableRow key={i}>
-                          <TableCell>{new Date(r.date).toLocaleDateString()}</TableCell>
+                          <TableCell>{new Date(r.date).toLocaleDateString('th-TH')}</TableCell>
                           <TableCell>{r.user}</TableCell>
                           <TableCell>{r.project}</TableCell>
                           <TableCell>{r.task}</TableCell>
-                          <TableCell className="text-center font-medium">{Number(r.hours || 0).toFixed(2)}</TableCell>
+                          <TableCell className="text-center font-bold text-blue-600">{Number(r.hours || 0).toFixed(2)}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">
                             {r.start ? `${new Date(r.start).toLocaleTimeString()} - ${r.end ? new Date(r.end).toLocaleTimeString() : '?'}` : '-'}
                           </TableCell>
@@ -743,7 +716,7 @@ export default function TimesheetPage() {
                       {(!activities?.rows || activities.rows.length === 0) && (
                         <TableRow>
                           <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                            No activities found.
+                            ไม่พบกิจกรรม
                           </TableCell>
                         </TableRow>
                       )}
@@ -757,20 +730,20 @@ export default function TimesheetPage() {
 
         {/* Edit Modal */}
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] rounded-2xl">
             <DialogHeader>
-              <DialogTitle>Edit Time Entry</DialogTitle>
+              <DialogTitle>บันทึกเวลาทำงาน</DialogTitle>
               <DialogDescription>
-                {modalDate && new Date(modalDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                {modalDate && new Date(modalDate).toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
               </DialogDescription>
             </DialogHeader>
             
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                  <div className="space-y-2">
-                   <label className="text-sm font-medium">Project</label>
+                   <label className="text-sm font-medium">โครงการ</label>
                    <Select value={modalProjectId} onValueChange={setModalProjectId} disabled>
-                     <SelectTrigger>
+                     <SelectTrigger className="bg-slate-50">
                        <SelectValue />
                      </SelectTrigger>
                      <SelectContent>
@@ -783,18 +756,18 @@ export default function TimesheetPage() {
               <div className="space-y-4">
                 {modalRows.map((row, idx) => (
                   !row.deleted && (
-                    <div key={idx} className="grid grid-cols-12 gap-3 items-end p-3 bg-slate-50 rounded-lg border">
+                    <div key={idx} className="grid grid-cols-12 gap-3 items-end p-3 bg-slate-50 rounded-xl border border-slate-200">
                       <div className="col-span-5 space-y-1">
-                        <label className="text-xs font-medium text-slate-500">Task</label>
+                        <label className="text-xs font-medium text-slate-500">งาน (Task)</label>
                         <Select 
                           value={row.taskId || 'none'} 
                           onValueChange={(val) => setModalRows(prev => prev.map((r, i) => i === idx ? { ...r, taskId: val === 'none' ? undefined : val } : r))}
                         >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Select Task" />
+                          <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="เลือกงาน" />
                           </SelectTrigger>
                           <SelectContent>
-                             <SelectItem value="none">-- General --</SelectItem>
+                             <SelectItem value="none">-- งานทั่วไป (General) --</SelectItem>
                              {(projects.find(p => p.id === modalProjectId)?.tasks || []).map(t => (
                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                              ))}
@@ -802,23 +775,23 @@ export default function TimesheetPage() {
                         </Select>
                       </div>
                       <div className="col-span-3 space-y-1">
-                        <label className="text-xs font-medium text-slate-500">Description</label>
+                        <label className="text-xs font-medium text-slate-500">รายละเอียด</label>
                         <Input 
                           type="text"
-                          className="h-8 text-xs"
-                          placeholder="What did you do?"
+                          className="h-9 text-xs bg-white"
+                          placeholder="ทำอะไรไปบ้าง?"
                           value={row.description || ''}
                           onChange={e => setModalRows(prev => prev.map((r, i) => i === idx ? { ...r, description: e.target.value } : r))}
                         />
                       </div>
                       <div className="col-span-2 space-y-1">
-                        <label className="text-xs font-medium text-slate-500">Hours</label>
+                        <label className="text-xs font-medium text-slate-500">ชม.</label>
                         <Input 
                           type="number" 
                           min={0} 
                           max={24} 
                           step={0.5}
-                          className="h-8 text-xs"
+                          className="h-9 text-xs bg-white text-center font-bold text-blue-600"
                           value={row.hours} 
                           onChange={e => setModalRows(prev => prev.map((r, i) => i === idx ? { ...r, hours: parseFloat(e.target.value) || 0 } : r))} 
                         />
@@ -828,7 +801,7 @@ export default function TimesheetPage() {
                          <Button 
                            variant="destructive" 
                            size="sm" 
-                           className="h-8 w-full text-xs"
+                           className="h-9 w-full text-xs"
                            onClick={() => setModalRows(prev => prev.map((r, i) => i === idx ? { ...r, deleted: true } : r))}
                          >
                            <X className="h-3 w-3" />
@@ -841,41 +814,41 @@ export default function TimesheetPage() {
                   variant="outline" 
                   size="sm" 
                   onClick={() => setModalRows(prev => [...prev, { hours: 0 }])}
-                  className="w-full border-dashed"
+                  className="w-full border-dashed rounded-xl"
                 >
-                  <Plus className="h-3 w-3 mr-2" /> Add Another Entry
+                  <Plus className="h-3 w-3 mr-2" /> เพิ่มรายการ
                 </Button>
               </div>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-              <Button onClick={saveDayEditor}>Save Changes</Button>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setModalOpen(false)} className="rounded-xl">ยกเลิก</Button>
+              <Button onClick={saveDayEditor} className="rounded-xl bg-blue-600 hover:bg-blue-700">บันทึก</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Confirm Submit Modal */}
         <Dialog open={confirmSubmit} onOpenChange={setConfirmSubmit}>
-          <DialogContent>
+          <DialogContent className="rounded-2xl">
              <DialogHeader>
-               <DialogTitle>Submit Timesheet?</DialogTitle>
+               <DialogTitle>ยืนยันการส่งอนุมัติ?</DialogTitle>
                <DialogDescription>
-                 Are you sure you want to submit your timesheet for {monthName}?
+                 คุณแน่ใจหรือไม่ที่จะส่ง Timesheet สำหรับเดือน {monthName}?
                </DialogDescription>
              </DialogHeader>
-             <div className="flex items-center gap-3 p-4 bg-yellow-50 text-yellow-800 rounded-md text-sm">
-               <AlertCircle className="h-5 w-5" />
-               <p>Once submitted, you will not be able to edit entries unless rejected by a manager.</p>
+             <div className="flex items-center gap-3 p-4 bg-yellow-50 text-yellow-800 rounded-xl text-sm border border-yellow-100">
+               <AlertCircle className="h-5 w-5 shrink-0" />
+               <p>เมื่อส่งแล้ว คุณจะไม่สามารถแก้ไขข้อมูลได้อีกจนกว่าจะได้รับการพิจารณาจากหัวหน้างาน</p>
              </div>
-             <DialogFooter>
-               <Button variant="outline" onClick={() => setConfirmSubmit(false)}>Cancel</Button>
-               <Button onClick={handleSubmitForApproval}>Confirm Submit</Button>
+             <DialogFooter className="gap-2 sm:gap-0">
+               <Button variant="outline" onClick={() => setConfirmSubmit(false)} className="rounded-xl">ยกเลิก</Button>
+               <Button onClick={handleSubmitForApproval} className="rounded-xl bg-blue-600 hover:bg-blue-700">ยืนยันส่ง</Button>
              </DialogFooter>
           </DialogContent>
         </Dialog>
 
       </div>
-    </div>
+    </PageTransition>
   );
 }

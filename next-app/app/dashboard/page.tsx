@@ -22,6 +22,8 @@ import {
   Folder,
   RefreshCcw
 } from 'lucide-react';
+import PageTransition from '@/app/components/PageTransition';
+import { Skeleton } from '@/app/components/ui/Skeleton';
 
 export default function UnifiedDashboard() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -152,7 +154,7 @@ export default function UnifiedDashboard() {
         setWeeklySummary(wsJson?.summary || []);
       } catch {}
     } catch (e: any) {
-      setError(e?.message || 'Failed to load dashboard');
+      setError(e?.message || 'ไม่สามารถโหลดข้อมูลได้');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -181,6 +183,7 @@ export default function UnifiedDashboard() {
   const [endMonth, setEndMonth] = useState<string>('');
   const [execReport, setExecReport] = useState<any>(null);
   const [weeklySummary, setWeeklySummary] = useState<any[]>([]);
+  
   const filteredRows = useMemo(() => {
     return rows.filter(r => {
       const okStatus = status === 'all' ? true : (String(r.status || '').toLowerCase() === status.toLowerCase());
@@ -188,6 +191,7 @@ export default function UnifiedDashboard() {
       return okStatus && okSearch;
     });
   }, [rows, status, search]);
+  
   const filteredTotals = useMemo(() => {
     const b = filteredRows.reduce((s, r) => s + Number(r.budget || 0), 0);
     const c = filteredRows.reduce((s, r) => s + Number(r.committed || 0), 0);
@@ -197,6 +201,7 @@ export default function UnifiedDashboard() {
     const avgSpi = filteredRows.length ? (filteredRows.reduce((s, r) => s + Number(r.spi || 1), 0) / filteredRows.length) : 1;
     return { b, c, a, rm, completedCount, avgSpi };
   }, [filteredRows]);
+  
   const filteredCashflow = useMemo(() => {
     return cashflow.filter(c => {
       const afterStart = startMonth ? c.month >= startMonth : true;
@@ -204,6 +209,7 @@ export default function UnifiedDashboard() {
       return afterStart && beforeEnd;
     });
   }, [cashflow, startMonth, endMonth]);
+  
   const filteredSpiTrend = useMemo(() => {
     return spiTrend.filter(s => {
       const m = s.date.slice(0,7);
@@ -212,6 +218,7 @@ export default function UnifiedDashboard() {
       return afterStart && beforeEnd;
     });
   }, [spiTrend, startMonth, endMonth]);
+  
   const summaryCards = useMemo(() => {
     const completedProjects = filteredRows.filter(r => Number(r.progress || 0) >= 100).length;
     const inProgressProjects = filteredRows.filter(r => {
@@ -225,9 +232,17 @@ export default function UnifiedDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-500 font-medium animate-pulse">Loading dashboard...</p>
+      <div className="min-h-screen bg-slate-50/50 p-8 pt-24 space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Skeleton className="h-80 w-full rounded-2xl" />
+            <Skeleton className="h-80 w-full rounded-2xl" />
+        </div>
       </div>
     );
   }
@@ -235,54 +250,47 @@ export default function UnifiedDashboard() {
   if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-6 p-4">
-        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center">
+        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center animate-bounce">
             <AlertTriangle className="w-8 h-8 text-red-500" />
         </div>
         <div className="text-center max-w-md space-y-2">
-            <h3 className="text-xl font-bold text-slate-900">Something went wrong</h3>
+            <h3 className="text-xl font-bold text-slate-900">เกิดข้อผิดพลาด</h3>
             <p className="text-slate-500">{error}</p>
         </div>
         <button 
             onClick={() => window.location.reload()}
             className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20"
         >
-            Try Again
+            ลองใหม่
         </button>
       </div>
     );
   }
 
-  // Handle empty state gracefully
-  if (rows.length === 0 && !loading && !error) {
-      // We still render the dashboard structure but maybe with empty placeholders or zeros
-      // The existing code handles 0 values well (showing 0, -, etc.)
-      // But we can add a prompt to create project
-  }
-
   return (
-    <div className="min-h-screen bg-slate-50/50">
+    <PageTransition className="min-h-screen bg-slate-50/50">
       <Header
-        title="Unified Project Dashboard"
+        title="ภาพรวมโครงการ (Dashboard)"
         breadcrumbs={[
-          { label: 'Dashboard' }
+          { label: 'แดชบอร์ด' }
         ]}
       />
       
       <div className="pt-24 px-8 pb-12 max-w-[1600px] mx-auto space-y-8">
         
         {rows.length === 0 && (
-          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in">
             <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
                     <Folder className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="text-center sm:text-left">
-                    <h3 className="text-lg font-bold text-blue-900">No Projects Found</h3>
-                    <p className="text-blue-700">Get started by creating your first project to see insights here.</p>
+                    <h3 className="text-lg font-bold text-blue-900">ไม่พบข้อมูลโครงการ</h3>
+                    <p className="text-blue-700">เริ่มต้นด้วยการสร้างโครงการแรกของคุณเพื่อดูข้อมูลเชิงลึกที่นี่</p>
                 </div>
             </div>
             <Link href="/projects/new" className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 whitespace-nowrap">
-                Create Project
+                สร้างโครงการ
             </Link>
           </div>
         )}
@@ -294,7 +302,7 @@ export default function UnifiedDashboard() {
             <input
               value={search}
               onChange={(e)=>setSearch(e.target.value)}
-              placeholder="Search projects..."
+              placeholder="ค้นหาโครงการ..."
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
             />
           </div>
@@ -307,10 +315,10 @@ export default function UnifiedDashboard() {
                 onChange={(e)=>setStatus(e.target.value)}
                 className="pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none cursor-pointer hover:bg-slate-100 transition-colors"
               >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="planning">Planning</option>
-                <option value="completed">Completed</option>
+                <option value="all">สถานะทั้งหมด</option>
+                <option value="active">กำลังดำเนินการ (Active)</option>
+                <option value="planning">วางแผน (Planning)</option>
+                <option value="completed">เสร็จสิ้น (Completed)</option>
               </select>
             </div>
 
@@ -319,14 +327,14 @@ export default function UnifiedDashboard() {
                 type="month" 
                 value={startMonth} 
                 onChange={(e)=>setStartMonth(e.target.value)} 
-                className="px-3 py-1.5 bg-transparent text-sm focus:outline-none" 
+                className="px-3 py-1.5 bg-transparent text-sm focus:outline-none cursor-pointer" 
               />
-              <span className="text-slate-400 text-xs">to</span>
+              <span className="text-slate-400 text-xs">ถึง</span>
               <input 
                 type="month" 
                 value={endMonth} 
                 onChange={(e)=>setEndMonth(e.target.value)} 
-                className="px-3 py-1.5 bg-transparent text-sm focus:outline-none" 
+                className="px-3 py-1.5 bg-transparent text-sm focus:outline-none cursor-pointer" 
               />
             </div>
           </div>
@@ -336,16 +344,9 @@ export default function UnifiedDashboard() {
               onClick={fetchDashboardData}
               disabled={refreshing}
               className={`p-2.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all ${refreshing ? 'animate-spin text-blue-600' : ''}`}
-              title="Refresh Data"
+              title="รีเฟรชข้อมูล"
             >
               <RefreshCcw className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => navigator.clipboard.writeText(window.location.href)}
-              className="p-2.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-              title="Copy Link"
-            >
-              <ArrowUpRight className="w-5 h-5" />
             </button>
             <button
               onClick={() => {
@@ -364,70 +365,70 @@ export default function UnifiedDashboard() {
               className="flex items-center gap-2 px-4 py-2.5 bg-[#0F172A] text-white rounded-xl text-sm font-medium hover:bg-[#1E293B] transition-all shadow-lg shadow-slate-900/20"
             >
               <Download className="w-4 h-4" />
-              <span>Export</span>
+              <span>ส่งออก CSV</span>
             </button>
           </div>
         </div>
 
         {/* Top KPIs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all hover:-translate-y-1 duration-300">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <DollarSign className="w-16 h-16 text-slate-900" />
             </div>
             <div className="flex flex-col relative z-10">
-              <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Total Budget</span>
+              <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">งบประมาณรวม (Total Budget)</span>
               <span className="text-2xl font-bold text-slate-900">฿{filteredTotals.b.toLocaleString()}</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all hover:-translate-y-1 duration-300">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <CheckCircle className="w-16 h-16 text-purple-600" />
             </div>
             <div className="flex flex-col relative z-10">
-              <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Committed</span>
+              <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">ผูกพันงบ (Committed)</span>
               <span className="text-2xl font-bold text-purple-600">฿{filteredTotals.c.toLocaleString()}</span>
               <div className="w-full bg-slate-100 h-1 mt-3 rounded-full overflow-hidden">
-                <div className="bg-purple-500 h-full rounded-full" style={{ width: `${Math.min((filteredTotals.c / (filteredTotals.b || 1)) * 100, 100)}%` }} />
+                <div className="bg-purple-500 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.min((filteredTotals.c / (filteredTotals.b || 1)) * 100, 100)}%` }} />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all hover:-translate-y-1 duration-300">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <Activity className="w-16 h-16 text-blue-600" />
             </div>
             <div className="flex flex-col relative z-10">
-              <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Actual Cost</span>
+              <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">จ่ายจริง (Actual Cost)</span>
               <span className="text-2xl font-bold text-blue-600">฿{filteredTotals.a.toLocaleString()}</span>
               <div className="w-full bg-slate-100 h-1 mt-3 rounded-full overflow-hidden">
-                <div className="bg-blue-500 h-full rounded-full" style={{ width: `${Math.min((filteredTotals.a / (filteredTotals.b || 1)) * 100, 100)}%` }} />
+                <div className="bg-blue-500 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.min((filteredTotals.a / (filteredTotals.b || 1)) * 100, 100)}%` }} />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all hover:-translate-y-1 duration-300">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <PieChart className="w-16 h-16 text-slate-400" />
             </div>
             <div className="flex flex-col relative z-10">
-              <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Remaining</span>
+              <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">งบคงเหลือ (Remaining)</span>
               <span className="text-2xl font-bold text-slate-700">฿{filteredTotals.rm.toLocaleString()}</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all hover:-translate-y-1 duration-300">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <TrendingUp className="w-16 h-16 text-emerald-600" />
             </div>
             <div className="flex flex-col relative z-10">
-              <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Avg SPI</span>
+              <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">ประสิทธิภาพ (Avg SPI)</span>
               <div className="flex items-end gap-2">
                 <span className={`text-2xl font-bold ${filteredTotals.avgSpi >= 1 ? 'text-emerald-600' : 'text-amber-500'}`}>
                   {filteredTotals.avgSpi.toFixed(2)}
                 </span>
-                <span className="text-xs text-slate-400 mb-1.5">performance index</span>
+                <span className="text-xs text-slate-400 mb-1.5">ดัชนีชี้วัด</span>
               </div>
             </div>
           </div>
@@ -435,54 +436,54 @@ export default function UnifiedDashboard() {
 
         {/* Project Status Summary */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center animate-pulse-slow">
               <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{summaryCards.completedProjects}</p>
-              <p className="text-sm text-slate-500">Completed Projects</p>
+              <p className="text-sm text-slate-500">โครงการเสร็จสิ้น</p>
             </div>
           </div>
           
-          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center animate-pulse-slow">
               <Clock className="w-6 h-6 text-blue-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{summaryCards.inProgressProjects}</p>
-              <p className="text-sm text-slate-500">In Progress</p>
+              <p className="text-sm text-slate-500">กำลังดำเนินการ</p>
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center animate-pulse-slow">
               <AlertTriangle className="w-6 h-6 text-red-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{summaryCards.highRisks}</p>
-              <p className="text-sm text-slate-500">High Risks</p>
+              <p className="text-sm text-slate-500">ความเสี่ยงสูง</p>
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center animate-pulse-slow">
               <Calendar className="w-6 h-6 text-orange-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{summaryCards.overdueMilestones}</p>
-              <p className="text-sm text-slate-500">Overdue Milestones</p>
+              <p className="text-sm text-slate-500">งวดงานล่าช้า</p>
             </div>
           </div>
         </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Financial Overview</h3>
-                <p className="text-sm text-slate-500">Committed vs Paid comparison</p>
+                <h3 className="text-lg font-bold text-slate-900">ภาพรวมการเงิน (Financial)</h3>
+                <p className="text-sm text-slate-500">เปรียบเทียบ ยอดผูกพัน (Committed) vs จ่ายจริง (Paid)</p>
               </div>
               <div className="p-2 bg-slate-50 rounded-lg">
                 <BarChart className="w-5 h-5 text-slate-400" />
@@ -499,17 +500,17 @@ export default function UnifiedDashboard() {
                   formatter={(v: number)=>`฿${v.toLocaleString()}`}
                 />
                 <Legend iconType="circle" />
-                <Bar dataKey="committed" name="Committed" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="paid" name="Paid" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="committed" name="Committed" fill="#8b5cf6" radius={[4, 4, 0, 0]} animationDuration={1500} />
+                <Bar dataKey="paid" name="Paid" fill="#10b981" radius={[4, 4, 0, 0]} animationDuration={1500} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Performance Trend</h3>
-                <p className="text-sm text-slate-500">30-day SPI tracking</p>
+                <h3 className="text-lg font-bold text-slate-900">แนวโน้มประสิทธิภาพ (Performance Trend)</h3>
+                <p className="text-sm text-slate-500">การติดตามค่า SPI ย้อนหลัง 30 วัน</p>
               </div>
               <div className="p-2 bg-slate-50 rounded-lg">
                 <TrendingUp className="w-5 h-5 text-slate-400" />
@@ -533,6 +534,7 @@ export default function UnifiedDashboard() {
                   strokeWidth={3} 
                   dot={false}
                   activeDot={{ r: 6, strokeWidth: 0 }}
+                  animationDuration={1500}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -540,11 +542,11 @@ export default function UnifiedDashboard() {
         </div>
 
         {/* Portfolio Analysis */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Portfolio Health Matrix</h3>
-                <p className="text-sm text-slate-500">Efficiency Analysis: Cost (CPI) vs Schedule (SPI)</p>
+                <h3 className="text-lg font-bold text-slate-900">เมทริกซ์สุขภาพพอร์ตโฟลิโอ (Portfolio Health)</h3>
+                <p className="text-sm text-slate-500">วิเคราะห์ประสิทธิภาพ: ต้นทุน (CPI) vs เวลา (SPI)</p>
               </div>
               <div className="p-2 bg-slate-50 rounded-lg">
                 <Activity className="w-5 h-5 text-slate-400" />
@@ -553,11 +555,11 @@ export default function UnifiedDashboard() {
             <ResponsiveContainer width="100%" height={400}>
               <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" dataKey="cpi" name="CPI" domain={[0, 2]} label={{ value: 'Cost Efficiency (CPI)', position: 'insideBottom', offset: -10, fill: '#64748b', fontSize: 12 }} tick={{fontSize: 12, fill: '#94a3b8'}} />
-                <YAxis type="number" dataKey="spi" name="SPI" domain={[0, 2]} label={{ value: 'Schedule Efficiency (SPI)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 12 }} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                <XAxis type="number" dataKey="cpi" name="CPI" domain={[0, 2]} label={{ value: 'ประสิทธิภาพต้นทุน (CPI)', position: 'insideBottom', offset: -10, fill: '#64748b', fontSize: 12 }} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                <YAxis type="number" dataKey="spi" name="SPI" domain={[0, 2]} label={{ value: 'ประสิทธิภาพเวลา (SPI)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 12 }} tick={{fontSize: 12, fill: '#94a3b8'}} />
                 <ZAxis type="number" dataKey="budget" range={[60, 400]} name="Budget" />
                 
-                {/* Quadrant Backgrounds (Optional, or just use Lines) - Using Lines with Labels for clarity */}
+                {/* Quadrant Backgrounds */}
                 <ReferenceLine x={1} stroke="#94a3b8" strokeWidth={2} />
                 <ReferenceLine y={1} stroke="#94a3b8" strokeWidth={2} />
                 
@@ -589,7 +591,7 @@ export default function UnifiedDashboard() {
                     return null;
                 }} />
                 
-                <Scatter name="Projects" data={filteredRows} fill="#8884d8">
+                <Scatter name="Projects" data={filteredRows} fill="#8884d8" animationDuration={1500}>
                     {filteredRows.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.spi < 0.9 || entry.cpi < 0.9 ? '#ef4444' : (entry.spi >= 1 && entry.cpi >= 1 ? '#10b981' : '#f59e0b')} stroke="#fff" strokeWidth={2} />
                     ))}
@@ -601,16 +603,16 @@ export default function UnifiedDashboard() {
         {/* Reports Row */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Executive Summary */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-slate-900">Executive Brief</h3>
+              <h3 className="text-lg font-bold text-slate-900">สรุปผู้บริหาร (Brief)</h3>
               <Briefcase className="w-5 h-5 text-slate-400" />
             </div>
             
             <div className="space-y-6">
               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Total Active Projects</p>
+                  <p className="text-sm text-slate-500 mb-1">โครงการทั้งหมด</p>
                   <p className="text-2xl font-bold text-slate-900">{execReport?.summary?.totalProjects ?? '-'}</p>
                 </div>
                 <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center">
@@ -624,13 +626,13 @@ export default function UnifiedDashboard() {
                   <p className="text-xl font-bold text-blue-600">{Number(execReport?.summary?.avgSpi ?? 1).toFixed(2)}</p>
                 </div>
                 <div className="p-4 border border-slate-100 rounded-xl">
-                  <p className="text-xs text-slate-500 mb-1">Overdue</p>
+                  <p className="text-xs text-slate-500 mb-1">ล่าช้า (Overdue)</p>
                   <p className="text-xl font-bold text-orange-600">{execReport?.summary?.overdueMilestones ?? '-'}</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-700 mb-3">Top High Risk Projects</p>
+                <p className="text-sm font-medium text-slate-700 mb-3">โครงการเสี่ยงสูง (High Risk)</p>
                 <div className="space-y-2">
                   {(execReport?.summary?.highRiskProjects || []).slice(0, 3).map((h: any, i: number) => (
                     <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
@@ -639,7 +641,7 @@ export default function UnifiedDashboard() {
                     </div>
                   ))}
                   {(!execReport?.summary?.highRiskProjects?.length) && (
-                    <p className="text-sm text-slate-400 italic">No high risk projects</p>
+                    <p className="text-sm text-slate-400 italic">ไม่มีโครงการเสี่ยงสูง</p>
                   )}
                 </div>
               </div>
@@ -647,9 +649,9 @@ export default function UnifiedDashboard() {
           </div>
 
           {/* Recent Activities */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col hover:shadow-md transition-all">
               <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-bold text-slate-900">Recent Activities</h3>
+                  <h3 className="text-lg font-bold text-slate-900">กิจกรรมล่าสุด</h3>
                   <Activity className="w-5 h-5 text-slate-400" />
               </div>
               <div className="flex-1 overflow-y-auto space-y-6 pr-2 max-h-[400px] custom-scrollbar">
@@ -676,15 +678,15 @@ export default function UnifiedDashboard() {
                       </div>
                   ))}
                   {activities.length === 0 && (
-                      <div className="text-center text-slate-400 py-8 text-sm">No recent activities</div>
+                      <div className="text-center text-slate-400 py-8 text-sm">ไม่มีกิจกรรมล่าสุด</div>
                   )}
               </div>
           </div>
 
           {/* Weekly Performance Table */}
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
+          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col hover:shadow-md transition-all">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-slate-900">Weekly Performance</h3>
+              <h3 className="text-lg font-bold text-slate-900">ผลงานรายสัปดาห์</h3>
               <Clock className="w-5 h-5 text-slate-400" />
             </div>
             
@@ -692,11 +694,11 @@ export default function UnifiedDashboard() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100">
-                    <th className="text-left py-3 px-2 font-medium text-slate-500">Project</th>
+                    <th className="text-left py-3 px-2 font-medium text-slate-500">โครงการ</th>
                     <th className="text-right py-3 px-2 font-medium text-slate-500">Actual</th>
                     <th className="text-right py-3 px-2 font-medium text-slate-500">Plan</th>
                     <th className="text-right py-3 px-2 font-medium text-slate-500">SPI</th>
-                    <th className="text-right py-3 px-2 font-medium text-slate-500">Weekly Δ</th>
+                    <th className="text-right py-3 px-2 font-medium text-slate-500">เปลี่ยนแปลง</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -724,24 +726,24 @@ export default function UnifiedDashboard() {
         </div>
 
         {/* Main Projects Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-all">
           <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="text-lg font-bold text-slate-900">Active Projects</h3>
+            <h3 className="text-lg font-bold text-slate-900">โครงการที่ดำเนินการอยู่ (Active Projects)</h3>
             <div className="text-sm text-slate-500">
-              Showing {filteredRows.length} projects
+              แสดง {filteredRows.length} โครงการ
             </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-slate-50/50">
                 <tr>
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Project Name</th>
-                  <th className="text-center py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Progress</th>
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">ชื่อโครงการ</th>
+                  <th className="text-center py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">ความคืบหน้า</th>
                   <th className="text-center py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">SPI</th>
-                  <th className="text-right py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Budget</th>
-                  <th className="text-right py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actual</th>
-                  <th className="text-center py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Risks</th>
-                  <th className="text-right py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
+                  <th className="text-right py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">งบประมาณ</th>
+                  <th className="text-right py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">จ่ายจริง</th>
+                  <th className="text-center py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">ความเสี่ยง</th>
+                  <th className="text-right py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">จัดการ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -766,7 +768,7 @@ export default function UnifiedDashboard() {
                         <span className="text-sm font-bold text-slate-700">{r.progress?.toFixed(0)}%</span>
                         <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-blue-500 rounded-full" 
+                            className="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-out" 
                             style={{ width: `${Math.min(r.progress || 0, 100)}%` }}
                           />
                         </div>
@@ -809,7 +811,7 @@ export default function UnifiedDashboard() {
                         href={`/projects/${r.id}/overview`} 
                         className="text-sm font-medium text-blue-600 hover:text-blue-800 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        Details &rarr;
+                        รายละเอียด &rarr;
                       </Link>
                     </td>
                   </tr>
@@ -819,6 +821,6 @@ export default function UnifiedDashboard() {
           </div>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

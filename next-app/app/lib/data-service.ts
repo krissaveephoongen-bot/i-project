@@ -16,6 +16,8 @@ export interface ProjectHealth {
   progress_plan: number;
   progress_actual: number;
   spi: number;
+  cpi: number;
+  budget: number;
   risk_level: string;
   client: string;
 }
@@ -96,6 +98,14 @@ export async function getDashboardProjects(): Promise<ProjectHealth[]> {
       const calcSpi = plan > 0 ? actual / plan : 1;
       const spi = Number(r.spi ?? calcSpi);
       
+      const budget = Number(r.budget || 0);
+      const spent = Number(r.spent || 0);
+      const ev = budget * (actual / 100);
+      // Calculate CPI: EV / AC (Earned Value / Actual Cost)
+      // If spent is 0: if EV > 0 -> infinite (cap at 2), else 1
+      const calcCpi = spent > 0 ? ev / spent : (ev > 0 ? 2 : 1);
+      const cpi = Number(calcCpi.toFixed(2));
+      
       const risk = String(r.riskLevel ?? r.risklevel ?? r.risk_level ?? 'low');
       const clientId = r.clientId ?? r.clientid ?? r.client_id;
       const client = clientId ? (clientMap[clientId] || '') : '';
@@ -107,6 +117,8 @@ export async function getDashboardProjects(): Promise<ProjectHealth[]> {
         progress_plan: plan,
         progress_actual: actual,
         spi: Number(spi.toFixed(2)),
+        cpi,
+        budget,
         risk_level: risk,
         client
       };

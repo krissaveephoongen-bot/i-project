@@ -4,9 +4,15 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Header from '@/app/components/Header';
 import ProjectTabs from '@/app/components/ProjectTabs';
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-import { CheckCircle2, Circle, Clock, AlertTriangle, MoreVertical, Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import PageTransition from '@/app/components/PageTransition';
+import { Skeleton } from '@/app/components/ui/Skeleton';
+import { CheckCircle2, Circle, Clock, AlertTriangle, Plus, ChevronDown, ChevronRight, Trash2, LayoutList, Kanban as KanbanIcon, CalendarRange, TrendingDown } from 'lucide-react';
 import { clsx } from 'clsx';
+import KanbanBoard from '@/app/components/kanban/KanbanBoard';
+import ProjectGantt from '@/app/components/gantt/ProjectGantt';
+import BurndownChart from '@/app/components/charts/BurndownChart';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 interface Task {
   id: string;
@@ -32,6 +38,7 @@ export default function ProjectTasksPage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<string[]>([]);
   const [filter, setFilter] = useState<'all' | 'completed' | 'in-progress' | 'pending'>('all');
+  const [viewMode, setViewMode] = useState<'list' | 'board' | 'gantt' | 'burndown'>('list');
   const [dbProjectId, setDbProjectId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -72,7 +79,7 @@ export default function ProjectTasksPage() {
         setTasks(transformedTasks);
         setError(null);
       } catch (err) {
-        setError('Failed to fetch tasks');
+        setError('โหลดข้อมูลงานไม่สำเร็จ');
         console.error('Error fetching tasks:', err);
       } finally {
         setLoading(false);
@@ -88,7 +95,7 @@ export default function ProjectTasksPage() {
     try {
       const payload = {
         project_id: dbProjectId,
-        name: 'New Task',
+        name: 'งานใหม่',
         phase: 'Development',
         weight: 5,
         progress_plan: 0,
@@ -125,16 +132,31 @@ export default function ProjectTasksPage() {
       }
     } catch (err) {
       console.error('Error adding task:', err);
-      setError('Failed to add task');
+      setError('เพิ่มงานไม่สำเร็จ');
     }
   };
+  
   const updateTask = async (id: string, updatedFields: any) => {
     const res = await fetch(`${API_BASE}/api/projects/tasks`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, updatedFields }) });
     if (res.ok) {
-      const data = await res.json();
+      // No need to await json if we just trust it worked, but better to update local state
+      // const data = await res.json();
       setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updatedFields } : t));
     }
   };
+
+  const handleBoardUpdate = async (taskId: string, newStatus: string) => {
+    const updates: any = { status: newStatus };
+    if (newStatus === 'Completed') {
+        updates.progress_actual = 100;
+        updates.progressActual = 100;
+    } else if (newStatus === 'Pending') {
+        updates.progress_actual = 0;
+        updates.progressActual = 0;
+    }
+    await updateTask(taskId, updates);
+  };
+
   const deleteTask = async (id: string) => {
     const res = await fetch(`${API_BASE}/api/projects/tasks?id=${id}`, { method: 'DELETE' });
     if (res.ok) setTasks(prev => prev.filter(t => t.id !== id));
@@ -172,6 +194,15 @@ export default function ProjectTasksPage() {
     }
   };
 
+  const translateStatus = (status: string) => {
+    switch (status) {
+      case 'Completed': return 'เสร็จสิ้น';
+      case 'In Progress': return 'กำลังดำเนินการ';
+      case 'Pending': return 'รอดำเนินการ';
+      default: return status;
+    }
+  };
+
   const filteredTasks = tasks.filter(task => {
     if (filter === 'all') return true;
     return task.status.toLowerCase().replace(' ', '-') === filter;
@@ -183,10 +214,23 @@ export default function ProjectTasksPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563EB] mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading tasks...</p>
+      <div className="min-h-screen bg-slate-50/50">
+        <Header 
+          title="กำลังโหลดงาน..."
+          breadcrumbs={[
+            { label: 'แดชบอร์ด', href: '/' },
+            { label: 'โครงการ', href: '/projects' },
+            { label: 'กำลังโหลด...' }
+          ]}
+        />
+        <div className="pt-24 px-6 pb-6 container mx-auto">
+             <Skeleton className="h-12 w-full mb-6 rounded-xl" />
+             <Skeleton className="h-40 w-full mb-6 rounded-xl" />
+             <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map(i => (
+                    <Skeleton key={i} className="h-20 w-full rounded-xl" />
+                ))}
+             </div>
         </div>
       </div>
     );
@@ -204,180 +248,256 @@ export default function ProjectTasksPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <Header 
-        title="WBS Tasks"
-        breadcrumbs={[
-          { label: 'Dashboard', href: '/' },
-          { label: 'Projects', href: '/projects' },
-          { label: 'ERP Implementation', href: '/projects/1' },
-          { label: 'Tasks' }
-        ]}
-      />
-      
-      <div className="pt-20 px-6 pb-6">
-        <ProjectTabs />
-        {/* Progress Summary */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Work Breakdown Structure</h2>
-            <button onClick={addTask} className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-              <Plus className="w-4 h-4" /> Add Task
-            </button>
-          </div>
+    <PageTransition>
+      <div className="min-h-screen bg-slate-50/50">
+        <Header 
+          title="งานในโครงการ (WBS)"
+          breadcrumbs={[
+            { label: 'แดชบอร์ด', href: '/' },
+            { label: 'โครงการ', href: '/projects' },
+            { label: 'รายละเอียดโครงการ', href: `/projects/${projectId}` },
+            { label: 'งาน' }
+          ]}
+        />
+        
+        <div className="pt-24 px-6 pb-6 container mx-auto space-y-6">
+          <ProjectTabs />
           
-          {/* Overall Progress */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-slate-600">Overall Progress</span>
-              <span className="text-sm font-medium text-slate-900">{Math.round(completedWeight + inProgressWeight)}%</span>
-            </div>
-            <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-[#2563EB] rounded-full transition-all duration-500"
-                style={{ width: `${completedWeight + inProgressWeight}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
-              <span>Total Weight: {totalWeight}%</span>
-              <span>Completed: {completedWeight}% | In Progress: {inProgressWeight.toFixed(1)}%</span>
-            </div>
-          </div>
-
-          {/* Filter Tabs */}
-          <div className="flex items-center gap-2 mb-4">
-            {(['all', 'completed', 'in-progress', 'pending'] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={clsx(
-                  'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                  filter === f 
-                    ? 'bg-[#2563EB] text-white' 
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                )}
-              >
-                {f === 'all' ? 'All Tasks' : f.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-              </button>
-            ))}
-          </div>
-
-          {/* Task Tree */}
-          <div className="space-y-2">
-            {filteredTasks.map((task) => (
-              <div key={task.id} className="border border-slate-200 rounded-lg overflow-hidden">
-                <div 
-                  className="flex items-center gap-3 p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors"
-                  onClick={() => toggleExpand(task.id)}
-                >
-                  {expandedTasks.includes(task.id) 
-                    ? <ChevronDown className="w-4 h-4 text-slate-400" />
-                    : <ChevronRight className="w-4 h-4 text-slate-400" />
-                  }
-                  {getStatusIcon(task.status)}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-900">{task.id}</span>
-                      <span className="text-sm font-medium text-slate-900">{task.name}</span>
-                    </div>
-                    <p className="text-xs text-slate-500">{task.phase} • {task.startDate} - {task.endDate}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className={clsx('px-2 py-1 rounded text-xs font-medium', getStatusColor(task.status))}>
-                      {task.status}
-                    </span>
-                    <div className="w-24">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-slate-500">Progress</span>
-                        <span className="text-xs font-medium text-slate-700">{task.progressActual}%</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                        <div 
-                          className={clsx(
-                            'h-full rounded-full',
-                            task.progressActual === 100 ? 'bg-green-500' : 'bg-[#2563EB]'
-                          )}
-                          style={{ width: `${task.progressActual}%` }}
-                        />
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium text-slate-900 w-12">{task.weight}%</span>
-                    <span className="text-sm text-slate-500">{task.assignee}</span>
-                    <button className="px-3 py-1 bg-[#2563EB] text-white rounded text-xs" onClick={()=>router.push(`/projects/${projectId}/tasks/${task.id}/edit`)}>แก้ไข</button>
-                    <button className="p-1 text-slate-400 hover:text-slate-600" onClick={()=>setDeleteConfirmId(task.id)}>
-                      <MoreVertical className="w-4 h-4" />
+          {/* Progress Summary */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-4">
+              <div className="flex items-center gap-4">
+                  <h2 className="text-lg font-semibold text-slate-900">โครงสร้างการแตกงาน (WBS)</h2>
+                  <div className="flex bg-slate-100 p-1 rounded-lg">
+                    <button 
+                        onClick={() => setViewMode('list')}
+                        className={clsx(
+                            "px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all",
+                            viewMode === 'list' ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"
+                        )}
+                    >
+                        <LayoutList className="w-4 h-4" />
+                        รายการ
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('board')}
+                        className={clsx(
+                            "px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all",
+                            viewMode === 'board' ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"
+                        )}
+                    >
+                        <KanbanIcon className="w-4 h-4" />
+                        บอร์ด
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('gantt')}
+                        className={clsx(
+                            "px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all",
+                            viewMode === 'gantt' ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"
+                        )}
+                    >
+                        <CalendarRange className="w-4 h-4" />
+                        Gantt
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('burndown')}
+                        className={clsx(
+                            "px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all",
+                            viewMode === 'burndown' ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"
+                        )}
+                    >
+                        <TrendingDown className="w-4 h-4" />
+                        Burn-down
                     </button>
                   </div>
-                </div>
-                
-                {/* Task Details */}
-                {expandedTasks.includes(task.id) && (
-                  <div className="p-4 bg-white border-t border-slate-200">
-                    <div className="grid grid-cols-4 gap-4">
-                      <div>
-                        <p className="text-xs text-slate-500 mb-1">Assignee</p>
-                        <p className="text-sm font-medium text-slate-900">{task.assignee}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500 mb-1">Vendor</p>
-                        <p className="text-sm font-medium text-slate-900">{task.vendor || '-'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500 mb-1">Planned Progress</p>
-                        <p className="text-sm font-medium text-slate-900">{task.progressPlan}%</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500 mb-1">Duration</p>
-                        <p className="text-sm font-medium text-slate-900">{task.endDate}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
-            ))}
-          </div>
-        </div>
+              <button onClick={addTask} className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm w-full md:w-auto justify-center">
+                <Plus className="w-4 h-4" /> เพิ่มงาน
+              </button>
+            </div>
+            
+            {/* Overall Progress */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-slate-600">ความคืบหน้าภาพรวม</span>
+                <span className="text-sm font-medium text-slate-900">{Math.round(completedWeight + inProgressWeight)}%</span>
+              </div>
+              <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-[#2563EB] rounded-full transition-all duration-500"
+                  style={{ width: `${completedWeight + inProgressWeight}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
+                <span>น้ำหนักรวม: {totalWeight}%</span>
+                <span>เสร็จสิ้น: {completedWeight}% | กำลังดำเนินการ: {inProgressWeight.toFixed(1)}%</span>
+              </div>
+            </div>
 
-        {/* Task Summary Stats */}
-        <div className="grid grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <p className="text-sm text-slate-600 mb-1">Total Tasks</p>
-            <p className="text-2xl font-bold text-slate-900">{tasks.length}</p>
+            {/* Filter Tabs (Only show in List view usually, but helpful in board too) */}
+            {viewMode === 'list' && (
+                <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+                {[
+                    { id: 'all', label: 'งานทั้งหมด' },
+                    { id: 'completed', label: 'เสร็จสิ้น' },
+                    { id: 'in-progress', label: 'กำลังดำเนินการ' },
+                    { id: 'pending', label: 'รอดำเนินการ' }
+                ].map((f) => (
+                    <button
+                    key={f.id}
+                    onClick={() => setFilter(f.id as any)}
+                    className={clsx(
+                        'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
+                        filter === f.id 
+                        ? 'bg-[#2563EB] text-white' 
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    )}
+                    >
+                    {f.label}
+                    </button>
+                ))}
+                </div>
+            )}
+
+            {/* Content Area */}
+            {viewMode === 'list' ? (
+                /* Task Tree List View */
+                <div className="space-y-2">
+                {filteredTasks.map((task) => (
+                    <div key={task.id} className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow transition-shadow">
+                    <div 
+                        className="flex items-center gap-3 p-4 bg-slate-50/50 hover:bg-slate-100/80 cursor-pointer transition-colors"
+                        onClick={() => toggleExpand(task.id)}
+                    >
+                        {expandedTasks.includes(task.id) 
+                        ? <ChevronDown className="w-4 h-4 text-slate-400" />
+                        : <ChevronRight className="w-4 h-4 text-slate-400" />
+                        }
+                        {getStatusIcon(task.status)}
+                        <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-slate-900 truncate">{task.name}</span>
+                        </div>
+                        <p className="text-xs text-slate-500 truncate">{task.phase} • {task.startDate} - {task.endDate}</p>
+                        </div>
+                        <div className="flex items-center gap-4 shrink-0">
+                        <span className={clsx('px-2 py-1 rounded text-xs font-medium hidden sm:inline-block', getStatusColor(task.status))}>
+                            {translateStatus(task.status)}
+                        </span>
+                        <div className="w-24 hidden md:block">
+                            <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-slate-500">Progress</span>
+                            <span className="text-xs font-medium text-slate-700">{task.progressActual}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div 
+                                className={clsx(
+                                'h-full rounded-full',
+                                task.progressActual === 100 ? 'bg-green-500' : 'bg-[#2563EB]'
+                                )}
+                                style={{ width: `${task.progressActual}%` }}
+                            />
+                            </div>
+                        </div>
+                        <span className="text-sm font-medium text-slate-900 w-12 text-right hidden sm:inline-block">{task.weight}%</span>
+                        <span className="text-sm text-slate-500 w-24 truncate hidden lg:block">{task.assignee}</span>
+                        <button className="px-3 py-1 bg-[#2563EB] text-white rounded text-xs hover:bg-blue-600 transition-colors" onClick={(e)=>{e.stopPropagation(); router.push(`/projects/${projectId}/tasks/${task.id}/edit`);}}>แก้ไข</button>
+                        <button className="p-1 text-slate-400 hover:text-red-600 transition-colors" onClick={(e)=>{e.stopPropagation(); setDeleteConfirmId(task.id);}}>
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                        </div>
+                    </div>
+                    
+                    {/* Task Details */}
+                    {expandedTasks.includes(task.id) && (
+                        <div className="p-4 bg-white border-t border-slate-200">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                            <p className="text-xs text-slate-500 mb-1">ผู้รับผิดชอบ</p>
+                            <p className="text-sm font-medium text-slate-900">{task.assignee}</p>
+                            </div>
+                            <div>
+                            <p className="text-xs text-slate-500 mb-1">ผู้ขาย/ผู้รับเหมา</p>
+                            <p className="text-sm font-medium text-slate-900">{task.vendor || '-'}</p>
+                            </div>
+                            <div>
+                            <p className="text-xs text-slate-500 mb-1">แผนความคืบหน้า</p>
+                            <p className="text-sm font-medium text-slate-900">{task.progressPlan}%</p>
+                            </div>
+                            <div>
+                            <p className="text-xs text-slate-500 mb-1">ระยะเวลา</p>
+                            <p className="text-sm font-medium text-slate-900">{task.endDate}</p>
+                            </div>
+                        </div>
+                        </div>
+                    )}
+                    </div>
+                ))}
+                </div>
+            ) : viewMode === 'board' ? (
+                /* Kanban Board View */
+                <div className="h-[600px]">
+                    <KanbanBoard 
+                        tasks={tasks} 
+                        onTaskUpdate={handleBoardUpdate}
+                        onTaskClick={(task) => router.push(`/projects/${projectId}/tasks/${task.id}/edit`)}
+                    />
+                </div>
+            ) : viewMode === 'burndown' ? (
+                /* Burn-down Chart View */
+                <div className="h-[500px]">
+                    <BurndownChart tasks={tasks} />
+                </div>
+            ) : (
+                /* Gantt Chart View */
+                <div className="h-full">
+                    <ProjectGantt tasks={tasks} />
+                </div>
+            )}
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <p className="text-sm text-slate-600 mb-1">Completed</p>
-            <p className="text-2xl font-bold text-green-600">
-              {tasks.filter(t => t.status === 'Completed').length}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <p className="text-sm text-slate-600 mb-1">In Progress</p>
-            <p className="text-2xl font-bold text-blue-600">
-              {tasks.filter(t => t.status === 'In Progress').length}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <p className="text-sm text-slate-600 mb-1">Pending</p>
-            <p className="text-2xl font-bold text-slate-600">
-              {tasks.filter(t => t.status === 'Pending').length}
-            </p>
+
+          {/* Task Summary Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <p className="text-sm text-slate-600 mb-1">งานทั้งหมด</p>
+              <p className="text-2xl font-bold text-slate-900">{tasks.length}</p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <p className="text-sm text-slate-600 mb-1">เสร็จสิ้น</p>
+              <p className="text-2xl font-bold text-green-600">
+                {tasks.filter(t => t.status === 'Completed').length}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <p className="text-sm text-slate-600 mb-1">กำลังดำเนินการ</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {tasks.filter(t => t.status === 'In Progress').length}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <p className="text-sm text-slate-600 mb-1">รอดำเนินการ</p>
+              <p className="text-2xl font-bold text-slate-600">
+                {tasks.filter(t => t.status === 'Pending').length}
+              </p>
+            </div>
           </div>
         </div>
+        
+        {deleteConfirmId && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4">
+              <div className="p-4 border-b border-slate-200">
+                <h3 className="text-lg font-semibold text-slate-900">ยืนยันการลบงาน</h3>
+                <p className="text-sm text-slate-600 mt-1">คุณต้องการลบงานนี้หรือไม่</p>
+              </div>
+              <div className="p-4 flex justify-end gap-2">
+                <button onClick={()=>setDeleteConfirmId(null)} className="px-3 py-2 border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">ยกเลิก</button>
+                <button onClick={async ()=>{ await deleteTask(deleteConfirmId!); setDeleteConfirmId(null); }} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors">ลบ</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      {deleteConfirmId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4">
-            <div className="p-4 border-b border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-900">ยืนยันการลบงาน</h3>
-              <p className="text-sm text-slate-600 mt-1">คุณต้องการลบงานนี้หรือไม่</p>
-            </div>
-            <div className="p-4 flex justify-end gap-2">
-              <button onClick={()=>setDeleteConfirmId(null)} className="px-3 py-2 border border-slate-200 rounded-lg text-sm">ยกเลิก</button>
-              <button onClick={async ()=>{ await deleteTask(deleteConfirmId!); setDeleteConfirmId(null); }} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">ลบ</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </PageTransition>
   );
 }
