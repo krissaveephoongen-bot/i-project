@@ -47,7 +47,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         
         if (token) {
           // Verify token with backend
-          const response = await fetch('/api/auth/verify/', {
+          const response = await fetch('/api/auth/verify', {
             headers: {
               'Authorization': `Bearer ${token}`,
             },
@@ -80,7 +80,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const signIn = async (email: string, password: string, rememberMe = false) => {
-    const response = await fetch('/api/auth/login/', {
+    const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -110,7 +110,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   const signOut = async () => {
     try {
-      await fetch('/api/auth/logout/', {
+      await fetch('/api/auth/logout', {
         method: 'POST',
       });
     } catch (error) {
@@ -125,7 +125,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   };
   
   const signUp = async (email: string, password: string, name?: string, role: 'admin'|'manager'|'employee' = 'employee') => {
-    const response = await fetch('/api/auth/register/', {
+    const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, name, role }),
@@ -141,7 +141,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   };
   
   const forgotPassword = async (email: string) => {
-    const response = await fetch('/api/auth/forgot-password/', {
+    const response = await fetch('/api/auth/forgot-password', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
