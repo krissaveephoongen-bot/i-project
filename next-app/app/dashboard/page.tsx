@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Header from '@/app/components/Header';
 import Link from 'next/link';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ScatterChart, Scatter, ZAxis, ReferenceLine, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ScatterChart, Scatter, ZAxis, ReferenceLine, Cell, ReferenceArea } from 'recharts';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -19,137 +19,137 @@ import {
   Filter,
   Calendar,
   Download,
-  Folder
+  Folder,
+  RefreshCcw
 } from 'lucide-react';
 
 export default function UnifiedDashboard() {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<any[]>([]);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch('/api/projects/', { cache: 'no-store' });
-        const list = res.ok ? await res.json() : [];
-        setProjects(list || []);
-        const aggregated: any[] = [];
-        for (const p of (list || [])) {
-          try {
-            const ov = await fetch(`/api/projects/overview/${p.id}`, { cache: 'no-store' });
-            const overview = ov.ok ? await ov.json() : {};
-            const ss = await fetch(`/api/projects/progress/snapshot?projectId=${p.id}`, { cache: 'no-store' });
-            const snap = ss.ok ? await ss.json() : { points: [] };
-            const last = (snap.points || []).slice(-1)[0] || {};
-            const risks = overview?.risks || [];
-            const riskCounts = {
-              high: risks.filter((r: any) => (r.severity || '').toLowerCase() === 'high').length,
-              medium: risks.filter((r: any) => (r.severity || '').toLowerCase() === 'medium').length,
-              low: risks.filter((r: any) => (r.severity || '').toLowerCase() === 'low').length,
-            };
-            const milestones = overview?.milestones || [];
-            const today = new Date();
-            const overdueMilestones = milestones.filter((m: any) => {
-              const d = m.due_date || m.dueDate;
-              const status = String(m.status || '').toLowerCase();
-              if (!d) return false;
-              const dt = new Date(d);
-              return dt < today && !['paid', 'approved', 'completed'].includes(status);
-            }).length;
-
-            // Mock Weekly Delta for demo (random small change) if real not avail
-            // In real app, we compare with snapshot 7 days ago.
-            // Let's try to find snapshot 7 days ago from snap.points
-            // For now, let's assume 0 if not found.
-            const currentSPI = Number(last?.spi ?? 1);
-            let prevSPI = 1;
-            if (snap.points && snap.points.length > 0) {
-                 const sevenDaysAgo = new Date();
-                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                 const p = snap.points.find((x: any) => new Date(x.date) >= sevenDaysAgo);
-                 if (p) prevSPI = Number(p.spi ?? 1);
-            }
-            const weeklyDelta = ((currentSPI - prevSPI) / prevSPI) * 100; // % change in SPI
-
-            const budget = Number(overview?.summary?.totalBudget ?? p.budget ?? 0);
-            const progress = Number(overview?.project?.progress ?? p.progress ?? 0);
-            const actual = Number(overview?.summary?.actualCost ?? p.spent ?? 0);
-            const ev = budget * (progress / 100);
-            const cpi = actual > 0 ? ev / actual : (progress > 0 ? 2 : 1); // If progress > 0 but actual 0, highly efficient (cap at 2)
-
-            aggregated.push({
-              id: p.id,
-              name: p.name,
-              status: p.status || 'Active',
-              progress,
-              spi: currentSPI,
-              cpi,
-              weeklyDelta,
-              budget,
-              committed: Number(overview?.summary?.committedCost ?? 0),
-              actual,
-              remaining: Number(overview?.summary?.remainingBudget ?? p.remaining ?? 0),
-              risks: riskCounts,
-              overdueMilestones
-            });
-          } catch {}
-        }
-        setRows(aggregated);
-        const monthly: Record<string, { committed: number; paid: number }> = {};
-        for (const p of (list || [])) {
-          try {
-            const bl = await fetch(`/api/projects/budget/lines?projectId=${p.id}`, { cache: 'no-store' });
-            const json = bl.ok ? await bl.json() : { lines: [] };
-            const lines = json?.lines || [];
-            for (const l of lines) {
-              const d = (l.date || '').slice(0, 7);
-              if (!d) continue;
-              monthly[d] = monthly[d] || { committed: 0, paid: 0 };
-              if ((l.type || '').toLowerCase() === 'committed') monthly[d].committed += Number(l.amount || 0);
-              if ((l.type || '').toLowerCase() === 'paid') monthly[d].paid += Number(l.amount || 0);
-            }
-          } catch {}
-        }
-        const cashflowData = Object.keys(monthly).sort().map(m => ({ month: m, committed: monthly[m].committed, paid: monthly[m].paid }));
-        setCashflow(cashflowData);
-        const spiByDate: Record<string, { sum: number; count: number }> = {};
-        for (const p of (list || [])) {
-          try {
-            const ss = await fetch(`/api/projects/progress/snapshot?projectId=${p.id}`, { cache: 'no-store' });
-            const snap = ss.ok ? await ss.json() : { points: [] };
-            const points = (snap.points || []).slice(-30);
-            for (const pt of points) {
-              const d = pt.date;
-              if (!d) continue;
-              spiByDate[d] = spiByDate[d] || { sum: 0, count: 0 };
-              const spi = Number(pt.spi ?? 1);
-              spiByDate[d].sum += spi;
-              spiByDate[d].count += 1;
-            }
-          } catch {}
-        }
-        const spiTrendData = Object.keys(spiByDate).sort().map(d => ({ date: d, spi: spiByDate[d].count ? spiByDate[d].sum / spiByDate[d].count : 1 }));
-        setSpiTrend(spiTrendData);
+  const fetchDashboardData = async () => {
+    try {
+      if (!loading) setRefreshing(true);
+      setError(null);
+      const res = await fetch('/api/projects/', { cache: 'no-store' });
+      const list = res.ok ? await res.json() : [];
+      setProjects(list || []);
+      const aggregated: any[] = [];
+      for (const p of (list || [])) {
         try {
-          const er = await fetch('/api/projects/executive-report', { cache: 'no-store' });
-          const erJson = er.ok ? await er.json() : null;
-          setExecReport(erJson || null);
+          const ov = await fetch(`/api/projects/overview/${p.id}`, { cache: 'no-store' });
+          const overview = ov.ok ? await ov.json() : {};
+          const ss = await fetch(`/api/projects/progress/snapshot?projectId=${p.id}`, { cache: 'no-store' });
+          const snap = ss.ok ? await ss.json() : { points: [] };
+          const last = (snap.points || []).slice(-1)[0] || {};
+          const risks = overview?.risks || [];
+          const riskCounts = {
+            high: risks.filter((r: any) => (r.severity || '').toLowerCase() === 'high').length,
+            medium: risks.filter((r: any) => (r.severity || '').toLowerCase() === 'medium').length,
+            low: risks.filter((r: any) => (r.severity || '').toLowerCase() === 'low').length,
+          };
+          const milestones = overview?.milestones || [];
+          const today = new Date();
+          const overdueMilestones = milestones.filter((m: any) => {
+            const d = m.due_date || m.dueDate;
+            const status = String(m.status || '').toLowerCase();
+            if (!d) return false;
+            const dt = new Date(d);
+            return dt < today && !['paid', 'approved', 'completed'].includes(status);
+          }).length;
+
+          const currentSPI = Number(last?.spi ?? 1);
+          let prevSPI = 1;
+          if (snap.points && snap.points.length > 0) {
+               const sevenDaysAgo = new Date();
+               sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+               const p = snap.points.find((x: any) => new Date(x.date) >= sevenDaysAgo);
+               if (p) prevSPI = Number(p.spi ?? 1);
+          }
+          const weeklyDelta = ((currentSPI - prevSPI) / prevSPI) * 100;
+
+          const budget = Number(overview?.summary?.totalBudget ?? p.budget ?? 0);
+          const progress = Number(overview?.project?.progress ?? p.progress ?? 0);
+          const actual = Number(overview?.summary?.actualCost ?? p.spent ?? 0);
+          const ev = budget * (progress / 100);
+          const cpi = actual > 0 ? ev / actual : (progress > 0 ? 2 : 1);
+
+          aggregated.push({
+            id: p.id,
+            name: p.name,
+            status: p.status || 'Active',
+            progress,
+            spi: currentSPI,
+            cpi,
+            weeklyDelta,
+            budget,
+            committed: Number(overview?.summary?.committedCost ?? 0),
+            actual,
+            remaining: Number(overview?.summary?.remainingBudget ?? p.remaining ?? 0),
+            risks: riskCounts,
+            overdueMilestones
+          });
         } catch {}
-        try {
-          const ws = await fetch('/api/projects/weekly-summary', { cache: 'no-store' });
-          const wsJson = ws.ok ? await ws.json() : { summary: [] };
-          setWeeklySummary(wsJson?.summary || []);
-        } catch {}
-        setError(null);
-      } catch (e: any) {
-        setError(e?.message || 'Failed to load dashboard');
-      } finally {
-        setLoading(false);
       }
-    };
-    load();
+      setRows(aggregated);
+      const monthly: Record<string, { committed: number; paid: number }> = {};
+      for (const p of (list || [])) {
+        try {
+          const bl = await fetch(`/api/projects/budget/lines?projectId=${p.id}`, { cache: 'no-store' });
+          const json = bl.ok ? await bl.json() : { lines: [] };
+          const lines = json?.lines || [];
+          for (const l of lines) {
+            const d = (l.date || '').slice(0, 7);
+            if (!d) continue;
+            monthly[d] = monthly[d] || { committed: 0, paid: 0 };
+            if ((l.type || '').toLowerCase() === 'committed') monthly[d].committed += Number(l.amount || 0);
+            if ((l.type || '').toLowerCase() === 'paid') monthly[d].paid += Number(l.amount || 0);
+          }
+        } catch {}
+      }
+      const cashflowData = Object.keys(monthly).sort().map(m => ({ month: m, committed: monthly[m].committed, paid: monthly[m].paid }));
+      setCashflow(cashflowData);
+      const spiByDate: Record<string, { sum: number; count: number }> = {};
+      for (const p of (list || [])) {
+        try {
+          const ss = await fetch(`/api/projects/progress/snapshot?projectId=${p.id}`, { cache: 'no-store' });
+          const snap = ss.ok ? await ss.json() : { points: [] };
+          const points = (snap.points || []).slice(-30);
+          for (const pt of points) {
+            const d = pt.date;
+            if (!d) continue;
+            spiByDate[d] = spiByDate[d] || { sum: 0, count: 0 };
+            const spi = Number(pt.spi ?? 1);
+            spiByDate[d].sum += spi;
+            spiByDate[d].count += 1;
+          }
+        } catch {}
+      }
+      const spiTrendData = Object.keys(spiByDate).sort().map(d => ({ date: d, spi: spiByDate[d].count ? spiByDate[d].sum / spiByDate[d].count : 1 }));
+      setSpiTrend(spiTrendData);
+      try {
+        const er = await fetch('/api/projects/executive-report', { cache: 'no-store' });
+        const erJson = er.ok ? await er.json() : null;
+        setExecReport(erJson || null);
+      } catch {}
+      try {
+        const ws = await fetch('/api/projects/weekly-summary', { cache: 'no-store' });
+        const wsJson = ws.ok ? await ws.json() : { summary: [] };
+        setWeeklySummary(wsJson?.summary || []);
+      } catch {}
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load dashboard');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
   }, []);
 
   const totals = useMemo(() => {
@@ -321,6 +321,14 @@ export default function UnifiedDashboard() {
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={fetchDashboardData}
+              disabled={refreshing}
+              className={`p-2.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all ${refreshing ? 'animate-spin text-blue-600' : ''}`}
+              title="Refresh Data"
+            >
+              <RefreshCcw className="w-5 h-5" />
+            </button>
             <button
               onClick={() => navigator.clipboard.writeText(window.location.href)}
               className="p-2.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
@@ -533,10 +541,21 @@ export default function UnifiedDashboard() {
             </div>
             <ResponsiveContainer width="100%" height={400}>
               <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <CartesianGrid />
-                <XAxis type="number" dataKey="cpi" name="CPI" domain={[0, 2.5]} label={{ value: 'Cost Efficiency (CPI)', position: 'insideBottom', offset: -10, fill: '#64748b', fontSize: 12 }} tick={{fontSize: 12, fill: '#94a3b8'}} />
-                <YAxis type="number" dataKey="spi" name="SPI" domain={[0, 2.5]} label={{ value: 'Schedule Efficiency (SPI)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 12 }} tick={{fontSize: 12, fill: '#94a3b8'}} />
-                <ZAxis type="number" dataKey="budget" range={[100, 1000]} name="Budget" />
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" dataKey="cpi" name="CPI" domain={[0, 2]} label={{ value: 'Cost Efficiency (CPI)', position: 'insideBottom', offset: -10, fill: '#64748b', fontSize: 12 }} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                <YAxis type="number" dataKey="spi" name="SPI" domain={[0, 2]} label={{ value: 'Schedule Efficiency (SPI)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 12 }} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                <ZAxis type="number" dataKey="budget" range={[60, 400]} name="Budget" />
+                
+                {/* Quadrant Backgrounds (Optional, or just use Lines) - Using Lines with Labels for clarity */}
+                <ReferenceLine x={1} stroke="#94a3b8" strokeWidth={2} />
+                <ReferenceLine y={1} stroke="#94a3b8" strokeWidth={2} />
+                
+                {/* Quadrant Labels */}
+                <ReferenceArea x1={1} x2={2} y1={1} y2={2} fill="#dcfce7" fillOpacity={0.3} stroke="none" />
+                <ReferenceArea x1={0} x2={1} y1={0} y2={1} fill="#fee2e2" fillOpacity={0.3} stroke="none" />
+                <ReferenceArea x1={0} x2={1} y1={1} y2={2} fill="#ffedd5" fillOpacity={0.3} stroke="none" />
+                <ReferenceArea x1={1} x2={2} y1={0} y2={1} fill="#ffedd5" fillOpacity={0.3} stroke="none" />
+
                 <Tooltip cursor={{ strokeDasharray: '3 3' }} content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                         const data = payload[0].payload;
@@ -548,6 +567,8 @@ export default function UnifiedDashboard() {
                                     <span className={`font-medium ${data.spi < 0.9 ? 'text-red-600' : 'text-slate-700'}`}>{data.spi.toFixed(2)}</span>
                                     <span className="text-slate-500">CPI:</span>
                                     <span className={`font-medium ${data.cpi < 0.9 ? 'text-red-600' : 'text-slate-700'}`}>{data.cpi.toFixed(2)}</span>
+                                    <span className="text-slate-500">Budget:</span>
+                                    <span className="text-slate-700">฿{data.budget.toLocaleString()}</span>
                                     <span className="text-slate-500">Status:</span>
                                     <span className="capitalize text-slate-700">{data.status}</span>
                                 </div>
@@ -556,11 +577,10 @@ export default function UnifiedDashboard() {
                     }
                     return null;
                 }} />
-                <ReferenceLine x={1} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'On Budget', position: 'insideTop', fill: '#10b981', fontSize: 10 }} />
-                <ReferenceLine y={1} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'On Schedule', position: 'insideRight', fill: '#10b981', fontSize: 10 }} />
+                
                 <Scatter name="Projects" data={filteredRows} fill="#8884d8">
                     {filteredRows.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.spi < 0.9 || entry.cpi < 0.9 ? '#ef4444' : (entry.spi >= 1 && entry.cpi >= 1 ? '#10b981' : '#f59e0b')} />
+                        <Cell key={`cell-${index}`} fill={entry.spi < 0.9 || entry.cpi < 0.9 ? '#ef4444' : (entry.spi >= 1 && entry.cpi >= 1 ? '#10b981' : '#f59e0b')} stroke="#fff" strokeWidth={2} />
                     ))}
                 </Scatter>
               </ScatterChart>
