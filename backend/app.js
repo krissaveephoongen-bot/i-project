@@ -8,17 +8,24 @@ dotenv.config();
 
 const app = express();
 
+const allowedOrigins = [
+  'https://ticket-apw.vercel.app',
+  'https://ticket-apw-api.vercel.app',
+  'https://i-projects.skin',
+  'https://www.i-projects.skin',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001'
+];
+
+if (process.env.CORS_ORIGIN) {
+  const envOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim());
+  allowedOrigins.push(...envOrigins);
+}
+
 // Middleware
 app.use(cors({
-  origin: [
-    'https://ticket-apw.vercel.app',
-    'https://ticket-apw-api.vercel.app',
-    'https://i-projects.skin',
-    'https://www.i-projects.skin',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://localhost:3001'
-  ],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
