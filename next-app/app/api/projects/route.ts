@@ -2,6 +2,8 @@
 import { ok, err } from '../_lib/db';
 import { supabase } from '@/app/lib/supabaseClient';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // Fetch projects first
