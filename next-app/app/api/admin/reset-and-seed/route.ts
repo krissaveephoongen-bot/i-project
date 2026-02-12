@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabaseAdminClient';
+import crypto from 'node:crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
 
     // A. Create Client
     const { data: client, error: clientError } = await supabaseAdmin.from('clients').insert({
+      id: crypto.randomUUID(), // Ensure ID is generated
       name: 'Golden Customer Co., Ltd.',
       email: 'contact@goldencustomer.com',
       address: '123 Golden Tower, Bangkok',
