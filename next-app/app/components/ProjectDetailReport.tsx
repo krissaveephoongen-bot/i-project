@@ -40,26 +40,20 @@ function formatThaiDate(input?: string | Date | null) {
 
 export default function ProjectDetailReport(props: ReportProps) {
   const {
-    title = 'จัดซื้อรถสานวนเคลื่อนที่ชนิด 6 ล้อ พร้อมอุปกรณ์ประกอบอาหาร กรมอุทยานแห่งชาติ สัตว์ป่า และพันธุ์พืช',
-    progressActual = 60.05,
-    progressPlan = 64.62,
-    accountManager = 'คุณพรรชัย พรทรงจิตร์',
-    projectManager = 'จักรกฤษณ์ ภูมิน',
+    title = 'Project Name',
+    progressActual = 0,
+    progressPlan = 0,
+    accountManager = '-',
+    projectManager = '-',
     projectEngineer = '-',
-    projectCo = 'ศศธร สุขูชะ',
+    projectCo = '-',
     startDate,
     endDate,
-    durationDays = 180,
-    elapsedDays = 98,
-    projectValue = 65637000,
-    projectType = 'Contract',
-    schedule = [
-      {
-        description: 'งวดที่ 1 : 100% หลังจากส่งมอบรถทั้งหมด 13 คัน',
-        amountIncVat: 65637000,
-        deliveryPlanDate: '2026-04-06',
-      },
-    ],
+    durationDays = 0,
+    elapsedDays = 0,
+    projectValue = 0,
+    projectType = '-',
+    schedule = [],
     className,
   } = props;
 
@@ -127,7 +121,7 @@ export default function ProjectDetailReport(props: ReportProps) {
         </div>
 
         <div className="mt-2 bg-sky-200/60 px-4 py-2 text-slate-800 font-medium">
-          จัดซื้อรถสานวนเคลื่อนที่ชนิดที่หนึ่ง 6 ล้อ พร้อมอุปกรณ์ประกอบอาหาร กรมอุทยานแห่งชาติ สัตว์ป่า และพันธุ์พืช
+          {title}
         </div>
 
         <Table className="text-sm">
@@ -154,6 +148,11 @@ export default function ProjectDetailReport(props: ReportProps) {
                 <TableCell className="text-slate-900">{formatThaiDate(s.receiptDate)}</TableCell>
               </TableRow>
             ))}
+             {schedule.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-slate-500 py-4">No schedule/milestones found.</TableCell>
+                </TableRow>
+              )}
           </TableBody>
         </Table>
       </CardContent>
