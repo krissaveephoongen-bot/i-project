@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { ok, err } from '../../_lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(_req: NextRequest) {
   try {
     const host = _req.headers.get('host') || 'localhost:3000';

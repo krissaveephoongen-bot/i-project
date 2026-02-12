@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import { ok, err, pool } from '../../_lib/db';
 import { supabase } from '../../../lib/supabaseClient';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(_req: NextRequest) {
   try {
     const projects: any[] = [];

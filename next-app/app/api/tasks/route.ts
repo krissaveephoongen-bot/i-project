@@ -3,6 +3,8 @@ import { ok, err } from '../_lib/db';
 import { NextRequest } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const u = new URL(req.url);

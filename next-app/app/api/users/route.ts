@@ -4,7 +4,9 @@ import { supabase } from '@/app/lib/supabaseClient';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
- 
+
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const u = new URL(req.url);
