@@ -7,6 +7,7 @@ import { clsx } from 'clsx';
 const tabs = [
   { key: 'overview', label: 'Overview', path: (id: string) => `/projects/${id}/overview` },
   { key: 'plan', label: 'Plan', path: (id: string) => `/projects/${id}/tasks` },
+  { key: 'budget', label: 'Budget', path: (id: string) => `/projects/${id}/budget` },
   { key: 'finance', label: 'Finance', path: (id: string) => `/projects/${id}/milestones` },
   { key: 'risk', label: 'Risk', path: (id: string) => `/projects/${id}/risks` },
   { key: 'docs', label: 'Documents', path: (id: string) => `/projects/${id}/documents` },

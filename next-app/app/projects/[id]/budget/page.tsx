@@ -5,8 +5,9 @@ import Header from '@/app/components/Header';
 import { DollarSign, TrendingUp, TrendingDown, CreditCard, Receipt, PieChart, BarChart3, Download } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useParams } from 'next/navigation';
+import FinancialChart from '@/app/components/FinancialChart';
 
-type Monthly = { month: string; revenue: string; cost: string };
+type Monthly = { month: string; revenue: number; cost: number };
 type Milestone = { id: string; name: string; amount: number; dueDate: string | null; status: string; percentage: number };
 
 export default function ProjectBudgetPage() {
@@ -121,35 +122,7 @@ export default function ProjectBudgetPage() {
                 Export
               </button>
             </div>
-            <div className="h-64">
-              <div className="flex items-end justify-between h-48 gap-4">
-                {monthly.map((item: any, idx: number) => (
-                  <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-                    <div className="w-full flex flex-col items-center gap-1">
-                      <div 
-                        className="w-full bg-blue-500 rounded-t transition-all"
-                        style={{ height: `${(Number(item.revenue) / 15000000) * 150}px` }}
-                      />
-                      <div 
-                        className="w-full bg-slate-300 rounded-b"
-                        style={{ height: `${(Number(item.cost) / 15000000) * 150}px` }}
-                      />
-                    </div>
-                    <span className="text-xs text-slate-500">{item.month}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center justify-center gap-6 mt-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded" />
-                  <span className="text-sm text-slate-600">Revenue</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-slate-300 rounded" />
-                  <span className="text-sm text-slate-600">Cost</span>
-                </div>
-              </div>
-            </div>
+            <FinancialChart data={monthly} />
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">

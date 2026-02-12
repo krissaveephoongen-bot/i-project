@@ -110,7 +110,7 @@ export default function ProjectOverviewPage() {
         <ProjectDetailReport
           title={p?.name}
           progressActual={Number(p?.progress || 0)}
-          progressPlan={Number(p?.planning || 0)}
+          progressPlan={Number(p?.progressPlan || 0)} // Use progressPlan from project
           accountManager={team.find((m: any) => (m.role || '').toLowerCase() === 'account manager')?.name}
           projectManager={team.find((m: any) => (m.role || '').toLowerCase() === 'project manager')?.name}
           projectEngineer={team.find((m: any) => (m.role || '').toLowerCase() === 'project engineer')?.name}
