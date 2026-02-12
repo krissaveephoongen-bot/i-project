@@ -13,6 +13,8 @@ app.use(cors({
   origin: [
     'https://ticket-apw.vercel.app',
     'https://ticket-apw-api.vercel.app',
+    'https://i-projects.skin',
+    'https://www.i-projects.skin',
     'http://localhost:5173',
     'http://localhost:3000',
     'http://localhost:3001'
