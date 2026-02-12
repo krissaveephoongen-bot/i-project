@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Header from '@/app/components/Header';
 import Link from 'next/link';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ScatterChart, Scatter, ZAxis, ReferenceLine, Cell } from 'recharts';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -73,16 +73,23 @@ export default function UnifiedDashboard() {
             }
             const weeklyDelta = ((currentSPI - prevSPI) / prevSPI) * 100; // % change in SPI
 
+            const budget = Number(overview?.summary?.totalBudget ?? p.budget ?? 0);
+            const progress = Number(overview?.project?.progress ?? p.progress ?? 0);
+            const actual = Number(overview?.summary?.actualCost ?? p.spent ?? 0);
+            const ev = budget * (progress / 100);
+            const cpi = actual > 0 ? ev / actual : (progress > 0 ? 2 : 1); // If progress > 0 but actual 0, highly efficient (cap at 2)
+
             aggregated.push({
               id: p.id,
               name: p.name,
               status: p.status || 'Active',
-              progress: Number(overview?.project?.progress ?? p.progress ?? 0),
+              progress,
               spi: currentSPI,
+              cpi,
               weeklyDelta,
-              budget: Number(overview?.summary?.totalBudget ?? p.budget ?? 0),
+              budget,
               committed: Number(overview?.summary?.committedCost ?? 0),
-              actual: Number(overview?.summary?.actualCost ?? p.spent ?? 0),
+              actual,
               remaining: Number(overview?.summary?.remainingBudget ?? p.remaining ?? 0),
               risks: riskCounts,
               overdueMilestones
@@ -206,10 +213,39 @@ export default function UnifiedDashboard() {
   }, [filteredRows]);
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading dashboard...</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-500 font-medium animate-pulse">Loading dashboard...</p>
+      </div>
+    );
   }
+
   if (error) {
-    return <div className="min-h-screen flex items-center justify-center">Error: {error}</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-6 p-4">
+        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-red-500" />
+        </div>
+        <div className="text-center max-w-md space-y-2">
+            <h3 className="text-xl font-bold text-slate-900">Something went wrong</h3>
+            <p className="text-slate-500">{error}</p>
+        </div>
+        <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20"
+        >
+            Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // Handle empty state gracefully
+  if (rows.length === 0 && !loading && !error) {
+      // We still render the dashboard structure but maybe with empty placeholders or zeros
+      // The existing code handles 0 values well (showing 0, -, etc.)
+      // But we can add a prompt to create project
   }
 
   return (
@@ -222,6 +258,24 @@ export default function UnifiedDashboard() {
       />
       
       <div className="pt-24 px-8 pb-12 max-w-[1600px] mx-auto space-y-8">
+        
+        {rows.length === 0 && (
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                    <Folder className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="text-center sm:text-left">
+                    <h3 className="text-lg font-bold text-blue-900">No Projects Found</h3>
+                    <p className="text-blue-700">Get started by creating your first project to see insights here.</p>
+                </div>
+            </div>
+            <Link href="/projects/new" className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 whitespace-nowrap">
+                Create Project
+            </Link>
+          </div>
+        )}
+
         {/* Filters Bar */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-wrap items-center gap-4 transition-all hover:shadow-md">
           <div className="relative flex-1 min-w-[240px]">
@@ -464,6 +518,53 @@ export default function UnifiedDashboard() {
               </LineChart>
             </ResponsiveContainer>
           </div>
+        </div>
+
+        {/* Portfolio Analysis */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Portfolio Health Matrix</h3>
+                <p className="text-sm text-slate-500">Efficiency Analysis: Cost (CPI) vs Schedule (SPI)</p>
+              </div>
+              <div className="p-2 bg-slate-50 rounded-lg">
+                <Activity className="w-5 h-5 text-slate-400" />
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={400}>
+              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <CartesianGrid />
+                <XAxis type="number" dataKey="cpi" name="CPI" domain={[0, 2.5]} label={{ value: 'Cost Efficiency (CPI)', position: 'insideBottom', offset: -10, fill: '#64748b', fontSize: 12 }} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                <YAxis type="number" dataKey="spi" name="SPI" domain={[0, 2.5]} label={{ value: 'Schedule Efficiency (SPI)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 12 }} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                <ZAxis type="number" dataKey="budget" range={[100, 1000]} name="Budget" />
+                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                            <div className="bg-white p-3 border border-slate-100 shadow-lg rounded-xl z-50">
+                                <p className="font-bold text-slate-900 mb-1">{data.name}</p>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                    <span className="text-slate-500">SPI:</span>
+                                    <span className={`font-medium ${data.spi < 0.9 ? 'text-red-600' : 'text-slate-700'}`}>{data.spi.toFixed(2)}</span>
+                                    <span className="text-slate-500">CPI:</span>
+                                    <span className={`font-medium ${data.cpi < 0.9 ? 'text-red-600' : 'text-slate-700'}`}>{data.cpi.toFixed(2)}</span>
+                                    <span className="text-slate-500">Status:</span>
+                                    <span className="capitalize text-slate-700">{data.status}</span>
+                                </div>
+                            </div>
+                        );
+                    }
+                    return null;
+                }} />
+                <ReferenceLine x={1} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'On Budget', position: 'insideTop', fill: '#10b981', fontSize: 10 }} />
+                <ReferenceLine y={1} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'On Schedule', position: 'insideRight', fill: '#10b981', fontSize: 10 }} />
+                <Scatter name="Projects" data={filteredRows} fill="#8884d8">
+                    {filteredRows.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.spi < 0.9 || entry.cpi < 0.9 ? '#ef4444' : (entry.spi >= 1 && entry.cpi >= 1 ? '#10b981' : '#f59e0b')} />
+                    ))}
+                </Scatter>
+              </ScatterChart>
+            </ResponsiveContainer>
         </div>
 
         {/* Reports Row */}
