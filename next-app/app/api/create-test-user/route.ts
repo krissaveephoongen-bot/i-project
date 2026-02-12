@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/app/lib/supabaseAdminClient';
+import { supabase } from '@/app/lib/supabaseClient';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {

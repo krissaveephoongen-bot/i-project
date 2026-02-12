@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { ok, err, pool } from '../_lib/db';
 import { supabase } from '@/app/lib/supabaseClient';
 import crypto from 'node:crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { z } from 'zod';
  
 export async function GET(req: NextRequest) {

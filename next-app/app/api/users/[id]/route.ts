@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { ok, err } from '../../_lib/db';
 import { supabase } from '@/app/lib/supabaseClient';
 import { z } from 'zod';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 export async function PATCH(
   request: NextRequest,
