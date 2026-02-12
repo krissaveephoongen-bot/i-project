@@ -5,6 +5,8 @@ import ProtectedLayout from './components/ProtectedLayout';
 import { Providers } from './components/providers';
 import I18nProvider from './components/I18nProvider';
 import DataSyncProvider from './components/DataSyncProvider';
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
 
 export const metadata: Metadata = {
   title: 'i-project - ระบบจัดการโครงการ',
@@ -31,6 +33,8 @@ export default function RootLayout({
             </AuthProvider>
           </Providers>
         </I18nProvider>
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
