@@ -59,6 +59,10 @@ export default function ProjectsPageRefactored() {
   const { data: projectsData, isLoading: isLoadingProjects, error: projectsError } = useQuery<ProjectType[]>({
     queryKey: ['projects'],
     queryFn: async () => {
+      // getProjects from lib/projects.ts already has fallback logic to fetch from Supabase if API fails
+      // However, we want to ensure we get fresh data.
+      // If we are server-side, we should use direct DB. But this is a client component ('use client').
+      // Let's rely on the robust getProjects() we fixed earlier.
       const fetchedProjects = await getProjects();
       return fetchedProjects;
     },
