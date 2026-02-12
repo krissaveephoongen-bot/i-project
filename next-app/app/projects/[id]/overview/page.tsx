@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Header from '@/app/components/Header';
 import SCurveChart from '../SCurveChart';
 import ProjectTabs from '@/app/components/ProjectTabs';
-import { Button } from '@/app/components/ui/button';
+import { Button } from '@/app/components/ui/Button';
 
 // Icons
 import { 

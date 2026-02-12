@@ -1,6 +1,6 @@
 import { supabase } from '../supabaseClient'
 import { User, UserInsert, UserUpdate } from '../../types/database.types'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs';
 
 export class UserService {
   // Fetch all users
