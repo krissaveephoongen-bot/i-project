@@ -118,7 +118,7 @@ export default async function ExecutiveDashboard() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-200">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Project Name</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Project Code</th>
                     <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Plan %</th>
                     <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Actual %</th>
                     <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">SPI</th>
@@ -136,7 +136,7 @@ export default async function ExecutiveDashboard() {
                     <tr key={project.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="py-3 px-4">
                         <Link href={`/projects/${project.id}`} className="text-sm font-medium text-slate-900 hover:text-blue-600">
-                          {project.name}
+                          {project.code || project.name}
                         </Link>
                         <p className="text-xs text-slate-500">{clientName}</p>
                       </td>

@@ -12,6 +12,7 @@ export interface KpiData {
 export interface ProjectHealth {
   id: string;
   name: string;
+  code?: string;
   progress_plan: number;
   progress_actual: number;
   spi: number;
@@ -89,6 +90,7 @@ export async function getDashboardProjects(): Promise<ProjectHealth[]> {
       return {
         id: r.id,
         name: r.name,
+        code: r.code,
         progress_plan: plan,
         progress_actual: actual,
         spi,
