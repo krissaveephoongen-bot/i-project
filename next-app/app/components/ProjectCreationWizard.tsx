@@ -112,6 +112,11 @@ export default function ProjectCreationWizard({ onSave, onCancel }: ProjectCreat
               toast.error(`Total weight must be 100% (Current: ${totalWeight}%)`);
               return false;
           }
+          const incompleteTasks = tasks.some(t => !t.title || !t.startDate || !t.dueDate || t.weight <= 0);
+          if (incompleteTasks) {
+              toast.error('All tasks must have Title, Start Date, Due Date, and Weight > 0');
+              return false;
+          }
       }
       return true;
   };
@@ -391,10 +396,10 @@ export default function ProjectCreationWizard({ onSave, onCancel }: ProjectCreat
                     <table className="w-full text-sm">
                         <thead className="bg-slate-50 text-slate-600 font-medium">
                             <tr>
-                                <th className="px-4 py-2 text-left rounded-l-lg">Task Title</th>
-                                <th className="px-4 py-2 text-left w-24">Weight (%)</th>
-                                <th className="px-4 py-2 text-left w-32">Start</th>
-                                <th className="px-4 py-2 text-left w-32">Due</th>
+                                <th className="px-4 py-2 text-left rounded-l-lg">Task Title <span className="text-red-500">*</span></th>
+                                <th className="px-4 py-2 text-left w-24">Weight (%) <span className="text-red-500">*</span></th>
+                                <th className="px-4 py-2 text-left w-32">Start <span className="text-red-500">*</span></th>
+                                <th className="px-4 py-2 text-left w-32">Due <span className="text-red-500">*</span></th>
                                 <th className="px-4 py-2 text-center rounded-r-lg w-16"></th>
                             </tr>
                         </thead>
@@ -430,6 +435,10 @@ export default function ProjectCreationWizard({ onSave, onCancel }: ProjectCreat
                             ))}
                         </tbody>
                     </table>
+                    <div className="flex items-center gap-3 p-4 bg-blue-50 text-blue-800 rounded-lg text-sm">
+                        <AlertCircle className="w-5 h-5 shrink-0" />
+                        <p>S-Curve Plan will be automatically generated based on the weight and duration (Start - Due) of each task. Please ensure dates are accurate.</p>
+                    </div>
                 </div>
             )}
 

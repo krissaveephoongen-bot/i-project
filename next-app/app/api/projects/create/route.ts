@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
+import crypto from 'node:crypto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Handle Tasks (with Weights)
+    // Handle Tasks (with Weights) and Generate Plan Points
     if (Array.isArray(tasks) && tasks.length > 0) {
         const taskPayloads = tasks.map((t: any) => ({
             projectId,
@@ -105,11 +106,56 @@ export async function POST(request: NextRequest) {
             updatedAt: new Date().toISOString()
         }));
         
-        const { error: taskErr } = await supabase
+        const { data: createdTasks, error: taskErr } = await supabase
             .from('tasks')
-            .insert(taskPayloads);
+            .insert(taskPayloads)
+            .select();
             
-        if (taskErr) console.error('Error creating tasks:', taskErr);
+        if (taskErr) {
+             console.error('Error creating tasks:', taskErr);
+        } else if (createdTasks && createdTasks.length > 0) {
+            // Generate Task Plan Points for S-Curve
+            const planPoints: any[] = [];
+            
+            createdTasks.forEach((task: any) => {
+                const weight = Number(task.weight || 0);
+                if (weight > 0 && task.startDate && task.dueDate) {
+                    const start = new Date(task.startDate);
+                    const end = new Date(task.dueDate);
+                    const durationMs = end.getTime() - start.getTime();
+                    const days = Math.ceil(durationMs / (1000 * 60 * 60 * 24)) + 1;
+                    
+                    if (days > 0) {
+                        const dailyWeight = weight / days;
+                        for (let i = 0; i < days; i++) {
+                            const d = new Date(start);
+                            d.setDate(d.getDate() + i);
+                            const dateStr = d.toISOString().slice(0, 10);
+                            
+                            // Check if point already exists (unlikely in new project, but good practice)
+                            planPoints.push({
+                                id: crypto.randomUUID(),
+                                task_id: task.id,
+                                date: dateStr,
+                                plan_percent: Number(dailyWeight.toFixed(4)) // Incremental daily weight
+                            });
+                        }
+                    }
+                }
+            });
+
+            if (planPoints.length > 0) {
+                // Insert in batches to avoid payload limits if large
+                const batchSize = 1000;
+                for (let i = 0; i < planPoints.length; i += batchSize) {
+                    const batch = planPoints.slice(i, i + batchSize);
+                    const { error: ppError } = await supabase
+                        .from('task_plan_points')
+                        .insert(batch);
+                    if (ppError) console.error('Error creating plan points:', ppError);
+                }
+            }
+        }
     }
 
     // Handle Contacts (Stakeholders)
