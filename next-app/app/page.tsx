@@ -127,11 +127,11 @@ export default async function ExecutiveDashboard() {
                 </thead>
                 <tbody>
                   {projects.map((project: any) => {
-                    const plan = Number(project.progress_plan ?? project.progressPlan ?? 100);
-                    const actual = Number(project.progress_actual ?? project.progress ?? 0);
-                    const spiVal = Number(project.spi ?? (plan > 0 ? actual / plan : 1));
-                    const risk = (project.risk_level ?? project.riskLevel ?? 'low') as string;
-                    const clientName = project.client ?? '';
+                    const plan = project.progress_plan;
+                    const actual = project.progress_actual;
+                    const spiVal = project.spi;
+                    const risk = project.risk_level;
+                    const clientName = project.client;
                     return (
                     <tr key={project.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="py-3 px-4">

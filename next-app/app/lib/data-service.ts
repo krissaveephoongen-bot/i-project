@@ -89,19 +89,24 @@ export async function getDashboardProjects(): Promise<ProjectHealth[]> {
     }
     
     return (rows || []).map((r: any) => {
-      const plan = Number(r.progressPlan ?? 100);
-      const actual = Number(r.progress ?? r.progressActual ?? 0);
-      const spi = Number(r.spi ?? (plan > 0 ? actual / plan : 1));
-      const risk = String(r.riskLevel ?? 'low');
-      const clientId = r.clientId;
+      // Handle case-insensitivity of Postgres columns (unquoted identifiers are lowercase)
+      const plan = Number(r.progressPlan ?? r.progressplan ?? r.progress_plan ?? 100);
+      const actual = Number(r.progress ?? r.progressActual ?? r.progress_actual ?? 0);
+      // Recalculate SPI if missing or 0 to ensure data consistency
+      const calcSpi = plan > 0 ? actual / plan : 1;
+      const spi = Number(r.spi ?? calcSpi);
+      
+      const risk = String(r.riskLevel ?? r.risklevel ?? r.risk_level ?? 'low');
+      const clientId = r.clientId ?? r.clientid ?? r.client_id;
       const client = clientId ? (clientMap[clientId] || '') : '';
+      
       return {
         id: r.id,
         name: r.name,
         code: r.code,
         progress_plan: plan,
         progress_actual: actual,
-        spi,
+        spi: Number(spi.toFixed(2)),
         risk_level: risk,
         client
       };
