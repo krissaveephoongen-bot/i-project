@@ -73,7 +73,7 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [projectId, apiUrl]);
+  }, [projectId, apiBase]);
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -106,12 +106,12 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
       const result = await response.json();
       return result as ProjectIssue;
     },
-    [projectId, apiUrl]
+    [projectId, apiBase]
   );
 
   const updateIssue = useCallback(
     async (issueId: string, data: Partial<ProjectIssue>): Promise<ProjectIssue> => {
-      const response = await fetch(`${apiUrl}/issues/${issueId}`, {
+      const response = await fetch(`${apiBase}/issues/${issueId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -123,12 +123,12 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
       const result = await response.json();
       return result.data;
     },
-    [apiUrl]
+    [apiBase]
   );
 
   const updateIssueStatus = useCallback(
     async (issueId: string, status: string): Promise<void> => {
-      const response = await fetch(`${apiUrl}/issues/${issueId}/status`, {
+      const response = await fetch(`${apiBase}/issues/${issueId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -137,7 +137,7 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
 
       if (!response.ok) throw new Error('Failed to update status');
     },
-    [apiUrl]
+    [apiBase]
   );
 
   const deleteIssue = useCallback(
@@ -147,7 +147,7 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
       });
       if (!response.ok) throw new Error('Failed to delete issue');
     },
-    [apiUrl]
+    [apiBase]
   );
 
   // Fetch data on mount
