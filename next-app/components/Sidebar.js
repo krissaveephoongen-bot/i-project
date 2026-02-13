@@ -8,7 +8,15 @@ import {
   Receipt, 
   CheckCircle, 
   BarChart, 
-  Briefcase 
+  Briefcase,
+  Users,
+  Building2,
+  Settings,
+  HelpCircle,
+  User,
+  FileText,
+  BriefcaseIcon,
+  PieChart
 } from 'lucide-react';
 
 function Sidebar({ isOpen }) {
@@ -31,6 +39,15 @@ function Sidebar({ isOpen }) {
         ]
       },
       {
+        title: 'Management',
+        items: [
+          { id: '/clients', label: 'Clients', icon: Building2 },
+          { id: '/stakeholders', label: 'Stakeholders', icon: Users },
+          { id: '/staff', label: 'Staff', icon: BriefcaseIcon },
+          { id: '/users', label: 'Users', icon: User }
+        ]
+      },
+      {
         title: 'Finance',
         items: [
           { id: '/expenses', label: 'Expenses', icon: Receipt },
@@ -40,7 +57,16 @@ function Sidebar({ isOpen }) {
       {
         title: 'Analytics',
         items: [
-          { id: '/reports', label: 'Reports', icon: BarChart }
+          { id: '/reports', label: 'Reports', icon: BarChart },
+          { id: '/resources', label: 'Resources', icon: PieChart }
+        ]
+      },
+      {
+        title: 'System',
+        items: [
+          { id: '/admin', label: 'Admin', icon: Briefcase },
+          { id: '/settings', label: 'Settings', icon: Settings },
+          { id: '/help', label: 'Help', icon: HelpCircle }
         ]
       }
     ];
