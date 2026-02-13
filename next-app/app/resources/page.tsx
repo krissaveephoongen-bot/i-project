@@ -144,25 +144,7 @@ export default function ResourcesPage() {
           </div>
         </div>
 
-        {/* Vendors Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Active Vendors</h2>
-          <div className="grid grid-cols-3 gap-4">
-            {['TechConsult', 'ArchDesign', 'DataPro', 'APIServices', 'WebCraft', 'TestForce'].map((vendor) => (
-              <div key={vendor} className="p-4 border border-slate-200 rounded-lg hover:border-[#2563EB] transition-colors cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Users className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{vendor}</p>
-                    <p className="text-xs text-slate-500">Active Partner</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+
       </div>
     </div>
   );

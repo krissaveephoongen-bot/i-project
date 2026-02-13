@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { randomBytes } from 'crypto';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-only-secret' : (() => { throw new Error('JWT_SECRET is required in production'); })());
 const JWT_EXPIRY = '24h';
 const REFRESH_TOKEN_EXPIRY = '7d';
 

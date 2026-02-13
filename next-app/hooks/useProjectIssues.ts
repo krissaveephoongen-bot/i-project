@@ -55,21 +55,17 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const apiBase = '';
 
   const fetchIssues = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`${apiUrl}/projects/${projectId}/issues`, {
-        credentials: 'include',
-      });
-
+      const response = await fetch(`/api/projects/issues?projectId=${projectId}`, { cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to fetch issues');
-
       const data = await response.json();
-      setIssues(Array.isArray(data.data) ? data.data : []);
+      setIssues(Array.isArray(data) ? data : []);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
@@ -81,33 +77,34 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
 
   const fetchSummary = useCallback(async () => {
     try {
-      const response = await fetch(
-        `${apiUrl}/projects/${projectId}/issues/summary`,
-        { credentials: 'include' }
-      );
-
-      if (!response.ok) throw new Error('Failed to fetch summary');
-
-      const data = await response.json();
-      setSummary(data.data);
+      const s = {
+        total_issues: issues.length,
+        open_issues: issues.filter(i => i.status === 'open').length,
+        in_progress_issues: issues.filter(i => i.status === 'in-progress').length,
+        resolved_issues: issues.filter(i => i.status === 'resolved').length,
+        closed_issues: issues.filter(i => i.status === 'closed').length,
+        critical_issues: issues.filter(i => i.priority === 'critical').length,
+        high_priority_issues: issues.filter(i => i.priority === 'high').length,
+        schedule_impact_count: issues.filter(i => i.impact_on_schedule).length,
+        budget_impact_count: issues.filter(i => i.impact_on_budget).length,
+        total_issue_cost: issues.reduce((sum, i) => sum + Number(i.estimated_cost || 0), 0),
+      } as IssueSummary;
+      setSummary(s);
     } catch (err) {
-      console.error('Error fetching summary:', err);
+      console.error('Error computing summary:', err);
     }
-  }, [projectId, apiUrl]);
+  }, [projectId, issues]);
 
   const createIssue = useCallback(
     async (data: Partial<ProjectIssue>): Promise<ProjectIssue> => {
-      const response = await fetch(`${apiUrl}/projects/${projectId}/issues`, {
+      const response = await fetch(`/api/projects/issues`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(data),
       });
-
       if (!response.ok) throw new Error('Failed to create issue');
-
       const result = await response.json();
-      return result.data;
+      return result as ProjectIssue;
     },
     [projectId, apiUrl]
   );
@@ -145,11 +142,9 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
 
   const deleteIssue = useCallback(
     async (issueId: string): Promise<void> => {
-      const response = await fetch(`${apiUrl}/issues/${issueId}`, {
+      const response = await fetch(`/api/projects/issues?id=${issueId}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
-
       if (!response.ok) throw new Error('Failed to delete issue');
     },
     [apiUrl]

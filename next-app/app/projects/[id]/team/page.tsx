@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Header from '@/app/components/Header';
 import { Users, UserPlus, Mail, Phone, Calendar, Briefcase, Crown, Shield, User } from 'lucide-react';
 import { clsx } from 'clsx';
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL as string;
 
 interface Contact {
   id: string;
