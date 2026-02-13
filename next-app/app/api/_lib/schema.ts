@@ -87,6 +87,15 @@ export async function runSchemaSync() {
             ALTER TABLE projects ADD CONSTRAINT projects_managerId_fkey FOREIGN KEY ("managerId") REFERENCES users(id);
           END IF;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='closure_checklist') THEN
+          ALTER TABLE projects ADD COLUMN closure_checklist jsonb;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='warranty_start_date') THEN
+          ALTER TABLE projects ADD COLUMN warranty_start_date timestamp without time zone;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='warranty_end_date') THEN
+          ALTER TABLE projects ADD COLUMN warranty_end_date timestamp without time zone;
+        END IF;
       END $$;`,
      `DO $$
       BEGIN
@@ -245,7 +254,20 @@ export async function runSchemaSync() {
         cost numeric NOT NULL DEFAULT 0
       );`
     ,
-     `CREATE TABLE IF NOT EXISTS audit_logs (
+     `CREATE TABLE IF NOT EXISTS system_settings (
+        key text PRIMARY KEY,
+        value text NOT NULL,
+        description text,
+        updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );`,
+     `INSERT INTO system_settings (key, value, description) 
+      VALUES 
+        ('maintenance_mode', 'false', 'Enable maintenance mode to block non-admin access'),
+        ('allow_registration', 'true', 'Allow new users to sign up'),
+        ('default_timezone', 'Asia/Bangkok', 'Default system timezone'),
+        ('max_failed_login', '5', 'Max failed login attempts before lockout')
+      ON CONFLICT (key) DO NOTHING;`,
+    `CREATE TABLE IF NOT EXISTS audit_logs (
         id text PRIMARY KEY,
         project_id text,
         user_id text,
@@ -358,13 +380,13 @@ export async function runSchemaSync() {
     `CREATE INDEX IF NOT EXISTS idx_sales_deals_client ON sales_deals(client_id);`,
     `CREATE INDEX IF NOT EXISTS idx_sales_deals_stage ON sales_deals(stage_id);`,
     `CREATE INDEX IF NOT EXISTS idx_sales_deals_pipeline ON sales_deals(pipeline_id);`,
-    `CREATE TABLE IF NOT EXISTS milestones (
+        `CREATE TABLE IF NOT EXISTS milestones (
         id text PRIMARY KEY,
-        project_id text NOT NULL,
+        projectId text NOT NULL,
         name text NOT NULL,
         percentage numeric NOT NULL DEFAULT 0,
         amount numeric NOT NULL DEFAULT 0,
-        due_date timestamp without time zone,
+        dueDate timestamp without time zone,
         status text NOT NULL DEFAULT 'Pending',
         note text,
         createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -372,8 +394,8 @@ export async function runSchemaSync() {
       );`,
      `DO $$
       BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'milestones_project_id_fkey') THEN
-          ALTER TABLE milestones ADD CONSTRAINT milestones_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'milestones_projectId_fkey') THEN
+          ALTER TABLE milestones ADD CONSTRAINT milestones_projectId_fkey FOREIGN KEY ("projectId") REFERENCES projects(id);
         END IF;
       END $$;`,
     `DO $$
@@ -472,20 +494,31 @@ export async function runSchemaSync() {
       );`,
     `CREATE TABLE IF NOT EXISTS expenses (
         id text PRIMARY KEY,
-        user_id text NOT NULL,
-        project_id text,
-        task_id text,
+        userId text NOT NULL,
+        projectId text,
+        taskId text,
         date date NOT NULL,
         amount numeric NOT NULL DEFAULT 0,
         category text NOT NULL,
         description text,
-        rejected_reason text,
+        rejectedReason text,
         status text NOT NULL DEFAULT 'pending',
-        approved_by text,
-        approved_at timestamp without time zone,
-        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at timestamp without time zone NOT NULL
+        approvedBy text,
+        approvedAt timestamp without time zone,
+        approverId text,
+        details jsonb,
+        createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt timestamp without time zone NOT NULL
     );`,
+    `DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='details') THEN
+          ALTER TABLE expenses ADD COLUMN details jsonb;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='approverId') THEN
+          ALTER TABLE expenses ADD COLUMN "approverId" text;
+        END IF;
+      END $$;`,
     `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='timesheets' AND column_name='status') THEN
@@ -509,14 +542,17 @@ export async function runSchemaSync() {
       END $$;`,
     `DO $$
       BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_user_id_fkey') THEN
-          ALTER TABLE expenses ADD CONSTRAINT expenses_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_userId_fkey') THEN
+          ALTER TABLE expenses ADD CONSTRAINT expenses_userId_fkey FOREIGN KEY ("userId") REFERENCES users(id);
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_project_id_fkey') THEN
-          ALTER TABLE expenses ADD CONSTRAINT expenses_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_projectId_fkey') THEN
+          ALTER TABLE expenses ADD CONSTRAINT expenses_projectId_fkey FOREIGN KEY ("projectId") REFERENCES projects(id);
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_task_id_fkey') THEN
-          ALTER TABLE expenses ADD CONSTRAINT expenses_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id);
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_taskId_fkey') THEN
+          ALTER TABLE expenses ADD CONSTRAINT expenses_taskId_fkey FOREIGN KEY ("taskId") REFERENCES tasks(id);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_approverId_fkey') THEN
+          ALTER TABLE expenses ADD CONSTRAINT expenses_approverId_fkey FOREIGN KEY ("approverId") REFERENCES users(id);
         END IF;
       END $$;`,
     `DO $$

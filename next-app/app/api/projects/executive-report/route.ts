@@ -1,43 +1,94 @@
-import { NextRequest } from 'next/server';
-import { ok, err } from '../../_lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const host = _req.headers.get('host') || 'localhost:3000';
-    const proto = _req.headers.get('x-forwarded-proto') || 'http';
-    const base = `${proto}://${host}`;
-    const res = await fetch(`${base}/api/projects/insights`, { cache: 'no-store' });
-    const insights = res.ok ? await res.json() : null;
-    if (!insights) return err('no insights', 500);
-    const worstSpiRes = await fetch(`${base}/api/projects/`, { cache: 'no-store' });
-    const projects = worstSpiRes.ok ? await worstSpiRes.json() : [];
-    const series: Array<{ id: string; spi: number; name: string }> = [];
-    for (const p of (projects || [])) {
-      try {
-        const ovr = await fetch(`${base}/api/projects/overview/${p.id}`, { cache: 'no-store' });
-        const ov = ovr.ok ? await ovr.json() : null;
-        if (ov) series.push({ id: p.id, name: p.name, spi: Number(ov.project?.spi || 1) });
-      } catch {}
-    }
-    series.sort((a, b) => a.spi - b.spi);
-    const watchlist = series.slice(0, 5);
+    if (!supabaseAdmin) return NextResponse.json({ error: 'admin client missing' }, { status: 500 });
+
+    // 1. Fetch all projects
+    const { data: projects, error: projError } = await supabaseAdmin
+        .from('projects')
+        .select('id, name, spi, budget, status');
+
+    if (projError) throw projError;
+
+    const ids = (projects || []).map((p: any) => p.id);
+
+    // 2. Fetch High Risks
+    const { data: risks, error: riskError } = ids.length ? await supabaseAdmin
+        .from('risks')
+        .select('projectId, severity, status')
+        .in('projectId', ids) 
+        : { data: [], error: null };
+    
+    if (riskError) throw riskError;
+
+    // 3. Fetch Overdue Milestones
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: milestones, error: mileError } = ids.length ? await supabaseAdmin
+        .from('milestones')
+        .select('id, projectId, dueDate, due_date, status')
+        .in('projectId', ids)
+        .lt('due_date', today) // Overdue
+        : { data: [], error: null };
+
+    if (mileError) throw mileError;
+
+    // --- Calculations ---
+
+    // A. High Risk Projects
+    const riskCounts: Record<string, number> = {};
+    (risks || []).forEach((r: any) => {
+        if ((r.severity || '').toLowerCase() === 'high' && (r.status || '').toLowerCase() !== 'closed') {
+            riskCounts[r.projectId] = (riskCounts[r.projectId] || 0) + 1;
+        }
+    });
+
+    const highRiskProjects = (projects || []).filter((p: any) => riskCounts[p.id] > 0).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        highRiskCount: riskCounts[p.id]
+    }));
+
+    // B. Overdue Milestones Count (Global)
+    const overdueCount = (milestones || []).filter((m: any) => {
+        const st = (m.status || '').toLowerCase();
+        return st !== 'paid' && st !== 'completed';
+    }).length;
+
+    // C. Avg SPI
+    const totalSpi = (projects || []).reduce((sum: number, p: any) => sum + Number(p.spi || 1), 0);
+    const avgSpi = projects?.length ? totalSpi / projects.length : 1;
+
+    // D. Watchlist (Lowest SPI)
+    const watchlist = [...(projects || [])]
+        .sort((a: any, b: any) => Number(a.spi || 1) - Number(b.spi || 1))
+        .slice(0, 5)
+        .map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            spi: Number(p.spi || 1)
+        }));
+
     const report = {
       title: 'Executive Project Report',
-      date: new Date().toISOString().slice(0, 10),
+      date: today,
       summary: {
-        totalProjects: insights.total,
-        avgSpi: Number(insights.avgSpi || 1).toFixed(2),
-        highRiskProjects: insights.highRiskProjects,
-        overdueMilestones: insights.overdueMilestones,
-        budgetTotals: insights.budgetTotals
+        totalProjects: projects?.length || 0,
+        avgSpi: avgSpi.toFixed(2),
+        highRiskProjects,
+        overdueMilestones: overdueCount,
+        // budgetTotals: ... (optional, if needed)
       },
       watchlist,
-      statusCounts: insights.statusCounts
+      // statusCounts: ...
     };
-    return ok(report, 200);
+
+    return NextResponse.json(report, { status: 200 });
   } catch (e: any) {
-    return err(e?.message || 'executive report error', 500);
+    console.error('Executive Report Error:', e);
+    return NextResponse.json({ error: e?.message || 'executive report error' }, { status: 500 });
   }
 }

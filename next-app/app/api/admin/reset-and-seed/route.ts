@@ -30,8 +30,8 @@ export async function POST(request: NextRequest) {
     
     // Timesheets & Submissions
     await supabaseAdmin.from('timesheet_submissions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseAdmin.from('timesheets').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    addLog('✓ Cleared Timesheets');
+    await supabaseAdmin.from('time_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    addLog('✓ Cleared Time Entries');
 
     // Tasks & Logs
     await supabaseAdmin.from('task_actual_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -139,16 +139,16 @@ export async function POST(request: NextRequest) {
 
     // E. Create Timesheet
     const today = new Date().toISOString().split('T')[0];
-    const { data: timesheet, error: tsError } = await supabaseAdmin.from('timesheets').insert({
-      user_id: mainUser.id,
-      project_id: project.id,
-      task_id: task.id,
+    const { data: timesheet, error: tsError } = await supabaseAdmin.from('time_entries').insert({
+      userId: mainUser.id,
+      projectId: project.id,
+      taskId: task.id,
       date: today,
       hours: 8,
-      // approved: true // If column exists, otherwise we assume draft/pending
+      status: 'pending'
     }).select().single();
     if (tsError) throw tsError;
-    addLog(`> Created Timesheet: 8 hours on ${today}`);
+    addLog(`> Created Timesheet Entry: 8 hours on ${today}`);
 
     // F. Update Project Progress
     await supabaseAdmin.from('projects').update({

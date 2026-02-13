@@ -38,6 +38,8 @@ interface PageFilterProps {
   onDateRangeChange?: (range: DateRange) => void
   showDateFilter?: boolean
   className?: string
+  quickFilters?: Array<{ label: string; value: string; targetKey: string }>
+  savedViews?: { enabled: boolean; userId: string; pageKey: string }
 }
 
 export function PageFilter({
@@ -49,8 +51,22 @@ export function PageFilter({
   onDateRangeChange,
   showDateFilter = false,
   className,
+  quickFilters = [],
+  savedViews,
 }: PageFilterProps) {
   const [isFiltersOpen, setIsFiltersOpen] = React.useState(false)
+  const [views, setViews] = React.useState<Array<{ id: string; name: string; filters: any }>>([])
+  const [selectedView, setSelectedView] = React.useState<string>("")
+
+  React.useEffect(() => {
+    const load = async () => {
+      if (!savedViews?.enabled) return
+      const res = await fetch(`/api/saved-views?pageKey=${encodeURIComponent(savedViews.pageKey)}&userId=${encodeURIComponent(savedViews.userId)}`)
+      const json = await res.json()
+      setViews(json.views || [])
+    }
+    load()
+  }, [savedViews?.enabled, savedViews?.pageKey, savedViews?.userId])
 
   const activeFiltersCount = filters.filter(f => f.value && f.value !== "all").length +
     (dateRange?.from || dateRange?.to ? 1 : 0)
@@ -113,6 +129,88 @@ export function PageFilter({
           </Button>
         </div>
       </div>
+
+      {/* Quick Filters */}
+      {quickFilters.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {quickFilters.map((qf, idx) => {
+            const target = filters.find(f => f.key === qf.targetKey)
+            const isActive = target?.value === qf.value
+            return (
+              <Button
+                key={`${qf.targetKey}-${qf.value}-${idx}`}
+                variant={isActive ? 'default' : 'outline'}
+                size="sm"
+                className="h-8"
+                onClick={() => target?.onChange(qf.value)}
+              >
+                {qf.label}
+              </Button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Saved Views */}
+      {savedViews?.enabled && (
+        <div className="flex items-center gap-2">
+          <Select value={selectedView} onValueChange={(v) => {
+            setSelectedView(v)
+            const fv = views.find(x => x.id === v)
+            if (!fv) return
+            filters.forEach(f => {
+              const next = fv.filters?.[f.key]
+              if (typeof next === 'string') f.onChange(next)
+            })
+          }}>
+            <SelectTrigger className="w-52">
+              <SelectValue placeholder={"Saved views"} />
+            </SelectTrigger>
+            <SelectContent>
+              {views.map(v => (
+                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              const payload = {
+                userId: savedViews.userId,
+                pageKey: savedViews.pageKey,
+                name: `View ${new Date().toLocaleString()}`,
+                filters: Object.fromEntries(filters.map(f => [f.key, f.value]))
+              }
+              const res = await fetch('/api/saved-views', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+              const json = await res.json()
+              if (json.ok) {
+                setSelectedView(json.id)
+                const reload = await fetch(`/api/saved-views?pageKey=${encodeURIComponent(savedViews.pageKey)}&userId=${encodeURIComponent(savedViews.userId)}`)
+                const j = await reload.json()
+                setViews(j.views || [])
+              }
+            }}
+          >
+            Save current
+          </Button>
+          {selectedView && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                await fetch(`/api/saved-views?id=${encodeURIComponent(selectedView)}&userId=${encodeURIComponent(savedViews.userId)}`, { method: 'DELETE' })
+                setSelectedView("")
+                const reload = await fetch(`/api/saved-views?pageKey=${encodeURIComponent(savedViews.pageKey)}&userId=${encodeURIComponent(savedViews.userId)}`)
+                const j = await reload.json()
+                setViews(j.views || [])
+              }}
+            >
+              Delete
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Advanced Filters - Responsive */}
       {isFiltersOpen && (

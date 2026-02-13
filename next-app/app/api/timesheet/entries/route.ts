@@ -16,34 +16,34 @@ export const dynamic = 'force-dynamic';
        return NextResponse.json({ error: 'userId, start, end are required' }, { status: 400 });
      }
  
-     // Use correct table 'timesheets' and snake_case columns as per schema
-     let q = supabase
-       .from('timesheets')
-       .select('id, project_id, user_id, date, hours')
-       .eq('user_id', userId)
-       .gte('date', start)
-       .lte('date', end);
-     if (projects.length > 0) {
-       q = q.in('project_id', projects);
-     }
-     const { data, error } = await q.order('date', { ascending: true });
-     
-     if (error) {
-        console.error('Error fetching timesheets:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-     }
-     
-     // Map back to camelCase for frontend if needed, or keep consistent. 
-     // Frontend likely expects camelCase if it was built that way.
-     // Checking previous code: select('id,projectId,userId,date,hours')
-     // So we should map it.
-     const mappedData = (data || []).map((d: any) => ({
-         id: d.id,
-         projectId: d.project_id,
-         userId: d.user_id,
-         date: d.date,
-         hours: d.hours
-     }));
+     // Use correct table 'time_entries' and camelCase columns as per schema
+    let q = supabase
+      .from('time_entries')
+      .select('id, projectId, userId, date, hours')
+      .eq('userId', userId)
+      .gte('date', start)
+      .lte('date', end);
+    if (projects.length > 0) {
+      q = q.in('projectId', projects);
+    }
+    const { data, error } = await q.order('date', { ascending: true });
+    
+    if (error) {
+       console.error('Error fetching time_entries:', error);
+       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    
+    // Map back to camelCase for frontend if needed, or keep consistent. 
+    // Frontend likely expects camelCase if it was built that way.
+    // Checking previous code: select('id,projectId,userId,date,hours')
+    // So we should map it.
+    const mappedData = (data || []).map((d: any) => ({
+        id: d.id,
+        projectId: d.projectId,
+        userId: d.userId,
+        date: d.date,
+        hours: d.hours
+    }));
 
      return NextResponse.json(mappedData, { status: 200 });
    } catch (error: any) {
@@ -60,33 +60,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'user_id, project_id, date required' }, { status: 400 });
     }
     
-    // Schema uses snake_case
+    // Schema uses camelCase
     const payload: any = {
       id: crypto.randomUUID(),
-      user_id: user_id,
-      project_id: project_id,
-      task_id: task_id || null,
+      userId: user_id,
+      projectId: project_id,
+      taskId: task_id || null,
       date,
       hours: Number(hours || 0),
-      start_time: start_time || null,
-      end_time: end_time || null,
+      startTime: start_time || null,
+      endTime: end_time || null,
       description: description || null,
       status: 'pending' // Default status
     };
 
-    const { data, error } = await supabase.from('timesheets').insert(payload).select().single();
+    const { data, error } = await supabase.from('time_entries').insert(payload).select().single();
     
     if (error) {
-        console.error('Error inserting timesheet:', error);
+        console.error('Error inserting time_entries:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
     // Map response
     const res = {
         id: data.id,
-        userId: data.user_id,
-        projectId: data.project_id,
-        taskId: data.task_id,
+        userId: data.userId,
+        projectId: data.projectId,
+        taskId: data.taskId,
         date: data.date,
         hours: data.hours,
         description: data.description
@@ -109,23 +109,23 @@ export async function PUT(request: NextRequest) {
     
     const payload: any = {};
     if (typeof hours !== 'undefined') payload.hours = Number(hours || 0);
-    if (typeof task_id !== 'undefined') payload.task_id = task_id || null;
-    if (typeof start_time !== 'undefined') payload.start_time = start_time || null;
-    if (typeof end_time !== 'undefined') payload.end_time = end_time || null;
+    if (typeof task_id !== 'undefined') payload.taskId = task_id || null;
+    if (typeof start_time !== 'undefined') payload.startTime = start_time || null;
+    if (typeof end_time !== 'undefined') payload.endTime = end_time || null;
     if (typeof description !== 'undefined') payload.description = description || null;
 
-    const { data, error } = await supabase.from('timesheets').update(payload).eq('id', id).select().single();
+    const { data, error } = await supabase.from('time_entries').update(payload).eq('id', id).select().single();
     
     if (error) {
-        console.error('Error updating timesheet:', error);
+        console.error('Error updating time_entries:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     const res = {
         id: data.id,
-        userId: data.user_id,
-        projectId: data.project_id,
-        taskId: data.task_id,
+        userId: data.userId,
+        projectId: data.projectId,
+        taskId: data.taskId,
         date: data.date,
         hours: data.hours,
         description: data.description
@@ -145,9 +145,9 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: 'id required' }, { status: 400 });
     }
-    const { error } = await supabase.from('timesheets').delete().eq('id', id);
+    const { error } = await supabase.from('time_entries').delete().eq('id', id);
     if (error) {
-        console.error('Error deleting timesheet:', error);
+        console.error('Error deleting time_entries:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json({ ok: true }, { status: 200 });

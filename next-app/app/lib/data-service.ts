@@ -150,7 +150,7 @@ export async function getDashboardFinancials(): Promise<FinancialData[]> {
 export async function getDashboardTeamLoad(): Promise<TeamLoadData[]> {
   try {
     const { data: users } = await supabase.from('users').select('id,name');
-    const { data: entries } = await supabase.from('timesheets').select('user_id,hours');
+    const { data: entries } = await supabase.from('time_entries').select('userId,hours');
     
     const userMap = new Map<string, {name: string, hours: number}>();
     
@@ -159,7 +159,7 @@ export async function getDashboardTeamLoad(): Promise<TeamLoadData[]> {
     });
     
     (entries || []).forEach((e: any) => {
-        const uid = e.user_id || e.userId;
+        const uid = e.userId;
         if (userMap.has(uid)) {
             const u = userMap.get(uid)!;
             u.hours += Number(e.hours || 0);
@@ -256,8 +256,8 @@ export async function getSunburstData(
     const end = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
 
     const { data: entries, error } = await supabase
-      .from('timesheets')
-      .select('id,date,hours,start_time,end_time,project_id,task_id,user_id')
+      .from('time_entries')
+      .select('id,date,hours,startTime,endTime,projectId,taskId,userId')
       .gte('date', start)
       .lte('date', end);
       
@@ -266,11 +266,11 @@ export async function getSunburstData(
     // Normalize snake_case to what logic expects or adjust logic
     const normalizedEntries = (entries || []).map((e: any) => ({
         ...e,
-        startTime: e.start_time,
-        endTime: e.end_time,
-        projectId: e.project_id,
-        taskId: e.task_id,
-        userId: e.user_id
+        startTime: e.startTime,
+        endTime: e.endTime,
+        projectId: e.projectId,
+        taskId: e.taskId,
+        userId: e.userId
     }));
     
     const pids = Array.from(new Set(normalizedEntries.map((e: any) => e.projectId).filter(Boolean)));

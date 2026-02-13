@@ -4,12 +4,12 @@ import { Pool } from 'pg';
 // PostgreSQL pool connections
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: { rejectUnauthorized: false }
 });
 
 export const poolDirect = new Pool({
   connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: { rejectUnauthorized: false }
 });
  
  export function ok(data: any, status = 200) {

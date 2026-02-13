@@ -478,6 +478,12 @@ export default function ProjectsPageRefactored() {
               searchValue={searchTerm}
               onSearchChange={setSearchTerm}
               filters={filterOptions}
+              savedViews={{ enabled: true, userId, pageKey: 'projects/list' }}
+              quickFilters={[
+                { label: 'Active', value: 'Active', targetKey: 'status' },
+                { label: 'Planning', value: 'Planning', targetKey: 'status' },
+                { label: 'Completed', value: 'Completed', targetKey: 'status' },
+              ]}
             />
 
             <DataTable

@@ -45,8 +45,10 @@ export default function NotificationCenter() {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-            setNotifications(data);
-            setUnreadCount(data.filter((n: Notification) => !n.is_read).length);
+            // Filter locally to ensure only 'approval' and 'log' types are shown if backend returns mixed
+            const filtered = data.filter(n => ['approval', 'log'].includes(n.type));
+            setNotifications(filtered);
+            setUnreadCount(filtered.filter((n: Notification) => !n.is_read).length);
         }
       }
     } catch (error) {

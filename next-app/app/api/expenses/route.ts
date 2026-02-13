@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('expenses')
-      .select('id, user_id, project_id, task_id, date, amount, category, description, status, rejected_reason, approved_by, approved_at, project:projects(id, name), task:tasks(id, title)')
-      .eq('user_id', userId)
+      .select('id, user_id, userId, project_id, projectId, task_id, taskId, date, amount, category, description, status, rejected_reason, rejectedReason, approved_by, approvedBy, approved_at, approvedAt, approver_id, receiptUrl, details, project:projects(id, name), task:tasks(id, title), approver:users!approver_id(id, name)')
+      .eq('user_id', userId) // or 'userId' depending on what supabase sees
       .order('date', { ascending: false });
 
     if (error) {
@@ -25,17 +25,21 @@ export async function GET(request: NextRequest) {
     // Map to camelCase
     const mapped = (data || []).map((d: any) => ({
       id: d.id,
-      userId: d.user_id,
-      projectId: d.project_id,
-      taskId: d.task_id,
+      userId: d.userId || d.user_id,
+      projectId: d.projectId || d.project_id,
+      taskId: d.taskId || d.task_id,
       date: d.date,
       amount: d.amount,
       category: d.category,
       description: d.description,
       status: d.status,
-      rejectedReason: d.rejected_reason,
-      approvedBy: d.approved_by,
-      approvedAt: d.approved_at,
+      rejectedReason: d.rejectedReason || d.rejected_reason,
+      approvedBy: d.approvedBy || d.approved_by,
+      approvedAt: d.approvedAt || d.approved_at,
+      approverId: d.approver_id, // snake_case in db
+      approver: d.approver,
+      receiptUrl: d.receiptUrl,
+      details: d.details,
       project: d.project,
       task: d.task
     }));
@@ -49,7 +53,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { user_id, project_id, task_id, date, amount, category, description } = body;
+    const { user_id, project_id, task_id, date, amount, category, description, receiptUrl, details, approverId } = body;
 
     if (!user_id || !project_id || !date || !amount || !category) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -57,13 +61,16 @@ export async function POST(request: NextRequest) {
 
     const payload = {
       id: crypto.randomUUID(),
-      user_id,
-      project_id,
-      task_id: task_id || null,
+      user_id, // or userId
+      project_id, // or projectId
+      task_id: task_id || null, // or taskId
       date,
       amount: Number(amount),
       category,
       description: description || null,
+      receiptUrl: receiptUrl || null,
+      details: details || null,
+      approver_id: approverId || null,
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -85,7 +92,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, project_id, task_id, date, amount, category, description } = body;
+    const { id, project_id, task_id, date, amount, category, description, receiptUrl, details } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'ID required' }, { status: 400 });
@@ -106,6 +113,8 @@ export async function PUT(request: NextRequest) {
     if (amount) payload.amount = Number(amount);
     if (category) payload.category = category;
     if (description !== undefined) payload.description = description;
+    if (receiptUrl !== undefined) payload.receiptUrl = receiptUrl;
+    if (details !== undefined) payload.details = details;
     
     // Reset status to pending on edit if it was rejected
     if (existing && existing.status === 'rejected') {

@@ -520,11 +520,17 @@ export default function ProjectsPageRefactored() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="p-4 bg-muted/30">
-                  <PageFilter
+                    <PageFilter
                   searchPlaceholder="ค้นหาชื่อโครงการ, รหัส, หรือผู้รับผิดชอบ..."
                   searchValue={searchTerm}
                   onSearchChange={setSearchTerm}
                   filters={filterOptions}
+                  savedViews={{ enabled: true, userId, pageKey: 'projects/list' }}
+                    quickFilters={[
+                      { label: 'Active', value: 'Active', targetKey: 'status' },
+                      { label: 'Planning', value: 'Planning', targetKey: 'status' },
+                      { label: 'Completed', value: 'Completed', targetKey: 'status' },
+                    ]}
                   />
               </div>
 

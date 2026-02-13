@@ -14,7 +14,7 @@ async function getStakeholders({ projectId }: { projectId?: string }) {
             email,
             phone,
             type,
-            projects (id, name)
+            project:projects!contacts_project_id_fkey (id, name)
         `)
         .in('type', ['stakeholder', 'client', 'Stakeholder', 'Client']);
 
@@ -48,7 +48,7 @@ export default async function StakeholdersPage({ searchParams }: { searchParams?
     return (
         <div className="min-h-screen">
             <Header
-                title="Stakeholders"
+                title="Project Stakeholders"
                 breadcrumbs={[{ label: 'Workspace' }, { label: 'Stakeholders' }]}
             />
             <div className="pt-20 px-6 pb-6">
@@ -57,7 +57,10 @@ export default async function StakeholdersPage({ searchParams }: { searchParams?
                         <div className="flex items-center justify-between">
                             <div>
                                 <h2 className="text-lg font-semibold text-slate-900">Stakeholder Directory</h2>
-                                <p className="text-sm text-slate-500">{stakeholders.length} contacts found</p>
+                                <p className="text-sm text-slate-500">
+                                    {stakeholders.length} contacts found 
+                                    {projectId ? ' (Filtered by Project)' : ' (All Projects)'}
+                                </p>
                             </div>
                             <ProjectFilter projects={projects} />
                         </div>
@@ -85,10 +88,10 @@ export default async function StakeholdersPage({ searchParams }: { searchParams?
                                         <Phone className="w-4 h-4 text-slate-400"/>
                                         <span>{stakeholder.phone || 'N/A'}</span>
                                     </div>
-                                     {stakeholder.projects?.name && (
+                                     {stakeholder.project?.name && (
                                         <div className="flex items-center gap-2 text-slate-700">
                                             <Briefcase className="w-4 h-4 text-slate-400"/>
-                                            <Link href={`/projects/${stakeholder.projects.id}`} className="text-blue-600 hover:underline">{stakeholder.projects.name}</Link>
+                                            <Link href={`/projects/${stakeholder.project.id}`} className="text-blue-600 hover:underline">{stakeholder.project.name}</Link>
                                         </div>
                                      )}
                                 </div>

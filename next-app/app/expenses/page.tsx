@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { Plus, Edit2, Trash2, Calendar, DollarSign, FileText, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar, DollarSign, FileText, X, Truck } from 'lucide-react';
 import Header from '../components/Header';
 import { useAuth } from '../components/AuthProvider';
 import { Button } from '@/app/components/ui/Button';
@@ -38,6 +40,8 @@ interface Expense {
   amount: number;
   category: string;
   description?: string;
+  receiptUrl?: string;
+  details?: any;
   status: 'pending' | 'approved' | 'rejected';
   rejectedReason?: string;
   project?: { name: string };
@@ -53,6 +57,7 @@ const CATEGORIES = ['Travel', 'Meals', 'Lodging', 'Office Supplies', 'Software',
 
 export default function ExpensesPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +70,8 @@ export default function ExpensesPage() {
     date: new Date().toISOString().split('T')[0],
     amount: '',
     category: '',
-    description: ''
+    description: '',
+    receiptUrl: ''
   });
 
   useEffect(() => {
@@ -106,7 +112,8 @@ export default function ExpensesPage() {
         date: expense.date,
         amount: String(expense.amount),
         category: expense.category,
-        description: expense.description || ''
+        description: expense.description || '',
+        receiptUrl: expense.receiptUrl || ''
       });
     } else {
       setEditingId(null);
@@ -115,7 +122,8 @@ export default function ExpensesPage() {
         date: new Date().toISOString().split('T')[0],
         amount: '',
         category: '',
-        description: ''
+        description: '',
+        receiptUrl: ''
       });
     }
     setModalOpen(true);
@@ -150,7 +158,8 @@ export default function ExpensesPage() {
         date: formData.date,
         amount: Number(formData.amount),
         category: formData.category,
-        description: formData.description
+        description: formData.description,
+        receiptUrl: formData.receiptUrl
       };
 
       let res;
@@ -201,9 +210,21 @@ export default function ExpensesPage() {
                 <h1 className="text-2xl font-bold text-slate-900">Expense Claims</h1>
                 <p className="text-slate-500">Manage and track your project expenses</p>
             </div>
-            <Button onClick={() => handleOpenModal()} className="gap-2 bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4" /> New Claim
-            </Button>
+            <div className="flex gap-2">
+                <Link href="/expenses/memo">
+                    <Button variant="outline" className="gap-2">
+                        <FileText className="h-4 w-4" /> Memo Request
+                    </Button>
+                </Link>
+                <Link href="/expenses/travel">
+                    <Button variant="outline" className="gap-2">
+                        <Truck className="h-4 w-4" /> Travel Claim
+                    </Button>
+                </Link>
+                <Button onClick={() => handleOpenModal()} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                    <Plus className="h-4 w-4" /> New Claim
+                </Button>
+            </div>
         </div>
 
         <Card>
@@ -342,6 +363,15 @@ export default function ExpensesPage() {
                             placeholder="Describe the expense..."
                             value={formData.description}
                             onChange={e => setFormData({...formData, description: e.target.value})}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Receipt URL (Optional)</label>
+                        <Input 
+                            placeholder="https://example.com/receipt.jpg"
+                            value={formData.receiptUrl}
+                            onChange={e => setFormData({...formData, receiptUrl: e.target.value})}
                         />
                     </div>
                 </div>

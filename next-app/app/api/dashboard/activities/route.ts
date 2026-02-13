@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch recent timesheets
     const { data: timesheets } = await supabase
-      .from('timesheets')
+      .from('time_entries')
       .select('id, date, hours, description, user:users(name), project:projects(name)')
       .order('date', { ascending: false })
       .limit(10);
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     // Fetch recent projects
     const { data: projects } = await supabase
       .from('projects')
-      .select('id, name, createdAt, manager:users(name)')
+      .select('id, name, createdAt, created_at, manager:users(name)')
       .order('createdAt', { ascending: false })
       .limit(5);
 
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
         title: 'New Project',
         description: `Created project "${p.name}"`,
         user: p.manager?.name || 'System',
-        date: p.createdAt
+        date: p.createdAt || p.created_at || new Date().toISOString()
       });
     });
 

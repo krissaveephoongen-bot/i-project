@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../lib/supabaseClient';
+import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,14 +17,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('tasks')
-      .select(`
-        *,
-        projects(id, name, status),
-        users(id, name, email)
-      `, { count: 'exact' })
-      .eq('isDeleted', false)
+      .select('*', { count: 'exact' })
       .order('createdAt', { ascending: false });
 
     // Filter by assigned user or created by user
@@ -45,8 +40,7 @@ export async function GET(request: NextRequest) {
     const to = from + limit - 1;
     query = query.range(from, to);
 
-    const { data: tasks, error, count } = await query;
-
+    let { data: tasks, error, count } = await query;
     if (error) {
       console.error('Error fetching staff tasks:', error);
       return NextResponse.json(
@@ -87,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create task with created by as the current user
-    const { data: task, error } = await supabase
+    const { data: task, error } = await supabaseAdmin
       .from('tasks')
       .insert({
         ...taskData,

@@ -1,36 +1,62 @@
-import { NextRequest } from 'next/server';
-import { ok, err } from '../../_lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const host = _req.headers.get('host') || 'localhost:3000';
-    const proto = _req.headers.get('x-forwarded-proto') || 'http';
-    const base = `${proto}://${host}`;
-    const res = await fetch(`${base}/api/projects/`, { cache: 'no-store' });
-    const projects = res.ok ? await res.json() : [];
-    const summary: any[] = [];
-    for (const p of (projects || [])) {
-      try {
-        const snapRes = await fetch(`${base}/api/projects/progress/snapshot?projectId=${p.id}`, { cache: 'no-store' });
-        const snap = snapRes.ok ? await snapRes.json() : { points: [] };
-        const pts = snap.points || [];
-        const last = pts.slice(-1)[0];
-        const prev = pts.slice(-8, -7)[0] || pts.slice(0, 1)[0];
-        const delta = last && prev ? Number(last.actual || 0) - Number(prev.actual || 0) : 0;
-        summary.push({
-          id: p.id,
-          name: p.name,
-          progressActual: Number(last?.actual || 0),
-          progressPlan: Number(last?.plan || 0),
-          spi: Number(last?.spi || 1),
-          weeklyDelta: Number(delta.toFixed(2))
-        });
-      } catch {}
-    }
-    return ok({ summary, timestamp: new Date().toISOString() }, 200);
+    if (!supabaseAdmin) return NextResponse.json({ error: 'admin client missing' }, { status: 500 });
+
+    const { data: projects, error: projError } = await supabaseAdmin
+        .from('projects')
+        .select('id, name, progress, progressPlan, spi');
+    
+    if (projError) throw projError;
+
+    const ids = (projects || []).map((p: any) => p.id);
+    const today = new Date();
+    const lastWeek = new Date(); lastWeek.setDate(lastWeek.getDate() - 7);
+    const lastWeekStr = lastWeek.toISOString().slice(0, 10);
+
+    // Fetch snapshot from ~7 days ago for all projects
+    const { data: snaps, error: snapError } = ids.length ? await supabaseAdmin
+        .from('spi_cpi_daily_snapshot')
+        .select('projectId, date, progress')
+        .in('projectId', ids)
+        .gte('date', lastWeekStr)
+        .order('date', { ascending: true }) // Oldest first (closest to 7 days ago)
+        : { data: [], error: null };
+
+    if (snapError) throw snapError;
+
+    const snapMap: Record<string, number> = {};
+    (snaps || []).forEach((s: any) => {
+        // Since sorted asc, the first one encountered for a project is the oldest in range
+        if (!snapMap[s.projectId]) snapMap[s.projectId] = Number(s.progress || 0);
+    });
+
+    const summary = (projects || []).map((p: any) => {
+        const currentProgress = Number(p.progress || 0);
+        const prevProgress = snapMap[p.id] ?? currentProgress; // If no snap, assume no change
+        const delta = currentProgress - prevProgress;
+
+        return {
+            id: p.id,
+            name: p.name,
+            progressActual: currentProgress,
+            progressPlan: Number(p.progressPlan || 0),
+            spi: Number(p.spi || 1),
+            weeklyDelta: Number(delta.toFixed(2))
+        };
+    });
+
+    // Sort by progress desc
+    summary.sort((a: any, b: any) => b.progressActual - a.progressActual);
+
+    return NextResponse.json({ summary, timestamp: new Date().toISOString() }, { status: 200 });
+
   } catch (e: any) {
-    return err(e?.message || 'weekly summary error', 500);
+    console.error('Weekly Summary Error:', e);
+    return NextResponse.json({ error: e?.message || 'weekly summary error' }, { status: 500 });
   }
 }

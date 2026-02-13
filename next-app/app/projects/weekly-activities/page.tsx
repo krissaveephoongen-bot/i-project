@@ -1,4 +1,4 @@
-import WeeklyActivities from '../../../components/WeeklyActivities';
+import WeeklyActivities from '@/app/components/WeeklyActivities';
 
 export const dynamic = 'force-dynamic';
 

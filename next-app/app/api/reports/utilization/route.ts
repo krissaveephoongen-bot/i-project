@@ -11,11 +11,11 @@ export async function GET(request: NextRequest) {
     const projectId = searchParams.get('projectId') || '';
 
     const q = supabase
-      .from('timesheets')
-      .select('user_id,hours,date,project_id,billable')
+      .from('time_entries')
+      .select('userId,hours,date,projectId,billable')
       .gte('date', start)
       .lte('date', end);
-    const { data: entries, error } = projectId ? await q.eq('project_id', projectId) : await q;
+    const { data: entries, error } = projectId ? await q.eq('projectId', projectId) : await q;
     
     if (error) {
       console.error('Error fetching utilization:', error);
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const totals: Record<string, { total: number; billable: number }> = {};
     for (const e of entries || []) {
-      const uid = e.user_id || 'unknown';
+      const uid = e.userId || 'unknown';
       if (!totals[uid]) totals[uid] = { total: 0, billable: 0 };
       const h = Number(e.hours || 0);
       totals[uid].total += h;

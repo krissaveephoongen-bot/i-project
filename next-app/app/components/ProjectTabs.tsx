@@ -12,6 +12,7 @@ const tabs = [
   { key: 'risk', label: 'Risk', path: (id: string) => `/projects/${id}/risks` },
   { key: 'docs', label: 'Documents', path: (id: string) => `/projects/${id}/documents` },
   { key: 'team', label: 'Team', path: (id: string) => `/projects/${id}/team` },
+  { key: 'closure', label: 'Closure', path: (id: string) => `/projects/${id}/closure` },
 ];
 
 export default function ProjectTabs({ children }: { children?: React.ReactNode }) {

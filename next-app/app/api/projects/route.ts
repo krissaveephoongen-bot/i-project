@@ -1,13 +1,15 @@
 
 import { ok, err } from '../_lib/db';
-import { supabase } from '@/app/lib/supabaseClient';
+import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export async function GET() {
   try {
+    if (!supabaseAdmin) return err('admin client missing', 500);
+
     // Fetch projects first
-    const { data: projects, error } = await supabase
+    const { data: projects, error } = await supabaseAdmin
       .from('projects')
       .select('*')
       .order('updatedAt', { ascending: false })
@@ -25,12 +27,12 @@ export async function GET() {
     let clientsMap: Record<string, any> = {};
 
     if (managerIds.length > 0) {
-      const { data: managers } = await supabase.from('users').select('id,name').in('id', managerIds);
+      const { data: managers } = await supabaseAdmin.from('users').select('id,name').in('id', managerIds);
       managers?.forEach((m: any) => managersMap[m.id] = m);
     }
 
     if (clientIds.length > 0) {
-      const { data: clients } = await supabase.from('clients').select('id,name').in('id', clientIds);
+      const { data: clients } = await supabaseAdmin.from('clients').select('id,name').in('id', clientIds);
       clients?.forEach((c: any) => clientsMap[c.id] = c);
     }
 

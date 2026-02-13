@@ -1,34 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/app/lib/supabaseClient'
+import { supabaseAdmin } from '@/app/lib/supabaseAdmin'
 
 export async function GET(request: NextRequest) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('expenses')
-      .select('id,user_id,project_id,task_id,date,amount,category,description,rejected_reason,status,approved_by,approved_at, user:users(id,name), project:projects(id,name), task:tasks(id,title)')
+      .select(`
+        id,userId,projectId,taskId,date,amount,category,description,rejectedReason,status,approvedBy,approvedAt,
+        user:users!expenses_userId_fkey(id,name),
+        project:projects!expenses_projectId_fkey(id,name),
+        task:tasks!expenses_taskId_fkey(id,title)
+      `)
       .eq('status', 'pending')
       .order('date', { ascending: false })
 
     if (error) throw error
-    
-    // Map to camelCase
+
     const mapped = (data || []).map((d: any) => ({
-        id: d.id,
-        userId: d.user_id,
-        projectId: d.project_id,
-        taskId: d.task_id,
-        date: d.date,
-        amount: d.amount,
-        category: d.category,
-        description: d.description,
-        rejectedReason: d.rejected_reason,
-        status: d.status,
-        approvedBy: d.approved_by,
-        approvedAt: d.approved_at,
-        user: d.user,
-        project: d.project,
-        task: d.task
-    }));
+      id: d.id,
+      userId: d.userId,
+      projectId: d.projectId,
+      taskId: d.taskId,
+      date: d.date,
+      amount: d.amount,
+      category: d.category,
+      description: d.description,
+      rejectedReason: d.rejectedReason,
+      status: d.status,
+      approvedBy: d.approvedBy,
+      approvedAt: d.approvedAt,
+      user: d.user,
+      project: d.project,
+      task: d.task,
+    }))
 
     return NextResponse.json(mapped, { status: 200 })
   } catch (e: any) {

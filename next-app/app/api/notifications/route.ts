@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -12,10 +14,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Try to fetch from Supabase
+    // Only fetch 'approval' and 'log' types as per requirement
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
+      .in('type', ['approval', 'log'])
       .order('created_at', { ascending: false })
       .limit(20);
 

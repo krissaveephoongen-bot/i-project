@@ -62,14 +62,15 @@ export default function ExpenseApprovalsPage() {
                     <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">จำนวนเงิน</th>
                     <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">คำอธิบาย</th>
                     <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">เหตุผลปฏิเสธ</th>
+                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">สถานะ</th>
                     <th className="text-right py-3 px-6 text-sm font-medium text-slate-600">การกระทำ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {isLoading ? (
-                    <tr><td colSpan={6} className="py-8 px-6 text-center text-slate-500">กำลังโหลด...</td></tr>
+                    <tr><td colSpan={10} className="py-8 px-6 text-center text-slate-500">กำลังโหลด...</td></tr>
                   ) : data.length === 0 ? (
-                    <tr><td colSpan={6} className="py-8 px-6 text-center text-slate-500">ไม่มีรายการรออนุมัติ</td></tr>
+                    <tr><td colSpan={10} className="py-8 px-6 text-center text-slate-500">ไม่มีรายการรออนุมัติ</td></tr>
                   ) : data.map((row: any) => (
                     <tr key={row.id} className="hover:bg-slate-50">
                       <td className="py-3 px-6 text-sm">{new Date(row.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
@@ -80,6 +81,15 @@ export default function ExpenseApprovalsPage() {
                       <td className="py-3 px-6 text-sm">{Number(row.amount || 0).toFixed(2)}</td>
                       <td className="py-3 px-6 text-sm text-slate-600">{row.description || '-'}</td>
                       <td className="py-3 px-6 text-sm text-slate-600">{row.rejectedReason || '-'}</td>
+                      <td className="py-3 px-6 text-sm">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          row.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          row.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {row.status || 'Pending'}
+                        </span>
+                      </td>
                       <td className="py-3 px-6 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button className="bg-green-600 hover:bg-green-700" onClick={() => openModal(row.id, `จำนวน ${row.amount}`, 'approve')}>อนุมัติ</Button>

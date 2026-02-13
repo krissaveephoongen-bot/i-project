@@ -39,117 +39,28 @@ export default function UnifiedDashboard() {
       setError(null);
       
       // Parallel fetch for better performance
-      const [res, act] = await Promise.all([
-        fetch('/api/projects/', { cache: 'no-store' }),
+      const [pf, act] = await Promise.all([
+        fetch('/api/dashboard/portfolio'),
         fetch('/api/dashboard/activities', { cache: 'no-store' })
       ]);
-      
-      const list = res.ok ? await res.json() : [];
-      setProjects(list || []);
+
+      const pfJson = pf.ok ? await pf.json() : { rows: [], cashflow: [], spiTrend: [], spiSnaps: [] };
+      setRows(pfJson.rows || []);
+      setCashflow(pfJson.cashflow || []);
+      setSpiTrend(pfJson.spiTrend || []);
+      setSpiSnaps(pfJson.spiSnaps || []);
 
       const actJson = act.ok ? await act.json() : [];
       setActivities(actJson || []);
 
-      const aggregated: any[] = [];
-      for (const p of (list || [])) {
-        try {
-          const ov = await fetch(`/api/projects/overview/${p.id}`, { cache: 'no-store' });
-          const overview = ov.ok ? await ov.json() : {};
-          const ss = await fetch(`/api/projects/progress/snapshot?projectId=${p.id}`, { cache: 'no-store' });
-          const snap = ss.ok ? await ss.json() : { points: [] };
-          const last = (snap.points || []).slice(-1)[0] || {};
-          const risks = overview?.risks || [];
-          const riskCounts = {
-            high: risks.filter((r: any) => (r.severity || '').toLowerCase() === 'high').length,
-            medium: risks.filter((r: any) => (r.severity || '').toLowerCase() === 'medium').length,
-            low: risks.filter((r: any) => (r.severity || '').toLowerCase() === 'low').length,
-          };
-          const milestones = overview?.milestones || [];
-          const today = new Date();
-          const overdueMilestones = milestones.filter((m: any) => {
-            const d = m.due_date || m.dueDate;
-            const status = String(m.status || '').toLowerCase();
-            if (!d) return false;
-            const dt = new Date(d);
-            return dt < today && !['paid', 'approved', 'completed'].includes(status);
-          }).length;
-
-          const currentSPI = Number(last?.spi ?? 1);
-          let prevSPI = 1;
-          if (snap.points && snap.points.length > 0) {
-               const sevenDaysAgo = new Date();
-               sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-               const p = snap.points.find((x: any) => new Date(x.date) >= sevenDaysAgo);
-               if (p) prevSPI = Number(p.spi ?? 1);
-          }
-          const weeklyDelta = ((currentSPI - prevSPI) / prevSPI) * 100;
-
-          const budget = Number(overview?.summary?.totalBudget ?? p.budget ?? 0);
-          const progress = Number(overview?.project?.progress ?? p.progress ?? 0);
-          const actual = Number(overview?.summary?.actualCost ?? p.spent ?? 0);
-          const ev = budget * (progress / 100);
-          const cpi = actual > 0 ? ev / actual : (progress > 0 ? 2 : 1);
-
-          aggregated.push({
-            id: p.id,
-            name: p.name,
-            status: p.status || 'Active',
-            progress,
-            spi: currentSPI,
-            cpi,
-            weeklyDelta,
-            budget,
-            committed: Number(overview?.summary?.committedCost ?? 0),
-            actual,
-            remaining: Number(overview?.summary?.remainingBudget ?? p.remaining ?? 0),
-            risks: riskCounts,
-            overdueMilestones
-          });
-        } catch {}
-      }
-      setRows(aggregated);
-      const monthly: Record<string, { committed: number; paid: number }> = {};
-      for (const p of (list || [])) {
-        try {
-          const bl = await fetch(`/api/projects/budget/lines?projectId=${p.id}`, { cache: 'no-store' });
-          const json = bl.ok ? await bl.json() : { lines: [] };
-          const lines = json?.lines || [];
-          for (const l of lines) {
-            const d = (l.date || '').slice(0, 7);
-            if (!d) continue;
-            monthly[d] = monthly[d] || { committed: 0, paid: 0 };
-            if ((l.type || '').toLowerCase() === 'committed') monthly[d].committed += Number(l.amount || 0);
-            if ((l.type || '').toLowerCase() === 'paid') monthly[d].paid += Number(l.amount || 0);
-          }
-        } catch {}
-      }
-      const cashflowData = Object.keys(monthly).sort().map(m => ({ month: m, committed: monthly[m].committed, paid: monthly[m].paid }));
-      setCashflow(cashflowData);
-      const spiByDate: Record<string, { sum: number; count: number }> = {};
-      for (const p of (list || [])) {
-        try {
-          const ss = await fetch(`/api/projects/progress/snapshot?projectId=${p.id}`, { cache: 'no-store' });
-          const snap = ss.ok ? await ss.json() : { points: [] };
-          const points = (snap.points || []).slice(-30);
-          for (const pt of points) {
-            const d = pt.date;
-            if (!d) continue;
-            spiByDate[d] = spiByDate[d] || { sum: 0, count: 0 };
-            const spi = Number(pt.spi ?? 1);
-            spiByDate[d].sum += spi;
-            spiByDate[d].count += 1;
-          }
-        } catch {}
-      }
-      const spiTrendData = Object.keys(spiByDate).sort().map(d => ({ date: d, spi: spiByDate[d].count ? spiByDate[d].sum / spiByDate[d].count : 1 }));
-      setSpiTrend(spiTrendData);
+      // Batch API provided rows/cashflow/spiTrend above; heavy per-project loops removed
       try {
-        const er = await fetch('/api/projects/executive-report', { cache: 'no-store' });
+        const er = await fetch('/api/projects/executive-report');
         const erJson = er.ok ? await er.json() : null;
         setExecReport(erJson || null);
       } catch {}
       try {
-        const ws = await fetch('/api/projects/weekly-summary', { cache: 'no-store' });
+        const ws = await fetch('/api/projects/weekly-summary');
         const wsJson = ws.ok ? await ws.json() : { summary: [] };
         setWeeklySummary(wsJson?.summary || []);
       } catch {}
@@ -177,6 +88,8 @@ export default function UnifiedDashboard() {
 
   const [cashflow, setCashflow] = useState<{ month: string; committed: number; paid: number }[]>([]);
   const [spiTrend, setSpiTrend] = useState<{ date: string; spi: number }[]>([]);
+  const [spiSnaps, setSpiSnaps] = useState<{ projectId: string; date: string; spi: number }[]>([]);
+  const [selectedSpiProject, setSelectedSpiProject] = useState<string>('all');
   const [status, setStatus] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const [startMonth, setStartMonth] = useState<string>('');
@@ -211,13 +124,28 @@ export default function UnifiedDashboard() {
   }, [cashflow, startMonth, endMonth]);
   
   const filteredSpiTrend = useMemo(() => {
+    // If specific project selected, filter snaps for that project
+    if (selectedSpiProject !== 'all') {
+        const filteredSnaps = spiSnaps.filter(s => s.projectId === selectedSpiProject);
+        // Sort by date
+        filteredSnaps.sort((a, b) => a.date.localeCompare(b.date));
+        
+        return filteredSnaps.map(s => ({ date: s.date, spi: s.spi })).filter(s => {
+          const m = s.date.slice(0,7);
+          const afterStart = startMonth ? m >= startMonth : true;
+          const beforeEnd = endMonth ? m <= endMonth : true;
+          return afterStart && beforeEnd;
+        });
+    }
+
+    // Default: Average of all (or filtered by status/search)
     return spiTrend.filter(s => {
       const m = s.date.slice(0,7);
       const afterStart = startMonth ? m >= startMonth : true;
       const beforeEnd = endMonth ? m <= endMonth : true;
       return afterStart && beforeEnd;
     });
-  }, [spiTrend, startMonth, endMonth]);
+  }, [spiTrend, spiSnaps, selectedSpiProject, startMonth, endMonth]);
   
   const summaryCards = useMemo(() => {
     const completedProjects = filteredRows.filter(r => Number(r.progress || 0) >= 100).length;
@@ -371,7 +299,7 @@ export default function UnifiedDashboard() {
         </div>
 
         {/* Top KPIs Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 gap-y-6">
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all hover:-translate-y-1 duration-300">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <DollarSign className="w-16 h-16 text-slate-900" />
@@ -435,7 +363,7 @@ export default function UnifiedDashboard() {
         </div>
 
         {/* Project Status Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 gap-y-6">
           <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all">
             <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center animate-pulse-slow">
               <CheckCircle className="w-6 h-6 text-green-600" />
@@ -478,7 +406,7 @@ export default function UnifiedDashboard() {
         </div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 gap-y-8">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -512,15 +440,28 @@ export default function UnifiedDashboard() {
                 <h3 className="text-lg font-bold text-slate-900">แนวโน้มประสิทธิภาพ (Performance Trend)</h3>
                 <p className="text-sm text-slate-500">การติดตามค่า SPI ย้อนหลัง 30 วัน</p>
               </div>
-              <div className="p-2 bg-slate-50 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-slate-400" />
+              <div className="flex items-center gap-2">
+                <select 
+                    value={selectedSpiProject}
+                    onChange={(e) => setSelectedSpiProject(e.target.value)}
+                    className="text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 max-w-[150px]"
+                >
+                    <option value="all">ทั้งหมด (Average)</option>
+                    {rows.map(p => (
+                        <option key={p.id} value={p.id}>{p.name.length > 20 ? p.name.slice(0,20)+'...' : p.name}</option>
+                    ))}
+                </select>
+                <div className="p-2 bg-slate-50 rounded-lg">
+                    <TrendingUp className="w-5 h-5 text-slate-400" />
+                </div>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={filteredSpiTrend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => v.slice(5)} />
                 <YAxis stroke="#94a3b8" fontSize={12} domain={[0, 'dataMax + 0.2']} tickLine={false} axisLine={false} />
+                <ReferenceLine y={1} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: 'Threshold 1.0', position: 'right', fill: '#64748b', fontSize: 12 }} />
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   formatter={(v: number)=>v.toFixed(2)} 
@@ -529,7 +470,7 @@ export default function UnifiedDashboard() {
                 <Line 
                   type="monotone" 
                   dataKey="spi" 
-                  name="Avg SPI" 
+                  name={selectedSpiProject === 'all' ? "Avg SPI" : "Project SPI"}
                   stroke="#2563EB" 
                   strokeWidth={3} 
                   dot={false}
@@ -584,6 +525,10 @@ export default function UnifiedDashboard() {
                                     <span className="text-slate-700">฿{data.budget.toLocaleString()}</span>
                                     <span className="text-slate-500">Status:</span>
                                     <span className="capitalize text-slate-700">{data.status}</span>
+                                    <span className="text-slate-500">Manager:</span>
+                                    <span className="text-slate-700">{data.managerName || '-'}</span>
+                                    <span className="text-slate-500">Client:</span>
+                                    <span className="text-slate-700">{data.clientName || '-'}</span>
                                 </div>
                             </div>
                         );
@@ -601,7 +546,7 @@ export default function UnifiedDashboard() {
         </div>
 
         {/* Reports Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 gap-y-8">
           {/* Executive Summary */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all">
             <div className="flex items-center justify-between mb-6">
