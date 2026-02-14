@@ -1,5 +1,6 @@
 import express from 'express';
 import { WeeklySummaryService } from '../services/weekly-summary.service.js';
+import { authMiddleware, requireRole } from '../../../shared/middleware/authMiddleware';
 import type {
   WeeklySummaryFilters,
   WeeklyComparison,
@@ -9,8 +10,10 @@ import type {
 const router = express.Router();
 const weeklySummaryService = new WeeklySummaryService();
 
+// SECURITY: All weekly summary endpoints require authentication and admin role
+
 // GET /api/projects/weekly-summary - ดึงข้อมูลสรุปรายสัปดาห์
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const filters: WeeklySummaryFilters = {
       weekStart: req.query.weekStart as string,
@@ -26,7 +29,7 @@ router.get('/', async (req, res) => {
     res.json(weeklySummary);
   } catch (error) {
     console.error('Error fetching weekly summary:', error);
-    res.status(500).json({ error: 'Failed to fetch weekly summary' });
+    next(error);
   }
 });
 

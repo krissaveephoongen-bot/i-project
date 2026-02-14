@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { db, schema } from '../database/connection';
 import { eq } from 'drizzle-orm';
 import { AppError } from '../errors/AppError';
+import { getValidatedEnv } from '../validation/env.validation';
 
 // Type declarations for jsonwebtoken
 declare module 'jsonwebtoken' {
@@ -27,7 +28,8 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+    const env = getValidatedEnv();
+    const JWT_SECRET = env.JWT_SECRET;
 
     // Verify JWT token
     const decoded = jwt.verify(token, JWT_SECRET) as any;

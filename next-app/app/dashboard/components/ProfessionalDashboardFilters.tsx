@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Badge } from "../../components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useDebounce } from "@/hooks/useDebounce"
-import { useDynamicFilterOptions } from "@/hooks/useDynamicFilterOptions"
+import { useDynamicFilterOptions, DynamicFilterOptions } from "@/hooks/useDynamicFilterOptions"
 
 interface DateRange {
   from: Date | undefined
@@ -52,6 +52,8 @@ export function ProfessionalDashboardFilters({
     from: startMonth ? new Date(startMonth) : undefined,
     to: endMonth ? new Date(endMonth) : undefined,
   });
+
+  const options = dynamicOptions as DynamicFilterOptions | undefined;
 
   React.useEffect(() => {
     if (debouncedSearch !== search) {
@@ -98,15 +100,15 @@ export function ProfessionalDashboardFilters({
   ].filter(Boolean).length;
 
   const statusOptions = React.useMemo(() => {
-    if (dynamicOptions?.projectStatuses) {
-      return dynamicOptions.projectStatuses;
+    if (options?.projectStatuses) {
+      return options.projectStatuses;
     }
     return [
       { value: 'active', label: 'กำลังดำเนินการ (Active)' },
       { value: 'planning', label: 'วางแผน (Planning)' },
       { value: 'completed', label: 'เสร็จสิ้น (Completed)' },
     ];
-  }, [dynamicOptions]);
+  }, [options]);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 transition-all hover:shadow-md">

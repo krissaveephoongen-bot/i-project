@@ -1,5 +1,6 @@
 import express from 'express';
 import { ProjectInsightsService } from '../services/project-insights.service';
+import { authMiddleware, requireRole } from '../../../shared/middleware/authMiddleware';
 import type {
   ProjectInsightFilters,
   ProjectStructureAnalysis,
@@ -10,8 +11,10 @@ import type {
 const router = express.Router();
 const insightsService = new ProjectInsightsService();
 
+// SECURITY: All insights endpoints require authentication and admin role
+
 // GET /api/projects/insights - Get project insights
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const filters: ProjectInsightFilters = {
       projectId: req.query.projectId as string,
@@ -25,12 +28,12 @@ router.get('/', async (req, res) => {
     res.json(insights);
   } catch (error) {
     console.error('Error fetching project insights:', error);
-    res.status(500).json({ error: 'Failed to fetch project insights' });
+    next(error);
   }
 });
 
 // GET /api/projects/insights/summary - Get project insights summary
-router.get('/summary', async (req, res) => {
+router.get('/summary', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const filters: ProjectInsightFilters = {
       projectId: req.query.projectId as string,
@@ -44,12 +47,12 @@ router.get('/summary', async (req, res) => {
     res.json(summary);
   } catch (error) {
     console.error('Error fetching project insights summary:', error);
-    res.status(500).json({ error: 'Failed to fetch project insights summary' });
+    next(error);
   }
 });
 
 // GET /api/projects/insights/structure - Get project structure analysis for sunburst chart
-router.get('/structure', async (req, res) => {
+router.get('/structure', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const year = parseInt(req.query.year as string) || new Date().getFullYear();
     const month = req.query.month as string;
@@ -67,12 +70,12 @@ router.get('/structure', async (req, res) => {
     res.json(analysis);
   } catch (error) {
     console.error('Error fetching project structure analysis:', error);
-    res.status(500).json({ error: 'Failed to fetch project structure analysis' });
+    next(error);
   }
 });
 
 // GET /api/projects/insights/timesheet-analysis - Get comprehensive timesheet analysis
-router.get('/timesheet-analysis', async (req, res) => {
+router.get('/timesheet-analysis', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const filters: ProjectInsightFilters = {
       projectId: req.query.projectId as string,
@@ -86,12 +89,12 @@ router.get('/timesheet-analysis', async (req, res) => {
     res.json(analysis);
   } catch (error) {
     console.error('Error fetching timesheet analysis:', error);
-    res.status(500).json({ error: 'Failed to fetch timesheet analysis' });
+    next(error);
   }
 });
 
 // POST /api/projects/insights/compare - Compare insights between two periods
-router.post('/compare', async (req, res) => {
+router.post('/compare', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const { period1, period2, filters } = req.body;
 
@@ -111,12 +114,12 @@ router.post('/compare', async (req, res) => {
     res.json(comparison);
   } catch (error) {
     console.error('Error comparing insights:', error);
-    res.status(500).json({ error: 'Failed to compare insights' });
+    next(error);
   }
 });
 
 // GET /api/projects/insights/project/:projectId - Get insights for specific project
-router.get('/project/:projectId', async (req, res) => {
+router.get('/project/:projectId', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const { projectId } = req.params;
     const filters: ProjectInsightFilters = {
@@ -130,18 +133,18 @@ router.get('/project/:projectId', async (req, res) => {
     const insights = await insightsService.getProjectInsights(filters);
     
     if (insights.length === 0) {
-      return res.status(404).json({ error: 'No insights found for this project' });
+      return next(error);
     }
 
     res.json(insights[0]); // Return single project insight
   } catch (error) {
     console.error('Error fetching project insights:', error);
-    res.status(500).json({ error: 'Failed to fetch project insights' });
+    next(error);
   }
 });
 
 // GET /api/projects/insights/user/:userId - Get insights for specific user
-router.get('/user/:userId', async (req, res) => {
+router.get('/user/:userId', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const { userId } = req.params;
     const filters: ProjectInsightFilters = {
@@ -156,8 +159,9 @@ router.get('/user/:userId', async (req, res) => {
     res.json(insights);
   } catch (error) {
     console.error('Error fetching user insights:', error);
-    res.status(500).json({ error: 'Failed to fetch user insights' });
+    next(error);
   }
 });
 
 export default router;
+

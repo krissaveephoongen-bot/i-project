@@ -1,5 +1,6 @@
 import express from 'express';
 import { ExecutiveReportService } from '../services/executive-report.service.js';
+import { authMiddleware, requireRole } from '../../../shared/middleware/authMiddleware';
 import type {
   ExecutiveReportFilters,
   BatchDeleteRequest
@@ -8,8 +9,11 @@ import type {
 const router = express.Router();
 const reportService = new ExecutiveReportService();
 
+// SECURITY: All reporting endpoints require authentication and admin role
+// These contain sensitive business data and batch operations
+
 // GET /api/projects/executive-report - ดึงข้อมูลรายงานเชิงบริหาร
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const filters: ExecutiveReportFilters = {
       year: parseInt(req.query.year as string) || new Date().getFullYear(),
@@ -25,12 +29,12 @@ router.get('/', async (req, res) => {
     res.json(report);
   } catch (error) {
     console.error('Error fetching executive report:', error);
-    res.status(500).json({ error: 'Failed to fetch executive report' });
+    next(error);
   }
 });
 
 // GET /api/projects/executive-report/summary - ดึงข้อมูลสรุปเฉพาะ
-router.get('/summary', async (req, res) => {
+router.get('/summary', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const filters: ExecutiveReportFilters = {
       year: parseInt(req.query.year as string) || new Date().getFullYear(),
@@ -46,24 +50,24 @@ router.get('/summary', async (req, res) => {
     res.json(report.summary);
   } catch (error) {
     console.error('Error fetching executive summary:', error);
-    res.status(500).json({ error: 'Failed to fetch executive summary' });
+    next(error);
   }
 });
 
 // GET /api/projects/executive-report/monthly/:year - ดึงข้อมูลรายเดือน
-router.get('/monthly/:year', async (req, res) => {
+router.get('/monthly/:year', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const { year } = req.params;
     const monthlyReport = await reportService.getMonthlyReport(parseInt(year));
     res.json(monthlyReport);
   } catch (error) {
     console.error('Error fetching monthly report:', error);
-    res.status(500).json({ error: 'Failed to fetch monthly report' });
+    next(error);
   }
 });
 
 // GET /api/projects/executive-report/projects - ดึงข้อมูลสรุปตามโปรเจค
-router.get('/projects', async (req, res) => {
+router.get('/projects', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const filters: ExecutiveReportFilters = {
       year: parseInt(req.query.year as string) || new Date().getFullYear(),
@@ -79,12 +83,12 @@ router.get('/projects', async (req, res) => {
     res.json(projectSummary);
   } catch (error) {
     console.error('Error fetching project summary:', error);
-    res.status(500).json({ error: 'Failed to fetch project summary' });
+    next(error);
   }
 });
 
 // GET /api/projects/executive-report/employees - ดึงข้อมูลสรุปตามพนักงาน
-router.get('/employees', async (req, res) => {
+router.get('/employees', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const filters: ExecutiveReportFilters = {
       year: parseInt(req.query.year as string) || new Date().getFullYear(),
@@ -100,12 +104,12 @@ router.get('/employees', async (req, res) => {
     res.json(employeeSummary);
   } catch (error) {
     console.error('Error fetching employee summary:', error);
-    res.status(500).json({ error: 'Failed to fetch employee summary' });
+    next(error);
   }
 });
 
 // GET /api/projects/executive-report/export - เตรียมข้อมูลสำหรับส่งออก
-router.get('/export', async (req, res) => {
+router.get('/export', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const filters: ExecutiveReportFilters = {
       year: parseInt(req.query.year as string) || new Date().getFullYear(),
@@ -121,12 +125,12 @@ router.get('/export', async (req, res) => {
     res.json(exportData);
   } catch (error) {
     console.error('Error preparing export data:', error);
-    res.status(500).json({ error: 'Failed to prepare export data' });
+    next(error);
   }
 });
 
 // DELETE /api/projects/executive-report/batch - ลบข้อมูลแบบหลายรายการ
-router.delete('/batch', async (req, res) => {
+router.delete('/batch', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     const request: BatchDeleteRequest = req.body;
 
@@ -138,12 +142,12 @@ router.delete('/batch', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Error batch deleting timesheet entries:', error);
-    res.status(500).json({ error: 'Failed to batch delete timesheet entries' });
+    next(error);
   }
 });
 
 // GET /api/projects/executive-report/filters - ดึงข้อมูลตัวเลือกสำหรับฟิลเตอร์
-router.get('/filters', async (req, res) => {
+router.get('/filters', authMiddleware, requireRole(['admin']), async (req, res, next) => {
   try {
     // สามารถเพิ่มการดึงข้อมูลตัวเลือกต่างๆ เช่น รายชื่อพนักงาน, โปรเจค, ปีที่มีข้อมูล
     res.json({
@@ -170,7 +174,7 @@ router.get('/filters', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching filter options:', error);
-    res.status(500).json({ error: 'Failed to fetch filter options' });
+    next(error);
   }
 });
 

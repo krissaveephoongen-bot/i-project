@@ -6,6 +6,18 @@ import { eq, and, desc, gte, lte } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+// Get JWT secret from environment - MUST be set
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('FATAL: JWT_SECRET not configured. Set it in .env file.');
+  }
+  if (secret.length < 32) {
+    throw new Error('FATAL: JWT_SECRET must be at least 32 characters.');
+  }
+  return secret;
+}
+
 const router = express.Router();
 
 // Staff login
@@ -51,7 +63,7 @@ router.post('/login', async (req, res) => {
         email: staffUser.email, 
         role: staffUser.role 
       },
-      process.env.JWT_SECRET || 'your-secret-key',
+      getJwtSecret(),
       { expiresIn: '24h' }
     );
 

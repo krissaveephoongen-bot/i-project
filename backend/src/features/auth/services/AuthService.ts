@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { db, schema } from '../../../shared/database/connection';
 import { eq } from 'drizzle-orm';
 import { AppError } from '../../../shared/errors/AppError';
+import { getValidatedEnv } from '../../../shared/validation/env.validation';
 
 // Type declarations for jsonwebtoken
 declare module 'jsonwebtoken' {
@@ -28,8 +29,14 @@ interface AuthResult {
 }
 
 export class AuthService {
-  private readonly JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-  private readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+  private readonly JWT_SECRET: string;
+  private readonly JWT_EXPIRES_IN: string;
+
+  constructor() {
+    const env = getValidatedEnv();
+    this.JWT_SECRET = env.JWT_SECRET;
+    this.JWT_EXPIRES_IN = env.JWT_EXPIRES_IN;
+  }
 
   async login(email: string, password: string): Promise<AuthResult> {
     // Find user by email

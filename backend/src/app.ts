@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { checkDatabaseConnection } from './shared/database/connection';
+import { validateEnvironment } from './shared/validation/env.validation';
 
 // Import feature routes
 import { authRoutes } from './features/auth/routes/authRoutes';
@@ -112,6 +113,10 @@ const PORT = process.env.PORT || 3001;
 
 async function startServer() {
   try {
+    // Validate environment variables first (CRITICAL)
+    validateEnvironment();
+    console.log('✅ Environment validation passed');
+    
     // Check database connection
     await checkDatabaseConnection();
     
@@ -119,6 +124,7 @@ async function startServer() {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
       console.log(`🏗️  Architecture: Feature-based organization`);
+      console.log(`🔐 Security: JWT validation enabled`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

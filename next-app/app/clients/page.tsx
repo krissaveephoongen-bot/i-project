@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from '@/app/components/Header';
-import DeleteConfirmationDialog from '@/app/components/DeleteConfirmationDialog';
+import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog';
 import { getClients, deleteClient, Client } from '@/app/lib/clients';
 import ClientFormModal from './components/ClientFormModal';
 import {

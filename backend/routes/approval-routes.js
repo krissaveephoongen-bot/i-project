@@ -13,6 +13,18 @@ import {
 import { eq, and, desc, asc, isNull } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 
+// Get JWT secret from environment - MUST be set
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('FATAL: JWT_SECRET not configured. Set it in .env file.');
+  }
+  if (secret.length < 32) {
+    throw new Error('FATAL: JWT_SECRET must be at least 32 characters.');
+  }
+  return secret;
+}
+
 const router = express.Router();
 
 // Middleware to check if user has approval permissions
@@ -24,7 +36,7 @@ const checkApprovalPermissions = (req, res, next) => {
 
   try {
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, getJwtSecret());
     
     // Only managers and admins can access approval system
     if (decoded.role !== 'manager' && decoded.role !== 'admin') {
@@ -357,3 +369,4 @@ router.get('/:requestId', checkApprovalPermissions, async (req, res) => {
 });
 
 export default router;
+

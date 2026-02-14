@@ -56,15 +56,15 @@ export default function UnifiedDashboard() {
       setSpiSnaps(pfJson.spiSnaps || []);
 
       // Activities
-      const actJson = act.ok ? await act.json() : [];
+      const actJson = act.ok ? await (act as Response).json() : [];
       setActivities(actJson || []);
 
       // Executive report
-      const erJson = er.ok ? await er.json() : null;
+      const erJson = er.ok ? await (er as Response).json() : null;
       setExecReport(erJson || null);
 
       // Weekly summary
-      const wsJson = ws.ok ? await ws.json() : { summary: [] };
+      const wsJson = ws.ok ? await (ws as Response).json() : { summary: [] };
       setWeeklySummary(wsJson?.summary || []);
     } catch (e: any) {
       console.error('Dashboard error:', e);

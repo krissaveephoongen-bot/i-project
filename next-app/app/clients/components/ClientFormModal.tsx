@@ -20,7 +20,7 @@ import {
     validateEmail,
     validateThaiTaxId,
     validatePhone
-} from '@/app/lib/validation';
+} from '@/lib/validation';
 import {
     toastCreateSuccess,
     toastUpdateSuccess,

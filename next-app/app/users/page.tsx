@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from '../components/Header';
-import DeleteConfirmationDialog from '@/app/components/DeleteConfirmationDialog';
+import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog';
 import { getUsers, updateUser, deleteUser, createUser, User } from '../lib/users';
 import PageTransition from '@/app/components/PageTransition';
 import { Skeleton } from '@/app/components/ui/Skeleton';

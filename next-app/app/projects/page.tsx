@@ -33,8 +33,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Progress } from '../components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { DataTable } from '../components/data-table';
-import { ProfessionalFilter } from '../components/ProfessionalFilter';
-import { EmptyState } from '../components/ui/EmptyState';
+import { ProfessionalFilter } from '@/components/ProfessionalFilter';
+import { EmptyState } from '@/components/ui/EmptyState';
 import Header from '../components/Header';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

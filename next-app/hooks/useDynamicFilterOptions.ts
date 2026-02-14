@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 
-interface FilterOption {
+export interface FilterOption {
   value: string;
   label: string;
 }
 
-interface DynamicFilterOptions {
+export interface DynamicFilterOptions {
   projectStatuses: FilterOption[];
   projectCategories: FilterOption[];
   taskStatuses: FilterOption[];
@@ -31,7 +31,7 @@ export function useDynamicFilterOptions() {
     queryKey: ['filter-options'],
     queryFn: fetchFilterOptions,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (replaces cacheTime)
   });
 }
 

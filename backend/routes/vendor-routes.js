@@ -6,6 +6,18 @@ import { db } from '../lib/db.js';
 import { users, tasks, projects } from '../lib/schema.js';
 import { eq, and } from 'drizzle-orm';
 
+// Get JWT secret from environment - MUST be set
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('FATAL: JWT_SECRET not configured. Set it in .env file.');
+  }
+  if (secret.length < 32) {
+    throw new Error('FATAL: JWT_SECRET must be at least 32 characters.');
+  }
+  return secret;
+}
+
 const router = express.Router();
 
 // Vendor login
@@ -73,7 +85,7 @@ router.post('/login', async (req, res) => {
         email: vendorUser.email, 
         role: vendorUser.role 
       },
-      process.env.JWT_SECRET || 'your-secret-key',
+      getJwtSecret(),
       { expiresIn: '24h' }
     );
 
@@ -104,7 +116,7 @@ router.get('/tasks', async (req, res) => {
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, getJwtSecret());
     
     if (decoded.role !== 'vendor') {
       return res.status(403).json({ error: 'Access denied' });
@@ -180,7 +192,7 @@ router.put('/tasks/:taskId', async (req, res) => {
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, getJwtSecret());
     
     if (decoded.role !== 'vendor') {
       return res.status(403).json({ error: 'Access denied' });
@@ -231,3 +243,4 @@ router.put('/tasks/:taskId', async (req, res) => {
 });
 
 export default router;
+

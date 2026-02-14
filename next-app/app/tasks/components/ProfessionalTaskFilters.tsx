@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { ProfessionalFilter } from '../../components/ProfessionalFilter';
-import { useDynamicFilterOptions } from '../../hooks/useDynamicFilterOptions';
+import { ProfessionalFilter } from '@/components/ProfessionalFilter';
+import { useDynamicFilterOptions } from '@/hooks/useDynamicFilterOptions';
 
 interface ProfessionalTaskFiltersProps {
   className?: string;

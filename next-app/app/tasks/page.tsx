@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import Header from '@/app/components/Header';
-import DeleteConfirmationDialog from '@/app/components/DeleteConfirmationDialog';
+import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog';
 import { CheckCircle, Circle, MoreHorizontal, AlertCircle, ArrowUp, ArrowDown, ArrowRight, X, Plus, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';

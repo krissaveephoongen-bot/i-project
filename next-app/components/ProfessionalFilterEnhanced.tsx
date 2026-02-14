@@ -14,16 +14,7 @@ import { Badge } from "./ui/badge"
 import { EmptyState } from "./ui/EmptyState"
 import { cn } from "@/lib/utils"
 import { useDebounce } from "@/hooks/useDebounce"
-import { 
-  useDynamicFilterOptions,
-  useProjectStatuses,
-  useProjectCategories,
-  useTaskStatuses,
-  useTaskPriorities,
-  useExpenseCategories,
-  useClients,
-  useUsers
-} from "@/hooks/useDynamicFilterOptions"
+import { useDynamicFilterOptions } from "@/hooks/useDynamicFilterOptions"
 
 interface FilterOption {
   value: string
