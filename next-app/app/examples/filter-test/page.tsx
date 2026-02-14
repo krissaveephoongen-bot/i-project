@@ -105,14 +105,25 @@ export default function FilterTestPage() {
     setManagerFilter('all')
   }
 
+  // Use useEffect with proper cleanup for timeouts
+  useEffect(() => {
+    if (!showError) return
+    const timeout = setTimeout(() => setShowError(false), 3000)
+    return () => clearTimeout(timeout)
+  }, [showError])
+
+  useEffect(() => {
+    if (!isLoading) return
+    const timeout = setTimeout(() => setIsLoading(false), 2000)
+    return () => clearTimeout(timeout)
+  }, [isLoading])
+
   const simulateError = () => {
     setShowError(true)
-    setTimeout(() => setShowError(false), 3000)
   }
 
   const simulateLoading = () => {
     setIsLoading(true)
-    setTimeout(() => setIsLoading(false), 2000)
   }
 
   const FilterComponent = useEnhanced ? ProfessionalFilterEnhanced : ProfessionalFilter

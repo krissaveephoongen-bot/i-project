@@ -49,7 +49,7 @@ export default function UnifiedDashboard() {
       ]);
 
       // Portfolio data
-      const pfJson = pf.ok ? await pf.json() : { rows: [], cashflow: [], spiTrend: [], spiSnaps: [] };
+      const pfJson = pf.ok ? await (pf as Response).json() : { rows: [], cashflow: [], spiTrend: [], spiSnaps: [] };
       setRows(pfJson.rows || []);
       setCashflow(pfJson.cashflow || []);
       setSpiTrend(pfJson.spiTrend || []);

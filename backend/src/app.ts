@@ -1,8 +1,11 @@
-import express from 'express';
+import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { v4 as uuidv4 } from 'uuid';
 import { checkDatabaseConnection } from './shared/database/connection';
 import { validateEnvironment } from './shared/validation/env.validation';
+import { AppError } from './shared/errors/AppError';
+import { errorResponse, ErrorCode } from './shared/types/api-response';
 
 // Import feature routes
 import { authRoutes } from './features/auth/routes/authRoutes';
@@ -45,9 +48,23 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Request logging
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+// Add request ID for tracing
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const requestId = req.headers['x-request-id'] || uuidv4();
+  (req as any).id = requestId;
+  res.setHeader('X-Request-ID', requestId);
+  next();
+});
+
+// Structured request logging
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(
+      `[${(req as any).id}] ${req.method} ${req.path} - ${res.statusCode} - ${duration}ms`
+    );
+  });
   next();
 });
 
@@ -91,15 +108,74 @@ app.get('/', (req, res) => {
 });
 
 // Global error handler
-app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Unhandled error:', error);
-  
-  res.status(500).json({
-    success: false,
-    message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
+const globalErrorHandler: ErrorRequestHandler = (
+  error: any,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const requestId = (req as any).id;
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
+  // Default to 500
+  let statusCode = 500;
+  let errorCode = ErrorCode.INTERNAL_ERROR;
+  let message = 'An internal server error occurred';
+  let details: any = undefined;
+
+  // Handle known error types
+  if (error instanceof AppError) {
+    statusCode = error.statusCode;
+    errorCode = error.code || ErrorCode.OPERATION_FAILED;
+    message = error.message;
+    details = error.details;
+  } else if (error.name === 'ValidationError') {
+    statusCode = 400;
+    errorCode = ErrorCode.VALIDATION_ERROR;
+    message = 'Validation failed';
+    details = error.errors || error.message;
+  } else if (error.code === 'ENOENT') {
+    statusCode = 404;
+    errorCode = ErrorCode.NOT_FOUND;
+    message = 'Resource not found';
+  } else if (error.code === 'ECONNREFUSED') {
+    statusCode = 503;
+    errorCode = ErrorCode.DATABASE_ERROR;
+    message = 'Database connection failed';
+  } else if (error.message?.includes('Unauthorized')) {
+    statusCode = 401;
+    errorCode = ErrorCode.UNAUTHORIZED;
+    message = 'Unauthorized access';
+  } else if (error.message?.includes('Forbidden')) {
+    statusCode = 403;
+    errorCode = ErrorCode.FORBIDDEN;
+    message = 'Access forbidden';
+  } else if (isDevelopment) {
+    // Show more details in development
+    message = error.message || message;
+  }
+
+  // Log error
+  console.error(`[${requestId}] ${statusCode} - ${errorCode}:`, {
+    message: error.message,
+    ...(isDevelopment && { stack: error.stack }),
+    path: req.path,
+    method: req.method,
   });
-});
+
+  // Send response
+  res.status(statusCode).json(
+    errorResponse(
+      errorCode,
+      message,
+      isDevelopment ? details || error.message : details,
+      req.path,
+      requestId
+    )
+  );
+};
+
+app.use(globalErrorHandler);
 
 // 404 handler
 app.use('*', (req, res) => {

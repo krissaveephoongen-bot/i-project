@@ -3,13 +3,8 @@ function NotificationBell() {
   const [showDropdown, setShowDropdown] = React.useState(false);
   const [unreadCount, setUnreadCount] = React.useState(0);
 
-  React.useEffect(() => {
-    loadNotifications();
-    const interval = setInterval(loadNotifications, 120000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadNotifications = async () => {
+  // Memoize loadNotifications to prevent infinite loops
+  const loadNotifications = React.useCallback(async () => {
     try {
       const [tasks, worklogs, expenses] = await Promise.all([
         trickleListObjects('task', 50, true).catch(() => ({ items: [] })),
@@ -73,7 +68,13 @@ function NotificationBell() {
       setNotifications([]);
       setUnreadCount(0);
     }
-  };
+  }, []); // Memoized with empty deps
+
+  React.useEffect(() => {
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 120000);
+    return () => clearInterval(interval);
+  }, [loadNotifications]); // Now safe to include in deps
 
   return (
     <div className="relative">

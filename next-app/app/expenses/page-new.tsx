@@ -92,11 +92,11 @@ export default function ExpensesPage() {
 
       if (!expensesRes.ok) throw new Error('Failed to fetch expenses');
 
-      const expensesData = await expensesRes.json();
+      const expensesData = await (expensesRes as Response).json();
       setExpenses(Array.isArray(expensesData) ? expensesData : []);
 
       if (projectsRes.ok) {
-        const projectsData = await projectsRes.json();
+        const projectsData = await (projectsRes as Response).json();
         setProjects(Array.isArray(projectsData) ? projectsData : []);
       }
     } catch (e: any) {
