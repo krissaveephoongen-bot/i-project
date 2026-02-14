@@ -33,7 +33,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Progress } from '../components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { DataTable } from '../components/data-table';
-import { PageFilter } from '../components/page-filter';
+import { ProfessionalFilter } from '../components/ProfessionalFilter';
+import { EmptyState } from '../components/ui/EmptyState';
 import Header from '../components/Header';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -115,27 +116,23 @@ export default function ProjectsPageRefactored() {
     });
   }, [enhancedProjects, searchTerm, statusFilter, managerFilter, priorityFilter]);
 
-  // Filter options
+  // Filter options using dynamic data sources
   const filterOptions = [
     {
       key: 'status',
       label: 'สถานะ',
       value: statusFilter,
-      options: [
-        { value: 'Planning', label: 'กำลังวางแผน (Planning)' },
-        { value: 'Active', label: 'กำลังดำเนินการ (Active)' },
-        { value: 'On Hold', label: 'พักโครงการ (On Hold)' },
-        { value: 'Completed', label: 'เสร็จสิ้น (Completed)' },
-        { value: 'Cancelled', label: 'ยกเลิก (Cancelled)' },
-      ],
+      type: 'dynamic' as const,
+      dynamicOptions: 'projectStatuses' as const,
       onChange: setStatusFilter,
     },
     {
       key: 'manager',
       label: 'ผู้จัดการ',
       value: managerFilter,
-      options: managersData?.map(manager => ({
-        value: manager.name,
+      type: 'static' as const,
+      staticOptions: managersData?.map(manager => ({
+        value: manager.id,
         label: manager.name,
       })) || [],
       onChange: setManagerFilter,
@@ -144,7 +141,8 @@ export default function ProjectsPageRefactored() {
       key: 'priority',
       label: 'ความสำคัญ',
       value: priorityFilter,
-      options: [
+      type: 'static' as const,
+      staticOptions: [
         { value: 'low', label: 'ต่ำ' },
         { value: 'medium', label: 'ปานกลาง' },
         { value: 'high', label: 'สูง' },
@@ -335,6 +333,7 @@ export default function ProjectsPageRefactored() {
   const deleteProjectMutation = useMutation({
     mutationFn: deleteProject,
     onSuccess: (_, projectId) => {
+      toast.success('✅ ลบโครงการสำเร็จแล้ว');
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setDeleteConfirm(null);
       // Audit logging
@@ -347,6 +346,9 @@ export default function ProjectsPageRefactored() {
         `Deleted project`,
         {}
       );
+    },
+    onError: (error: any) => {
+      toast.error(`❌ ลบไม่สำเร็จ: ${error?.message || 'เกิดข้อผิดพลาด'}`);
     },
   });
 
@@ -520,26 +522,47 @@ export default function ProjectsPageRefactored() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="p-4 bg-muted/30">
-                    <PageFilter
+                    <ProfessionalFilter
                   searchPlaceholder="ค้นหาชื่อโครงการ, รหัส, หรือผู้รับผิดชอบ..."
                   searchValue={searchTerm}
                   onSearchChange={setSearchTerm}
                   filters={filterOptions}
-                  savedViews={{ enabled: true, userId, pageKey: 'projects/list' }}
-                    quickFilters={[
-                      { label: 'Active', value: 'Active', targetKey: 'status' },
-                      { label: 'Planning', value: 'Planning', targetKey: 'status' },
-                      { label: 'Completed', value: 'Completed', targetKey: 'status' },
-                    ]}
+                  resultCount={filteredProjects.length}
+                  totalItems={enhancedProjects.length}
+                  onClearAll={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setManagerFilter('all');
+                    setPriorityFilter('all');
+                  }}
                   />
               </div>
 
-              <DataTable
-                columns={columns}
-                data={filteredProjects}
-                searchKey="name"
-                searchPlaceholder="ค้นหา..."
-              />
+              {filteredProjects.length === 0 ? (
+                <div className="p-8">
+                  <EmptyState
+                    type="no-results"
+                    title="ไม่พบข้อมูลที่ตรงตามเงื่อนไข"
+                    description="ลองปรับเปลี่ยนเงื่อนไขการค้นหาหรือกรองข้อมูลใหม่"
+                    action={{
+                      label: 'ล้างตัวกรอง',
+                      onClick: () => {
+                        setSearchTerm('');
+                        setStatusFilter('all');
+                        setManagerFilter('all');
+                        setPriorityFilter('all');
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <DataTable
+                  columns={columns}
+                  data={filteredProjects}
+                  searchKey="name"
+                  searchPlaceholder="ค้นหา..."
+                />
+              )}
             </CardContent>
           </Card>
         </div>

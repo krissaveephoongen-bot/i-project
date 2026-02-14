@@ -3,12 +3,13 @@
 
 import { useState } from 'react';
 import Header from '@/app/components/Header';
+import DeleteConfirmationDialog from '@/app/components/DeleteConfirmationDialog';
 import { CheckCircle, Circle, MoreHorizontal, AlertCircle, ArrowUp, ArrowDown, ArrowRight, X, Plus, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import TaskFilters from './components/TaskFilters';
+import { ProfessionalTaskFilters } from './components/ProfessionalTaskFilters';
 import { getTasks, deleteTask, Task } from '@/app/lib/tasks';
 import TaskFormModal from './components/TaskFormModal';
 import { Button } from '@/app/components/ui/Button';
@@ -49,8 +50,22 @@ export default function TasksPage() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
 
     const queryClient = useQueryClient();
+
+    // Delete Task Mutation
+    const deleteTaskMutation = useMutation({
+        mutationFn: (taskId: string) => deleteTask(taskId),
+        onSuccess: () => {
+            toast.success('✅ ลบงานสำเร็จแล้ว');
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            setDeleteConfirm(null);
+        },
+        onError: (error: any) => {
+            toast.error(`❌ ลบไม่สำเร็จ: ${error?.message || 'เกิดข้อผิดพลาด'}`);
+        },
+    });
 
     const tasksQuery = useQuery({
         queryKey: ['tasks', query, status, priority],
@@ -64,15 +79,13 @@ export default function TasksPage() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this task?')) return;
-        try {
-            await deleteTask(id);
-            toast.success('Task deleted successfully');
-            queryClient.invalidateQueries({ queryKey: ['tasks'] });
-        } catch (e: any) {
-            toast.error(e?.message || 'Delete failed');
-        }
+    const handleDeleteClick = (task: Task) => {
+        setDeleteConfirm({ id: task.id, title: task.title });
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteConfirm) return;
+        deleteTaskMutation.mutate(deleteConfirm.id);
     };
 
     return (
@@ -99,7 +112,7 @@ export default function TasksPage() {
                                 <h2 className="text-lg font-semibold text-slate-900">All Tasks</h2>
                                 <p className="text-sm text-slate-500">{tasks.length} tasks found</p>
                             </div>
-                            <TaskFilters />
+                            <ProfessionalTaskFilters />
                         </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -155,11 +168,15 @@ export default function TasksPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                     <DropdownMenuItem onClick={() => handleOpenModal(task)}>
                                                         <Edit className="h-4 w-4 mr-2" /> Edit Task
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
-                                                    <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(task.id)}>
+                                                    <DropdownMenuItem 
+                                                        className="text-red-600 cursor-pointer"
+                                                        onClick={() => handleDeleteClick(task)}
+                                                    >
                                                         <Trash2 className="h-4 w-4 mr-2" /> Delete Task
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
@@ -188,6 +205,18 @@ export default function TasksPage() {
                 onClose={() => setIsModalOpen(false)} 
                 task={editingTask}
                 onSuccess={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}
+            />
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmationDialog
+                open={!!deleteConfirm}
+                title="ยืนยันการลบงาน"
+                description="เมื่อลบงานนี้ จะไม่สามารถกู้คืนข้อมูลได้"
+                entityName={deleteConfirm?.title}
+                isLoading={deleteTaskMutation.isPending}
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setDeleteConfirm(null)}
+                isDangerous={true}
             />
         </div>
     );

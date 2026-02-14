@@ -1,393 +1,501 @@
-# Implementation Checklist - Authentication & Schema Fixes
+# ✅ CRUD Implementation Checklist
 
-Complete this checklist to fully implement the fixes.
-
----
-
-## Phase 1: Database Setup ⚙️
-
-### Migration
-- [ ] Run database migration
-  ```bash
-  cd next-app
-  npx prisma migrate deploy
-  ```
-- [ ] Verify migration succeeded (check logs)
-- [ ] Confirm `auth_tokens` table created
-- [ ] Confirm `sessions` table created
-- [ ] Confirm no constraint errors
-
-### Backup
-- [ ] Backup production database
-- [ ] Save backup file securely
-- [ ] Document backup location
-
-### Verification
-- [ ] Query auth_tokens table: `SELECT COUNT(*) FROM auth_tokens;`
-- [ ] Query sessions table: `SELECT COUNT(*) FROM sessions;`
-- [ ] Verify constraints are cleaned up
+**Start Date:** February 14, 2026  
+**Estimated Completion:** February 16, 2026  
+**Status:** Ready to Begin
 
 ---
 
-## Phase 2: Environment Configuration 🔧
+## 📋 Phase 1: Delete Confirmations (2-3 hours)
 
-### Environment Variables
-- [ ] Add to `.env.local` (development):
-  ```
-  JWT_SECRET=your-long-random-secret-at-least-32-chars
-  ```
-- [ ] Add to `.env.production` (production):
-  ```
-  JWT_SECRET=production-secret-should-be-different-and-secure
-  ```
-- [ ] Verify JWT_SECRET is not committed to git
-- [ ] Add to .gitignore if not already there
+### Users Module
+**File:** `next-app/app/users/page.tsx`
 
-### Prisma Client
-- [ ] Regenerate Prisma client:
-  ```bash
-  npx prisma generate
-  ```
-- [ ] Verify no errors in generation
+- [ ] Import `DeleteConfirmationDialog` from components
+- [ ] Add state: `const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);`
+- [ ] Create `deleteUserMutation` with success/error handlers
+- [ ] Create `handleDeleteClick()` function (opens modal)
+- [ ] Create `handleConfirmDelete()` function (executes delete)
+- [ ] Update dropdown menu delete item (call `handleDeleteClick`)
+- [ ] Add `<DeleteConfirmationDialog />` component at end of page
+- [ ] Test: Delete button shows modal
+- [ ] Test: Cancel closes modal without deleting
+- [ ] Test: Confirm deletes and shows success toast
+- [ ] Test: Error shows error toast
+- [ ] Test: Data list refreshes after delete
+- [ ] Reference: See `app/users/page-improved.tsx` for complete example
 
----
+### Tasks Module
+**File:** `next-app/app/tasks/page.tsx`
 
-## Phase 3: Backend Integration 🔌
+- [ ] Replace `window.confirm()` at line 68 with delete modal
+- [ ] Import `DeleteConfirmationDialog` component
+- [ ] Add state for `deleteConfirm`
+- [ ] Create `handleDeleteClick()` and `handleConfirmDelete()`
+- [ ] Add useMutation for deleteTask with toast handlers
+- [ ] Update dropdown menu to call `handleDeleteClick`
+- [ ] Add modal component
+- [ ] Test all scenarios (cancel, confirm, error)
 
-### Auth Utilities
-- [ ] Verify `lib/auth-utils.ts` exists
-- [ ] Verify `lib/auth-middleware.ts` exists
-- [ ] Verify `lib/api-client.ts` exists
-- [ ] Check imports work: `import { generateAccessToken } from '@/lib/auth-utils'`
+### Clients Module
+**File:** `next-app/app/clients/page.tsx`
 
-### API Endpoints
-- [ ] Test `POST /api/auth/login` with valid credentials
-  ```bash
-  curl -X POST http://localhost:3000/api/auth/login \
-    -H "Content-Type: application/json" \
-    -d '{"email":"test@example.com","password":"password"}'
-  ```
-  - [ ] Returns status 200
-  - [ ] Response includes `tokens.accessToken`
-  - [ ] Response includes `tokens.refreshToken`
-  - [ ] Response includes `sessionId`
+- [ ] Replace `window.confirm()` at line 64 with delete modal
+- [ ] Follow same pattern as Tasks module
+- [ ] Test all scenarios
 
-- [ ] Test `GET /api/auth/verify` with token
-  ```bash
-  curl -X GET http://localhost:3000/api/auth/verify \
-    -H "Authorization: Bearer <accessToken>"
-  ```
-  - [ ] Returns status 200
-  - [ ] Response includes `valid: true`
-  - [ ] Response includes user object
+### Projects Module
+**File:** `next-app/app/projects/page.tsx`
 
-- [ ] Test `POST /api/auth/refresh` with refresh token
-  ```bash
-  curl -X POST http://localhost:3000/api/auth/refresh \
-    -H "Authorization: Bearer <refreshToken>"
-  ```
-  - [ ] Returns status 200
-  - [ ] Response includes new `accessToken`
+- [ ] Find `deleteProjectMutation` (around line 300)
+- [ ] Add `onSuccess` handler: `toast.success('✅ ลบโครงการสำเร็จแล้ว')`
+- [ ] Add `onError` handler: `toast.error('❌ ลบไม่สำเร็จ: ' + error.message)`
+- [ ] Test: Success toast appears after delete
+- [ ] Test: Error toast appears on failure
 
-- [ ] Test `POST /api/auth/logout` with access token
-  ```bash
-  curl -X POST http://localhost:3000/api/auth/logout \
-    -H "Authorization: Bearer <accessToken>"
-  ```
-  - [ ] Returns status 200
-  - [ ] Token is revoked in database
-
-### Middleware Testing
-- [ ] Create test route with `verifyAuth`
-- [ ] Test with valid token → returns user
-- [ ] Test with invalid token → returns 401
-- [ ] Test with expired token → returns 401
-- [ ] Test without token → returns 401
-
-### Role-Based Access
-- [ ] Test with `isAdmin` function
-- [ ] Test with `isManagerOrAdmin` function
-- [ ] Test with `requireRole` function
-- [ ] Verify admin-only routes reject non-admins
+**Status: Phase 1**
+- [ ] All 4 modules have delete confirmations
+- [ ] No `window.confirm()` usage
+- [ ] All delete operations show toasts
+- [ ] Data refreshes after delete
 
 ---
 
-## Phase 4: Frontend Integration 🎨
+## 📋 Phase 2: Input Validation (3-4 hours)
 
-### Auth Hook
-- [ ] Verify `hooks/useAuthToken.ts` exists
-- [ ] Test hook in a component:
-  ```typescript
-  const auth = useAuthToken();
-  console.log(auth.isAuthenticated);
-  ```
-- [ ] Verify tokens load from localStorage on mount
-- [ ] Verify tokens persist to localStorage
+### Create Validation Library
+**File:** `next-app/lib/validation.ts`
 
-### API Client Setup
-- [ ] Add to app root or AuthProvider:
-  ```typescript
-  import { initializeApiClient } from '@/lib/api-client';
-  
-  useEffect(() => {
-    initializeApiClient(
-      () => auth.getAccessToken(),
-      () => auth.refreshAccessToken()
-    );
-  }, [auth]);
-  ```
+- [x] File created with validation utilities
+- [ ] Email validation function
+- [ ] Thai Tax ID validation (13 digits)
+- [ ] Phone validation (Thailand format)
+- [ ] Budget validation (positive number)
+- [ ] Date range validation
+- [ ] Password validation
+- [ ] Bulk form validation helper
+- [ ] Test validation functions with unit tests
 
-### API Client Testing
-- [ ] Make authenticated request:
-  ```typescript
-  const result = await api.get('/api/projects');
-  console.log(result.ok, result.data);
-  ```
-- [ ] Verify Authorization header is set
-- [ ] Test 401 response triggers refresh
-- [ ] Verify new token is used in retry
+### Update Clients Form Modal
+**File:** `next-app/app/clients/components/ClientFormModal.tsx`
 
-### Login Form
-- [ ] Update login component to handle new response format
-- [ ] Extract tokens from `response.tokens`
-- [ ] Call `auth.setTokens()` with tokens
-- [ ] Redirect to dashboard after successful login
+- [ ] Import validation functions from `lib/validation`
+- [ ] Add form state for errors: `const [errors, setErrors] = useState<Record<string, string>>({})`
+- [ ] Add validation for required fields (name)
+- [ ] Add email format validation
+- [ ] Add Tax ID 13-digit validation
+- [ ] Add phone format validation
+- [ ] Display error messages under each field
+- [ ] Clear errors when user corrects input
+- [ ] Test: Invalid email shows error
+- [ ] Test: Invalid Tax ID shows error
+- [ ] Test: Invalid phone shows error
+- [ ] Test: Form prevents submission with errors
+- [ ] Test: Success after correction
 
-### Logout
-- [ ] Add logout button/link
-- [ ] Call `/api/auth/logout` endpoint
-- [ ] Call `auth.clearTokens()`
-- [ ] Redirect to login page
+### Update Projects Form
+**File:** `next-app/components/ProjectForm.tsx` (or wherever the form is)
 
----
+- [ ] Add validation for date range
+- [ ] Add validation for budget (non-negative)
+- [ ] Display error messages
+- [ ] Test: End date before start date shows error
+- [ ] Test: Negative budget shows error
 
-## Phase 5: Existing Routes 📝
+### Update Users Form
+**File:** `next-app/app/users/page.tsx` (form section)
 
-### Audit All API Routes
-- [ ] List all routes that require authentication
-- [ ] Add `verifyAuth` to each protected route
-- [ ] Add role checking where needed
-- [ ] Return proper error responses
+- [ ] Review existing validation (already good)
+- [ ] Ensure all validations have error messages
+- [ ] Test existing validations still work
 
-### Update Existing Auth Checks
-- [ ] Find any routes checking `req.headers.authorization` directly
-- [ ] Replace with `verifyAuth()` call
-- [ ] Remove custom token parsing
-- [ ] Remove user ID lookups from token
-
-### Token-based Features
-- [ ] Find any features using user.id as token
-- [ ] Replace with proper JWT token
-- [ ] Update API contracts
+**Status: Phase 2**
+- [ ] All validation functions created and tested
+- [ ] All required fields validated
+- [ ] Email format validated in clients
+- [ ] Tax ID 13-digit validated in clients
+- [ ] Phone format validated in clients
+- [ ] Date range validated in projects
+- [ ] Budget validated in projects
+- [ ] Error messages display below fields
+- [ ] Form prevents submission with errors
 
 ---
 
-## Phase 6: Testing 🧪
+## 📋 Phase 3: Toast Notifications (2-3 hours)
+
+### Audit All Modules for Missing Toasts
+
+#### Projects Module
+**File:** `next-app/app/projects/page.tsx`
+
+- [ ] Create toast: ✅ (check ProjectCreationWizard)
+- [ ] Update toast: ✅ (check ProjectForm)
+- [ ] Delete toast: ✅ (added in Phase 1)
+
+#### Users Module
+**File:** `next-app/app/users/page.tsx`
+
+- [ ] Create toast: ✅ 'สร้างผู้ใช้สำเร็จ'
+- [ ] Update toast: ✅ 'อัปเดตผู้ใช้สำเร็จ'
+- [ ] Delete toast: ✅ 'ลบผู้ใช้สำเร็จ'
+- [ ] Validation error toasts: ✅
+
+#### Tasks Module
+**File:** `next-app/app/tasks/page.tsx` & `TaskFormModal.tsx`
+
+- [ ] Create toast: ✅ 'Task created successfully'
+- [ ] Update toast: ✅ 'Task updated successfully'
+- [ ] Delete toast: ✅ 'Task deleted successfully'
+- [ ] Error toasts: ✅
+
+#### Clients Module
+**File:** `next-app/app/clients/page.tsx` & `ClientFormModal.tsx`
+
+- [ ] Create toast: ✅ 'Client created successfully'
+- [ ] Update toast: ✅ 'Client updated successfully'
+- [ ] Delete toast: ✅ 'Client deleted successfully'
+- [ ] Validation error toasts: ⏳ (add in Phase 2)
+
+#### Expenses Module
+**File:** `next-app/app/approvals/expenses/page.tsx`
+
+- [ ] Approval toast: Check existing
+- [ ] Rejection toast: Check existing
+- [ ] Delete toast: ⏳ (add in Phase 4)
+- [ ] Error toasts: ⏳
+
+### Standardize Toast Messages
+**Reference:** `CRUD_QUICK_FIXES.md` Section 7
+
+- [ ] Use consistent emoji: ✅ ❌ 💾 🗑️
+- [ ] Use Thai language for primary users
+- [ ] Use 4-second duration for success
+- [ ] Use 5-second duration for errors
+- [ ] Show field name in validation errors
+
+**Status: Phase 3**
+- [ ] All create operations have success toasts
+- [ ] All update operations have success toasts
+- [ ] All delete operations have success toasts
+- [ ] All operations have error toasts
+- [ ] Messages are consistent across modules
+- [ ] Messages are in Thai language
+- [ ] Emoji icons are used consistently
+
+---
+
+## 📋 Phase 4: Delete Functionality (2-3 hours)
+
+### Expenses Module Delete
+**File:** `next-app/app/approvals/expenses/page.tsx`
+
+- [ ] Check if DELETE API route exists
+- [ ] If missing, create route at `next-app/app/api/expenses/[id]/route.ts`
+- [ ] Add delete handler function
+- [ ] Add delete confirmation modal
+- [ ] Add delete button/action to UI
+- [ ] Add success toast
+- [ ] Add error toast
+- [ ] Test: Delete button appears
+- [ ] Test: Confirmation modal shows
+- [ ] Test: Delete sends API request
+- [ ] Test: Success toast shows
+- [ ] Test: Data refreshes
+- [ ] Test: Error handling works
+
+### Verify Other Modules Don't Soft-Delete
+**Files to check:**
+- [ ] Projects - hard delete or soft delete?
+- [ ] Users - hard delete or soft delete?
+- [ ] Tasks - hard delete or soft delete?
+- [ ] Clients - hard delete or soft delete?
+- [ ] Expenses - hard delete or soft delete?
+
+**If soft-delete (marked as deleted, not actually removed):**
+- [ ] Update confirmation modal message
+- [ ] Update success toast message
+- [ ] Document soft-delete behavior
+
+**Status: Phase 4**
+- [ ] All modules support delete
+- [ ] Delete confirmations in place
+- [ ] Delete toasts showing
+- [ ] Data consistency maintained
+- [ ] No orphaned records
+
+---
+
+## 📋 Phase 5: Testing & QA (2-3 hours)
 
 ### Unit Tests
-- [ ] Test JWT generation
-- [ ] Test JWT verification
-- [ ] Test token expiry
-- [ ] Test token revocation
+**Files:** `tests/validation.test.ts`, `tests/forms.test.ts`
 
-### Integration Tests
-- [ ] Test complete login flow
-- [ ] Test token refresh flow
-- [ ] Test logout flow
-- [ ] Test protected route access
-- [ ] Test role-based access control
+- [ ] Test email validation
+- [ ] Test Thai Tax ID validation
+- [ ] Test phone validation
+- [ ] Test date range validation
+- [ ] Test budget validation
+- [ ] Test form submission with valid data
+- [ ] Test form submission with invalid data
+- [ ] Test error state management
 
 ### E2E Tests
-- [ ] Test login with browser
-- [ ] Test token in cookies/storage
-- [ ] Test navigation after login
-- [ ] Test automatic logout on expiry
-- [ ] Test token refresh automatically
+**Files:** `tests/e2e/*.spec.ts`
 
-### Security Tests
-- [ ] Try invalid token → 401
-- [ ] Try expired token → 401
-- [ ] Try revoked token → 401
-- [ ] Try no token → 401
-- [ ] Try wrong format → 401
-- [ ] Try wrong role → 403
-- [ ] Try wrong user ID → 401
+Create tests for each module:
 
-### Edge Cases
-- [ ] Multiple login attempts → last one wins
-- [ ] Logout then immediate access → 401
-- [ ] Network failure during refresh → error handling
-- [ ] Token expires mid-request → refresh and retry
-- [ ] User deleted while logged in → 401 next request
+#### Projects E2E
+- [ ] Create project flow
+- [ ] Update project flow
+- [ ] Delete project with confirmation
+- [ ] Validate date ranges
+- [ ] Validate budget
+
+#### Users E2E
+- [ ] Create user with validation
+- [ ] Update user
+- [ ] Delete user with confirmation
+- [ ] Email validation
+
+#### Tasks E2E
+- [ ] Create task
+- [ ] Update task
+- [ ] Delete task with confirmation
+
+#### Clients E2E
+- [ ] Create client with validation
+- [ ] Update client
+- [ ] Delete client with confirmation
+- [ ] Tax ID validation
+- [ ] Phone validation
+
+#### Expenses E2E
+- [ ] Delete expense with confirmation
+- [ ] Approval/rejection workflow
+
+### Manual Testing
+
+#### Projects
+- [ ] Create button works
+- [ ] Edit button works
+- [ ] Delete button shows modal
+- [ ] Cancel doesn't delete
+- [ ] Confirm deletes
+- [ ] Success toast shows
+- [ ] List refreshes
+- [ ] Date validation works
+- [ ] Budget validation works
+
+#### Users
+- [ ] Add user button works
+- [ ] Form validation works
+- [ ] Email format check works
+- [ ] Password requirement works
+- [ ] Edit user works
+- [ ] Delete shows modal (not confirm)
+- [ ] Success/error toasts show
+- [ ] List refreshes
+
+#### Tasks
+- [ ] Create task works
+- [ ] Edit task works
+- [ ] Delete shows modal
+- [ ] Required field validation works
+- [ ] Toasts show
+
+#### Clients
+- [ ] Create client works
+- [ ] Edit client works
+- [ ] Delete shows modal
+- [ ] Email validation works
+- [ ] Tax ID validation works
+- [ ] Phone validation works
+- [ ] Error messages show
+- [ ] Toasts show
+
+#### Expenses
+- [ ] Approve expense works
+- [ ] Reject expense works
+- [ ] Delete button shows
+- [ ] Delete confirmation shows
+- [ ] Delete works
+- [ ] Toast shows
+
+### Responsive Design
+- [ ] Test on mobile (375px)
+- [ ] Test on tablet (768px)
+- [ ] Test on desktop (1024px+)
+- [ ] Modal works on small screens
+- [ ] Forms are usable on mobile
+- [ ] Tables scroll properly
+
+### Accessibility
+- [ ] Tab navigation works
+- [ ] Enter key submits forms
+- [ ] Escape closes modals
+- [ ] Error messages are read by screen readers
+- [ ] Form labels are associated with inputs
+- [ ] Icons have aria-labels
+
+### Dark Mode
+- [ ] All forms visible in dark mode
+- [ ] All toasts visible in dark mode
+- [ ] Modal readable in dark mode
+- [ ] Error messages visible
+- [ ] Icons visible
+
+### Performance
+- [ ] No console errors
+- [ ] No memory leaks
+- [ ] Form submission completes in <2 seconds
+- [ ] List refresh completes in <1 second
+- [ ] Modal opens instantly
+- [ ] No unnecessary re-renders
+
+### Browser Compatibility
+- [ ] Chrome (latest)
+- [ ] Firefox (latest)
+- [ ] Safari (latest)
+- [ ] Edge (latest)
+- [ ] Mobile Safari
+- [ ] Chrome Mobile
+
+**Status: Phase 5**
+- [ ] All unit tests passing
+- [ ] All E2E tests passing
+- [ ] All manual tests documented
+- [ ] No regressions found
+- [ ] Performance acceptable
+- [ ] Accessibility standards met
 
 ---
 
-## Phase 7: Documentation & Knowledge Transfer 📚
+## 📋 Phase 6: Code Review & Deployment (1-2 hours)
 
-### Code Comments
-- [ ] Add comments to auth-utils.ts
-- [ ] Add comments to protected routes
-- [ ] Document breaking changes in code
-
-### Team Documentation
-- [ ] Share SCHEMA_FIX_GUIDE.md with team
-- [ ] Share AUTH_QUICK_START.md with team
-- [ ] Share FIXES_APPLIED.md with team
-- [ ] Explain breaking changes
-
-### Migration Guide
-- [ ] Create guide for frontend team
-- [ ] Create guide for backend team
-- [ ] Include examples and curl commands
-- [ ] Include error codes and solutions
-
-### API Documentation
-- [ ] Update API docs with new endpoints
-- [ ] Update request/response formats
-- [ ] Update authentication requirements
-- [ ] Update error codes
-
----
-
-## Phase 8: Deployment 🚀
-
-### Pre-Deployment
-- [ ] All tests pass
-- [ ] Code reviewed
-- [ ] Database backed up
-- [ ] Rollback plan documented
-
-### Staging Deployment
-- [ ] Deploy to staging environment
-- [ ] Run full test suite
-- [ ] Test login flow manually
-- [ ] Test with real users if possible
-- [ ] Monitor logs for errors
-
-### Production Deployment
-- [ ] Final database backup
-- [ ] Deploy application code
-- [ ] Run database migration
-- [ ] Monitor auth logs
-- [ ] Be ready to rollback
-
-### Post-Deployment
-- [ ] Verify login works
-- [ ] Check auth logs
-- [ ] Monitor for errors
-- [ ] Verify sessions created
-- [ ] Verify tokens stored
-- [ ] Test logout flow
-- [ ] Test token refresh
-
----
-
-## Phase 9: Monitoring & Maintenance 📊
-
-### Logging
-- [ ] Monitor failed login attempts
-- [ ] Monitor token errors
-- [ ] Monitor database errors
-- [ ] Check activity logs
-
-### Cleanup
-- [ ] Delete expired tokens (schedule job)
-- [ ] Delete expired sessions (schedule job)
-- [ ] Archive old activity logs
-- [ ] Monitor database size
-
-### Maintenance
-- [ ] Rotate JWT_SECRET periodically
-- [ ] Review security logs monthly
-- [ ] Check for suspicious activity
-- [ ] Update dependencies
-
----
-
-## Phase 10: Cleanup 🧹
-
-### Remove Old Code
-- [ ] Remove old token parsing code
-- [ ] Remove old verification code
-- [ ] Remove old login endpoint (if parallel)
-- [ ] Remove old auth logic
-
-### Clean Database
-- [ ] Remove test tokens/sessions
-- [ ] Remove orphaned auth_tokens
-- [ ] Verify data integrity
+### Code Quality
+- [ ] No console.log statements
+- [ ] No commented-out code
+- [ ] Consistent code style
+- [ ] TypeScript types complete
+- [ ] No `any` types
+- [ ] Functions properly documented
+- [ ] Error handling comprehensive
 
 ### Documentation
-- [ ] Archive old documentation
-- [ ] Update README
-- [ ] Remove deprecated code comments
+- [ ] README updated if needed
+- [ ] Code comments for complex logic
+- [ ] Validation rules documented
+- [ ] API changes documented
+- [ ] Breaking changes noted
+
+### Team Review
+- [ ] Code reviewed by peer
+- [ ] No merge conflicts
+- [ ] Changes approved
+- [ ] QA approved
+
+### Deployment
+- [ ] Build succeeds: `npm run build`
+- [ ] No build warnings
+- [ ] Tests pass: `npm run test:unit`
+- [ ] E2E tests pass: `npm run test:e2e`
+- [ ] Deploy to staging
+- [ ] Smoke test in staging
+- [ ] Deploy to production
+- [ ] Monitor for errors
+
+### Post-Deployment
+- [ ] Check logs for errors
+- [ ] Verify all CRUD operations work
+- [ ] Check user feedback
+- [ ] Monitor performance metrics
+
+**Status: Phase 6**
+- [ ] Code review completed
+- [ ] All tests passing
+- [ ] Documentation updated
+- [ ] Deployed successfully
+- [ ] No critical issues
 
 ---
 
-## Rollback Plan ⚠️
+## 📊 Progress Tracking
 
-If critical issues occur:
-
-### Database Rollback
-```bash
-# Undo migration
-npx prisma migrate resolve --rolled-back 20260211_fix_schema
-
-# Or revert to backup
-# restore from backup file
+### Phase 1: Delete Confirmations
+**Target:** 100% of modules use modals, 0% use window.confirm()
+```
+Users:    [ ] 0% [ ] 25% [ ] 50% [ ] 75% [✓] 100%
+Tasks:    [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+Clients:  [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+Projects: [ ] 0% [ ] 25% [ ] 50% [ ] 75% [✓] 100%
 ```
 
-### Code Rollback
-```bash
-# Revert auth files
-git checkout HEAD~1 app/api/auth/
-git checkout HEAD~1 lib/auth-*
-git checkout HEAD~1 hooks/useAuthToken*
+### Phase 2: Input Validation
+**Target:** 100% of forms have validation, 100% show errors
+```
+Email:    [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+Tax ID:   [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+Phone:    [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+Dates:    [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+Budget:   [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
 ```
 
-### Environment Reset
-```bash
-# Remove JWT_SECRET from environment
-# Switch back to old auth logic
-# Restart application
+### Phase 3: Toast Notifications
+**Target:** 100% of operations show feedback
+```
+Creates:  [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+Updates:  [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+Deletes:  [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+Errors:   [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
 ```
 
-### Verification
-- [ ] Old login endpoint works
-- [ ] Old token format works
-- [ ] No errors in logs
-- [ ] Users can log in
-- [ ] Application stable
+### Phase 4: Delete Functionality
+**Target:** 100% of modules support delete
+```
+Expenses: [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+```
+
+### Phase 5: Testing
+**Target:** 100% test coverage
+```
+Unit:     [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+E2E:      [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+Manual:   [ ] 0% [ ] 25% [ ] 50% [ ] 75% [ ] 100%
+```
 
 ---
 
-## Sign-Off
+## 🎯 Summary
 
-- [ ] **Developer**: All phases completed
-- [ ] **Code Review**: Changes approved
-- [ ] **QA**: All tests passed
-- [ ] **Deployment**: Approved for production
-- [ ] **Product**: Feature validated
+**Total Items:** 120+
+**Estimated Time:** 11-13 hours
+**Timeline:** 3-4 days
+
+### Quick Links
+- Audit Report: `CRUD_SYSTEM_AUDIT.md`
+- Implementation Guide: `CRUD_IMPLEMENTATION_STEPS.md`
+- Quick Fixes: `CRUD_QUICK_FIXES.md`
+- Summary: `CRUD_IMPLEMENTATION_SUMMARY.md`
+- Validation Library: `next-app/lib/validation.ts`
+- Delete Component: `next-app/components/DeleteConfirmationDialog.tsx`
+- Reference Example: `next-app/app/users/page-improved.tsx`
+
+---
+
+**Last Updated:** 2026-02-14  
+**Status:** Ready to Begin  
+**Owner:** [Your Name]  
 
 ---
 
 ## Notes
 
-**Estimated Time**: 1-2 days (depending on complexity)  
-**Risk Level**: Medium (authentication changes)  
-**Rollback Difficulty**: Low (migration is reversible)  
-**Testing Required**: High (security critical)
+- [ ] Team informed of changes
+- [ ] Stakeholders updated
+- [ ] Blockers identified and removed
+- [ ] Resources allocated
 
 ---
 
-## Quick Links
-
-- 📖 [SCHEMA_FIX_GUIDE.md](./SCHEMA_FIX_GUIDE.md) - Complete guide
-- ⚡ [AUTH_QUICK_START.md](./AUTH_QUICK_START.md) - Quick reference
-- ✅ [FIXES_APPLIED.md](./FIXES_APPLIED.md) - What was fixed
-- 📂 [Migration File](./next-app/prisma/migrations/20260211_fix_schema/migration.sql)
-- 💻 [Example Code](./next-app/app/api/examples/auth-flow.example.ts)
-
----
-
-**Status**: Ready for Implementation ✅
+Good luck! 🚀

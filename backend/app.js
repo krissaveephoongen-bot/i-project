@@ -84,6 +84,76 @@ app.get('/', (req, res) => {
   });
 });
 
+// Temporary filter options endpoint for testing
+app.get('/api/filters/options', async (req, res) => {
+  try {
+    // Return static sample data for now
+    const filterOptions = {
+      projectStatuses: [
+        { value: 'todo', label: 'To Do' },
+        { value: 'in_progress', label: 'In Progress' },
+        { value: 'completed', label: 'Completed' },
+        { value: 'active', label: 'Active' },
+        { value: 'planning', label: 'Planning' },
+      ],
+      projectCategories: [
+        { value: 'Development', label: 'Development' },
+        { value: 'Marketing', label: 'Marketing' },
+        { value: 'Design', label: 'Design' },
+      ],
+      taskStatuses: [
+        { value: 'todo', label: 'To Do' },
+        { value: 'in_progress', label: 'In Progress' },
+        { value: 'completed', label: 'Completed' },
+        { value: 'cancelled', label: 'Cancelled' },
+      ],
+      taskPriorities: [
+        { value: 'low', label: 'Low' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'high', label: 'High' },
+      ],
+      taskCategories: [
+        { value: 'Development', label: 'Development' },
+        { value: 'Testing', label: 'Testing' },
+        { value: 'Documentation', label: 'Documentation' },
+      ],
+      expenseCategories: [
+        { value: 'travel', label: 'Travel' },
+        { value: 'supplies', label: 'Supplies' },
+        { value: 'equipment', label: 'Equipment' },
+        { value: 'training', label: 'Training' },
+        { value: 'other', label: 'Other' },
+      ],
+      expenseStatuses: [
+        { value: 'pending', label: 'Pending' },
+        { value: 'approved', label: 'Approved' },
+        { value: 'rejected', label: 'Rejected' },
+        { value: 'reimbursed', label: 'Reimbursed' },
+      ],
+      userRoles: [
+        { value: 'admin', label: 'Administrator' },
+        { value: 'manager', label: 'Manager' },
+        { value: 'employee', label: 'Employee' },
+      ],
+      clients: [
+        { value: '1', label: 'Client A' },
+        { value: '2', label: 'Client B' },
+        { value: '3', label: 'Client C' },
+      ],
+      users: [
+        { value: '1', label: 'John Doe' },
+        { value: '2', label: 'Jane Smith' },
+        { value: '3', label: 'Bob Johnson' },
+      ],
+    };
+
+    res.json(filterOptions);
+  } catch (error) {
+    console.error('Error fetching filter options:', error);
+    res.status(500).json({ error: 'Failed to fetch filter options' });
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   try {

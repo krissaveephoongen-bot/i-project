@@ -9,6 +9,9 @@ import { projectRoutes } from './features/projects/routes/projectRoutes';
 import { userRoutes } from './features/users/routes/userRoutes';
 import { taskRoutes } from './features/tasks/routes/taskRoutes';
 import { dashboardRoutes } from './features/dashboard/routes/dashboardRoutes';
+import { expenseRoutes } from './features/expenses/routes/expenseRoutes';
+import { clientRoutes } from './features/clients/routes/clientRoutes';
+import filterRoutes from './features/filters/routes/filterRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -62,6 +65,9 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/clients', clientRoutes);
+app.use('/api/filters', filterRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -76,6 +82,9 @@ app.get('/', (req, res) => {
       users: '/api/users',
       tasks: '/api/tasks',
       dashboard: '/api/dashboard',
+      expenses: '/api/expenses',
+      clients: '/api/clients',
+      filters: '/api/filters',
     },
   });
 });

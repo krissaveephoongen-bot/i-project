@@ -55,8 +55,6 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const apiBase = '';
-
   const fetchIssues = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -73,7 +71,7 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [projectId, apiBase]);
+  }, [projectId]);
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -106,38 +104,36 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
       const result = await response.json();
       return result as ProjectIssue;
     },
-    [projectId, apiBase]
+    []
   );
 
   const updateIssue = useCallback(
     async (issueId: string, data: Partial<ProjectIssue>): Promise<ProjectIssue> => {
-      const response = await fetch(`${apiBase}/issues/${issueId}`, {
+      const response = await fetch(`/api/projects/issues`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(data),
+        body: JSON.stringify({ id: issueId, updatedFields: data }),
       });
 
       if (!response.ok) throw new Error('Failed to update issue');
 
       const result = await response.json();
-      return result.data;
+      return result as ProjectIssue;
     },
-    [apiBase]
+    []
   );
 
   const updateIssueStatus = useCallback(
     async (issueId: string, status: string): Promise<void> => {
-      const response = await fetch(`${apiBase}/issues/${issueId}/status`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/projects/issues`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ id: issueId, updatedFields: { status } }),
       });
 
       if (!response.ok) throw new Error('Failed to update status');
     },
-    [apiBase]
+    []
   );
 
   const deleteIssue = useCallback(
@@ -147,7 +143,7 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
       });
       if (!response.ok) throw new Error('Failed to delete issue');
     },
-    [apiBase]
+    []
   );
 
   // Fetch data on mount
