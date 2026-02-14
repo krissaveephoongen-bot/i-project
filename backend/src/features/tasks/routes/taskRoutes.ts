@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { TaskController } from '../controllers/TaskController';
 import { authMiddleware } from '../../../shared/middleware/authMiddleware';
-import { validateRequest } from '../../../shared/middleware/validateRequest';
+import { validateRequest, validateQuery } from '../../../shared/middleware/validateRequest';
 import { createTaskSchema, updateTaskSchema } from '../schemas/taskSchemas';
+import { taskSchemas } from '../../../shared/validation/schemas';
 
 const router = Router();
 const taskController = new TaskController();
@@ -10,8 +11,8 @@ const taskController = new TaskController();
 // All task routes require authentication
 router.use(authMiddleware);
 
-// GET /api/tasks - Get all tasks (with filtering)
-router.get('/', taskController.getTasks);
+// GET /api/tasks - Get all tasks (with filtering and validation)
+router.get('/', validateQuery(taskSchemas.list), taskController.getTasks);
 
 // GET /api/tasks/:id - Get task by ID
 router.get('/:id', taskController.getTaskById);

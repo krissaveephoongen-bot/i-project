@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { ProfessionalFilter } from '@/components/ProfessionalFilter'
 import { ProfessionalFilterEnhanced } from '@/components/ProfessionalFilterEnhanced'
 import { EmptyState } from '@/components/ui/EmptyState'

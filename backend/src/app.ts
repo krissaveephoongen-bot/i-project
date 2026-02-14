@@ -6,6 +6,8 @@ import { checkDatabaseConnection } from './shared/database/connection';
 import { validateEnvironment } from './shared/validation/env.validation';
 import { AppError } from './shared/errors/AppError';
 import { errorResponse, ErrorCode } from './shared/types/api-response';
+import { sanitizeRequest } from './shared/middleware/sanitizeRequest';
+import logger, { logHttpRequest, logInfo } from './shared/logging/logger';
 
 // Import feature routes
 import { authRoutes } from './features/auth/routes/authRoutes';
@@ -48,6 +50,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Sanitize all inputs (prevent XSS)
+app.use(sanitizeRequest());
+
 // Add request ID for tracing
 app.use((req: Request, res: Response, next: NextFunction) => {
   const requestId = req.headers['x-request-id'] || uuidv4();
@@ -61,8 +66,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(
-      `[${(req as any).id}] ${req.method} ${req.path} - ${res.statusCode} - ${duration}ms`
+    logHttpRequest(
+      (req as any).id,
+      req.method,
+      req.path,
+      res.statusCode,
+      duration
     );
   });
   next();
@@ -155,12 +164,12 @@ const globalErrorHandler: ErrorRequestHandler = (
     message = error.message || message;
   }
 
-  // Log error
-  console.error(`[${requestId}] ${statusCode} - ${errorCode}:`, {
-    message: error.message,
-    ...(isDevelopment && { stack: error.stack }),
-    path: req.path,
-    method: req.method,
+  // Log error using structured logger
+  logHttpRequest((req as any).id, req.method, req.path, statusCode, 0);
+  logger.error(`${statusCode} - ${errorCode}: ${message}`, {
+    requestId,
+    error: error instanceof Error ? error.message : String(error),
+    ...(isDevelopment && { stack: error instanceof Error ? error.stack : undefined }),
   });
 
   // Send response
@@ -191,19 +200,22 @@ async function startServer() {
   try {
     // Validate environment variables first (CRITICAL)
     validateEnvironment();
-    console.log('✅ Environment validation passed');
+    logInfo('✅ Environment validation passed');
     
     // Check database connection
     await checkDatabaseConnection();
     
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-      console.log(`🏗️  Architecture: Feature-based organization`);
-      console.log(`🔐 Security: JWT validation enabled`);
+      logInfo(`🚀 Server running on port ${PORT}`);
+      logInfo(`📊 Health check: http://localhost:${PORT}/api/health`);
+      logInfo(`🏗️  Architecture: Feature-based organization`);
+      logInfo(`🔐 Security: JWT validation enabled`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     process.exit(1);
   }
 }

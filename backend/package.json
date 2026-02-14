@@ -23,11 +23,13 @@
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "express": "^5.2.1",
+    "isomorphic-dompurify": "^3.0.0-rc.2",
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.11.5",
     "postgres": "^3.4.7",
     "uuid": "^13.0.0",
+    "winston": "^3.19.0",
     "ws": "^8.17.0"
   },
   "devDependencies": {
