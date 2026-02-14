@@ -44,6 +44,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import PageTransition from '../components/PageTransition';
 import { Skeleton } from '../components/ui/Skeleton';
 import { clsx } from 'clsx';
+import { toast } from 'react-hot-toast';
 
 // Enhanced Project type with derived data
 interface EnhancedProject extends ProjectType {

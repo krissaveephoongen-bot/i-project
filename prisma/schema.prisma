@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,30 +7,581 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums
-enum UserRole {
-  admin
-  manager
-  employee
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model activity_log {
+  id          String       @id
+  entityType  String
+  entityId    String
+  type        ActivityType
+  action      String
+  description String?
+  userId      String
+  changes     Json?
+  createdAt   DateTime     @default(now())
+  users       users        @relation(fields: [userId], references: [id])
 }
 
-enum Status {
-  todo
-  in_progress
-  in_review
-  done
-  pending
-  approved
-  rejected
-  active
-  inactive
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model audit_logs {
+  id         String    @id
+  project_id String?
+  user_id    String?
+  event_type String
+  severity   String
+  details    String?
+  ip_address String?
+  user_agent String?
+  created_at DateTime  @default(now()) @db.Timestamp(6)
+  projects   projects? @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-enum Priority {
-  low
-  medium
-  high
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model budget_lines {
+  id                   String    @id
+  project_id           String
+  type                 String
+  amount               Decimal   @default(0) @db.Decimal
+  date                 DateTime? @db.Date
+  related_milestone_id String?
+  projects             projects  @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([project_id, date], map: "idx_budget_lines_project_date")
 }
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model budget_revisions {
+  id             String   @id
+  projectId      String
+  previousBudget Decimal  @db.Decimal(12, 2)
+  newBudget      Decimal  @db.Decimal(12, 2)
+  reason         String
+  changedBy      String
+  changedAt      DateTime @default(now())
+  users          users    @relation(fields: [changedBy], references: [id])
+  projects       projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model clients {
+  id        String     @id
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  taxId     String?
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime
+  projects  projects[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model comments {
+  id        String   @id
+  taskId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  tasks     tasks    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model contacts {
+  id            String        @id
+  project_id    String
+  name          String?
+  position      String?
+  email         String?
+  phone         String?
+  type          String?
+  is_key_person Boolean?      @default(false)
+  projects      projects      @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sales_deals   sales_deals[]
+
+  @@index([project_id], map: "idx_contacts_project")
+  @@index([type], map: "idx_contacts_type")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model documents {
+  id         String    @id
+  name       String
+  type       String?
+  size       String?
+  url        String?
+  projectId  String?
+  taskId     String?
+  uploadedBy String?
+  milestone  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime
+  projects   projects? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks      tasks?    @relation(fields: [taskId], references: [id])
+  users      users?    @relation(fields: [uploadedBy], references: [id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model expenses {
+  id                               String          @id
+  date                             DateTime
+  projectId                        String
+  taskId                           String?
+  userId                           String
+  amount                           Decimal         @db.Decimal(12, 2)
+  category                         ExpenseCategory
+  description                      String
+  receiptUrl                       String?
+  status                           ExpenseStatus   @default(pending)
+  approvedBy                       String?
+  approvedAt                       DateTime?
+  notes                            String?
+  createdAt                        DateTime        @default(now())
+  updatedAt                        DateTime
+  rejectedReason                   String?
+  details                          Json?
+  approver_id                      String?
+  approverId                       String?
+  users_expenses_approvedByTousers users?          @relation("expenses_approvedByTousers", fields: [approvedBy], references: [id])
+  users_expenses_approverIdTousers users?          @relation("expenses_approverIdTousers", fields: [approverId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "expenses_approverid_fkey")
+  projects                         projects        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks                            tasks?          @relation(fields: [taskId], references: [id])
+  users_expenses_userIdTousers     users           @relation("expenses_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, date], map: "idx_expenses_status_date")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model financial_data {
+  id        String   @id
+  month     DateTime @unique
+  revenue   Decimal  @default(0.00) @db.Decimal(15, 2)
+  cost      Decimal  @default(0.00) @db.Decimal(15, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model milestones {
+  id          String    @id
+  title       String
+  description String?
+  dueDate     DateTime
+  amount      Decimal?  @db.Decimal(15, 2)
+  status      String    @default("pending")
+  progress    Int       @default(0)
+  projectId   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  name        String?
+  percentage  Decimal?  @default(0.00) @db.Decimal
+  projects    projects? @relation(fields: [projectId], references: [id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model project_members {
+  id        String   @id
+  projectId String
+  userId    String
+  role      String   @default("member")
+  joinedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  projects  projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model project_progress_history {
+  id        String   @id
+  projectId String
+  progress  Int
+  weekDate  DateTime
+  createdAt DateTime @default(now())
+  projects  projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model project_progress_snapshots {
+  id             String   @id
+  project_id     String
+  date           DateTime @db.Date
+  plan_percent   Decimal  @default(0) @db.Decimal
+  actual_percent Decimal  @default(0) @db.Decimal
+  spi            Decimal? @db.Decimal
+  projects       projects @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([project_id, date], map: "idx_project_progress_snapshots_project_date")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model projectassignee {
+  A        String
+  B        String
+  projects projects @relation(fields: [A], references: [id], onDelete: Cascade, map: "_ProjectAssignee_A_fkey")
+  users    users    @relation(fields: [B], references: [id], onDelete: Cascade, map: "_ProjectAssignee_B_fkey")
+
+  @@id([A, B], map: "_ProjectAssignee_AB_pkey")
+  @@index([B], map: "_ProjectAssignee_B_index")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model projects {
+  id                         String                       @id
+  name                       String
+  code                       String?                      @unique
+  description                String?
+  status                     Status                       @default(todo)
+  progress                   Int                          @default(0)
+  progressPlan               Int                          @default(0)
+  spi                        Decimal                      @default(1.00) @db.Decimal(5, 2)
+  riskLevel                  String                       @default("low")
+  startDate                  DateTime?
+  endDate                    DateTime?
+  budget                     Decimal?                     @db.Decimal(12, 2)
+  spent                      Decimal                      @default(0.00) @db.Decimal(12, 2)
+  remaining                  Decimal                      @default(0.00) @db.Decimal(12, 2)
+  managerId                  String?
+  clientId                   String?
+  hourlyRate                 Decimal                      @default(0.00) @db.Decimal(10, 2)
+  priority                   String                       @default("medium")
+  category                   String?
+  isArchived                 Boolean                      @default(false)
+  createdAt                  DateTime                     @default(now())
+  updatedAt                  DateTime
+  closure_checklist          Json?
+  warranty_start_date        DateTime?                    @db.Timestamp(6)
+  warranty_end_date          DateTime?                    @db.Timestamp(6)
+  audit_logs                 audit_logs[]
+  budget_lines               budget_lines[]
+  budget_revisions           budget_revisions[]
+  contacts                   contacts[]
+  documents                  documents[]
+  expenses                   expenses[]
+  milestones                 milestones[]
+  project_members            project_members[]
+  project_progress_history   project_progress_history[]
+  project_progress_snapshots project_progress_snapshots[]
+  projectassignee            projectassignee[]
+  clients                    clients?                     @relation(fields: [clientId], references: [id])
+  users                      users?                       @relation(fields: [managerId], references: [id])
+  risks                      risks[]
+  spi_cpi_daily_snapshot     spi_cpi_daily_snapshot[]
+  tasks                      tasks[]
+  time_entries               time_entries[]
+  timesheets                 timesheets[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model risks {
+  id             String    @id
+  title          String
+  description    String?
+  impact         String
+  probability    String
+  riskScore      Int?
+  mitigationPlan String?
+  status         String    @default("open")
+  projectId      String?
+  assignedTo     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime
+  users          users?    @relation(fields: [assignedTo], references: [id])
+  projects       projects? @relation(fields: [projectId], references: [id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sales_activities {
+  id          String      @id
+  deal_id     String
+  type        String
+  note        String?
+  user_id     String?
+  createdat   DateTime    @default(now()) @db.Timestamp(6)
+  sales_deals sales_deals @relation(fields: [deal_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users       users?      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sales_deals {
+  id               String             @id
+  name             String
+  amount           Decimal            @default(0) @db.Decimal(14, 2)
+  currency         String             @default("THB")
+  pipeline_id      String?
+  stage_id         String?
+  owner_id         String?
+  client_id        String?
+  client_org       String?
+  status           String             @default("open")
+  probability      Int                @default(0)
+  createdat        DateTime?          @default(now()) @db.Timestamptz(6)
+  updatedat        DateTime?          @default(now()) @db.Timestamptz(6)
+  createdAt        DateTime?          @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime?          @default(now()) @db.Timestamptz(6)
+  sales_activities sales_activities[]
+  contacts         contacts?          @relation(fields: [client_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users            users?             @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sales_pipelines  sales_pipelines?   @relation(fields: [pipeline_id], references: [id], onUpdate: NoAction)
+  sales_stages     sales_stages?      @relation(fields: [stage_id], references: [id], onUpdate: NoAction)
+
+  @@index([client_id], map: "idx_sales_deals_client")
+  @@index([pipeline_id], map: "idx_sales_deals_pipeline")
+  @@index([stage_id], map: "idx_sales_deals_stage")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sales_pipelines {
+  id           String         @id
+  name         String
+  createdat    DateTime?      @default(now()) @db.Timestamptz(6)
+  updatedat    DateTime?      @default(now()) @db.Timestamptz(6)
+  createdAt    DateTime?      @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime?      @default(now()) @db.Timestamptz(6)
+  sales_deals  sales_deals[]
+  sales_stages sales_stages[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sales_stages {
+  id              String           @id
+  pipeline_id     String?
+  name            String
+  order_index     Int              @default(0)
+  probability     Int              @default(0)
+  createdat       DateTime?        @default(now()) @db.Timestamptz(6)
+  updatedat       DateTime?        @default(now()) @db.Timestamptz(6)
+  createdAt       DateTime?        @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime?        @default(now()) @db.Timestamptz(6)
+  sales_deals     sales_deals[]
+  sales_pipelines sales_pipelines? @relation(fields: [pipeline_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model saved_views {
+  id        String    @id
+  userid    String
+  pagekey   String
+  name      String
+  filters   Json
+  createdat DateTime? @default(now()) @db.Timestamptz(6)
+  updatedat DateTime? @default(now()) @db.Timestamptz(6)
+  users     users     @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userid, pagekey], map: "saved_views_user_page_idx")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model spi_cpi_daily_snapshot {
+  id        String    @id
+  projectid String
+  date      DateTime  @db.Date
+  spi       Decimal   @db.Decimal
+  cpi       Decimal   @db.Decimal
+  createdat DateTime? @default(now()) @db.Timestamptz(6)
+  projects  projects  @relation(fields: [projectid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([projectid, date], map: "spi_cpi_daily_snapshot_unique")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model stakeholders {
+  id           String   @id
+  name         String
+  role         String?
+  organization String?
+  email        String?
+  phone        String?
+  created_at   DateTime @default(now()) @db.Timestamp(6)
+  updated_at   DateTime @db.Timestamp(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model system_settings {
+  key         String   @id
+  value       String
+  description String?
+  updated_at  DateTime @default(now()) @db.Timestamp(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model task_actual_logs {
+  id               String   @id
+  task_id          String
+  date             DateTime @db.Date
+  progress_percent Decimal  @default(0) @db.Decimal
+  tasks            tasks    @relation(fields: [task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([task_id, date], map: "idx_task_actual_logs_task_date")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model task_plan_points {
+  id           String   @id
+  task_id      String
+  date         DateTime @db.Date
+  plan_percent Decimal  @default(0) @db.Decimal
+  tasks        tasks    @relation(fields: [task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([task_id, date], map: "idx_task_plan_points_task_date")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model tasks {
+  id                            String             @id
+  title                         String
+  description                   String?
+  status                        Status             @default(todo)
+  priority                      Priority           @default(medium)
+  dueDate                       DateTime?
+  estimatedHours                Decimal?           @db.Decimal(6, 2)
+  actualHours                   Decimal            @default(0.00) @db.Decimal(6, 2)
+  weight                        Decimal            @default(1.00) @db.Decimal(10, 2)
+  completedAt                   DateTime?
+  projectId                     String
+  assignedTo                    String?
+  createdBy                     String
+  parentTaskId                  String?
+  category                      String?
+  storyPoints                   Int?
+  sprintId                      String?
+  blockedBy                     String?
+  blockedReason                 String?
+  createdAt                     DateTime           @default(now())
+  updatedAt                     DateTime
+  comments                      comments[]
+  documents                     documents[]
+  expenses                      expenses[]
+  task_actual_logs              task_actual_logs[]
+  task_plan_points              task_plan_points[]
+  users_tasks_assignedToTousers users?             @relation("tasks_assignedToTousers", fields: [assignedTo], references: [id])
+  users_tasks_createdByTousers  users              @relation("tasks_createdByTousers", fields: [createdBy], references: [id], onDelete: Cascade)
+  tasks                         tasks?             @relation("tasksTotasks", fields: [parentTaskId], references: [id])
+  other_tasks                   tasks[]            @relation("tasksTotasks")
+  projects                      projects           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  time_entries                  time_entries[]
+  timesheets                    timesheets[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model time_entries {
+  id                                   String    @id
+  date                                 DateTime
+  workType                             WorkType
+  projectId                            String?
+  taskId                               String?
+  userId                               String
+  startTime                            String
+  endTime                              String?
+  hours                                Decimal   @db.Decimal(5, 2)
+  description                          String?
+  status                               Status    @default(pending)
+  approvedBy                           String?
+  approvedAt                           DateTime?
+  createdAt                            DateTime  @default(now())
+  updatedAt                            DateTime
+  rejectedReason                       String?
+  users_time_entries_approvedByTousers users?    @relation("time_entries_approvedByTousers", fields: [approvedBy], references: [id])
+  projects                             projects? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks                                tasks?    @relation(fields: [taskId], references: [id])
+  users_time_entries_userIdTousers     users     @relation("time_entries_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+  time_entry_comments                  time_entry_comments[]
+
+  @@index([status, date], map: "idx_time_entries_status_date")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model timesheet_submissions {
+  id                String    @id
+  user_id           String
+  period_start_date DateTime  @db.Date
+  period_end_date   DateTime? @db.Date
+  total_hours       Decimal?  @default(0) @db.Decimal
+  status            String?   @default("Draft")
+  submitted_at      DateTime? @db.Timestamp(6)
+
+  @@unique([user_id, period_start_date], map: "idx_timesheet_submissions_user_period")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model timesheets {
+  id              String    @id
+  user_id         String
+  project_id      String
+  task_id         String?
+  date            DateTime  @db.Date
+  hours           Decimal?  @default(0) @db.Decimal
+  start_time      DateTime? @db.Timestamp(6)
+  end_time        DateTime? @db.Timestamp(6)
+  status          String    @default("pending")
+  description     String?
+  rejected_reason String?
+  approved_by     String?
+  approved_at     DateTime? @db.Timestamp(6)
+  billable        Boolean?  @default(true)
+  projects        projects  @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tasks           tasks?    @relation(fields: [task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users           users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model users {
+  id                                          String             @id
+  objectId                                    String?            @unique
+  name                                        String
+  email                                       String             @unique(map: "idx_users_email")
+  password                                    String?
+  role                                        user_role          @default(employee)
+  avatar                                      String?
+  department                                  String?
+  position                                    String?
+  employeeCode                                String?
+  hourlyRate                                  Decimal            @default(0.00) @db.Decimal(10, 2)
+  phone                                       String?
+  status                                      String             @default("active")
+  isActive                                    Boolean            @default(true)
+  isDeleted                                   Boolean            @default(false)
+  failedLoginAttempts                         Int                @default(0)
+  lastLogin                                   DateTime?
+  lockedUntil                                 DateTime?
+  resetToken                                  String?
+  resetTokenExpiry                            DateTime?
+  isProjectManager                            Boolean            @default(false)
+  isSupervisor                                Boolean            @default(false)
+  notificationPreferences                     Json?
+  timezone                                    String             @default("Asia/Bangkok")
+  createdAt                                   DateTime           @default(now())
+  updatedAt                                   DateTime
+  name_th                                     String?
+  activity_log                                activity_log[]
+  audit_logs                                  audit_logs[]
+  budget_revisions                            budget_revisions[]
+  comments                                    comments[]
+  documents                                   documents[]
+  expenses_expenses_approvedByTousers         expenses[]         @relation("expenses_approvedByTousers")
+  expenses_expenses_approverIdTousers         expenses[]         @relation("expenses_approverIdTousers")
+  expenses_expenses_userIdTousers             expenses[]         @relation("expenses_userIdTousers")
+  project_members                             project_members[]
+  projectassignee                             projectassignee[]
+  projects                                    projects[]
+  risks                                       risks[]
+  sales_activities                            sales_activities[]
+  sales_deals                                 sales_deals[]
+  saved_views                                 saved_views[]
+  tasks_tasks_assignedToTousers               tasks[]            @relation("tasks_assignedToTousers")
+  tasks_tasks_createdByTousers                tasks[]            @relation("tasks_createdByTousers")
+  time_entries_time_entries_approvedByTousers time_entries[]     @relation("time_entries_approvedByTousers")
+  time_entries_time_entries_userIdTousers     time_entries[]     @relation("time_entries_userIdTousers")
+  timesheets                                  timesheets[]
+  leave_allocations                           leave_allocations[]
+  leave_requests_user                         leave_requests[]
+  leave_requests_approver                     leave_requests[]   @relation("leave_request_approver")
+  time_entry_comments                         time_entry_comments[]
+  }
 
 enum ActivityType {
   create
@@ -42,12 +590,6 @@ enum ActivityType {
   comment
   assign
   status_change
-}
-
-enum WorkType {
-  project
-  office
-  other
 }
 
 enum ExpenseCategory {
@@ -65,380 +607,138 @@ enum ExpenseStatus {
   reimbursed
 }
 
-// Models
-model User {
-  id                        String    @id @default(cuid())
-  objectId                  String?   @unique
-  name                      String
-  email                     String    @unique
-  password                  String?
-  role                      UserRole  @default(employee)
-  avatar                    String?
-  department                String?
-  position                  String?
-  employeeCode              String?
-  hourlyRate                Decimal   @default(0.00) @db.Decimal(10, 2)
-  phone                     String?
-  status                    String    @default("active")
-  isActive                  Boolean   @default(true)
-  isDeleted                 Boolean   @default(false)
-  failedLoginAttempts       Int       @default(0)
-  lastLogin                 DateTime?
-  lockedUntil               DateTime?
-  resetToken                String?
-  resetTokenExpiry          DateTime?
-  isProjectManager          Boolean   @default(false)
-  isSupervisor              Boolean   @default(false)
-  notificationPreferences   Json?
-  timezone                  String    @default("Asia/Bangkok")
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
-
-  // Relations
-  managedProjects           Project[] @relation("ProjectManager")
-  assignedProjects          Project[] @relation("ProjectAssignee")
-  createdTasks              Task[]    @relation("TaskCreator")
-  assignedTasks             Task[]    @relation("TaskAssignee")
-  timeEntries               TimeEntry[]
-  expenses                  Expense[]
-  approvedTimeEntries       TimeEntry[] @relation("TimeEntryApprover")
-  approvedExpenses          Expense[]  @relation("ExpenseApprover")
-  activityLogs              ActivityLog[]
-  comments                  Comment[]
-  budgetRevisions            BudgetRevision[]
-  assignedRisks             Risk[]    @relation("RiskAssignee")
-  uploadedDocuments         Document[]
-  projectMemberships        ProjectMember[]
-  notifications             Notification[]
-
-  @@map("users")
+enum Priority {
+  low
+  medium
+  high
+  urgent
 }
 
-model Client {
-  id        String   @id @default(cuid())
-  name      String
-  email     String?
-  phone     String?
-  address   String?
-  taxId     String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  projects  Project[]
-
-  @@map("clients")
+enum ProjectStatus {
+  planning
+  active
+  onHold
+  completed
+  cancelled
 }
 
-model Project {
-  id             String    @id @default(cuid())
-  name           String
-  code           String?   @unique
-  description    String?
-  status         Status    @default(todo)
-  progress       Int       @default(0)
-  progressPlan   Int       @default(0)
-  spi            Decimal   @default(1.00) @db.Decimal(5, 2)
-  riskLevel      String    @default("low")
-  startDate      DateTime?
-  endDate        DateTime?
-  budget         Decimal?  @db.Decimal(12, 2)
-  spent          Decimal   @default(0.00) @db.Decimal(12, 2)
-  remaining      Decimal   @default(0.00) @db.Decimal(12, 2)
-  managerId      String?
-  clientId       String?
-  hourlyRate     Decimal   @default(0.00) @db.Decimal(10, 2)
-  priority       String    @default("medium")
-  category       String?
-  isArchived     Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  // Relations
-  manager        User?     @relation("ProjectManager", fields: [managerId], references: [id])
-  client         Client?   @relation(fields: [clientId], references: [id])
-  assignees      User[]    @relation("ProjectAssignee")
-  tasks          Task[]
-  timeEntries    TimeEntry[]
-  expenses       Expense[]
-  budgetRevisions BudgetRevision[]
-  milestones      Milestone[]
-  risks          Risk[]
-  documents      Document[]
-  progressHistory ProjectProgressHistory[]
-  projectMembers ProjectMember[]
-  issues         Issue[]
-
-  @@map("projects")
+enum Status {
+  todo
+  in_progress
+  in_review
+  done
+  pending
+  approved
+  rejected
+  active
+  inactive
 }
 
-model Task {
-  id             String    @id @default(cuid())
-  title          String
-  description    String?
-  status         Status    @default(todo)
-  priority       Priority  @default(medium)
-  dueDate        DateTime?
-  estimatedHours Decimal?  @db.Decimal(6, 2)
-  actualHours    Decimal   @default(0.00) @db.Decimal(6, 2)
-  weight         Decimal   @default(1.00) @db.Decimal(10, 2)
-  completedAt    DateTime?
-  projectId      String
-  assignedTo     String?
-  createdBy      String
-  parentTaskId   String?
-  category       String?
-  storyPoints    Int?
-  sprintId       String?
-  blockedBy      String?
-  blockedReason  String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  // Relations
-  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignee       User?     @relation("TaskAssignee", fields: [assignedTo], references: [id])
-  creator        User      @relation("TaskCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  parentTask     Task?     @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
-  subtasks       Task[]    @relation("TaskHierarchy")
-  timeEntries    TimeEntry[]
-  expenses       Expense[]
-  comments       Comment[]
-  documents      Document[]
-
-  @@map("tasks")
+enum TaskStatus {
+  todo
+  in_progress
+  in_review
+  done
+  cancelled
+  inactive
 }
 
-model TimeEntry {
-  id          String      @id @default(cuid())
-  date        DateTime
-  workType    WorkType
-  projectId   String?
-  taskId      String?
-  userId      String
-  startTime   String
-  endTime     String?
-  hours       Decimal     @db.Decimal(5, 2)
-  description String?
-  status      Status      @default(pending)
-  approvedBy  String?
-  approvedAt  DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  // Relations
-  project     Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  task        Task?       @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  approver    User?       @relation("TimeEntryApprover", fields: [approvedBy], references: [id])
-
-  @@map("time_entries")
+enum TimeEntryStatus {
+  pending
+  approved
+  rejected
 }
 
-model Expense {
-  id          String           @id @default(cuid())
-  date        DateTime
-  projectId   String
-  taskId      String?
-  userId      String
-  amount      Decimal          @db.Decimal(12, 2)
-  category    ExpenseCategory
-  description String
-  receiptUrl  String?
-  status      ExpenseStatus    @default(pending)
-  approvedBy  String?
-  approvedAt  DateTime?
-  notes       String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  // Relations
-  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  task        Task?            @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  approver    User?            @relation("ExpenseApprover", fields: [approvedBy], references: [id])
-
-  @@map("expenses")
+enum UserRole {
+  admin
+  manager
+  employee
 }
 
-model BudgetRevision {
-  id             String   @id @default(cuid())
-  projectId      String
-  previousBudget Decimal  @db.Decimal(12, 2)
-  newBudget      Decimal  @db.Decimal(12, 2)
-  reason         String
-  changedBy      String
-  changedAt      DateTime @default(now())
-
-  // Relations
-  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  changer        User     @relation(fields: [changedBy], references: [id])
-
-  @@map("budget_revisions")
+enum WorkType {
+  project      // billable project work
+  office       // office/admin work
+  training     // professional development
+  leave        // approved leave
+  overtime     // overtime work
+  other        // other work
 }
 
-model ActivityLog {
-  id          String       @id @default(cuid())
-  entityType  String
-  entityId    String
-  type        ActivityType
-  action      String
-  description String?
-  userId      String
-  changes     Json?
-  createdAt   DateTime     @default(now())
-
-  // Relations
-  user        User         @relation(fields: [userId], references: [id])
-
-  @@map("activity_log")
+enum LeaveType {
+  annual
+  sick
+  personal
+  maternity
+  unpaid
 }
 
-model Comment {
-  id        String   @id @default(cuid())
-  taskId    String
-  userId    String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
-
-  @@map("comments")
+enum user_role {
+  admin
+  manager
+  employee
 }
 
-model ProjectProgressHistory {
-  id        String   @id @default(cuid())
-  projectId String
-  progress  Int
-  weekDate  DateTime
-  createdAt DateTime @default(now())
-
-  // Relations
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@map("project_progress_history")
+enum user_status {
+  active
+  inactive
 }
 
-model FinancialData {
-  id        String   @id @default(cuid())
-  month     DateTime @unique
-  revenue   Decimal  @default(0.00) @db.Decimal(15, 2)
-  cost      Decimal  @default(0.00) @db.Decimal(15, 2)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+/// Leave allocation model for tracking annual leave hours
+model leave_allocations {
+  id                String   @id @default(cuid())
+  user_id           String
+  year              Int
+  annual_leave_hours Decimal @db.Decimal(8, 2)
+  used_leave_hours   Decimal @db.Decimal(8, 2) @default(0)
+  remaining_hours    Decimal @db.Decimal(8, 2)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
 
-  @@map("financial_data")
+  users              users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  leave_requests     leave_requests[]
+
+  @@unique([user_id, year])
+  @@index([user_id])
+  @@map("leave_allocations")
 }
 
-model Milestone {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  dueDate     DateTime
-  amount      Decimal? @db.Decimal(15, 2)
-  status      String   @default("pending")
-  progress    Int      @default(0)
-  projectId   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+/// Leave request model for tracking leave requests
+model leave_requests {
+  id                    String    @id @default(cuid())
+  leave_allocation_id   String
+  user_id               String
+  start_date            DateTime
+  end_date              DateTime
+  leave_type            LeaveType
+  reason                String
+  status                Status    @default(pending)
+  approved_by           String?
+  approved_at           DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
 
-  // Relations
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  leave_allocations     leave_allocations @relation(fields: [leave_allocation_id], references: [id], onDelete: Cascade)
+  users                 users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  approver              users?   @relation("leave_request_approver", fields: [approved_by], references: [id])
 
-  @@map("milestones")
+  @@index([leave_allocation_id])
+  @@index([user_id])
+  @@index([status])
+  @@map("leave_requests")
 }
 
-model Risk {
-  id             String   @id @default(cuid())
-  title          String
-  description    String?
-  impact         String
-  probability    String
-  riskScore      Int?
-  mitigationPlan String?
-  status         String   @default("open")
-  project_id     String?  @map("project_id")
-  assigned_to    String?  @map("assigned_to")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+/// Time entry comment model for tracking comments on time entries
+model time_entry_comments {
+  id              String   @id @default(cuid())
+  time_entry_id   String
+  user_id         String
+  text            String
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 
-  // Relations
-  project        Project? @relation(fields: [project_id], references: [id], onDelete: SetNull)
-  assignee       User?    @relation("RiskAssignee", fields: [assigned_to], references: [id])
+  time_entries    time_entries @relation(fields: [time_entry_id], references: [id], onDelete: Cascade)
+  users           users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@map("risks")
-}
-
-model Document {
-  id          String   @id @default(cuid())
-  name        String
-  type        String?
-  size        String?
-  url         String?
-  projectId   String?
-  taskId      String?
-  uploadedBy  String?
-  milestone   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  uploader    User?    @relation(fields: [uploadedBy], references: [id])
-  task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
-
-  @@map("documents")
-}
-
-model ProjectMember {
-  id        String   @id @default(cuid())
-  projectId String
-  userId    String
-  role      String   @default("member")
-  joinedAt  DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("project_members")
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String
-  message   String
-  type      String   @default("info")
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  
-  // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("notifications")
-}
-
-model Issue {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  priority    String   @default("Medium")
-  status      String   @default("Open")
-  project_id  String?
-  assigned_to String?
-  due_date    DateTime?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-
-  // Relations
-  project     Project? @relation(fields: [project_id], references: [id], onDelete: Cascade)
-
-  @@map("issues")
+  @@index([time_entry_id])
+  @@map("time_entry_comments")
 }

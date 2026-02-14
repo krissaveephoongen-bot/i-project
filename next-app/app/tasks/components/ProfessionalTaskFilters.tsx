@@ -26,7 +26,7 @@ export function ProfessionalTaskFilters({ className }: ProfessionalTaskFiltersPr
   };
 
   const clearAllFilters = () => {
-    replace(pathname);
+    replace(`${pathname}?`);
   };
 
   const filters = React.useMemo(() => [

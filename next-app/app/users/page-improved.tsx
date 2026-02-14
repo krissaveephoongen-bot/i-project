@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import Header from '../components/Header';
-import DeleteConfirmationDialog from '@/app/components/DeleteConfirmationDialog';
+import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog';
 import { getUsers, updateUser, deleteUser, createUser, User } from '../lib/users';
-import PageTransition from '@/app/components/PageTransition';
-import { Skeleton } from '@/app/components/ui/Skeleton';
+import PageTransition from '../components/PageTransition';
+import { Skeleton } from '../components/ui/Skeleton';
 import { 
   Search, 
   Plus, 
@@ -165,7 +165,7 @@ export default function UsersPageImproved() {
       errors.password = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
     }
 
-    if (formData.employeeCode && formData.employeeCode <= 0) {
+    if (formData.employeeCode && Number(formData.employeeCode) <= 0) {
       errors.employeeCode = 'รหัสพนักงานต้องมากกว่า 0';
     }
 

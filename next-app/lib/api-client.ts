@@ -4,7 +4,7 @@
  * Includes built-in retry logic with exponential backoff
  */
 
-import { ApiResponse, ApiError } from '@/app/types/api';
+import { ApiResponse, ApiError } from '@/types/api';
 import { retryAsync, RetryOptions } from './retry-utils';
 
 export interface ApiClientOptions extends RequestInit {

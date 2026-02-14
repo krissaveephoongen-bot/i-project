@@ -6,7 +6,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import * as TimesheetService from '@/app/lib/timesheet-service';
+import * as TimesheetService from '@/lib/timesheet-service';
 
 export interface UseTimesheetDataReturn {
   projects: TimesheetService.Project[];

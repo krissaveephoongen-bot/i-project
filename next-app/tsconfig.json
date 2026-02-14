@@ -24,6 +24,7 @@
       "@/components/*": ["./app/components/*", "./components/*", "./src/shared/ui/components/*"],
       "@/lib/*": ["./app/lib/*", "./lib/*", "./src/lib/*"],
       "@/hooks/*": ["./hooks/*", "./src/hooks/*"],
+      "@/types/*": ["./types/*", "./src/types/*"],
       "@/*": ["./src/*"],
       "@/shared/*": ["./src/shared/*"],
       "@/features/*": ["./src/features/*"],

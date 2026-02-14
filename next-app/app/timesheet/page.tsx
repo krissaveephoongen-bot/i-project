@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { useFetchWithAbort } from '@/app/hooks/useFetchWithAbort';
+import { useFetchWithAbort } from '@/hooks/useFetchWithAbort';
 import { 
   Edit2, 
   X, 

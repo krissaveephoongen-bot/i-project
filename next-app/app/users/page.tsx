@@ -31,8 +31,8 @@ import {
 } from 'lucide-react';
 
 // Shadcn UI
-import { Button } from '@/app/components/ui/Button';
-import { Input } from '@/app/components/ui/Input';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 import {
     Select,
     SelectContent,
@@ -56,7 +56,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from "@/app/components/ui/Dialog";
+} from "@/components/ui/Dialog";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -64,9 +64,9 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { validateEmail } from '@/app/lib/validation';
+} from "@/components/ui/dropdown-menu";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { validateEmail } from '@/lib/validation';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -171,7 +171,7 @@ export default function UsersPage() {
             errors.password = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
         }
 
-        if (formData.employeeCode && formData.employeeCode <= 0) {
+        if (formData.employeeCode && Number(formData.employeeCode) <= 0) {
             errors.employeeCode = 'รหัสพนักงานต้องมากกว่า 0';
         }
 
