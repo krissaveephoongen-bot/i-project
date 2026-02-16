@@ -102,22 +102,22 @@ export default function PortfolioHealthMatrix({ projects }: PortfolioHealthMatri
       </CardHeader>
       <CardContent className="p-6">
         {viewMode === 'matrix' ? (
-          <div className="h-[400px] w-full relative">
+          <div className="h-[400px] w-full grid grid-cols-3 grid-rows-3">
              {/* Quadrant Labels */}
-             <div className="absolute top-2 right-2 text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-100 z-10">
+             <div className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-100 self-start justify-self-end">
                STAR (Ahead & Under Budget)
              </div>
-             <div className="absolute top-2 left-2 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 z-10">
+             <div className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 self-start justify-self-start">
                POTENTIAL (Behind & Under Budget)
              </div>
-             <div className="absolute bottom-10 right-2 text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded border border-orange-100 z-10">
+             <div className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded border border-orange-100 self-end justify-self-end">
                OVERRUN (Ahead & Over Budget)
              </div>
-             <div className="absolute bottom-10 left-2 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100 z-10">
+             <div className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100 self-end justify-self-start">
                CRITICAL (Behind & Over Budget)
              </div>
 
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" className="col-start-1 col-span-3 row-start-1 row-span-3">
               <ScatterChart
                 margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
               >

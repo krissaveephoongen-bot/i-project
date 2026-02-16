@@ -483,6 +483,16 @@ model time_entries {
   createdAt                            DateTime  @default(now())
   updatedAt                            DateTime
   rejectedReason                       String?
+  
+  // NEW: Parallel Work Fields (Option 3)
+  isConcurrent                         Boolean   @default(false)
+  concurrentEntryIds                   String[]  @default([])
+  concurrentReason                     String?
+  breakDuration                        Int       @default(60) // minutes
+  chargeable                           Boolean   @default(false)
+  chargeAmount                         Decimal?  @db.Decimal(12, 2)
+  billableHours                        Decimal?  @db.Decimal(5, 2)
+  
   users_time_entries_approvedByTousers users?    @relation("time_entries_approvedByTousers", fields: [approvedBy], references: [id])
   projects                             projects? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks                                tasks?    @relation(fields: [taskId], references: [id])
@@ -490,6 +500,8 @@ model time_entries {
   time_entry_comments                  time_entry_comments[]
 
   @@index([status, date], map: "idx_time_entries_status_date")
+  @@index([userId, date, status], map: "idx_time_entries_user_date_status")
+  @@index([isConcurrent], map: "idx_time_entries_concurrent")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

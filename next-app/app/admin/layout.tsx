@@ -8,12 +8,14 @@ import {
   Settings, 
   Database, 
   LayoutDashboard,
-  ShieldAlert
+  ShieldAlert,
+  CheckSquare
 } from 'lucide-react';
 import Header from '@/app/components/Header';
 
 const MENU_ITEMS = [
   { label: 'Overview', href: '/admin', icon: LayoutDashboard },
+  { label: 'Approval Status', href: '/admin/approvals', icon: CheckSquare },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'System Logs', href: '/admin/logs', icon: Activity },
   { label: 'Settings', href: '/admin/settings', icon: Settings },

@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Plus, Edit2, Trash2, Calendar, DollarSign, FileText, X, Truck } from 'lucide-react';
 import Header from '../components/Header';
 import { useAuth } from '../components/AuthProvider';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/lib/hooks/useLanguage';
+import { getExpensePageLabels } from '@/lib/services/expenses.utils';
 import { Button } from '@/app/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/Input';
@@ -70,6 +73,8 @@ const CATEGORIES = ['Travel', 'Meals', 'Lodging', 'Office Supplies', 'Software',
 export default function ExpensesPage() {
     const { user } = useAuth();
     const router = useRouter();
+    const { language } = useLanguage();
+    const labels = getExpensePageLabels(language);
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
@@ -262,27 +267,28 @@ export default function ExpensesPage() {
 
     return (
         <div className="min-h-screen bg-slate-50/50">
-            <Header title="My Expenses" breadcrumbs={[{ label: 'Dashboard', href: '/' }, { label: 'Expenses' }]} />
+            <Header title="My Expenses" breadcrumbs={[{ label: 'Dashboard', href: '/' }, { label: labels.title }]} />
 
             <div className="container mx-auto px-6 py-8 pt-24 space-y-6">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Expense Claims</h1>
-                        <p className="text-slate-500">Manage and track your project expenses</p>
+                        <h1 className="text-2xl font-bold text-slate-900">{language === 'th' ? 'การเรียกร้องค่าใช้จ่าย' : 'Expense Claims'}</h1>
+                        <p className="text-slate-500">{language === 'th' ? 'จัดการและติดตามค่าใช้จ่ายของโครงการของคุณ' : 'Manage and track your project expenses'}</p>
                     </div>
                     <div className="flex gap-2">
+                        <LanguageSwitcher />
                         <Link href="/expenses/memo">
                             <Button variant="outline" className="gap-2">
-                                <FileText className="h-4 w-4" /> Memo Request
+                                <FileText className="h-4 w-4" /> {labels.viewMemo}
                             </Button>
                         </Link>
                         <Link href="/expenses/travel">
                             <Button variant="outline" className="gap-2">
-                                <Truck className="h-4 w-4" /> Travel Claim
+                                <Truck className="h-4 w-4" /> {labels.viewTravel}
                             </Button>
                         </Link>
                         <Button onClick={() => handleOpenModal()} className="gap-2 bg-blue-600 hover:bg-blue-700">
-                            <Plus className="h-4 w-4" /> New Claim
+                            <Plus className="h-4 w-4" /> {language === 'th' ? 'เรียกร้องใหม่' : 'New Claim'}
                         </Button>
                     </div>
                 </div>
@@ -290,25 +296,25 @@ export default function ExpensesPage() {
                 <Card>
                     <CardContent className="p-0">
                         <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Project</TableHead>
-                                    <TableHead>Category</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead className="text-right">Amount</TableHead>
-                                    <TableHead className="text-center">Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
+                             <TableHeader>
+                                 <TableRow>
+                                     <TableHead>{labels.date}</TableHead>
+                                     <TableHead>{labels.project}</TableHead>
+                                     <TableHead>{labels.category}</TableHead>
+                                     <TableHead>{labels.description}</TableHead>
+                                     <TableHead className="text-right">{labels.amount}</TableHead>
+                                     <TableHead className="text-center">{labels.status}</TableHead>
+                                     <TableHead className="text-right">{language === 'th' ? 'การกระทำ' : 'Actions'}</TableHead>
+                                 </TableRow>
+                             </TableHeader>
                             <TableBody>
-                                {expenses.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={7} className="text-center h-32 text-slate-500">
-                                            No expenses recorded yet.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
+                                 {expenses.length === 0 ? (
+                                     <TableRow>
+                                         <TableCell colSpan={7} className="text-center h-32 text-slate-500">
+                                             {labels.noExpenses}
+                                         </TableCell>
+                                     </TableRow>
+                                 ) : (
                                     expenses.map(expense => (
                                         <TableRow key={expense.id}>
                                             <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
@@ -354,16 +360,16 @@ export default function ExpensesPage() {
                 <Dialog open={modalOpen} onOpenChange={setModalOpen}>
                     <DialogContent className="sm:max-w-[500px]">
                         <DialogHeader>
-                            <DialogTitle>{editingId ? 'Edit Expense' : 'New Expense Claim'}</DialogTitle>
+                            <DialogTitle>{editingId ? labels.edit : language === 'th' ? 'เรียกร้องค่าใช้จ่ายใหม่' : 'New Expense Claim'}</DialogTitle>
                             <DialogDescription>
-                                Fill in the details for your expense claim.
+                                {language === 'th' ? 'กรอกรายละเอียดสำหรับการเรียกร้องค่าใช้จ่ายของคุณ' : 'Fill in the details for your expense claim.'}
                             </DialogDescription>
                         </DialogHeader>
 
                         <div className="space-y-4 py-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Date</label>
+                             <div className="grid grid-cols-2 gap-4">
+                                 <div className="space-y-2">
+                                     <label className="text-sm font-medium">{labels.date}</label>
                                     <div className="relative">
                                         <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
                                         <Input
@@ -375,7 +381,7 @@ export default function ExpensesPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Amount (THB)</label>
+                                    <label className="text-sm font-medium">{language === 'th' ? 'จำนวนเงิน (บาท)' : 'Amount (THB)'}</label>
                                     <div className="relative">
                                         <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
                                         <Input
@@ -390,7 +396,7 @@ export default function ExpensesPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Project</label>
+                                 <label className="text-sm font-medium">{labels.project}</label>
                                 <Select value={formData.projectId} onValueChange={val => setFormData({ ...formData, projectId: val })}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select Project" />
@@ -404,7 +410,7 @@ export default function ExpensesPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Category</label>
+                                 <label className="text-sm font-medium">{labels.category}</label>
                                 <Select value={formData.category} onValueChange={val => setFormData({ ...formData, category: val })}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select Category" />
@@ -418,7 +424,7 @@ export default function ExpensesPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Description</label>
+                                 <label className="text-sm font-medium">{labels.description}</label>
                                 <Textarea
                                     placeholder="Describe the expense..."
                                     value={formData.description}
@@ -427,7 +433,7 @@ export default function ExpensesPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Receipt URL (Optional)</label>
+                                 <label className="text-sm font-medium">{language === 'th' ? 'URL ใบเสร็จรับเงิน (ไม่บังคับ)' : 'Receipt URL (Optional)'}</label>
                                 <Input
                                     placeholder="https://example.com/receipt.jpg"
                                     value={formData.receiptUrl}
@@ -437,9 +443,9 @@ export default function ExpensesPage() {
                         </div>
 
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-                            <Button onClick={handleSubmit}>Save Claim</Button>
-                        </DialogFooter>
+                             <Button variant="outline" onClick={() => setModalOpen(false)}>{labels.cancel}</Button>
+                             <Button onClick={handleSubmit}>{language === 'th' ? 'บันทึกการเรียกร้อง' : 'Save Claim'}</Button>
+                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
 
@@ -447,9 +453,9 @@ export default function ExpensesPage() {
                 <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
                     <DialogContent className="sm:max-w-[400px]">
                         <DialogHeader>
-                            <DialogTitle>Confirm Deletion</DialogTitle>
+                            <DialogTitle>{language === 'th' ? 'ยืนยันการลบ' : 'Confirm Deletion'}</DialogTitle>
                             <DialogDescription>
-                                Are you sure you want to delete this expense? This action cannot be undone.
+                                {language === 'th' ? 'คุณแน่ใจหรือว่าต้องการลบค่าใช้จ่ายนี้? การกระทำนี้ไม่สามารถยกเลิกได้' : 'Are you sure you want to delete this expense? This action cannot be undone.'}
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
@@ -457,13 +463,13 @@ export default function ExpensesPage() {
                                 variant="outline"
                                 onClick={() => setDeleteConfirmOpen(false)}
                             >
-                                Cancel
+                                {labels.cancel}
                             </Button>
                             <Button
                                 variant="destructive"
                                 onClick={handleConfirmDelete}
                             >
-                                Delete Expense
+                                {labels.delete}
                             </Button>
                         </DialogFooter>
                     </DialogContent>

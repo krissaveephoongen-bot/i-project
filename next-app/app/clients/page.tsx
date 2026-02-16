@@ -10,6 +10,9 @@ import Header from '@/app/components/Header';
 import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog';
 import { getClients, deleteClient, Client } from '@/app/lib/clients';
 import ClientFormModal from './components/ClientFormModal';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/lib/hooks/useLanguage';
+import { getClientPageLabels } from '@/lib/services/clients.utils';
 import {
     toastDeleteSuccess,
     toastError
@@ -52,6 +55,8 @@ export default function ClientsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingClient, setEditingClient] = useState<Client | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+    const { language } = useLanguage();
+    const labels = getClientPageLabels(language);
 
     const queryClient = useQueryClient();
 
@@ -100,22 +105,23 @@ export default function ClientsPage() {
 
     return (
         <div className="min-h-screen bg-slate-50/50">
-            <Header title="Client Management" breadcrumbs={[{ label: 'Workspace', href: '/' }, { label: 'Clients' }]} />
+            <Header title="Client Management" breadcrumbs={[{ label: 'Workspace', href: '/' }, { label: labels.title }]} />
 
             <div className="container mx-auto px-6 py-8 pt-24 space-y-6">
 
                 {/* Top Controls */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Clients</h1>
-                        <p className="text-slate-500 mt-1">Manage client organizations and contact details.</p>
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">{labels.title}</h1>
+                        <p className="text-slate-500 mt-1">{language === 'th' ? 'จัดการองค์กรลูกค้าและรายละเอียดติดต่อ' : 'Manage client organizations and contact details.'}</p>
                     </div>
                     <div className="flex items-center gap-2">
+                        <LanguageSwitcher />
                         <Button variant="outline" onClick={exportCsv} className="gap-2">
-                            <Download className="h-4 w-4" /> Export CSV
+                            <Download className="h-4 w-4" /> {labels.edit === 'Export CSV' ? 'Export CSV' : language === 'th' ? 'ส่งออก CSV' : 'Export CSV'}
                         </Button>
                         <Button onClick={() => handleOpenModal()} className="gap-2 bg-blue-600 hover:bg-blue-700">
-                            <Plus className="h-4 w-4" /> Add Client
+                            <Plus className="h-4 w-4" /> {labels.addNew}
                         </Button>
                     </div>
                 </div>
@@ -126,7 +132,7 @@ export default function ClientsPage() {
                         <div className="relative max-w-sm">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
                             <Input
-                                placeholder="Search clients..."
+                                placeholder={labels.search}
                                 className="pl-9"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
@@ -141,17 +147,17 @@ export default function ClientsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Client Name</TableHead>
-                                    <TableHead>Contact Info</TableHead>
-                                    <TableHead>Tax ID</TableHead>
-                                    <TableHead>Address</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead>{labels.name}</TableHead>
+                                    <TableHead>{language === 'th' ? 'ข้อมูลติดต่อ' : 'Contact Info'}</TableHead>
+                                    <TableHead>{labels.taxId}</TableHead>
+                                    <TableHead>{labels.address}</TableHead>
+                                    <TableHead className="text-right">{language === 'th' ? 'การกระทำ' : 'Actions'}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">Loading...</TableCell>
+                                        <TableCell colSpan={5} className="h-24 text-center">{labels.loading}</TableCell>
                                     </TableRow>
                                 ) : clients.length > 0 ? (
                                     clients.map((client) => (
@@ -198,18 +204,18 @@ export default function ClientsPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
-                                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuItem onClick={() => handleOpenModal(client)}>
-                                                            <Edit className="h-4 w-4 mr-2" /> Edit Client
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem
-                                                            className="text-red-600 cursor-pointer"
-                                                            onClick={() => handleDeleteClick(client)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4 mr-2" /> Delete Client
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
+                                                                        <DropdownMenuLabel>{language === 'th' ? 'การกระทำ' : 'Actions'}</DropdownMenuLabel>
+                                                                         <DropdownMenuItem onClick={() => handleOpenModal(client)}>
+                                                                            <Edit className="h-4 w-4 mr-2" /> {labels.edit}
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuSeparator />
+                                                                        <DropdownMenuItem
+                                                                            className="text-red-600 cursor-pointer"
+                                                                            onClick={() => handleDeleteClick(client)}
+                                                                        >
+                                                                            <Trash2 className="h-4 w-4 mr-2" /> {labels.delete}
+                                                                        </DropdownMenuItem>
+                                                                    </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
@@ -217,7 +223,7 @@ export default function ClientsPage() {
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                                            No clients found.
+                                            {labels.noClients}
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -236,8 +242,8 @@ export default function ClientsPage() {
                 {/* Delete Confirmation Modal */}
                 <DeleteConfirmationDialog
                     open={!!deleteConfirm}
-                    title="ยืนยันการลบคลายเอนต์"
-                    description="เมื่อลบคลายเอนต์นี้ จะไม่สามารถกู้คืนข้อมูลได้"
+                    title={language === 'th' ? 'ยืนยันการลบคลายเอนต์' : 'Confirm Delete Client'}
+                    description={language === 'th' ? 'เมื่อลบคลายเอนต์นี้ จะไม่สามารถกู้คืนข้อมูลได้' : 'This action cannot be undone.'}
                     entityName={deleteConfirm?.name}
                     isLoading={deleteClientMutation.isPending}
                     onConfirm={handleConfirmDelete}

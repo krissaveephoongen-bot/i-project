@@ -1,8 +1,15 @@
-// Service exports
-export { ProjectService } from './projects'
-export { TaskService } from './tasks'
-export { TimesheetService } from './timesheets'
-export { UserService } from './users'
-export { ClientService } from './clients'
-export { MessageService } from './messages'
-export { WeeklySummaryService } from './weekly-summary'
+/**
+ * Frontend Services Index
+ * Centralized exports for all API client services
+ */
+
+// Timesheet Services
+export * from "./timesheet";
+export * from "./timesheet.utils";
+
+// Leave Services
+export * from "./leave";
+export * from "./leave.utils";
+
+// Validation
+export * from "./validation";

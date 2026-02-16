@@ -10,9 +10,11 @@ import {
   ChevronRight, 
   Send,
   AlertCircle,
+  Plus,
 } from 'lucide-react';
 import Header from '../components/Header';
 import { useAuth } from '../components/AuthProvider';
+import { useThaiLocale } from '@/lib/hooks/useThaiLocale';
 
 // Shadcn UI Components
 import { Button } from '@/app/components/ui/Button';
@@ -34,12 +36,13 @@ import MonthlyView from './components/MonthlyView';
 import WeeklyView from './components/WeeklyView';
 import ActivityLog from './components/ActivityLog';
 import TimesheetModal from './components/TimesheetModal';
-import { Project, TimesheetEntry, WeeklyData, ActivityData, ModalRow, SubmissionStatus } from './types';
+import { Project, TimesheetEntry, WeeklyData, ActivityData, ModalRow, SubmissionStatus, EntryStatus } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export default function TimesheetPage() {
   const { user } = useAuth();
+  const { formatThaiDateWithDay, isThaiLanguage } = useThaiLocale();
   
   // State
   const [projects, setProjects] = useState<Project[]>([]);
@@ -47,7 +50,7 @@ export default function TimesheetPage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>('Draft');
+  const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>({ status: 'Draft' });
   
   // Weekly Tab State
   const [weekly, setWeekly] = useState<WeeklyData | null>(null);
@@ -75,7 +78,9 @@ export default function TimesheetPage() {
     return Array.from(m.entries()).map(([id, name]) => ({ id, name }));
   }, [weekly]);
 
-  const monthName = currentMonth.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+  const monthName = isThaiLanguage ? 
+    currentMonth.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' }) :
+    currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   // Fetch Data
   useEffect(() => {
@@ -184,9 +189,30 @@ export default function TimesheetPage() {
     setModalDate(dateStr);
     
     if (existingEntries.length > 0) {
-        setModalRows(existingEntries.map(e => ({ id: e.id, taskId: e.taskId, hours: e.hours, description: e.description })));
+        setModalRows(existingEntries.map(e => ({ 
+          id: e.id, 
+          date: e.date,
+          project: e.projectId || '',
+          task: e.taskId || '',
+          startTime: e.startTime || '',
+          endTime: e.endTime || '',
+          hours: e.hours, 
+          description: e.description || '',
+          status: e.status || 'Draft'
+        })));
     } else {
-        setModalRows([{ hours: 0, taskId: taskId === null ? undefined : taskId }]);
+        // Always allow adding new entry, even if no existing entries
+        setModalRows([{ 
+          id: 'new',
+          date: dateStr,
+          project: projectId,
+          task: taskId || '',
+          startTime: '',
+          endTime: '',
+          hours: 0,
+          description: '',
+          status: 'Draft'
+        }]);
     }
     setModalOpen(true);
   };
@@ -196,28 +222,47 @@ export default function TimesheetPage() {
     try {
       for (const r of rows) {
         if (r.deleted) {
-          if (r.id) {
+          if (r.id && r.id !== 'new') {
             await fetch(`${API_BASE}/api/timesheet/entries?id=${r.id}`, { method: 'DELETE' });
             setEntries(prev => prev.filter(e => e.id !== r.id));
           }
           continue;
         }
-        if (r.id) {
+        if (r.id && r.id !== 'new') {
           await fetch(`${API_BASE}/api/timesheet/entries`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: r.id, hours: r.hours, task_id: r.taskId, description: r.description, start_time: r.start || null, end_time: r.end || null }),
+            body: JSON.stringify({ id: r.id, hours: r.hours, task_id: r.task, description: r.description, start_time: r.startTime || null, end_time: r.endTime || null }),
           });
-          setEntries(prev => prev.map(e => e.id === r.id ? { ...e, hours: r.hours, taskId: r.taskId, date: modalDate, description: r.description } : e));
+          setEntries(prev => prev.map(e => e.id === r.id ? { ...e, hours: r.hours, taskId: r.task, date: modalDate, description: r.description } : e));
         } else if (r.hours > 0) {
           const res = await fetch(`${API_BASE}/api/timesheet/entries`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: user?.id, project_id: modalProjectId, task_id: r.taskId, date: modalDate, hours: r.hours, description: r.description, start_time: r.start || null, end_time: r.end || null }),
+            body: JSON.stringify({ user_id: user?.id, project_id: modalProjectId, task_id: r.task, date: modalDate, hours: r.hours, description: r.description, start_time: r.startTime || null, end_time: r.endTime || null }),
           });
           const row = res.ok ? await res.json() : null;
           const newId = row?.id || `${modalProjectId}-${modalDate}-${Math.random().toString(36).slice(2,7)}`;
-          setEntries(prev => [...prev, { id: newId, projectId: modalProjectId, taskId: r.taskId, date: modalDate, hours: r.hours, description: r.description }]);
+          setEntries(prev => [...prev, { 
+          id: newId, 
+          projectId: modalProjectId, 
+          taskId: r.task, 
+          date: modalDate, 
+          hours: r.hours, 
+          description: r.description,
+          startTime: r.startTime,
+          endTime: r.endTime,
+          workType: 'project' as any,
+          breakDuration: 0,
+          userId: user?.id || '',
+          billableHours: r.hours,
+          status: EntryStatus.PENDING,
+          approvedBy: null,
+          approvedAt: null,
+          rejectedReason: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }]);
         }
       }
       setModalOpen(false);
@@ -245,7 +290,7 @@ export default function TimesheetPage() {
       })
     });
     if (res.ok) {
-      setSubmissionStatus('Submitted');
+      setSubmissionStatus({ status: 'Submitted', submittedAt: new Date().toISOString() });
       setIsEditing(false);
       toast.success('ส่งอนุมัติเรียบร้อยแล้ว');
     } else {
@@ -279,15 +324,41 @@ export default function TimesheetPage() {
   // Calculations
   const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
   const isAuthority = ['admin','manager'].includes((user as any)?.role || '');
-  const canEdit = submissionStatus === 'Draft' || submissionStatus === 'Rejected' || (isAuthority && submissionStatus === 'Submitted');
+  const canEdit = submissionStatus.status === 'Draft' || submissionStatus.status === 'Rejected' || (isAuthority && submissionStatus.status === 'Submitted');
+
+  // Add Entry Handler - open modal to add entry for a specific date and project
+  const handleAddEntry = () => {
+    if (!projects.length) {
+      toast.error('ต้องมีโครงการอย่างน้อย 1 รายการ');
+      return;
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    const firstProject = projects[0].id;
+    
+    setModalProjectId(firstProject);
+    setModalDate(today);
+    setModalRows([{ 
+      id: 'new',
+      date: today,
+      project: firstProject,
+      task: '',
+      startTime: '',
+      endTime: '',
+      hours: 0,
+      description: '',
+      status: 'Draft'
+    }]);
+    setModalOpen(true);
+  };
 
   const getStatusBadge = (status: SubmissionStatus) => {
-    switch (status) {
+    switch (status.status) {
       case 'Draft': return <Badge variant="secondary">แบบร่าง (Draft)</Badge>;
       case 'Submitted': return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">รออนุมัติ (Submitted)</Badge>;
       case 'Approved': return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">อนุมัติแล้ว (Approved)</Badge>;
       case 'Rejected': return <Badge variant="destructive">ไม่อนุมัติ (Rejected)</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
+      default: return <Badge variant="outline">{status.status}</Badge>;
     }
   };
 
@@ -323,16 +394,16 @@ export default function TimesheetPage() {
             <div className="flex flex-col items-center min-w-[140px]">
               <span className="font-semibold text-lg text-slate-900">{monthName}</span>
               <div className="flex items-center gap-2">
-                {getStatusBadge(submissionStatus)}
-                <span className="text-xs text-slate-500 font-medium">{totalHours} ชม.</span>
-              </div>
+                 {getStatusBadge(submissionStatus)}
+                 <span className="text-xs text-slate-500 font-medium">{totalHours} ชม.</span>
+               </div>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
              {canEdit && (
                <Button 
                  variant={isEditing ? "secondary" : "outline"} 
@@ -343,8 +414,17 @@ export default function TimesheetPage() {
                  {isEditing ? 'หยุดแก้ไข' : 'แก้ไขเวลา'}
                </Button>
              )}
+
+             {canEdit && (
+               <Button 
+                 onClick={handleAddEntry}
+                 className="gap-2 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg shadow-green-600/20"
+               >
+                 <Plus className="h-4 w-4" /> เพิ่มรายการใหม่
+               </Button>
+             )}
              
-             {submissionStatus === 'Draft' && (
+             {submissionStatus.status === 'Draft' && (
                <Button onClick={() => setConfirmSubmit(true)} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20">
                  <Send className="h-4 w-4" /> ส่งอนุมัติ
                </Button>
@@ -411,24 +491,25 @@ export default function TimesheetPage() {
           projects={projects}
           initialRows={modalRows}
           onSave={saveDayEditor}
+          userId={user?.id}
         />
 
         {/* Confirm Submit Modal */}
         <Dialog open={confirmSubmit} onOpenChange={setConfirmSubmit}>
           <DialogContent className="rounded-2xl">
              <DialogHeader>
-               <DialogTitle>ยืนยันการส่งอนุมัติ?</DialogTitle>
-               <DialogDescription>
-                 คุณแน่ใจหรือไม่ที่จะส่ง Timesheet สำหรับเดือน {monthName}?
-               </DialogDescription>
+              <DialogTitle>ยืนยันการส่งอนุมัติ?</DialogTitle>
+              <DialogDescription>
+                คุณแน่ใจหรือไม่ที่จะส่ง Timesheet สำหรับเดือน {monthName}?
+              </DialogDescription>
              </DialogHeader>
              <div className="flex items-center gap-3 p-4 bg-yellow-50 text-yellow-800 rounded-xl text-sm border border-yellow-100">
                <AlertCircle className="h-5 w-5 shrink-0" />
-               <p>เมื่อส่งแล้ว คุณจะไม่สามารถแก้ไขข้อมูลได้อีกจนกว่าจะได้รับการพิจารณาจากหัวหน้างาน</p>
+              <p>เมื่อส่งแล้ว คุณจะไม่สามารถแก้ไขข้อมูลได้อีกจนกว่าจะได้รับการพิจารณาจากหัวหน้างาน</p>
              </div>
              <DialogFooter className="gap-2 sm:gap-0">
-               <Button variant="outline" onClick={() => setConfirmSubmit(false)} className="rounded-xl">ยกเลิก</Button>
-               <Button onClick={handleSubmitForApproval} className="rounded-xl bg-blue-600 hover:bg-blue-700">ยืนยันส่ง</Button>
+              <Button variant="outline" onClick={() => setConfirmSubmit(false)} className="rounded-xl">ยกเลิก</Button>
+              <Button onClick={handleSubmitForApproval} className="rounded-xl bg-blue-600 hover:bg-blue-700">ยืนยันส่ง</Button>
              </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -12,6 +12,9 @@ import { toast } from 'react-hot-toast';
 import { ProfessionalTaskFilters } from './components/ProfessionalTaskFilters';
 import { getTasks, deleteTask, Task } from '@/app/lib/tasks';
 import TaskFormModal from './components/TaskFormModal';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/lib/hooks/useLanguage';
+import { getTaskPageLabels, getTaskStatusLabel, getTaskPriorityLabel } from '@/lib/services/tasks.utils';
 import { Button } from '@/app/components/ui/Button';
 import {
   DropdownMenu,
@@ -47,6 +50,8 @@ export default function TasksPage() {
     const query = (sp?.get('q') as string) || '';
     const status = (sp?.get('status') as string) || '';
     const priority = (sp?.get('priority') as string) || '';
+    const { language } = useLanguage();
+    const labels = getTaskPageLabels(language);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -92,25 +97,28 @@ export default function TasksPage() {
         <div className="min-h-screen bg-slate-50/50">
             <Header
                 title="Task Management"
-                breadcrumbs={[{ label: 'Workspace', href: '/' }, { label: 'Tasks' }]}
+                breadcrumbs={[{ label: 'Workspace', href: '/' }, { label: labels.title }]}
             />
             <div className="pt-24 px-6 pb-6 container mx-auto">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Tasks</h1>
-                        <p className="text-slate-500 mt-1">Manage project tasks and assignments.</p>
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">{labels.title}</h1>
+                        <p className="text-slate-500 mt-1">{language === 'th' ? 'จัดการงานและการมอบหมายของโครงการ' : 'Manage project tasks and assignments.'}</p>
                     </div>
-                    <Button onClick={() => handleOpenModal()} className="gap-2 bg-blue-600 hover:bg-blue-700">
-                        <Plus className="h-4 w-4" /> Add Task
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <LanguageSwitcher />
+                        <Button onClick={() => handleOpenModal()} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                            <Plus className="h-4 w-4" /> {labels.addNew}
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200">
                     <div className="px-6 py-4 border-b border-slate-200">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="text-lg font-semibold text-slate-900">All Tasks</h2>
-                                <p className="text-sm text-slate-500">{tasks.length} tasks found</p>
+                                <h2 className="text-lg font-semibold text-slate-900">{language === 'th' ? 'งานทั้งหมด' : 'All Tasks'}</h2>
+                                <p className="text-sm text-slate-500">{tasks.length} {language === 'th' ? 'งานที่พบ' : 'tasks found'}</p>
                             </div>
                             <ProfessionalTaskFilters />
                         </div>
@@ -119,13 +127,13 @@ export default function TasksPage() {
                         <table className="w-full">
                             <thead className="bg-slate-50">
                                 <tr>
-                                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600 w-1/3">Task</th>
-                                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">Project</th>
-                                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">Assignee</th>
-                                    <th className="text-center py-3 px-6 text-sm font-medium text-slate-600">Status</th>
-                                    <th className="text-center py-3 px-6 text-sm font-medium text-slate-600">Priority</th>
-                                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">Due Date</th>
-                                    <th className="text-right py-3 px-6 text-sm font-medium text-slate-600">Actions</th>
+                                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600 w-1/3">{labels.taskName}</th>
+                                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">{labels.project}</th>
+                                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">{labels.assignee}</th>
+                                    <th className="text-center py-3 px-6 text-sm font-medium text-slate-600">{labels.status}</th>
+                                    <th className="text-center py-3 px-6 text-sm font-medium text-slate-600">{labels.priority}</th>
+                                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">{labels.dueDate}</th>
+                                    <th className="text-right py-3 px-6 text-sm font-medium text-slate-600">{language === 'th' ? 'การกระทำ' : 'Actions'}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -146,17 +154,17 @@ export default function TasksPage() {
                                             {task.assigned_user?.name || 'Unassigned'}
                                         </td>
                                         <td className="py-3 px-6 text-sm text-center">
-                                            <span className="flex items-center justify-center gap-2 capitalize">
-                                                {getStatusIcon(task.status)}
-                                                {task.status.replace('_', ' ')}
-                                            </span>
-                                        </td>
-                                        <td className="py-3 px-6 text-sm text-center">
-                                            <span className="flex items-center justify-center gap-2 capitalize">
-                                                {getPriorityIcon(task.priority)}
-                                                {task.priority}
-                                            </span>
-                                        </td>
+                                             <span className="flex items-center justify-center gap-2 capitalize">
+                                                 {getStatusIcon(task.status)}
+                                                 {getTaskStatusLabel(task.status, language)}
+                                             </span>
+                                         </td>
+                                         <td className="py-3 px-6 text-sm text-center">
+                                             <span className="flex items-center justify-center gap-2 capitalize">
+                                                 {getPriorityIcon(task.priority)}
+                                                 {getTaskPriorityLabel(task.priority, language)}
+                                             </span>
+                                         </td>
                                         <td className="py-3 px-6 text-sm text-slate-600">
                                             {task.due_date ? new Date(task.due_date).toLocaleDateString('th-TH', { month: 'short', day: 'numeric' }) : '-'}
                                         </td>
@@ -168,16 +176,16 @@ export default function TasksPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuLabel>{language === 'th' ? 'การกระทำ' : 'Actions'}</DropdownMenuLabel>
                                                     <DropdownMenuItem onClick={() => handleOpenModal(task)}>
-                                                        <Edit className="h-4 w-4 mr-2" /> Edit Task
+                                                        <Edit className="h-4 w-4 mr-2" /> {labels.edit}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem 
                                                         className="text-red-600 cursor-pointer"
                                                         onClick={() => handleDeleteClick(task)}
                                                     >
-                                                        <Trash2 className="h-4 w-4 mr-2" /> Delete Task
+                                                        <Trash2 className="h-4 w-4 mr-2" /> {labels.delete}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -186,12 +194,12 @@ export default function TasksPage() {
                                 ))}
                                 {tasks.length === 0 && !tasksQuery.isLoading && (
                                     <tr>
-                                        <td colSpan={7} className="py-8 px-6 text-center text-slate-500">No matching tasks found.</td>
+                                        <td colSpan={7} className="py-8 px-6 text-center text-slate-500">{labels.noTasks}</td>
                                     </tr>
                                 )}
                                 {tasksQuery.isLoading && (
                                     <tr>
-                                        <td colSpan={7} className="py-8 px-6 text-center text-slate-500">Loading...</td>
+                                        <td colSpan={7} className="py-8 px-6 text-center text-slate-500">{labels.loading}</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -210,8 +218,8 @@ export default function TasksPage() {
             {/* Delete Confirmation Modal */}
             <DeleteConfirmationDialog
                 open={!!deleteConfirm}
-                title="ยืนยันการลบงาน"
-                description="เมื่อลบงานนี้ จะไม่สามารถกู้คืนข้อมูลได้"
+                title={language === 'th' ? 'ยืนยันการลบงาน' : 'Confirm Delete Task'}
+                description={language === 'th' ? 'เมื่อลบงานนี้ จะไม่สามารถกู้คืนข้อมูลได้' : 'This action cannot be undone.'}
                 entityName={deleteConfirm?.title}
                 isLoading={deleteTaskMutation.isPending}
                 onConfirm={handleConfirmDelete}

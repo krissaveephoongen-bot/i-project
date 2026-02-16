@@ -2,12 +2,31 @@
 
 import { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { Users, UserPlus, Search, Calendar } from 'lucide-react';
+import { Users, UserPlus, Search, Calendar, Plus, X } from 'lucide-react';
+import { Button } from '@/app/components/ui/Button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/app/components/ui/Dialog';
+import { Input } from '@/app/components/ui/Input';
+import { Textarea } from '@/app/components/ui/textarea';
+import { toast } from 'react-hot-toast';
 
 export default function ResourcesPage() {
   const [teamLoad, setTeamLoad] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<{start: string, end: string} | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    type: 'human',
+    status: 'available',
+    description: '',
+  });
 
   useEffect(() => {
     fetch('/api/resources/team-load')
@@ -19,6 +38,16 @@ export default function ResourcesPage() {
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleAddResource = () => {
+    if (!formData.name.trim()) {
+      toast.error('Resource name is required');
+      return;
+    }
+    setIsModalOpen(false);
+    setFormData({ name: '', type: 'human', status: 'available', description: '' });
+    toast.success('Resource added successfully');
+  };
 
   return (
     <div className="min-h-screen">
@@ -41,10 +70,13 @@ export default function ResourcesPage() {
               className="w-80 pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-            <UserPlus className="w-4 h-4" />
+          <Button 
+            onClick={() => setIsModalOpen(true)}
+            className="gap-2 bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4" />
             Add Resource
-          </button>
+          </Button>
         </div>
 
         {/* Team Load Heatmap */}
@@ -144,7 +176,76 @@ export default function ResourcesPage() {
           </div>
         </div>
 
+        {/* Add Resource Modal */}
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Add New Resource</DialogTitle>
+              <DialogDescription>
+                Add a new resource to your team or inventory.
+              </DialogDescription>
+            </DialogHeader>
 
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Resource Name *</label>
+                <Input
+                  placeholder="e.g., John Doe, Server, Database"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Type</label>
+                <select
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                >
+                  <option value="human">Human Resource</option>
+                  <option value="equipment">Equipment</option>
+                  <option value="material">Material</option>
+                  <option value="software">Software</option>
+                  <option value="facility">Facility</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <select
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                >
+                  <option value="available">Available</option>
+                  <option value="in_use">In Use</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="retired">Retired</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Description</label>
+                <Textarea
+                  placeholder="Add any additional details..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="h-24"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddResource} className="bg-blue-600 hover:bg-blue-700">
+                Add Resource
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/app/components/ui/table";
 import { Project, ActivityData } from '../types';
+import { useThaiLocale } from '@/lib/hooks/useThaiLocale';
 
 interface ActivityLogProps {
   activities: ActivityData | null;
@@ -39,6 +40,8 @@ export default function ActivityLog({
   userOptions,
   onSearch
 }: ActivityLogProps) {
+  const { formatThaiDateWithDay, formatNumber, isThaiLanguage } = useThaiLocale();
+
   return (
     <Card className="rounded-2xl border-slate-200 shadow-sm">
       <CardHeader>
@@ -89,13 +92,13 @@ export default function ActivityLog({
             <TableBody>
               {(activities?.rows || []).map((r, i) => (
                 <TableRow key={i}>
-                  <TableCell>{new Date(r.date).toLocaleDateString('th-TH')}</TableCell>
+                  <TableCell>{formatThaiDateWithDay(new Date(r.date))}</TableCell>
                   <TableCell>{r.user}</TableCell>
                   <TableCell>{r.project}</TableCell>
                   <TableCell>{r.task}</TableCell>
-                  <TableCell className="text-center font-bold text-blue-600">{Number(r.hours || 0).toFixed(2)}</TableCell>
+                  <TableCell className="text-center font-bold text-blue-600">{formatNumber(Number(r.hours || 0), { maximumFractionDigits: 2 })}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {r.start ? `${new Date(r.start).toLocaleTimeString()} - ${r.end ? new Date(r.end).toLocaleTimeString() : '?'}` : '-'}
+                    {r.start ? `${new Date(r.start).toLocaleTimeString(isThaiLanguage ? 'th-TH' : 'en-US')} - ${r.end ? new Date(r.end).toLocaleTimeString(isThaiLanguage ? 'th-TH' : 'en-US') : '?'}` : '-'}
                   </TableCell>
                 </TableRow>
               ))}

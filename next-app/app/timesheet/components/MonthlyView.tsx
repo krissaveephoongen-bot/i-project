@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/app/components/ui/table";
 import { Project, TimesheetEntry } from '../types';
+import { useThaiLocale } from '@/lib/hooks/useThaiLocale';
 
 interface MonthlyViewProps {
   currentMonth: Date;
@@ -31,6 +32,7 @@ export default function MonthlyView({
   canEdit, 
   onOpenDayEditor 
 }: MonthlyViewProps) {
+  const { formatNumber } = useThaiLocale();
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
 
   const daysInMonth = useMemo(() => {
@@ -139,18 +141,18 @@ export default function MonthlyView({
                                  ${daySum > 0 ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 shadow-sm' : 'hover:bg-slate-100 text-slate-300'}
                                `}
                              >
-                               {daySum > 0 ? daySum : '+'}
+                               {daySum > 0 ? formatNumber(daySum, { maximumFractionDigits: 1 }) : '+'}
                              </div>
-                           ) : (
+                             ) : (
                              <span className={`text-sm ${daySum > 0 ? 'font-bold text-slate-900' : 'text-slate-200'}`}>
-                               {daySum || '-'}
+                               {daySum > 0 ? formatNumber(daySum, { maximumFractionDigits: 1 }) : '-'}
                              </span>
-                           )}
+                             )}
                          </TableCell>
                        );
                      })}
                      <TableCell className="text-center font-bold text-slate-900 bg-slate-50 border-l">
-                       {projectTotal > 0 ? projectTotal : '-'}
+                       {projectTotal > 0 ? formatNumber(projectTotal, { maximumFractionDigits: 1 }) : '-'}
                      </TableCell>
                    </TableRow>
 
@@ -180,18 +182,18 @@ export default function MonthlyView({
                                                                ${daySum > 0 ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' : 'hover:bg-slate-50 text-transparent hover:text-slate-400'}
                                                            `}
                                                        >
-                                                           {daySum > 0 ? daySum : '+'}
+                                                           {daySum > 0 ? formatNumber(daySum, { maximumFractionDigits: 1 }) : '+'}
                                                        </div>
                                                    ) : (
                                                        <span className={`text-xs ${daySum > 0 ? 'text-slate-600' : 'text-slate-200'}`}>
-                                                           {daySum || '-'}
+                                                           {daySum > 0 ? formatNumber(daySum, { maximumFractionDigits: 1 }) : '-'}
                                                        </span>
                                                    )}
                                                </TableCell>
                                            );
                                        })}
                                        <TableCell className="text-center text-xs font-medium text-slate-500 bg-slate-50/50 border-l">
-                                           {taskTotal > 0 ? taskTotal : ''}
+                                           {taskTotal > 0 ? formatNumber(taskTotal, { maximumFractionDigits: 1 }) : ''}
                                        </TableCell>
                                    </TableRow>
                                );
@@ -217,18 +219,18 @@ export default function MonthlyView({
                                                        ${daySum > 0 ? 'bg-orange-50 text-orange-600 hover:bg-orange-100' : 'hover:bg-slate-50 text-transparent hover:text-slate-400'}
                                                    `}
                                                >
-                                                   {daySum > 0 ? daySum : '+'}
+                                                   {daySum > 0 ? formatNumber(daySum, { maximumFractionDigits: 1 }) : '+'}
                                                </div>
                                            ) : (
                                                <span className={`text-xs ${daySum > 0 ? 'text-slate-600' : 'text-slate-200'}`}>
-                                                   {daySum || '-'}
+                                                   {daySum > 0 ? formatNumber(daySum, { maximumFractionDigits: 1 }) : '-'}
                                                </span>
                                            )}
                                        </TableCell>
                                    );
                                })}
                                <TableCell className="text-center text-xs font-medium text-slate-500 bg-slate-50/50 border-l">
-                                    {daysInMonth.reduce((sum, day) => sum + getCellHours(project.id, day, null), 0) || ''}
+                                    {daysInMonth.reduce((sum, day) => sum + getCellHours(project.id, day, null), 0) > 0 ? formatNumber(daysInMonth.reduce((sum, day) => sum + getCellHours(project.id, day, null), 0), { maximumFractionDigits: 1 }) : ''}
                                </TableCell>
                            </TableRow>
                        </>
@@ -241,9 +243,9 @@ export default function MonthlyView({
               <TableCell className="sticky left-0 bg-slate-50 z-10 text-slate-700">รวมรายวัน (Daily Total)</TableCell>
               {daysInMonth.map(day => {
                 const dayTotal = getDailyTotal(day);
-                return <TableCell key={day} className="text-center text-xs text-slate-700">{dayTotal > 0 ? dayTotal : '-'}</TableCell>;
+                return <TableCell key={day} className="text-center text-xs text-slate-700">{dayTotal > 0 ? formatNumber(dayTotal, { maximumFractionDigits: 1 }) : '-'}</TableCell>;
               })}
-              <TableCell className="text-center text-blue-600 text-lg">{grandTotal}</TableCell>
+              <TableCell className="text-center text-blue-600 text-lg">{formatNumber(grandTotal, { maximumFractionDigits: 1 })}</TableCell>
             </TableRow>
           </TableBody>
         </Table>

@@ -50,4 +50,23 @@ i18n
     },
   });
 
+// Sync i18n language with localStorage when app language changes
+if (isBrowser) {
+  // Listen to app-language storage changes (from useLanguage hook)
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'app-language' && (e.newValue === 'en' || e.newValue === 'th')) {
+      i18n.changeLanguage(e.newValue);
+      // Update HTML lang attribute
+      document.documentElement.lang = e.newValue;
+    }
+  });
+
+  // Initial sync on page load
+  const storedLang = localStorage.getItem('app-language');
+  if (storedLang === 'en' || storedLang === 'th') {
+    i18n.changeLanguage(storedLang);
+    document.documentElement.lang = storedLang;
+  }
+}
+
 export default i18n;

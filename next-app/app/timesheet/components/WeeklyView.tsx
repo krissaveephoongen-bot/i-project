@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/app/components/ui/table";
 import { Project, WeeklyData } from '../types';
+import { useThaiLocale } from '@/lib/hooks/useThaiLocale';
 
 interface WeeklyViewProps {
   weekly: WeeklyData | null;
@@ -33,6 +34,8 @@ export default function WeeklyView({
   projects,
   onSearch
 }: WeeklyViewProps) {
+  const { formatThaiDate, formatNumber, isThaiLanguage } = useThaiLocale();
+
   return (
     <Card className="rounded-2xl border-slate-200 shadow-sm">
       <CardHeader>
@@ -77,8 +80,8 @@ export default function WeeklyView({
                   <TableCell className="font-medium">{row.name}</TableCell>
                   {(weekly?.days || []).map(d => (
                     <TableCell key={d} className="text-center">
-                      <span className={Number(row.hours[d] || 0) > 0 ? 'text-blue-600 font-bold' : 'text-slate-300'}>
-                        {row.hours[d] ? Number(row.hours[d]).toFixed(1) : '-'}
+                      <span className={Number(row.dailyHours[d] || 0) > 0 ? 'text-blue-600 font-bold' : 'text-slate-300'}>
+                        {row.dailyHours[d] ? Number(row.dailyHours[d]).toFixed(1) : '-'}
                       </span>
                     </TableCell>
                   ))}

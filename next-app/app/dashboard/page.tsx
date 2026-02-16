@@ -35,17 +35,36 @@ export default function UnifiedDashboard() {
   const [execReport, setExecReport] = useState<any>(null);
   const [weeklySummary, setWeeklySummary] = useState<any[]>([]);
 
-  const fetchDashboardData = async () => {
+  // Clear cache function
+  const clearCache = () => {
+    // Clear browser cache for dashboard APIs
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => {
+          if (name.includes('dashboard') || name.includes('portfolio')) {
+            caches.delete(name);
+          }
+        });
+      });
+    }
+    // Force refresh with cache-busting
+    fetchDashboardData(true);
+  };
+
+  const fetchDashboardData = async (forceRefresh = false) => {
     try {
       if (!loading) setRefreshing(true);
       setError(null);
       
-      // Parallel fetch for better performance
+      // Add timestamp for cache-busting
+      const timestamp = forceRefresh ? `&t=${Date.now()}` : '';
+      
+      // Parallel fetch for better performance with cache-busting
       const [pf, act, er, ws] = await Promise.all([
-        fetch('/api/dashboard/portfolio', { cache: 'no-store' }),
-        fetch('/api/dashboard/activities', { cache: 'no-store' }),
-        fetch('/api/projects/executive-report', { cache: 'no-store' }).catch(() => ({ ok: false })),
-        fetch('/api/projects/weekly-summary', { cache: 'no-store' }).catch(() => ({ ok: false }))
+        fetch(`/api/dashboard/portfolio?${timestamp}`, { cache: 'no-store' }),
+        fetch(`/api/dashboard/activities?${timestamp}`, { cache: 'no-store' }),
+        fetch(`/api/projects/executive-report?${timestamp}`, { cache: 'no-store' }).catch(() => ({ ok: false })),
+        fetch(`/api/projects/weekly-summary?${timestamp}`, { cache: 'no-store' }).catch(() => ({ ok: false }))
       ]);
 
       // Portfolio data
@@ -219,6 +238,7 @@ export default function UnifiedDashboard() {
           startMonth={startMonth} setStartMonth={setStartMonth}
           endMonth={endMonth} setEndMonth={setEndMonth}
           onRefresh={fetchDashboardData}
+          onClearCache={clearCache}
           refreshing={refreshing}
           filteredRows={filteredRows}
         />

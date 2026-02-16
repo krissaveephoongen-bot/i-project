@@ -137,12 +137,12 @@ export default async function ExecutiveDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <PortfolioHealthMatrix projects={projects} />
 
-            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-6">
                <TeamLoadChart data={teamLoadData as any[]} />
             </div>
           </div>
 
-          <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+          <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-6">
             <FinancialChart data={financialData} />
           </div>
         </div>
