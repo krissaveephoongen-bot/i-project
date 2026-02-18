@@ -125,7 +125,7 @@
     "rollup-plugin-visualizer": "^6.0.5",
     "stream-browserify": "^3.0.0",
     "stream-http": "^3.2.0",
-    "supabase": "^2.76.8",
+    "supabase": "^2.76.9",
     "tailwindcss": "^3.3.5",
     "typescript": "^5.9.3",
     "util": "^0.12.5",

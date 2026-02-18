@@ -10,7 +10,7 @@ import ProjectTabs from '@/app/components/ProjectTabs';
 
 interface Milestone {
   id: string;
-  name: string;
+  title: string;
   percentage: number;
   amount?: number;
   status: string;
@@ -50,7 +50,7 @@ export default function ProjectMilestonesPage() {
         setDbProjectId(projectId);
         const mapped = (rows || []).map((r: any) => ({
           id: r.id,
-          name: r.name,
+          title: r.title,
           percentage: Number(r.percentage || 0),
           amount: r.amount != null ? Number(r.amount) : undefined,
           status: r.status || 'Pending',
@@ -74,7 +74,7 @@ export default function ProjectMilestonesPage() {
   }, [projectId]);
 
   const addMilestone = async () => {
-    setMilestones(prev => [...prev, { id: crypto.randomUUID(), name: 'New Milestone', percentage: 10, status: 'Pending', conditions: [] }]);
+    setMilestones(prev => [...prev, { id: crypto.randomUUID(), title: 'New Milestone', percentage: 10, status: 'Pending', conditions: [] }]);
   };
 
   const getStatusColor = (status: string) => {
@@ -223,7 +223,7 @@ export default function ProjectMilestonesPage() {
             <button
               onClick={() => {
                 const header = ['Milestone','%','Amount','Status'];
-                const lines = [header.join(','), ...milestones.map(m => [m.name, m.percentage, ((m.percentage/100)*totalAmount), m.status].join(','))];
+                const lines = [header.join(','), ...milestones.map(m => [m.title, m.percentage, ((m.percentage/100)*totalAmount), m.status].join(','))];
                 const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a'); a.href = url; a.download = 'milestones.csv'; a.click(); window.URL.revokeObjectURL(url);
@@ -238,7 +238,7 @@ export default function ProjectMilestonesPage() {
                 const table = [
                   '<table>',
                   `<tr>${header.map(h => `<th>${h}</th>`).join('')}</tr>`,
-                  ...milestones.map(m => `<tr><td>${m.name}</td><td>${m.percentage}</td><td>${((m.percentage/100)*totalAmount)}</td><td>${m.status}</td></tr>`),
+                  ...milestones.map(m => `<tr><td>${m.title}</td><td>${m.percentage}</td><td>${((m.percentage/100)*totalAmount)}</td><td>${m.status}</td></tr>`),
                   '</table>'
                 ].join('');
                 const blob = new Blob([table], { type: 'application/vnd.ms-excel' });
@@ -255,11 +255,11 @@ export default function ProjectMilestonesPage() {
             const res = await fetch(`${API_BASE}/api/projects/milestones/create`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ projectId, name: 'New Milestone', percentage: 10, status: 'Pending' }),
+              body: JSON.stringify({ projectId, title: 'New Milestone', percentage: 10, status: 'Pending' }),
             });
             if (res.ok) {
               const row = await res.json();
-              setMilestones(prev => [...prev, { id: row.id, name: row.name, percentage: row.percentage, status: row.status, conditions: [] }]);
+              setMilestones(prev => [...prev, { id: row.id, title: row.title, percentage: row.percentage, status: row.status, conditions: [] }]);
             }
           }}
             className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
@@ -293,7 +293,7 @@ export default function ProjectMilestonesPage() {
                           <span className={clsx('px-2 py-0.5 rounded text-xs font-medium', getStatusColor(milestone.status))}>
                             {milestone.status}
                           </span>
-                          <span className="text-sm font-medium text-slate-900">{milestone.name}</span>
+                          <span className="text-sm font-medium text-slate-900">{milestone.title}</span>
                         </div>
                         <span className="text-lg font-bold text-slate-900">
                           ฿{((milestone.percentage / 100) * totalAmount).toLocaleString()}
@@ -332,16 +332,16 @@ export default function ProjectMilestonesPage() {
                         {getStatusIcon(milestone.status)}
                         <input
                           className="text-sm font-medium text-slate-900 border rounded px-2 py-1"
-                          defaultValue={milestone.name}
+                          defaultValue={milestone.title}
                           onBlur={async (e) => {
-                            const name = e.target.value;
+                            const title = e.target.value;
                             const res = await fetch(`${API_BASE}/api/projects/milestones/update`, {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ id: milestone.id, updatedFields: { name } }),
+                              body: JSON.stringify({ id: milestone.id, updatedFields: { title } }),
                             });
                             if (res.ok) {
-                              setMilestones(prev => prev.map(m => m.id === milestone.id ? { ...m, name } : m));
+                              setMilestones(prev => prev.map(m => m.id === milestone.id ? { ...m, title } : m));
                             }
                           }}
                         />

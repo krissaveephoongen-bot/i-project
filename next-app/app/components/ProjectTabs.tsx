@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
+import { Button } from './ui/Button';
+import { Users } from 'lucide-react';
 
 const tabs = [
   { key: 'overview', label: 'Overview', path: (id: string) => `/projects/${id}/overview` },
@@ -40,6 +42,15 @@ export default function ProjectTabs({ children }: { children?: React.ReactNode }
         })}
       </div>
       {children && <div className="flex gap-2 shrink-0">{children}</div>}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => window.open('/stakeholders', '_blank')}
+        className="gap-2"
+      >
+        <Users className="w-4 h-4" />
+        Stakeholders
+      </Button>
     </div>
   );
 }

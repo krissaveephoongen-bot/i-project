@@ -61,16 +61,24 @@ export default function ClientFormModal({ isOpen, onClose, client, onSuccess }: 
     const onSubmit = async (data: Partial<Client>) => {
         try {
             setLoading(true);
+            
+            // Debug: Log the data being sent
+            console.log('Client form data:', data);
+            
             if (client?.id) {
+                console.log('Updating client:', client.id, data);
                 await updateClient(client.id, data);
                 toastUpdateSuccess('Client');
             } else {
+                console.log('Creating new client:', data);
                 await createClient(data);
                 toastCreateSuccess('Client');
             }
+            
             onSuccess();
             onClose();
         } catch (error: any) {
+            console.error('Client form error:', error);
             toastError('save', error.message);
         } finally {
             setLoading(false);

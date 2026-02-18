@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     if (minAmount) query = query.gte('amount', Number(minAmount));
     if (maxAmount) query = query.lte('amount', Number(maxAmount));
     if (q) query = query.or(`name.ilike.%${q}%,client_org.ilike.%${q}%`);
-    const { data: deals, error } = await query.order('updatedAt', { ascending: false });
+    const { data: deals, error } = await query.order('updated_at', { ascending: false });
     if (error) return err(error.message || 'error', 500);
     const ownerIds = Array.from(new Set((deals || []).map((d: any) => d.owner_id).filter(Boolean)));
     const clientIds = Array.from(new Set((deals || []).map((d: any) => d.client_id).filter(Boolean)));
@@ -46,8 +46,8 @@ export async function GET(req: NextRequest) {
       client_org: d.client_org || null,
       status: d.status,
       probability: Number(d.probability || 0),
-      created_at: d.createdAt || d.created_at,
-      updated_at: d.updatedAt || d.updated_at,
+      created_at: d.created_at || d.created_at,
+      updated_at: d.updated_at || d.updated_at,
       owner_name: d.owner_id ? oname[d.owner_id] : null,
       client_name: d.client_id ? cname[d.client_id] : (d.client_org || null),
     }));
@@ -77,8 +77,8 @@ export async function GET(req: NextRequest) {
       client_org: client_org || null,
       status,
       probability,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     const { error } = await supabase.from('sales_deals').insert(payload);
     if (error) return err(error.message || 'error', 500);

@@ -44,50 +44,36 @@ export default function AdminHealthPage() {
             <div className="text-red-700 text-sm">{error}</div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Database</h3>
-              <p className={`text-sm font-medium ${data?.database?.connected ? 'text-green-600' : 'text-red-600'}`}>
-                {data?.database?.connected ? 'Connected' : 'Disconnected'}
-              </p>
-              <div className="text-xs text-slate-600 mt-2">
-                <p>URL Present: {String(data?.database?.urlPresent)}</p>
-                <p>Direct URL Present: {String(data?.database?.directUrlPresent)}</p>
-                <p>Host: {String(data?.database?.host || '-')}</p>
-                <p>Port: {String(data?.database?.port || '-')}</p>
-                {data?.database?.error && <p className="text-red-600">Error: {String(data?.database?.error)}</p>}
+          <div className="max-w-2xl">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Supabase Connection</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">Status:</span>
+                  <span className={`text-sm font-medium ${data?.supabase?.connected ? 'text-green-600' : 'text-red-600'}`}>
+                    {data?.supabase?.connected ? 'Connected' : 'Disconnected'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">URL Present:</span>
+                  <span className="text-sm text-slate-600">{String(data?.supabase?.urlPresent)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">Key Present:</span>
+                  <span className="text-sm text-slate-600">{String(data?.supabase?.keyPresent)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">URL:</span>
+                  <span className="text-sm text-slate-600 truncate max-w-xs">{String(data?.supabase?.url || '-')}</span>
+                </div>
+                {data?.supabase?.error && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
+                    <p className="text-sm text-red-600">Error: {String(data?.supabase?.error)}</p>
+                  </div>
+                )}
               </div>
-              <div className="mt-2">
-                <a href="/api/health" className="text-[#2563EB] text-sm underline">View JSON</a>
-                <button
-                  onClick={async ()=>{
-                    try {
-                      const r = await fetch('/api/admin/db-test', { cache: 'no-store' });
-                      const j = await r.json();
-                      alert(`DB Ping: connected=${j.connected}, projectsCount=${j.projectsCount ?? '-'}`);
-                    } catch (e:any) {
-                      alert(`DB Ping error: ${e?.message || e}`);
-                    }
-                  }}
-                  className="ml-3 px-3 py-1 bg-slate-100 text-slate-700 rounded text-xs"
-                >
-                  Ping DB
-                </button>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Supabase</h3>
-              <p className={`text-sm font-medium ${data?.supabase?.connected ? 'text-green-600' : 'text-red-600'}`}>
-                {data?.supabase?.connected ? 'Connected' : 'Disconnected'}
-              </p>
-              <div className="text-xs text-slate-600 mt-2">
-                <p>URL Present: {String(data?.supabase?.urlPresent)}</p>
-                <p>Key Present: {String(data?.supabase?.keyPresent)}</p>
-                <p>URL: {String(data?.supabase?.url || '-')}</p>
-                {data?.supabase?.error && <p className="text-red-600">Error: {String(data?.supabase?.error)}</p>}
-              </div>
-              <div className="mt-2">
-                <a href="/api/health" className="text-[#2563EB] text-sm underline">View JSON</a>
+              <div className="mt-6 flex gap-3">
+                <a href="/api/health" className="text-[#2563EB] text-sm underline hover:text-blue-700">View JSON</a>
                 <button
                   onClick={async ()=>{
                     try {
@@ -98,7 +84,7 @@ export default function AdminHealthPage() {
                       alert(`Supabase Ping error: ${e?.message || e}`);
                     }
                   }}
-                  className="ml-3 px-3 py-1 bg-slate-100 text-slate-700 rounded text-xs"
+                  className="px-3 py-1 bg-slate-100 text-slate-700 rounded text-xs hover:bg-slate-200"
                 >
                   Ping Supabase
                 </button>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { Check, Save, AlertCircle, FileText } from 'lucide-react';
+import Header from '@/app/components/Header';
 import { Button } from '@/app/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/Input';
@@ -11,6 +12,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Textarea } from '@/app/components/ui/textarea';
 import { useAuth } from '@/app/components/AuthProvider';
+import ProjectTabs from '@/app/components/ProjectTabs';
 
 const CHECKLIST_TEMPLATE = [
   { id: '1', folder: 'TOR (ขอบเขตงาน)', description: 'เอกสารที่กำหนดขอบเขตและรายละเอียดของการทำงานหรือโครงการที่มีการลงนามจากลูกค้าแล้ว' },
@@ -168,7 +170,20 @@ export default function ProjectClosurePage() {
   if (!project) return <div className="p-8 text-center">Project not found</div>;
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="min-h-screen">
+      <Header
+        title="Project Closure"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/' },
+          { label: 'Projects', href: '/projects' },
+          { label: 'Project', href: `/projects/${params?.id || ''}` },
+          { label: 'Closure' }
+        ]}
+      />
+      
+      <div className="pt-20 px-6 pb-6">
+        <ProjectTabs />
+        <div className="space-y-6 pb-20">
       <div className="flex justify-between items-center">
         <div>
             <h2 className="text-2xl font-bold tracking-tight">Project Closure</h2>
@@ -273,6 +288,8 @@ export default function ProjectClosurePage() {
             </div>
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }

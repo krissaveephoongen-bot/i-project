@@ -5,10 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Plus, Edit2, Trash2, Calendar, DollarSign, FileText, X, Truck } from 'lucide-react';
 import Header from '../components/Header';
+import { PermissionGuard } from '@/app/components/PermissionGuard';
+import { UserRole } from '@/lib/auth';
 import { useAuth } from '../components/AuthProvider';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/lib/hooks/useLanguage';
 import { getExpensePageLabels } from '@/lib/services/expenses.utils';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/app/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/Input';
@@ -268,30 +271,37 @@ export default function ExpensesPage() {
     return (
         <div className="min-h-screen bg-slate-50/50">
             <Header title="My Expenses" breadcrumbs={[{ label: 'Dashboard', href: '/' }, { label: labels.title }]} />
-
-            <div className="container mx-auto px-6 py-8 pt-24 space-y-6">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900">{language === 'th' ? 'การเรียกร้องค่าใช้จ่าย' : 'Expense Claims'}</h1>
-                        <p className="text-slate-500">{language === 'th' ? 'จัดการและติดตามค่าใช้จ่ายของโครงการของคุณ' : 'Manage and track your project expenses'}</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <LanguageSwitcher />
-                        <Link href="/expenses/memo">
-                            <Button variant="outline" className="gap-2">
-                                <FileText className="h-4 w-4" /> {labels.viewMemo}
-                            </Button>
-                        </Link>
-                        <Link href="/expenses/travel">
-                            <Button variant="outline" className="gap-2">
-                                <Truck className="h-4 w-4" /> {labels.viewTravel}
-                            </Button>
-                        </Link>
-                        <Button onClick={() => handleOpenModal()} className="gap-2 bg-blue-600 hover:bg-blue-700">
-                            <Plus className="h-4 w-4" /> {language === 'th' ? 'เรียกร้องใหม่' : 'New Claim'}
-                        </Button>
-                    </div>
+            
+            <PermissionGuard roles={[UserRole.ADMIN, UserRole.MANAGER]} fallback={
+                <div className="text-center py-8">
+                    <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold">ต้องการสิทธิ์ Admin/Manager</h3>
+                    <p className="text-slate-600">หน้านี้สำหรับสำหรับ Admin/Manager เท่านั้น</p>
                 </div>
+            }>
+                <div className="container mx-auto px-6 py-8 pt-24 space-y-6">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900">{language === 'th' ? 'การเรียกร้องค่าใช้จ่าย' : 'Expense Claims'}</h1>
+                            <p className="text-slate-500">{language === 'th' ? 'จัดการและติดตามค่าใช้จ่ายของโครงการของคุณ' : 'Manage and track your project expenses'}</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <LanguageSwitcher />
+                            <Link href="/expenses/memo">
+                                <Button variant="outline" className="gap-2">
+                                    <FileText className="h-4 w-4" /> {labels.viewMemo}
+                                </Button>
+                            </Link>
+                            <Link href="/expenses/travel">
+                                <Button variant="outline" className="gap-2">
+                                    <Truck className="h-4 w-4" /> {labels.viewTravel}
+                                </Button>
+                            </Link>
+                            <Button onClick={() => handleOpenModal()} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                                <Plus className="h-4 w-4" /> {language === 'th' ? 'เรียกร้องใหม่' : 'New Claim'}
+                            </Button>
+                        </div>
+                    </div>
 
                 <Card>
                     <CardContent className="p-0">
@@ -475,6 +485,7 @@ export default function ExpensesPage() {
                     </DialogContent>
                 </Dialog>
             </div>
-        </div>
-    );
+        </PermissionGuard>
+    </div>
+);
 }

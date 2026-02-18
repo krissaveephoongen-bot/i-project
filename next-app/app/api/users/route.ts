@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     try {
       let query = supabase
         .from('users')
-        .select('id,name,email,role,status,department,position,avatar,phone,timezone,isActive,isDeleted,failedLoginAttempts,isProjectManager,isSupervisor,hourlyRate,employeeCode,createdAt,updatedAt', { count: 'exact' })
+        .select('id,name,email,role,status,department,position,avatar,phone,timezone,is_active,is_deleted,failed_login_attempts,is_project_manager,is_supervisor,hourly_rate,employee_code,created_at,updated_at', { count: 'exact' })
         .order('name', { ascending: true });
       if (q) {
         query = query.or(`name.ilike.%${q}%,email.ilike.%${q}%`);
@@ -96,15 +96,15 @@ export async function GET(req: NextRequest) {
         avatar: r.avatar,
         phone: r.phone,
         timezone: r.timezone,
-        isActive: r.is_active ?? true,
-        isDeleted: r.is_deleted ?? false,
-        failedLoginAttempts: r.failed_login_attempts ?? 0,
-        isProjectManager: r.is_project_manager ?? false,
-        isSupervisor: r.is_supervisor ?? false,
-        hourlyRate: Number(r.hourly_rate ?? 0),
-        employeeCode: r.employee_code ?? '',
-        createdAt: r.created_at,
-        updatedAt: r.updated_at,
+        is_active: r.is_active ?? true,
+        is_deleted: r.is_deleted ?? false,
+        failed_login_attempts: r.failed_login_attempts ?? 0,
+        is_project_manager: r.is_project_manager ?? false,
+        is_supervisor: r.is_supervisor ?? false,
+        hourly_rate: Number(r.hourly_rate ?? 0),
+        employee_code: r.employee_code ?? '',
+        created_at: r.created_at,
+        updated_at: r.updated_at,
       }));
       return ok({ total: totalRes.rows[0]?.count || 0, rows }, 200);
     }
@@ -122,14 +122,14 @@ export async function GET(req: NextRequest) {
       email: z.string().email(),
       role: z.enum(['admin', 'manager', 'employee']).default('employee'),
       status: z.enum(['active', 'inactive']).default('active'),
-      employeeCode: z.number().int().nonnegative().default(0),
+      employee_code: z.number().int().nonnegative().default(0),
     });
     const parsed = schema.parse({
       name: body.name,
       email: body.email,
       role: body.role,
-      status: body.status ?? (body.isActive === false ? 'inactive' : 'active'),
-      employeeCode: Number(body.employeeCode ?? 0),
+      status: body.status ?? (body.is_active === false ? 'inactive' : 'active'),
+      employee_code: Number(body.employee_code ?? 0),
     });
     const payload: any = {
       id,
@@ -137,16 +137,16 @@ export async function GET(req: NextRequest) {
       email: parsed.email,
       role: parsed.role,
       status: parsed.status,
-      employeeCode: String(parsed.employeeCode),
-      isActive: parsed.status === 'active',
-      isDeleted: false,
-      isProjectManager: false,
-      isSupervisor: false,
-      failedLoginAttempts: 0,
+      employee_code: String(parsed.employee_code),
+      is_active: parsed.status === 'active',
+      is_deleted: false,
+      is_project_manager: false,
+      is_supervisor: false,
+      failed_login_attempts: 0,
       timezone: body.timezone || 'Asia/Bangkok',
-      hourlyRate: body.hourlyRate ?? 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      hourly_rate: body.hourly_rate ?? 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     if (body.password) {
       const hash = await bcrypt.hash(body.password, 10);
@@ -157,7 +157,7 @@ export async function GET(req: NextRequest) {
     const { data, error } = await supabase
       .from('users')
       .insert(payload)
-      .select('id,name,email,role,status,employeeCode,isActive,isDeleted,failedLoginAttempts,timezone,hourlyRate,createdAt,updatedAt')
+      .select('id,name,email,role,status,employee_code,is_active,is_deleted,failed_login_attempts,timezone,hourly_rate,created_at,updated_at')
       .limit(1);
     if (error) throw error;
     const createdUser = (data || [])[0] || {};
@@ -189,10 +189,10 @@ export async function GET(req: NextRequest) {
       email: updatedFields.email,
       role: updatedFields.role,
       status: updatedFields.status,
-      failedLoginAttempts: updatedFields.failedLoginAttempts,
+      failed_login_attempts: updatedFields.failed_login_attempts,
       timezone: updatedFields.timezone,
-      hourlyRate: updatedFields.hourlyRate,
-      updatedAt: new Date().toISOString(),
+      hourly_rate: updatedFields.hourly_rate,
+      updated_at: new Date().toISOString(),
     };
     if (updatedFields.password) {
       const hash = await bcrypt.hash(updatedFields.password, 10);
@@ -200,14 +200,14 @@ export async function GET(req: NextRequest) {
       payload.password_hash = hash;
       payload.hashed_password = hash;
     }
-    if (typeof updatedFields.isActive === 'boolean') payload.isActive = updatedFields.isActive;
-    if (typeof updatedFields.isDeleted === 'boolean') payload.isDeleted = updatedFields.isDeleted;
-    if (typeof updatedFields.employeeCode !== 'undefined') payload.employeeCode = String(updatedFields.employeeCode);
+    if (typeof updatedFields.is_active === 'boolean') payload.is_active = updatedFields.is_active;
+    if (typeof updatedFields.is_deleted === 'boolean') payload.is_deleted = updatedFields.is_deleted;
+    if (typeof updatedFields.employee_code !== 'undefined') payload.employee_code = String(updatedFields.employee_code);
     const { data, error } = await supabase
       .from('users')
       .update(payload)
       .eq('id', id)
-      .select('id,name,email,role,status,isActive,isDeleted,failedLoginAttempts,timezone,hourlyRate,employeeCode,createdAt,updatedAt')
+      .select('id,name,email,role,status,is_active,is_deleted,failed_login_attempts,timezone,hourly_rate,employee_code,created_at,updated_at')
       .limit(1);
     if (error) throw error;
     const updatedUser = (data || [])[0] || {};
@@ -234,7 +234,7 @@ export async function GET(req: NextRequest) {
     if (!id) return err('id required', 400);
    const { error } = await supabase
       .from('users')
-      .update({ isDeleted: true, isActive: false, updatedAt: new Date().toISOString() })
+      .update({ is_deleted: true, is_active: false, updated_at: new Date().toISOString() })
       .eq('id', id);
    if (error) throw error;
     return ok({ ok: true }, 200);

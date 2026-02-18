@@ -9,9 +9,9 @@ import { supabase } from '@/app/lib/supabaseClient';
      if (!projectId) return NextResponse.json([], { status: 200 });
      const { data } = await supabase
        .from('documents')
-       .select('id,projectId,name,url,createdAt,updatedAt')
+       .select('id,projectId,name,url,created_at,updated_at')
        .eq('projectId', projectId)
-       .order('updatedAt', { ascending: false });
+       .order('updated_at', { ascending: false });
      return NextResponse.json(data || [], { status: 200 });
    } catch {
      return NextResponse.json([], { status: 200 });
@@ -27,13 +27,13 @@ import { supabase } from '@/app/lib/supabaseClient';
       projectId: project_id,
       name,
       url: url || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     const { data, error } = await supabase
       .from('documents')
       .insert(payload)
-      .select('id,projectId,name,url,createdAt,updatedAt')
+      .select('id,projectId,name,url,created_at,updated_at')
       .limit(1);
     if (error) return NextResponse.json({}, { status: 200 });
     return NextResponse.json((data || [])[0] || {}, { status: 200 });
@@ -48,7 +48,7 @@ import { supabase } from '@/app/lib/supabaseClient';
     const { id, updatedFields = {} } = body || {};
     if (!id) return NextResponse.json({}, { status: 200 });
     const payload: any = {
-      updatedAt: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     if (typeof updatedFields.name !== 'undefined') payload.name = updatedFields.name;
     if (typeof updatedFields.url !== 'undefined') payload.url = updatedFields.url;
@@ -56,7 +56,7 @@ import { supabase } from '@/app/lib/supabaseClient';
       .from('documents')
       .update(payload)
       .eq('id', id)
-      .select('id,projectId,name,url,createdAt,updatedAt')
+      .select('id,projectId,name,url,created_at,updated_at')
       .limit(1);
     if (error) return NextResponse.json({}, { status: 200 });
     return NextResponse.json((data || [])[0] || {}, { status: 200 });

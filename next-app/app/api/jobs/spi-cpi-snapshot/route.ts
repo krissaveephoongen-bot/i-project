@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/app/lib/supabaseAdmin'
 
-export const revalidate = 60
+export const revalidate = 0
 
 export async function POST() {
   try {
@@ -29,7 +29,27 @@ export async function POST() {
       .from('spi_cpi_daily_snapshot')
       .upsert(rows, { onConflict: 'id' })
 
-    if (upErr) throw upErr
+    if (upErr) {
+      // Try with different column name if schema mismatch
+      if (upErr.message.includes('projectId')) {
+        console.log('Trying alternative column name: project_id');
+        const altRows = rows.map((r: any) => ({
+          ...r,
+          project_id: r.projectId,
+          projectId: undefined
+        }));
+        
+        const { error: altErr } = await supabaseAdmin
+          .from('spi_cpi_daily_snapshot')
+          .upsert(altRows, { onConflict: 'id' })
+          
+        if (altErr) {
+          throw altErr;
+        }
+      } else {
+        throw upErr;
+      }
+    }
     return NextResponse.json({ ok: true, count: rows.length, date: dateStr }, { status: 200 })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || 'error' }, { status: 200 })

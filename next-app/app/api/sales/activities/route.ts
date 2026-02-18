@@ -7,9 +7,9 @@ import { supabase } from '@/app/lib/supabaseClient';
    try {
      const u = new URL(req.url);
      const dealId = u.searchParams.get('dealId');
-    let q = supabase.from('sales_activities').select('id,deal_id,type,note,user_id,createdAt').limit(100);
+    let q = supabase.from('sales_activities').select('id,deal_id,type,note,user_id,created_at').limit(100);
     if (dealId) q = q.eq('deal_id', dealId);
-    const { data: rows, error } = await q.order('createdAt', { ascending: false });
+    const { data: rows, error } = await q.order('created_at', { ascending: false });
     if (error) return err(error.message || 'error', 500);
     const userIds = Array.from(new Set((rows || []).map((r: any) => r.user_id).filter(Boolean)));
     const { data: users } = userIds.length ? await supabase.from('users').select('id,name').in('id', userIds) : { data: [] };
@@ -20,7 +20,7 @@ import { supabase } from '@/app/lib/supabaseClient';
       type: r.type,
       note: r.note ?? null,
       userId: r.user_id ?? null,
-      createdAt: r.createdAt,
+      created_at: r.created_at,
       user_name: r.user_id ? nameMap[r.user_id] : null
     }));
     return ok(result, 200);
@@ -41,7 +41,7 @@ import { supabase } from '@/app/lib/supabaseClient';
       type,
       note: note || null,
       user_id: user_id || null,
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString()
     }).select('id').limit(1);
     if (error) return err(error.message || 'error', 500);
     return ok({ id: (data || [])[0]?.id || id }, 200);

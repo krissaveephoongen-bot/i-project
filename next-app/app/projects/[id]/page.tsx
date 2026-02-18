@@ -45,7 +45,7 @@ interface Project {
 
 interface Task {
   id: string;
-  name: string;
+  title: string;
   status: string;
   progress: number;
   assignee?: string;

@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
     // 2. Fetch High Risks
     const { data: risks, error: riskError } = ids.length ? await supabaseAdmin
         .from('risks')
-        .select('projectId, severity, status')
-        .in('projectId', ids) 
+        .select('project_id, severity, status')
+        .in('project_id', ids) 
         : { data: [], error: null };
     
     if (riskError) throw riskError;
@@ -29,8 +29,8 @@ export async function GET(req: NextRequest) {
     const today = new Date().toISOString().slice(0, 10);
     const { data: milestones, error: mileError } = ids.length ? await supabaseAdmin
         .from('milestones')
-        .select('id, projectId, dueDate, due_date, status')
-        .in('projectId', ids)
+        .select('id, project_id, due_date, status')
+        .in('project_id', ids)
         .lt('due_date', today) // Overdue
         : { data: [], error: null };
 
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     const riskCounts: Record<string, number> = {};
     (risks || []).forEach((r: any) => {
         if ((r.severity || '').toLowerCase() === 'high' && (r.status || '').toLowerCase() !== 'closed') {
-            riskCounts[r.projectId] = (riskCounts[r.projectId] || 0) + 1;
+            riskCounts[r.project_id] = (riskCounts[r.project_id] || 0) + 1;
         }
     });
 

@@ -9,60 +9,73 @@ import { Input } from '@/app/components/ui/Input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/ui/Dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/Select';
-import { Plus, Edit, Trash2, Mail, Phone, User as UserIcon, Building2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Mail, Phone, User as UserIcon, Building2, BookOpen, MessageCircle, Download, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 // Types
-interface Stakeholder {
+interface Contact {
     id: string;
     name: string;
-    role: string;
-    organization: string;
+    position: string;
     email: string;
     phone: string;
+    management: boolean;
+    department?: string;
+    role?: string;
+}
+
+interface HelpResource {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    url?: string;
+    file_path?: string;
+}
+
+interface FAQ {
+    id: string;
+    question: string;
+    answer: string;
+    category: string;
+    views: number;
 }
 
 export default function HelpPage() {
     const queryClient = useQueryClient();
     const [isStakeholderModalOpen, setIsStakeholderModalOpen] = useState(false);
-    const [editingStakeholder, setEditingStakeholder] = useState<Stakeholder | null>(null);
-    const [stakeholderForm, setStakeholderForm] = useState<Partial<Stakeholder>>({});
+    const [editingStakeholder, setEditingStakeholder] = useState<Contact | null>(null);
+    const [stakeholderForm, setStakeholderForm] = useState<Partial<Contact>>({});
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('all');
 
-    // Fetch Team Contacts (Users)
-    const { data: teamContacts = [] } = useQuery({
-        queryKey: ['team-contacts'],
+    // Fetch comprehensive help data
+    const { data: helpData, isLoading } = useQuery({
+        queryKey: ['help-data'],
         queryFn: async () => {
-            const res = await fetch('/api/users?status=active');
-            if (!res.ok) return [];
-            const json = await res.json();
-            const users = json.rows || json || [];
-            // Map users to contact format
-            return users.map((u: any) => ({
-                id: u.id,
-                name: u.name,
-                role: u.role,
-                position: u.position || u.role, // Fallback if position not set
-                email: u.email,
-                phone: u.phone,
-                department: u.department
-            }));
+            const res = await fetch('/api/help/contacts');
+            if (!res.ok) throw new Error('Failed to fetch help data');
+            return res.json();
         }
     });
 
-    // Fetch Stakeholders
-    const { data: stakeholders = [] } = useQuery({
-        queryKey: ['stakeholders'],
+    // Fetch help resources
+    const { data: resources = [] } = useQuery({
+        queryKey: ['help-resources'],
         queryFn: async () => {
-            // Using clients API with type=stakeholder as requested "/stakeholders" usually maps to a filtered client list or a specific table
-            // Given the instruction "Stakeholder Contacts ดึงมาจาก /stakeholders", I'll assume we need to implement this endpoint or map it to clients type=stakeholder
-            // Let's try to fetch from /api/clients?type=stakeholder first as it's common practice
-            // If the user strictly meant a new table, we might need to create it. But for now, let's assume it's a subset of clients/contacts.
-            // Wait, the prompt says "Stakeholder Contacts ดึงมาจาก /stakeholders". I should check if this API exists or I should create it.
-            // Let's assume I need to create the client-side logic to fetch from /api/stakeholders (which I will implement).
-            
-            const res = await fetch('/api/stakeholders'); 
-            if (res.ok) return res.json();
-            return [];
+            const res = await fetch('/api/help/resources');
+            if (!res.ok) return [];
+            return res.json();
+        }
+    });
+
+    // Fetch FAQs
+    const { data: faqs = [] } = useQuery({
+        queryKey: ['help-faqs'],
+        queryFn: async () => {
+            const res = await fetch('/api/help/faqs');
+            if (!res.ok) return [];
+            return res.json();
         }
     });
 
@@ -72,13 +85,13 @@ export default function HelpPage() {
             await fetch(`/api/stakeholders?id=${id}`, { method: 'DELETE' });
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['stakeholders'] });
+            queryClient.invalidateQueries({ queryKey: ['help-data'] });
             toast.success('Deleted successfully');
         }
     });
 
     const saveStakeholderMutation = useMutation({
-        mutationFn: async (data: Partial<Stakeholder>) => {
+        mutationFn: async (data: Partial<Contact>) => {
             const method = data.id ? 'PUT' : 'POST';
             const res = await fetch('/api/stakeholders', {
                 method,
@@ -89,7 +102,7 @@ export default function HelpPage() {
             return res.json();
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['stakeholders'] });
+            queryClient.invalidateQueries({ queryKey: ['help-data'] });
             setIsStakeholderModalOpen(false);
             toast.success('Saved successfully');
         },
@@ -97,7 +110,7 @@ export default function HelpPage() {
     });
 
     // Handlers
-    const handleEditStakeholder = (s: Stakeholder) => {
+    const handleEditStakeholder = (s: Contact) => {
         setEditingStakeholder(s);
         setStakeholderForm(s);
         setIsStakeholderModalOpen(true);
@@ -113,63 +126,159 @@ export default function HelpPage() {
         if (confirm('Are you sure?')) deleteStakeholderMutation.mutate(id);
     };
 
+    const filteredTeam = helpData?.team?.filter((c: Contact) => 
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.email.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
+
+    const filteredStakeholders = helpData?.stakeholders?.filter((c: Contact) => 
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.email.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
+
+    const filteredResources = resources?.filter((r: HelpResource) => 
+        selectedCategory === 'all' || r.category === selectedCategory
+    ) || [];
+
+    const filteredFAQs = faqs?.filter((faq: FAQ) => 
+        faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
+
     return (
         <div className="min-h-screen bg-slate-50/50">
             <Header title="Help & Support" breadcrumbs={[{ label: 'Help & Support' }]} />
             
             <div className="container mx-auto px-6 py-8 pt-24 space-y-8">
                 
+                {/* Search Bar */}
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex gap-4">
+                            <div className="flex-1 relative">
+                                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                <Input
+                                    placeholder="Search contacts, resources, or FAQs..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-10"
+                                />
+                            </div>
+                            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                                <SelectTrigger className="w-48">
+                                    <SelectValue placeholder="Filter by category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Categories</SelectItem>
+                                    <SelectItem value="documentation">Documentation</SelectItem>
+                                    <SelectItem value="training">Training</SelectItem>
+                                    <SelectItem value="support">Support</SelectItem>
+                                    <SelectItem value="technical">Technical</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Quick Links */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                        <CardContent className="p-4 text-center">
+                            <BookOpen className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                            <h3 className="font-semibold">Documentation</h3>
+                            <p className="text-sm text-slate-600 mt-1">User guides and manuals</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                        <CardContent className="p-4 text-center">
+                            <MessageCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                            <h3 className="font-semibold">Live Chat</h3>
+                            <p className="text-sm text-slate-600 mt-1">Chat with support team</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                        <CardContent className="p-4 text-center">
+                            <Download className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                            <h3 className="font-semibold">Downloads</h3>
+                            <p className="text-sm text-slate-600 mt-1">Templates and forms</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                        <CardContent className="p-4 text-center">
+                            <Phone className="h-8 w-8 text-red-600 mx-auto mb-2" />
+                            <h3 className="font-semibold">Emergency</h3>
+                            <p className="text-sm text-slate-600 mt-1">Critical support contacts</p>
+                        </CardContent>
+                    </Card>
+                </div>
+
                 {/* Team Contacts Section */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <UserIcon className="h-5 w-5 text-blue-600" />
-                            Team Contacts
+                            Team Contacts ({filteredTeam.length})
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Position / Role</TableHead>
-                                    <TableHead>Department</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead>Phone</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {teamContacts.map((c: any) => (
-                                    <TableRow key={c.id}>
-                                        <TableCell className="font-medium">{c.name}</TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span>{c.position}</span>
-                                                <span className="text-xs text-slate-500 capitalize">{c.role}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{c.department || '-'}</TableCell>
-                                        <TableCell>
-                                            <a href={`mailto:${c.email}`} className="flex items-center gap-1 text-blue-600 hover:underline">
-                                                <Mail className="h-3 w-3" /> {c.email}
-                                            </a>
-                                        </TableCell>
-                                        <TableCell>
-                                            {c.phone ? (
-                                                <a href={`tel:${c.phone}`} className="flex items-center gap-1 text-slate-600 hover:text-slate-900">
-                                                    <Phone className="h-3 w-3" /> {c.phone}
-                                                </a>
-                                            ) : '-'}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {teamContacts.length === 0 && (
+                        {isLoading ? (
+                            <div className="text-center py-8">Loading team contacts...</div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-6 text-slate-500">No team contacts found.</TableCell>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Position / Role</TableHead>
+                                        <TableHead>Department</TableHead>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead>Phone</TableHead>
+                                        <TableHead>Type</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredTeam.map((c: Contact) => (
+                                        <TableRow key={c.id}>
+                                            <TableCell className="font-medium">{c.name}</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span>{c.position}</span>
+                                                    <span className="text-xs text-slate-500 capitalize">{c.role}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>{c.department || '-'}</TableCell>
+                                            <TableCell>
+                                                <a href={`mailto:${c.email}`} className="flex items-center gap-1 text-blue-600 hover:underline">
+                                                    <Mail className="h-3 w-3" /> {c.email}
+                                                </a>
+                                            </TableCell>
+                                            <TableCell>
+                                                {c.phone ? (
+                                                    <a href={`tel:${c.phone}`} className="flex items-center gap-1 text-slate-600 hover:text-slate-900">
+                                                        <Phone className="h-3 w-3" /> {c.phone}
+                                                    </a>
+                                                ) : '-'}
+                                            </TableCell>
+                                            <TableCell>
+                                                {c.management ? (
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Management</span>
+                                                ) : (
+                                                    <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full">Team Member</span>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {filteredTeam.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-6 text-slate-500">
+                                                No team contacts found.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -178,62 +287,140 @@ export default function HelpPage() {
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="flex items-center gap-2">
                             <Building2 className="h-5 w-5 text-indigo-600" />
-                            Stakeholder Contacts
+                            Stakeholder Contacts ({filteredStakeholders.length})
                         </CardTitle>
                         <Button onClick={handleAddStakeholder} size="sm" className="gap-2 bg-indigo-600 hover:bg-indigo-700">
                             <Plus className="h-4 w-4" /> Add Stakeholder
                         </Button>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Role</TableHead>
-                                    <TableHead>Organization</TableHead>
-                                    <TableHead>Contact Info</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {stakeholders.map((s: any) => (
-                                    <TableRow key={s.id}>
-                                        <TableCell className="font-medium">{s.name}</TableCell>
-                                        <TableCell>{s.role}</TableCell>
-                                        <TableCell>{s.organization}</TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col gap-1 text-sm">
-                                                {s.email && (
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Mail className="h-3 w-3 text-slate-400" /> {s.email}
-                                                    </div>
-                                                )}
-                                                {s.phone && (
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Phone className="h-3 w-3 text-slate-400" /> {s.phone}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button variant="ghost" size="icon" onClick={() => handleEditStakeholder(s)}>
-                                                    <Edit className="h-4 w-4 text-slate-500" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteStakeholder(s.id)}>
-                                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {stakeholders.length === 0 && (
+                        {isLoading ? (
+                            <div className="text-center py-8">Loading stakeholders...</div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-6 text-slate-500">No stakeholders added yet.</TableCell>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Role</TableHead>
+                                        <TableHead>Organization</TableHead>
+                                        <TableHead>Contact Info</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredStakeholders.map((s: Contact) => (
+                                        <TableRow key={s.id}>
+                                            <TableCell className="font-medium">{s.name}</TableCell>
+                                            <TableCell>{s.position}</TableCell>
+                                            <TableCell>-</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1 text-sm">
+                                                    {s.email && (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Mail className="h-3 w-3 text-slate-400" /> {s.email}
+                                                        </div>
+                                                    )}
+                                                    {s.phone && (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Phone className="h-3 w-3 text-slate-400" /> {s.phone}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEditStakeholder(s)}>
+                                                        <Edit className="h-4 w-4 text-slate-500" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteStakeholder(s.id)}>
+                                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {filteredStakeholders.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-6 text-slate-500">
+                                                No stakeholders added yet.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Help Resources Section */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <BookOpen className="h-5 w-5 text-green-600" />
+                            Help Resources ({filteredResources.length})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {filteredResources.map((resource: HelpResource) => (
+                                <Card key={resource.id} className="hover:shadow-md transition-shadow">
+                                    <CardContent className="p-4">
+                                        <h3 className="font-semibold text-slate-900 mb-2">{resource.title}</h3>
+                                        <p className="text-sm text-slate-600 mb-3">{resource.description}</p>
+                                        <div className="flex items-center justify-between">
+                                            <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded">
+                                                {resource.category}
+                                            </span>
+                                            {resource.url && (
+                                                <Button variant="outline" size="sm" asChild>
+                                                    <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                                                        Open
+                                                    </a>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                            {filteredResources.length === 0 && (
+                                <div className="col-span-full text-center py-8 text-slate-500">
+                                    No resources found.
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* FAQs Section */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <MessageCircle className="h-5 w-5 text-purple-600" />
+                            Frequently Asked Questions ({filteredFAQs.length})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {filteredFAQs.map((faq: FAQ) => (
+                                <Card key={faq.id} className="border-l-4 border-l-purple-500">
+                                    <CardContent className="p-4">
+                                        <h3 className="font-semibold text-slate-900 mb-2">{faq.question}</h3>
+                                        <p className="text-slate-600 text-sm">{faq.answer}</p>
+                                        <div className="flex items-center justify-between mt-3">
+                                            <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded">
+                                                {faq.category}
+                                            </span>
+                                            <span className="text-xs text-slate-500">{faq.views} views</span>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                            {filteredFAQs.length === 0 && (
+                                <div className="text-center py-8 text-slate-500">
+                                    No FAQs found.
+                                </div>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -256,16 +443,16 @@ export default function HelpPage() {
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Role</label>
                                     <Input 
-                                        value={stakeholderForm.role || ''} 
-                                        onChange={e => setStakeholderForm({...stakeholderForm, role: e.target.value})} 
+                                        value={stakeholderForm.position || ''} 
+                                        onChange={e => setStakeholderForm({...stakeholderForm, position: e.target.value})} 
                                         placeholder="e.g. Project Sponsor"
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Organization</label>
                                     <Input 
-                                        value={stakeholderForm.organization || ''} 
-                                        onChange={e => setStakeholderForm({...stakeholderForm, organization: e.target.value})} 
+                                        value={stakeholderForm.department || ''} 
+                                        onChange={e => setStakeholderForm({...stakeholderForm, department: e.target.value})} 
                                         placeholder="Company Name"
                                     />
                                 </div>

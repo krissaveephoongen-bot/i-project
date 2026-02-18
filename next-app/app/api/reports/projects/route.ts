@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
     const { data: projects, error } = await supabaseAdmin
         .from('projects')
-        .select('id, name, status, progress, progressPlan, budget, spent, startDate, endDate')
+        .select('id, name, status, progress, progress_plan, budget, spent, start_date, end_date')
         .order('name');
 
     if (error) throw error;
@@ -17,8 +17,8 @@ export async function GET(req: NextRequest) {
     const totalProjects = projects.length;
     const onTime = (projects || []).filter((p: any) => {
         if (p.status !== 'completed') return false;
-        if (!p.endDate) return true; // Assume on time if no end date? Or not.
-        return new Date(p.endDate) <= new Date();
+        if (!p.end_date) return true; // Assume on time if no end date? Or not.
+        return new Date(p.end_date) <= new Date();
     }).length;
     
     const overBudget = (projects || []).filter((p: any) => Number(p.spent || 0) > Number(p.budget || 0)).length;

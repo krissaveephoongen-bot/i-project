@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
     const { data: projects, error: projError } = await supabaseAdmin
         .from('projects')
-        .select('id, name, progress, progressPlan, spi');
+        .select('id, name, progress, progress_plan, spi');
     
     if (projError) throw projError;
 
@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
     // Fetch snapshot from ~7 days ago for all projects
     const { data: snaps, error: snapError } = ids.length ? await supabaseAdmin
         .from('spi_cpi_daily_snapshot')
-        .select('projectId, date, progress')
-        .in('projectId', ids)
+        .select('projectid, date, progress')
+        .in('projectid', ids)
         .gte('date', lastWeekStr)
         .order('date', { ascending: true }) // Oldest first (closest to 7 days ago)
         : { data: [], error: null };
@@ -31,8 +31,8 @@ export async function GET(req: NextRequest) {
 
     const snapMap: Record<string, number> = {};
     (snaps || []).forEach((s: any) => {
-        // Since sorted asc, the first one encountered for a project is the oldest in range
-        if (!snapMap[s.projectId]) snapMap[s.projectId] = Number(s.progress || 0);
+        // Since sorted asc, first one encountered for a project is the oldest in range
+        if (!snapMap[s.projectid]) snapMap[s.projectid] = Number(s.progress || 0);
     });
 
     const summary = (projects || []).map((p: any) => {

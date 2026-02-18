@@ -7,24 +7,24 @@ export const dynamic = 'force-dynamic';
  export async function GET(request: NextRequest) {
    try {
      const { searchParams } = new URL(request.url);
-     const userId = searchParams.get('userId');
+     const user_id = searchParams.get('user_id');
      const start = searchParams.get('start');
      const end = searchParams.get('end');
      const projects = (searchParams.get('projects') || '').split(',').filter(Boolean);
  
-     if (!userId || !start || !end) {
-       return NextResponse.json({ error: 'userId, start, end are required' }, { status: 400 });
+     if (!user_id || !start || !end) {
+       return NextResponse.json({ error: 'user_id, start, end are required' }, { status: 400 });
      }
  
      // Use correct table 'time_entries' and camelCase columns as per schema
     let q = supabase
       .from('time_entries')
-      .select('id, projectId, userId, date, hours')
-      .eq('userId', userId)
+      .select('id, project_id, user_id, date, hours')
+      .eq('user_id', user_id)
       .gte('date', start)
       .lte('date', end);
     if (projects.length > 0) {
-      q = q.in('projectId', projects);
+      q = q.in('project_id', projects);
     }
     const { data, error } = await q.order('date', { ascending: true });
     
@@ -35,12 +35,12 @@ export const dynamic = 'force-dynamic';
     
     // Map back to camelCase for frontend if needed, or keep consistent. 
     // Frontend likely expects camelCase if it was built that way.
-    // Checking previous code: select('id,projectId,userId,date,hours')
+    // Checking previous code: select('id,project_id,user_id,date,hours')
     // So we should map it.
     const mappedData = (data || []).map((d: any) => ({
         id: d.id,
-        projectId: d.projectId,
-        userId: d.userId,
+        project_id: d.project_id,
+        user_id: d.user_id,
         date: d.date,
         hours: d.hours
     }));
@@ -63,9 +63,9 @@ export async function POST(request: NextRequest) {
     // Schema uses camelCase
     const payload: any = {
       id: crypto.randomUUID(),
-      userId: user_id,
-      projectId: project_id,
-      taskId: task_id || null,
+      user_id: user_id,
+      project_id: project_id,
+      task_id: task_id || null,
       date,
       hours: Number(hours || 0),
       startTime: start_time || null,
@@ -84,9 +84,9 @@ export async function POST(request: NextRequest) {
     // Map response
     const res = {
         id: data.id,
-        userId: data.userId,
-        projectId: data.projectId,
-        taskId: data.taskId,
+        user_id: data.user_id,
+        project_id: data.project_id,
+        task_id: data.task_id,
         date: data.date,
         hours: data.hours,
         description: data.description
@@ -109,7 +109,7 @@ export async function PUT(request: NextRequest) {
     
     const payload: any = {};
     if (typeof hours !== 'undefined') payload.hours = Number(hours || 0);
-    if (typeof task_id !== 'undefined') payload.taskId = task_id || null;
+    if (typeof task_id !== 'undefined') payload.task_id = task_id || null;
     if (typeof start_time !== 'undefined') payload.startTime = start_time || null;
     if (typeof end_time !== 'undefined') payload.endTime = end_time || null;
     if (typeof description !== 'undefined') payload.description = description || null;
@@ -123,9 +123,9 @@ export async function PUT(request: NextRequest) {
 
     const res = {
         id: data.id,
-        userId: data.userId,
-        projectId: data.projectId,
-        taskId: data.taskId,
+        user_id: data.user_id,
+        project_id: data.project_id,
+        task_id: data.task_id,
         date: data.date,
         hours: data.hours,
         description: data.description

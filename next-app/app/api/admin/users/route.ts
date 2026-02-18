@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message, code: error?.code, details: error }, { status: 500 });
   }
 }
 
@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
     const { data: newUser, error } = await supabaseAdmin
       .from('users')
       .insert({
+        id: crypto.randomUUID(),
         name,
         email,
         password: hashedPassword,
@@ -98,6 +99,9 @@ export async function POST(req: NextRequest) {
         position,
         status: 'active',
         is_active: true,
+        is_deleted: false,
+        failed_login_attempts: 0,
+        timezone: 'Asia/Bangkok',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })

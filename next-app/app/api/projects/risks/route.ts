@@ -28,8 +28,8 @@ export async function POST(request: NextRequest) {
       name: title || 'Risk',
       severity,
       status,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     const { data, error } = await supabase
       .from('risks')
@@ -48,7 +48,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, updatedFields = {} } = body || {};
     if (!id) return NextResponse.json({}, { status: 200 });
-    const payload: any = { updatedAt: new Date().toISOString() };
+    const payload: any = { updated_at: new Date().toISOString() };
     if (typeof updatedFields.title !== 'undefined') payload.name = updatedFields.title;
     if (typeof updatedFields.severity !== 'undefined') payload.severity = updatedFields.severity;
     if (typeof updatedFields.status !== 'undefined') payload.status = updatedFields.status;

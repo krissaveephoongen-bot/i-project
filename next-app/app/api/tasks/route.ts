@@ -13,10 +13,11 @@ export async function GET(req: NextRequest) {
     const priority = u.searchParams.get('priority');
     const projectId = u.searchParams.get('projectId');
     const assignedTo = u.searchParams.get('assignedTo');
+    const milestoneId = u.searchParams.get('milestoneId');
 
     let query = supabase
       .from('tasks')
-      .select('*, projects(id, name), assigned_user:users!assignedTo(id, name)')
+      .select('*, projects(id, name), milestones(id, title), assigned_user:users!assignedTo(id, name)')
       .order('dueDate', { ascending: true });
 
     if (q) query = query.ilike('title', `%${q}%`);
@@ -24,6 +25,7 @@ export async function GET(req: NextRequest) {
     if (priority) query = query.eq('priority', priority);
     if (projectId) query = query.eq('projectId', projectId);
     if (assignedTo) query = query.eq('assignedTo', assignedTo);
+    if (milestoneId) query = query.eq('milestoneId', milestoneId);
 
     const { data, error } = await query;
     if (error) throw error;
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { 
       title, description, status = 'todo', priority = 'medium', 
-      dueDate, estimatedHours, projectId, assignedTo 
+      dueDate, estimatedHours, projectId, milestoneId, assignedTo 
     } = body;
 
     if (!title) return err('Title is required', 400);
@@ -53,9 +55,10 @@ export async function POST(req: NextRequest) {
       dueDate: dueDate || null,
       estimatedHours: estimatedHours ? Number(estimatedHours) : 0,
       projectId,
+      milestoneId: milestoneId || null,
       assignedTo: assignedTo || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
     const { data, error } = await supabase

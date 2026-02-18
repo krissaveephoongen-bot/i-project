@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
     const { data: projects, error } = await supabaseAdmin
         .from('projects')
-        .select('id, name, budget, spent, startDate')
+        .select('id, name, budget, spent, start_date')
         .order('name');
 
     if (error) throw error;
@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
     (projects || []).forEach((p: any) => {
-        if (!p.startDate) return;
-        const date = new Date(p.startDate);
+        if (!p.start_date) return;
+        const date = new Date(p.start_date);
         const month = months[date.getMonth()];
         if (!monthlyMap[month]) monthlyMap[month] = { revenue: 0, cost: 0 };
         

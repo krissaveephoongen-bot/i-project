@@ -18,24 +18,7 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard, TaskCard } from './KanbanCard';
-
-interface Task {
-  id: string;
-  name: string;
-  phase: string;
-  weight: number;
-  progress_plan: number;
-  progress_actual: number;
-  start_date: string;
-  end_date: string;
-  assignee: string;
-  vendor: string;
-  status: string;
-  progressPlan?: number;
-  progressActual?: number;
-  startDate?: string;
-  endDate?: string;
-}
+import { Task } from '@/lib/tasks';
 
 interface KanbanBoardProps {
   tasks: Task[];

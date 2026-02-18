@@ -59,7 +59,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       .update({ 
         is_deleted: true, 
         is_active: false,
-        status: 'deleted',
+        status: 'inactive',
         updated_at: new Date().toISOString()
       })
       .eq('id', id);

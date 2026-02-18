@@ -29,9 +29,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log('Client API POST request:', body);
     const { name, email, phone, address, taxId, notes } = body;
 
     if (!name) return err('Name is required', 400);
+
+    console.log('Creating client with data:', { name, email, phone, address, taxId, notes });
 
     const { data, error } = await supabase
       .from('clients')
@@ -39,9 +42,17 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
 
-    if (error) throw error;
+    console.log('Supabase insert result:', { data, error });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+    
+    console.log('Client created successfully:', data);
     return ok(data, 201);
   } catch (e: any) {
+    console.error('Client API error:', e);
     return err(e?.message || 'error', 500);
   }
 }

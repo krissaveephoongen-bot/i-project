@@ -25,7 +25,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const body = await req.json();
     
     // Protect fields
-    const allowed = ['title', 'description', 'status', 'priority', 'dueDate', 'estimatedHours', 'actualHours', 'assignedTo', 'projectId'];
+    const allowed = ['title', 'description', 'status', 'priority', 'dueDate', 'estimatedHours', 'actualHours', 'assignedTo', 'projectId', 'milestoneId'];
     const payload: any = {};
     for (const k of allowed) {
         if (k in body) payload[k] = body[k];

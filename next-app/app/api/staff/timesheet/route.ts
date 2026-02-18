@@ -4,15 +4,15 @@ import { supabase } from '../../../lib/supabaseClient';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const projectId = searchParams.get('projectId');
+    const user_id = searchParams.get('user_id');
+    const project_id = searchParams.get('project_id');
     const status = searchParams.get('status');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    if (!userId) {
+    if (!user_id) {
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
@@ -27,13 +27,13 @@ export async function GET(request: NextRequest) {
         tasks(id, title, status),
         users(id, name, email)
       `, { count: 'exact' })
-      .eq('userId', userId)
-      .eq('isDeleted', false)
+      .eq('user_id', user_id)
+      .eq('is_deleted', false)
       .order('date', { ascending: false });
 
     // Apply project filter if provided
-    if (projectId) {
-      query = query.eq('projectId', projectId);
+    if (project_id) {
+      query = query.eq('project_id', project_id);
     }
 
     // Apply status filter if provided
@@ -99,9 +99,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { timeEntryData, userId } = body;
+    const { timeEntryData, user_id } = body;
 
-    if (!timeEntryData || !userId) {
+    if (!timeEntryData || !user_id) {
       return NextResponse.json(
         { error: 'Time entry data and user ID are required' },
         { status: 400 }
@@ -113,11 +113,11 @@ export async function POST(request: NextRequest) {
       .from('time_entries')
       .insert({
         ...timeEntryData,
-        userId: userId,
+        user_id: user_id,
         status: 'pending',
-        isDeleted: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .select(`
         *,
@@ -152,9 +152,9 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { timeEntryId, updates, userId } = body;
+    const { timeEntryId, updates, user_id } = body;
 
-    if (!timeEntryId || !updates || !userId) {
+    if (!timeEntryId || !updates || !user_id) {
       return NextResponse.json(
         { error: 'Time entry ID, updates, and user ID are required' },
         { status: 400 }
@@ -166,10 +166,10 @@ export async function PUT(request: NextRequest) {
       .from('time_entries')
       .update({
         ...updates,
-        updatedAt: new Date().toISOString()
+        updated_at: new Date().toISOString()
       })
       .eq('id', timeEntryId)
-      .eq('userId', userId) // Ensure user can only update their own entries
+      .eq('user_id', user_id) // Ensure user can only update their own entries
       .select(`
         *,
         projects(id, name, status),
@@ -204,9 +204,9 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const timeEntryId = searchParams.get('timeEntryId');
-    const userId = searchParams.get('userId');
+    const user_id = searchParams.get('user_id');
 
-    if (!timeEntryId || !userId) {
+    if (!timeEntryId || !user_id) {
       return NextResponse.json(
         { error: 'Time entry ID and user ID are required' },
         { status: 400 }
@@ -217,11 +217,11 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabase
       .from('time_entries')
       .update({ 
-        isDeleted: true,
-        updatedAt: new Date().toISOString()
+        is_deleted: true,
+        updated_at: new Date().toISOString()
       })
       .eq('id', timeEntryId)
-      .eq('userId', userId); // Ensure user can only delete their own entries
+      .eq('user_id', user_id); // Ensure user can only delete their own entries
 
     if (error) {
       console.error('Error deleting time entry:', error);

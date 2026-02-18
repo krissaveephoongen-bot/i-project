@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id,email,name,name_th,role,position,department,avatar,phone,isActive,isDeleted,failedLoginAttempts,lastLogin,lockedUntil,createdAt,updatedAt,hourlyRate,timezone,password')
+      .select('id,email,name,name_th,role,position,department,avatar,phone,is_active,is_deleted,failed_login_attempts,timezone,created_at,updated_at,hourly_rate,status,employee_code,password')
       .eq('email', email)
       .limit(1);
 
@@ -46,14 +46,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Column mapping fallback
-    const isActive = user.isActive ?? true;
-    const isDeleted = user.isDeleted ?? false;
-    const lockedUntil = user.lockedUntil ?? null;
-    const failedLoginAttempts = user.failedLoginAttempts ?? 0;
+    const is_active = user.is_active ?? true;
+    const is_deleted = user.is_deleted ?? false;
+    const locked_until = null; // Column doesn't exist in database
+    const failed_login_attempts = user.failed_login_attempts ?? 0;
     const passwordHash = user.password ?? user.password_hash ?? user.hashed_password ?? null;
 
     // Check if user is active
-    if (!isActive) {
+    if (!is_active) {
       return NextResponse.json(
         { error: 'Account is deactivated' },
         { status: 401 }
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is deleted
-    if (isDeleted) {
+    if (is_deleted) {
       return NextResponse.json(
         { error: 'Account not found' },
         { status: 401 }
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if account is locked
-    if (lockedUntil && new Date(lockedUntil) > new Date()) {
+    if (locked_until && new Date(locked_until) > new Date()) {
       return NextResponse.json(
         { error: 'Account is temporarily locked' },
         { status: 423 }
@@ -86,16 +86,16 @@ export async function POST(request: NextRequest) {
     const isValidPassword = await bcrypt.compare(password, passwordHash);
     if (!isValidPassword) {
       // Increment failed login attempts
-      const failedAttempts = Number(failedLoginAttempts || 0) + 1;
+      const failedAttempts = Number(failed_login_attempts || 0) + 1;
       
-      const updates: any = { failedLoginAttempts: failedAttempts };
+      const updates: any = { failed_login_attempts: failedAttempts };
       if (failedAttempts >= 5) {
-        updates.lockedUntil = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+        updates.locked_until = new Date(Date.now() + 30 * 60 * 1000).toISOString();
       }
 
       await supabase
         .from('users')
-        .update({ ...updates, updatedAt: new Date().toISOString() })
+        .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', user.id);
 
       return NextResponse.json(
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     // Reset failed login attempts on successful login
     await supabase
       .from('users')
-      .update({ failedLoginAttempts: 0, lastLogin: new Date().toISOString(), lockedUntil: null, updatedAt: new Date().toISOString() })
+      .update({ failed_login_attempts: 0, updated_at: new Date().toISOString() })
       .eq('id', user.id);
 
     // Return user data without password
@@ -124,15 +124,17 @@ export async function POST(request: NextRequest) {
       department: userWithoutPassword.department,
       avatar: userWithoutPassword.avatar,
       phone: userWithoutPassword.phone,
-      isActive: isActive,
-      isDeleted: isDeleted,
-      failedLoginAttempts: failedLoginAttempts,
-      lastLogin: userWithoutPassword.lastLogin,
-      lockedUntil: lockedUntil,
-      createdAt: userWithoutPassword.createdAt,
-      updatedAt: userWithoutPassword.updatedAt,
-      hourlyRate: userWithoutPassword.hourlyRate,
-      timezone: userWithoutPassword.timezone
+      is_active: is_active,
+      is_deleted: is_deleted,
+      failed_login_attempts: failed_login_attempts,
+      last_login: null, // Column doesn't exist in database
+      locked_until: locked_until,
+      created_at: userWithoutPassword.created_at,
+      updated_at: userWithoutPassword.updated_at,
+      hourly_rate: userWithoutPassword.hourly_rate,
+      timezone: userWithoutPassword.timezone,
+      status: userWithoutPassword.status,
+      employee_code: userWithoutPassword.employee_code
     };
 
     // Ensure profile record exists in public.profiles

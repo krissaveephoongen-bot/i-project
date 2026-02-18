@@ -26,30 +26,30 @@ export async function POST() {
       spi: 1.02,
       managerId: admin.id,
       clientId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
 
     // Create tasks
     const task1 = crypto.randomUUID()
     const task2 = crypto.randomUUID()
     await supabaseAdmin.from('tasks').upsert([
-      { id: task1, projectId, title: 'Design Phase', status: 'in_progress', priority: 'medium', assignedTo: admin.id, createdBy: admin.id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: task2, projectId, title: 'Implementation Phase', status: 'todo', priority: 'high', assignedTo: admin.id, createdBy: admin.id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: task1, projectId, title: 'Design Phase', status: 'in_progress', priority: 'medium', assignedTo: admin.id, createdBy: admin.id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+      { id: task2, projectId, title: 'Implementation Phase', status: 'todo', priority: 'high', assignedTo: admin.id, createdBy: admin.id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
     ])
 
     // Pending timesheet entries
     const te1 = crypto.randomUUID()
     const te2 = crypto.randomUUID()
     await supabaseAdmin.from('time_entries').upsert([
-      { id: te1, userId: admin.id, projectId, taskId: task1, date: new Date().toISOString(), hours: 4, description: 'UI exploration', status: 'pending', createdAt: new Date().toISOString() },
-      { id: te2, userId: admin.id, projectId, taskId: task2, date: new Date().toISOString(), hours: 3, description: 'API planning', status: 'pending', createdAt: new Date().toISOString() },
+      { id: te1, userId: admin.id, projectId, taskId: task1, date: new Date().toISOString(), hours: 4, description: 'UI exploration', status: 'pending', created_at: new Date().toISOString() },
+      { id: te2, userId: admin.id, projectId, taskId: task2, date: new Date().toISOString(), hours: 3, description: 'API planning', status: 'pending', created_at: new Date().toISOString() },
     ])
 
     // Pending expenses
     const ex1 = crypto.randomUUID()
     await supabaseAdmin.from('expenses').upsert([
-      { id: ex1, userId: admin.id, projectId, taskId: task1, date: new Date().toISOString(), amount: 2500, category: 'supplies', description: 'Design materials', status: 'pending', createdAt: new Date().toISOString() },
+      { id: ex1, userId: admin.id, projectId, taskId: task1, date: new Date().toISOString(), amount: 2500, category: 'supplies', description: 'Design materials', status: 'pending', created_at: new Date().toISOString() },
     ])
 
     // Milestones for cashflow

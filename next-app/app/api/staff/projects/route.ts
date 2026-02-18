@@ -4,12 +4,12 @@ import { supabase } from '../../../lib/supabaseClient';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const user_id = searchParams.get('user_id');
     const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    if (!userId) {
+    if (!user_id) {
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
@@ -21,15 +21,15 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         clients(id, name, email),
-        tasks(id, title, status, projectId),
-        time_entries(id, date, hours, projectId),
-        project_members(id, userId, role)
+        tasks(id, title, status, project_id),
+        time_entries(id, date, hours, project_id),
+        project_members(id, user_id, role)
       `, { count: 'exact' })
-      .eq('isDeleted', false)
-      .order('createdAt', { ascending: false });
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false });
 
     // Filter by user (either as manager or member)
-    query = query.or(`managerId.eq.${userId},project_members.userId.eq.${userId}`);
+    query = query.or(`manager_id.eq.${user_id},project_members.user_id.eq.${user_id}`);
 
     // Apply status filter if provided
     if (status) {
@@ -73,9 +73,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { projectData, userId } = body;
+    const { projectData, user_id } = body;
 
-    if (!projectData || !userId) {
+    if (!projectData || !user_id) {
       return NextResponse.json(
         { error: 'Project data and user ID are required' },
         { status: 400 }
@@ -87,10 +87,10 @@ export async function POST(request: NextRequest) {
       .from('projects')
       .insert({
         ...projectData,
-        managerId: userId,
-        isDeleted: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        manager_id: user_id,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .select()
       .single();
@@ -108,12 +108,12 @@ export async function POST(request: NextRequest) {
       .from('project_members')
       .insert({
         id: `pm-${Date.now()}`,
-        projectId: project.id,
-        userId: userId,
+        project_id: project.id,
+        user_id: user_id,
         role: 'manager',
         joinedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       });
 
     return NextResponse.json({

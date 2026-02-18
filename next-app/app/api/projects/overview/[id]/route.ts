@@ -53,7 +53,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     // Documents
     const { data: documents } = await supabase
       .from('documents')
-      .select('id,name,url,type,size,uploadedBy,createdAt,updatedAt')
+      .select('id,name,url,type,size,uploadedBy,created_at,updated_at')
       .eq('projectId', projectId);
 
     // Team

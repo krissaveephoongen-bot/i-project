@@ -5,24 +5,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { Clock, CheckCircle2, Circle, AlertTriangle, GripVertical } from 'lucide-react';
 import { clsx } from 'clsx';
 import { forwardRef } from 'react';
-
-interface Task {
-  id: string;
-  name: string;
-  phase: string;
-  weight: number;
-  progress_plan: number;
-  progress_actual: number;
-  start_date: string;
-  end_date: string;
-  assignee: string;
-  vendor: string;
-  status: string;
-  progressPlan?: number;
-  progressActual?: number;
-  startDate?: string;
-  endDate?: string;
-}
+import { Task } from '@/lib/tasks';
 
 interface TaskCardProps {
   task: Task;
@@ -71,7 +54,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({ task, onCli
                 </div>
               
               <h4 className="text-sm font-medium text-slate-900 leading-tight line-clamp-2">
-                {task.name}
+                {task.title}
               </h4>
 
               <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -83,9 +66,9 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({ task, onCli
 
               <div className="flex items-center justify-between pt-1">
                 <div className="flex items-center gap-1.5">
-                    {task.assignee && task.assignee !== 'Unassigned' && (
+                    {task.assigned_to && task.assigned_to !== 'Unassigned' && (
                         <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold ring-2 ring-white">
-                            {task.assignee.charAt(0)}
+                            {task.assigned_to.charAt(0)}
                         </div>
                     )}
                 </div>

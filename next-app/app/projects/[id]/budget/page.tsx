@@ -6,6 +6,7 @@ import { DollarSign, TrendingUp, TrendingDown, CreditCard, Receipt, PieChart, Ba
 import { clsx } from 'clsx';
 import { useParams } from 'next/navigation';
 import FinancialChart from '@/app/components/FinancialChart';
+import ProjectTabs from '@/app/components/ProjectTabs';
 
 type Monthly = { month: string; revenue: number; cost: number };
 type Milestone = { id: string; name: string; amount: number; dueDate: string | null; status: string; percentage: number };
@@ -63,6 +64,7 @@ export default function ProjectBudgetPage() {
       />
       
       <div className="pt-20 px-6 pb-6">
+        <ProjectTabs />
         {/* Budget Summary Cards */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">

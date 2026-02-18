@@ -17,14 +17,14 @@ export async function GET(req: NextRequest) {
     if (!projectId) return err('projectId required', 400);
 
     // Fetch project info
-    const pRes = await pool.query(`SELECT progress, "progressPlan", progress_plan, created_at, "createdAt" FROM projects WHERE id = $1`, [projectId]);
+    const pRes = await pool.query(`SELECT progress, "progressPlan", progress_plan, created_at, "created_at" FROM projects WHERE id = $1`, [projectId]);
     const proj = pRes.rows[0];
     
     if (!proj) return err('Project not found', 404);
 
     const planPct = Number(proj.progress_plan ?? proj["progressPlan"] ?? 100);
     const actualPct = Number(proj.progress ?? 0);
-    const createdAt = new Date(proj.created_at || proj["createdAt"] || new Date());
+    const created_at = new Date(proj.created_at || proj["created_at"] || new Date());
     
     // Fetch historical progress
     const hRes = await pool.query(
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     // Calculate weeks (default 12 or based on project duration if needed)
     const weeks = 12;
-    const startDate = createdAt; 
+    const startDate = created_at; 
     
     const data = [];
     

@@ -18,8 +18,8 @@
       receiptDate,
        status,
        notes: note,
-       createdAt: new Date().toISOString(),
-       updatedAt: new Date().toISOString(),
+       created_at: new Date().toISOString(),
+       updated_at: new Date().toISOString(),
      };
      const { data, error } = await supabase.from('milestones').insert(payload).select('*').limit(1);
      if (error) return NextResponse.json({ error: error.message }, { status: 500 });

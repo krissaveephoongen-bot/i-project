@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
         projects(id, name, status),
         users(id, name, email)
       `, { count: 'exact' })
-      .eq('isDeleted', false)
-      .order('createdAt', { ascending: false });
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false });
 
     // Filter by assigned user or created by user
     query = query.or(`assignedTo.eq.${userId},createdBy.eq.${userId}`);
@@ -90,7 +90,7 @@ export async function PUT(request: NextRequest) {
 
     // Update task progress and evidence
     const updates: any = {
-      updatedAt: new Date().toISOString()
+      updated_at: new Date().toISOString()
     };
 
     if (progress !== undefined) {

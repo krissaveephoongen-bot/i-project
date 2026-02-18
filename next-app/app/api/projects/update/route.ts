@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     for (const k of allowed) {
       if (k in updatedFields) payload[k] = updatedFields[k];
     }
-    payload.updatedAt = new Date().toISOString();
+    payload.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase.from('projects').update(payload).eq('id', id).select('*').limit(1);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
           projectId: id,
           progress: progress,
           weekDate: new Date().toISOString(),
-          createdAt: new Date().toISOString()
+          created_at: new Date().toISOString()
         });
       }
     }

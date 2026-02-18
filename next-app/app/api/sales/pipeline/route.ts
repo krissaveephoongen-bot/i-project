@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server';
 
 export async function GET() {
   try {
-   const { data: pipelines } = await supabase.from('sales_pipelines').select('id,name,updatedAt').order('updatedAt', { ascending: false }).limit(1);
+   const { data: pipelines } = await supabase.from('sales_pipelines').select('id,name,updated_at').order('updated_at', { ascending: false }).limit(1);
    let pipeline = (pipelines || [])[0] || null;
    if (!pipeline) {
      const id = crypto.randomUUID();
@@ -17,9 +17,9 @@ export async function GET() {
        { name: 'Won', order_index: 5, probability: 100 },
        { name: 'Lost', order_index: 6, probability: 0 },
      ];
-     await supabase.from('sales_pipelines').insert({ id, name: 'Default Pipeline', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-     await supabase.from('sales_stages').insert(defStages.map(s => ({ id: crypto.randomUUID(), pipeline_id: id, name: s.name, order_index: s.order_index, probability: s.probability, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })));
-     pipeline = { id, name: 'Default Pipeline', updatedAt: new Date().toISOString() };
+     await supabase.from('sales_pipelines').insert({ id, name: 'Default Pipeline', created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+     await supabase.from('sales_stages').insert(defStages.map(s => ({ id: crypto.randomUUID(), pipeline_id: id, name: s.name, order_index: s.order_index, probability: s.probability, created_at: new Date().toISOString(), updated_at: new Date().toISOString() })));
+     pipeline = { id, name: 'Default Pipeline', updated_at: new Date().toISOString() };
    }
    const { data: stages } = await supabase.from('sales_stages').select('id,name,order_index,probability').eq('pipeline_id', pipeline.id).order('order_index', { ascending: true });
    const normalized = (stages || []).map((s: any) => ({ id: s.id, name: s.name, order: Number(s.order_index || 0), probability: Number(s.probability || 0) }));
@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
     const { error: pError } = await supabase.from('sales_pipelines').insert({
         id: pipelineId,
         name,
-        createdAt: now,
-        updatedAt: now
+        created_at: now,
+        updated_at: now
     });
     
     if (pError) throw pError;
@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
             name: s.name,
             order_index: s.order || idx + 1,
             probability: s.probability || 0,
-            createdAt: now,
-            updatedAt: now
+            created_at: now,
+            updated_at: now
         }));
         const { error: sError } = await supabase.from('sales_stages').insert(stagesPayload);
         if (sError) throw sError;
@@ -78,7 +78,7 @@ export async function PUT(req: NextRequest) {
     const now = new Date().toISOString();
 
     if (name) {
-        const { error } = await supabase.from('sales_pipelines').update({ name, updatedAt: now }).eq('id', id);
+        const { error } = await supabase.from('sales_pipelines').update({ name, updated_at: now }).eq('id', id);
         if (error) throw error;
     }
 
@@ -92,7 +92,7 @@ export async function PUT(req: NextRequest) {
                     name: s.name, 
                     order_index: s.order, 
                     probability: s.probability,
-                    updatedAt: now 
+                    updated_at: now 
                 }).eq('id', s.id);
             } else {
                 await supabase.from('sales_stages').insert({
@@ -101,8 +101,8 @@ export async function PUT(req: NextRequest) {
                     name: s.name,
                     order_index: s.order,
                     probability: s.probability || 0,
-                    createdAt: now,
-                    updatedAt: now
+                    created_at: now,
+                    updated_at: now
                 });
             }
         }

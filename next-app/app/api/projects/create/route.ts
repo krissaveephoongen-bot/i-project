@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       name, code, description, status = 'in_progress', progress = 0,
-      endDate, budget = 0, managerId, clientId, priority = 'medium', category,
+      end_date, budget = 0, manager_id, client_id, priority = 'medium', category,
       milestones = [],
       members = [],
       tasks = [],
@@ -23,10 +23,10 @@ export async function POST(request: NextRequest) {
       description,
       status,
       progress,
-      endDate: endDate || null,
+      end_date: end_date || null,
       budget,
-      managerId: managerId || null,
-      clientId: clientId || null,
+      manager_id: manager_id || null,
+      client_id: client_id || null,
       priority,
       category: category || null,
       progressPlan: 0,
@@ -34,10 +34,9 @@ export async function POST(request: NextRequest) {
       riskLevel: 'medium',
       spent: 0,
       remaining: budget, // Initial remaining = budget
-      hourlyRate: 0,
       isArchived: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
     const { data, error } = await supabase
@@ -48,19 +47,19 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    const projectId = data.id;
+    const project_id = data.id;
 
     // Handle milestones if any
     if (Array.isArray(milestones) && milestones.length > 0) {
       const msPayloads = milestones.map((m: any) => ({
-        projectId,
+        project_id,
         name: m.name || '',
         percentage: Number(m.percentage || 0),
         amount: Number(m.amount || 0),
         dueDate: m.dueDate || null,
         status: m.status || 'Pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }));
 
       const { error: msError } = await supabase
@@ -73,14 +72,14 @@ export async function POST(request: NextRequest) {
     // Handle team members (roles) if provided
     if (Array.isArray(members) && members.length > 0) {
       const memberPayloads = members
-        .filter((m: any) => m?.userId && m?.role)
+        .filter((m: any) => m?.user_id && m?.role)
         .map((m: any) => ({
-          projectId,
-          userId: m.userId,
+          project_id,
+          user_id: m.user_id,
           role: m.role,
           joinedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         }));
       if (memberPayloads.length > 0) {
         const { error: memErr } = await supabase
@@ -93,7 +92,7 @@ export async function POST(request: NextRequest) {
     // Handle Tasks (with Weights) and Generate Plan Points
     if (Array.isArray(tasks) && tasks.length > 0) {
         const taskPayloads = tasks.map((t: any) => ({
-            projectId,
+            project_id,
             title: t.title,
             description: t.description || null,
             status: 'todo',
@@ -102,8 +101,8 @@ export async function POST(request: NextRequest) {
             startDate: t.startDate || null,
             dueDate: t.dueDate || null,
             createdBy: 'system', // or current user if available
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
         }));
         
         const { data: createdTasks, error: taskErr } = await supabase
@@ -161,7 +160,7 @@ export async function POST(request: NextRequest) {
     // Handle Contacts (Stakeholders)
     if (Array.isArray(contacts) && contacts.length > 0) {
         const contactPayloads = contacts.map((c: any) => ({
-            project_id: projectId,
+            project_id: project_id,
             name: c.name,
             position: c.position || c.role,
             email: c.email,
@@ -177,7 +176,7 @@ export async function POST(request: NextRequest) {
         if (contactErr) console.error('Error creating contacts:', contactErr);
     }
 
-    return NextResponse.json({ id: projectId }, { status: 201 });
+    return NextResponse.json({ id: project_id }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
   }

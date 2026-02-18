@@ -25,8 +25,8 @@ import { supabase } from '@/app/lib/supabaseClient';
       clientOrg: deal.client_org || null,
       status: deal.status,
       probability: Number(deal.probability || 0),
-      createdAt: deal.createdAt,
-      updatedAt: deal.updatedAt,
+      created_at: deal.created_at,
+      updated_at: deal.updated_at,
       stage_name: stageName
     }, 200);
    } catch (e: any) {
@@ -38,7 +38,7 @@ import { supabase } from '@/app/lib/supabaseClient';
    try {
      const id = params.id;
     const body = await req.json();
-    const payload: any = { updatedAt: new Date().toISOString() };
+    const payload: any = { updated_at: new Date().toISOString() };
     const keys = ['name','amount','currency','stage_id','owner_id','client_id','client_org','status','probability'];
     for (const k of keys) {
       if (k in body) payload[k] = body[k];

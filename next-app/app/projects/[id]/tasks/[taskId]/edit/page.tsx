@@ -24,7 +24,7 @@ export default function EditTaskPage() {
   });
 
   const task = useMemo(() => (data || []).find((t: any) => t.id === taskId) || null, [data, taskId]);
-  const [name, setName] = useState<string>(task?.name || '');
+  const [title, setTitle] = useState<string>(task?.title || '');
   const [phase, setPhase] = useState<string>(task?.phase || '');
   const [weight, setWeight] = useState<number>(task?.weight || 0);
   const [progressPlan, setProgressPlan] = useState<number>(task?.progress_plan ?? task?.progressPlan ?? 0);
@@ -46,7 +46,7 @@ export default function EditTaskPage() {
       body: JSON.stringify({
         id: taskId,
         updatedFields: {
-          name,
+          title,
           phase,
           weight,
           progress_plan: progressPlan,
@@ -129,7 +129,7 @@ export default function EditTaskPage() {
         <div className="space-y-4 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <label className="block">
             <span className="text-sm text-slate-600">ชื่องาน</span>
-            <input value={name} onChange={(e)=>setName(e.target.value)} className="mt-1 w-full border rounded px-3 py-2" />
+            <input value={title} onChange={(e)=>setTitle(e.target.value)} className="mt-1 w-full border rounded px-3 py-2" />
           </label>
           <label className="block">
             <span className="text-sm text-slate-600">ขั้นตอนงาน</span>

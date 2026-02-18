@@ -4,6 +4,13 @@ import { supabase } from '@/app/lib/supabaseClient';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  // Add cache-busting headers
+  const headers = new Headers({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+
   try {
     // Fetch recent audit logs
     const { data: logs } = await supabase
@@ -22,8 +29,8 @@ export async function GET(request: NextRequest) {
     // Fetch recent projects
     const { data: projects } = await supabase
       .from('projects')
-      .select('id, name, createdAt, created_at, manager:users(name)')
-      .order('createdAt', { ascending: false })
+      .select('id, name, created_at, created_at, manager:users(name)')
+      .order('created_at', { ascending: false })
       .limit(5);
 
     const activities: any[] = [];
@@ -57,15 +64,15 @@ export async function GET(request: NextRequest) {
         title: 'New Project',
         description: `Created project "${p.name}"`,
         user: p.manager?.name || 'System',
-        date: p.createdAt || p.created_at || new Date().toISOString()
+        date: p.created_at || p.created_at || new Date().toISOString()
       });
     });
 
     // Sort by date desc
     activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    return NextResponse.json(activities.slice(0, 20), { status: 200 });
+    return NextResponse.json(activities.slice(0, 20), { status: 200, headers });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: e.message }, { status: 500, headers });
   }
 }

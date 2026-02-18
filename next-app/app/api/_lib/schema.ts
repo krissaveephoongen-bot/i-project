@@ -45,8 +45,8 @@ export async function runSchemaSync() {
         address text,
         taxId text,
         notes text,
-        createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt timestamp without time zone NOT NULL
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp without time zone NOT NULL
       );`,
      `CREATE TABLE IF NOT EXISTS projects (
         id text PRIMARY KEY,
@@ -65,12 +65,12 @@ export async function runSchemaSync() {
         remaining numeric NOT NULL DEFAULT 0.00,
         managerId text,
         clientId text,
-        hourlyRate numeric NOT NULL DEFAULT 0.00,
+        hourly_rate numeric NOT NULL DEFAULT 0.00,
         priority text NOT NULL DEFAULT 'medium',
         category text,
         isArchived boolean NOT NULL DEFAULT false,
-        createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt timestamp without time zone NOT NULL
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp without time zone NOT NULL
       );`,
      `DO $$
       BEGIN
@@ -133,8 +133,8 @@ export async function runSchemaSync() {
         sprintId text,
         blockedBy text,
         blockedReason text,
-        createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt timestamp without time zone NOT NULL
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp without time zone NOT NULL
       );`,
      `DO $$
       BEGIN
@@ -163,8 +163,8 @@ export async function runSchemaSync() {
         status text NOT NULL DEFAULT 'open',
         projectId text,
         assignedTo text,
-        createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt timestamp without time zone NOT NULL
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp without time zone NOT NULL
       );`,
      `DO $$
       BEGIN
@@ -192,8 +192,8 @@ export async function runSchemaSync() {
         taskId text,
         uploadedBy text,
         milestone text,
-        createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt timestamp without time zone NOT NULL
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp without time zone NOT NULL
       );`,
      `DO $$
       BEGIN
@@ -294,8 +294,8 @@ export async function runSchemaSync() {
      `CREATE TABLE IF NOT EXISTS sales_pipelines (
         id text PRIMARY KEY,
         name text NOT NULL,
-        createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt timestamp without time zone NOT NULL
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp without time zone NOT NULL
       );`,
      `CREATE TABLE IF NOT EXISTS sales_stages (
         id text PRIMARY KEY,
@@ -303,8 +303,8 @@ export async function runSchemaSync() {
         name text NOT NULL,
         order_index int NOT NULL DEFAULT 0,
         probability int NOT NULL DEFAULT 0,
-        createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt timestamp without time zone NOT NULL
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp without time zone NOT NULL
       );`,
      `CREATE TABLE IF NOT EXISTS sales_deals (
         id text PRIMARY KEY,
@@ -319,8 +319,8 @@ export async function runSchemaSync() {
         status text NOT NULL DEFAULT 'open',
         expected_close_date date,
         probability int NOT NULL DEFAULT 0,
-        createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt timestamp without time zone NOT NULL
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp without time zone NOT NULL
       );`,
      `CREATE TABLE IF NOT EXISTS sales_activities (
         id text PRIMARY KEY,
@@ -328,7 +328,7 @@ export async function runSchemaSync() {
         type text NOT NULL,
         note text,
         user_id text,
-        createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
       );`,
      `DO $$
       BEGIN
@@ -389,8 +389,8 @@ export async function runSchemaSync() {
         dueDate timestamp without time zone,
         status text NOT NULL DEFAULT 'Pending',
         note text,
-        createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt timestamp without time zone NOT NULL
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp without time zone NOT NULL
       );`,
      `DO $$
       BEGIN
@@ -507,8 +507,8 @@ export async function runSchemaSync() {
         approvedAt timestamp without time zone,
         approverId text,
         details jsonb,
-        createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt timestamp without time zone NOT NULL
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp without time zone NOT NULL
     );`,
     `DO $$
       BEGIN
@@ -566,6 +566,56 @@ export async function runSchemaSync() {
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'timesheets_task_id_fkey') THEN
           ALTER TABLE timesheets ADD CONSTRAINT timesheets_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id);
         END IF;
+      END $$;`
+    ,
+    `CREATE TABLE IF NOT EXISTS time_entries (
+        id text PRIMARY KEY,
+        userId text NOT NULL,
+        projectId text,
+        taskId text,
+        date date NOT NULL,
+        hours numeric NOT NULL DEFAULT 0,
+        description text,
+        status text NOT NULL DEFAULT 'pending',
+        rejectedReason text,
+        approvedBy text,
+        approvedAt timestamp without time zone
+      );`
+    ,
+    `DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'time_entries_userId_fkey') THEN
+          ALTER TABLE time_entries ADD CONSTRAINT time_entries_userId_fkey FOREIGN KEY ("userId") REFERENCES users(id);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'time_entries_projectId_fkey') THEN
+          ALTER TABLE time_entries ADD CONSTRAINT time_entries_projectId_fkey FOREIGN KEY ("projectId") REFERENCES projects(id);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'time_entries_taskId_fkey') THEN
+          ALTER TABLE time_entries ADD CONSTRAINT time_entries_taskId_fkey FOREIGN KEY ("taskId") REFERENCES tasks(id);
+        END IF;
+        CREATE INDEX IF NOT EXISTS idx_time_entries_user ON time_entries("userId");
+        CREATE INDEX IF NOT EXISTS idx_time_entries_project ON time_entries("projectId");
+        CREATE INDEX IF NOT EXISTS idx_time_entries_date ON time_entries(date);
+      END $$;`
+    ,
+    `CREATE TABLE IF NOT EXISTS notifications (
+        id text PRIMARY KEY,
+        user_id text NOT NULL,
+        title text NOT NULL,
+        message text NOT NULL,
+        type text NOT NULL DEFAULT 'info',
+        is_read boolean NOT NULL DEFAULT false,
+        link text,
+        created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );`
+    ,
+    `DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notifications_user_id_fkey') THEN
+          ALTER TABLE notifications ADD CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
+        END IF;
+        CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+        CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
       END $$;`
    ];
    const errors: Array<{ sql: string; error: string }> = [];

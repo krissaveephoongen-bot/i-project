@@ -4,13 +4,13 @@ import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const projectId = searchParams.get('projectId');
+    const user_id = searchParams.get('user_id');
+    const project_id = searchParams.get('project_id');
     const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    if (!userId) {
+    if (!user_id) {
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
@@ -20,14 +20,14 @@ export async function GET(request: NextRequest) {
     let query = supabaseAdmin
       .from('tasks')
       .select('*', { count: 'exact' })
-      .order('createdAt', { ascending: false });
+      .order('created_at', { ascending: false });
 
     // Filter by assigned user or created by user
-    query = query.or(`assignedTo.eq.${userId},createdBy.eq.${userId}`);
+    query = query.or(`assignedTo.eq.${user_id},createdBy.eq.${user_id}`);
 
     // Apply project filter if provided
-    if (projectId) {
-      query = query.eq('projectId', projectId);
+    if (project_id) {
+      query = query.eq('project_id', project_id);
     }
 
     // Apply status filter if provided
@@ -71,9 +71,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { taskData, userId } = body;
+    const { taskData, user_id } = body;
 
-    if (!taskData || !userId) {
+    if (!taskData || !user_id) {
       return NextResponse.json(
         { error: 'Task data and user ID are required' },
         { status: 400 }
@@ -85,10 +85,10 @@ export async function POST(request: NextRequest) {
       .from('tasks')
       .insert({
         ...taskData,
-        createdBy: userId,
-        isDeleted: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdBy: user_id,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .select(`
         *,

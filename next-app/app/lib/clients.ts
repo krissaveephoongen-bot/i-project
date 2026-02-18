@@ -36,7 +36,10 @@ export async function getClients(params?: { q?: string }): Promise<Client[]> {
 export async function getClient(id: string): Promise<Client> {
     try {
         const res = await fetch(`/api/clients/${id}`);
-        if (res.ok) return res.json();
+        if (res.ok) {
+            const json = await res.json();
+            return json;
+        }
     } catch (e) {
         console.error('API fetch failed, falling back to Supabase:', e);
     }
@@ -56,8 +59,9 @@ export async function createClient(data: Partial<Client>): Promise<Client> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Failed to create client');
-  return res.json();
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Failed to create client');
+  return json;
 }
 
 export async function updateClient(id: string, data: Partial<Client>): Promise<Client> {
@@ -66,15 +70,19 @@ export async function updateClient(id: string, data: Partial<Client>): Promise<C
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Failed to update client');
-  return res.json();
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Failed to update client');
+  return json;
 }
 
 export async function deleteClient(id: string): Promise<void> {
   const res = await fetch(`/api/clients/${id}`, {
     method: 'DELETE',
   });
-  if (!res.ok) throw new Error('Failed to delete client');
+  if (!res.ok) {
+    const json = await res.json();
+    throw new Error(json.error || 'Failed to delete client');
+  }
 }
 
 function mapDbClientToClient(c: any): Client {

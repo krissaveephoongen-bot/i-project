@@ -4,8 +4,15 @@ import { supabaseAdmin } from '@/app/lib/supabaseAdmin'
 export const revalidate = 0
 
 export async function GET(req: NextRequest) {
+  // Add cache-busting headers
+  const headers = new Headers({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  
   try {
-    if (!supabaseAdmin) return NextResponse.json({ rows: [], cashflow: [], spiTrend: [], spiSnaps: [], error: 'admin client missing' }, { status: 200 })
+    if (!supabaseAdmin) return NextResponse.json({ rows: [], cashflow: [], spiTrend: [], spiSnaps: [], error: 'admin client missing' }, { status: 200, headers })
 
     const { data: projects, error } = await supabaseAdmin
       .from('projects')
@@ -138,9 +145,9 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    return NextResponse.json({ rows, cashflow, spiTrend, spiSnaps: snaps || [] }, { status: 200 })
+    return NextResponse.json({ rows, cashflow, spiTrend, spiSnaps: snaps || [] }, { status: 200, headers })
   } catch (e: any) {
-    return NextResponse.json({ rows: [], cashflow: [], spiTrend: [], spiSnaps: [], error: e?.message || 'error' }, { status: 200 })
+    return NextResponse.json({ rows: [], cashflow: [], spiTrend: [], spiSnaps: [], error: e?.message || 'error' }, { status: 200, headers })
   }
 }
 

@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
+import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
 import crypto from 'node:crypto';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const user_id = searchParams.get('user_id');
 
-    if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    if (!user_id) {
+      return NextResponse.json({ error: 'user_id required' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const client = supabaseAdmin || supabase;
+    const { data, error } = await client
       .from('expenses')
-      .select('id, user_id, userId, project_id, projectId, task_id, taskId, date, amount, category, description, status, rejected_reason, rejectedReason, approved_by, approvedBy, approved_at, approvedAt, approver_id, receiptUrl, details, project:projects(id, name), task:tasks(id, title), approver:users!approver_id(id, name)')
-      .eq('user_id', userId) // or 'userId' depending on what supabase sees
+      .select('id, user_id, user_id, project_id, project_id, task_id, task_id, date, amount, category, description, status, rejected_reason, rejectedReason, approved_by, approvedBy, approved_at, approvedAt, approver_id, receiptUrl, details, project:projects(id, name), task:tasks(id, title), approver:users!approver_id(id, name)')
+      .eq('user_id', user_id) // or 'user_id' depending on what supabase sees
       .order('date', { ascending: false });
 
     if (error) {
@@ -25,9 +27,9 @@ export async function GET(request: NextRequest) {
     // Map to camelCase
     const mapped = (data || []).map((d: any) => ({
       id: d.id,
-      userId: d.userId || d.user_id,
-      projectId: d.projectId || d.project_id,
-      taskId: d.taskId || d.task_id,
+      user_id: d.user_id || d.user_id,
+      project_id: d.project_id || d.project_id,
+      task_id: d.task_id || d.task_id,
       date: d.date,
       amount: d.amount,
       category: d.category,
@@ -55,28 +57,34 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { user_id, project_id, task_id, date, amount, category, description, receiptUrl, details, approverId } = body;
 
-    if (!user_id || !project_id || !date || !amount || !category) {
+    const uid = user_id || user_id;
+    const pid = project_id || project_id;
+
+    if (!uid || !pid || !date || !amount || !category) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const payload = {
       id: crypto.randomUUID(),
-      user_id, // or userId
-      project_id, // or projectId
-      task_id: task_id || null, // or taskId
+      user_id: uid,
+      project_id: pid,
+      task_id: task_id || task_id || null,
       date,
       amount: Number(amount),
       category,
       description: description || null,
       receiptUrl: receiptUrl || null,
       details: details || null,
+      approvedBy: null,
+      approvedAt: null,
       approver_id: approverId || null,
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 
-    const { data, error } = await supabase.from('expenses').insert(payload).select().single();
+    const client = supabaseAdmin || supabase;
+    const { data, error } = await client.from('expenses').insert(payload).select().single();
 
     if (error) {
       console.error('Error creating expense:', error);
@@ -99,7 +107,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if expense is editable (pending)
-    const { data: existing } = await supabase.from('expenses').select('status').eq('id', id).single();
+    const client = supabaseAdmin || supabase;
+    const { data: existing } = await client.from('expenses').select('status').eq('id', id).single();
     if (existing && existing.status !== 'pending' && existing.status !== 'rejected') {
        return NextResponse.json({ error: 'Cannot edit processed expense' }, { status: 403 });
     }
@@ -107,8 +116,10 @@ export async function PUT(request: NextRequest) {
     const payload: any = {
       updated_at: new Date().toISOString()
     };
-    if (project_id) payload.project_id = project_id;
-    if (task_id !== undefined) payload.task_id = task_id || null;
+    const pid = project_id || project_id;
+    const tsk = task_id ?? task_id;
+    if (pid) payload.project_id = pid;
+    if (tsk !== undefined) payload.task_id = tsk || null;
     if (date) payload.date = date;
     if (amount) payload.amount = Number(amount);
     if (category) payload.category = category;
@@ -119,10 +130,10 @@ export async function PUT(request: NextRequest) {
     // Reset status to pending on edit if it was rejected
     if (existing && existing.status === 'rejected') {
         payload.status = 'pending';
-        payload.rejected_reason = null;
+        payload.rejectedReason = null;
     }
 
-    const { data, error } = await supabase.from('expenses').update(payload).eq('id', id).select().single();
+    const { data, error } = await client.from('expenses').update(payload).eq('id', id).select().single();
 
     if (error) {
       console.error('Error updating expense:', error);
@@ -145,12 +156,13 @@ export async function DELETE(request: NextRequest) {
     }
     
     // Check if expense is deletable (pending)
-    const { data: existing } = await supabase.from('expenses').select('status').eq('id', id).single();
+    const client = supabaseAdmin || supabase;
+    const { data: existing } = await client.from('expenses').select('status').eq('id', id).single();
     if (existing && existing.status !== 'pending' && existing.status !== 'rejected') {
        return NextResponse.json({ error: 'Cannot delete processed expense' }, { status: 403 });
     }
 
-    const { error } = await supabase.from('expenses').delete().eq('id', id);
+    const { error } = await client.from('expenses').delete().eq('id', id);
 
     if (error) {
       console.error('Error deleting expense:', error);

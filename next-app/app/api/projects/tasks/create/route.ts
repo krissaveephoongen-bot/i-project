@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
       endDate: endDate || null,
       status,
       phase: phase || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     const { data, error } = await supabase.from('tasks').insert(payload).select('*').single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

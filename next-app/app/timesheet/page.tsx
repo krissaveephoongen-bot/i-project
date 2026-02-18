@@ -15,6 +15,7 @@ import {
 import Header from '../components/Header';
 import { useAuth } from '../components/AuthProvider';
 import { useThaiLocale } from '@/lib/hooks/useThaiLocale';
+import { UserRole } from '@/lib/auth';
 
 // Shadcn UI Components
 import { Button } from '@/app/components/ui/Button';
@@ -382,8 +383,7 @@ export default function TimesheetPage() {
   return (
     <PageTransition className="min-h-screen bg-slate-50/50">
       <Header title="บันทึกเวลาทำงาน (Timesheet)" breadcrumbs={[{ label: 'แดชบอร์ด', href: '/' }, { label: 'Timesheet' }]} />
-      
-      <div className="container mx-auto px-6 py-8 pt-24 space-y-6 max-w-[1600px]">
+        <div className="container mx-auto px-6 py-8 pt-24 space-y-6 max-w-[1600px]">
         
         {/* Top Controls */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

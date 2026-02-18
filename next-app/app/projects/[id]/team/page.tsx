@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Header from '@/app/components/Header';
 import { Users, UserPlus, Mail, Phone, Calendar, Briefcase, Crown, Shield, User } from 'lucide-react';
 import { clsx } from 'clsx';
+import ProjectTabs from '@/app/components/ProjectTabs';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL as string;
 
 interface Contact {
@@ -121,6 +122,7 @@ export default function ProjectTeamPage() {
       />
 
       <div className="pt-20 px-6 pb-6">
+        <ProjectTabs />
         {/* Team Summary */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">

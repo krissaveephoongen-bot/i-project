@@ -11,14 +11,31 @@ export interface Task {
   estimatedHours?: number;
   actualHours?: number;
   projectId: string;
+  milestoneId?: string;
   assignedTo?: string;
   createdAt?: string;
   updatedAt?: string;
+  // Kanban-specific fields (optional for backward compatibility)
+  name?: string;
+  phase?: string;
+  weight?: number;
+  progress_plan?: number;
+  progress_actual?: number;
+  start_date?: string;
+  end_date?: string;
+  assigned_to?: string;
+  vendor?: string;
+  progressPlan?: number;
+  progressActual?: number;
+  startDate?: string;
+  endDate?: string;
+  // Relations
   projects?: { id: string; name: string };
+  milestones?: { id: string; title: string };
   assigned_user?: { id: string; name: string };
 }
 
-export async function getTasks(params?: { q?: string; status?: string; priority?: string; projectId?: string; assignedTo?: string }): Promise<Task[]> {
+export async function getTasks(params?: { q?: string; status?: string; priority?: string; projectId?: string; assignedTo?: string; milestoneId?: string }): Promise<Task[]> {
   try {
     const u = new URLSearchParams();
     if (params?.q) u.append('q', params.q);
@@ -26,6 +43,7 @@ export async function getTasks(params?: { q?: string; status?: string; priority?
     if (params?.priority) u.append('priority', params.priority);
     if (params?.projectId) u.append('projectId', params.projectId);
     if (params?.assignedTo) u.append('assignedTo', params.assignedTo);
+    if (params?.milestoneId) u.append('milestoneId', params.milestoneId);
     
     const res = await fetch(`/api/tasks?${u.toString()}`, { cache: 'no-store' });
     if (res.ok) {

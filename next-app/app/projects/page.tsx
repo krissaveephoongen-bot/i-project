@@ -12,6 +12,7 @@ import {
   Trash2, 
   Calendar, 
   User, 
+  Users,
   Eye, 
   AlertTriangle,
   Folder,
@@ -453,6 +454,14 @@ export default function ProjectsPageRefactored() {
                 }}
               >
                 Export CSV
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => router.push('/stakeholders')}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Stakeholders
               </Button>
             </div>
           </div>

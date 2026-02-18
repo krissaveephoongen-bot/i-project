@@ -1,231 +1,409 @@
-
 'use client';
 
 import { useState } from 'react';
 import Header from '@/app/components/Header';
-import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog';
-import { CheckCircle, Circle, MoreHorizontal, AlertCircle, ArrowUp, ArrowDown, ArrowRight, X, Plus, Edit, Trash2 } from 'lucide-react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-hot-toast';
-import { ProfessionalTaskFilters } from './components/ProfessionalTaskFilters';
-import { getTasks, deleteTask, Task } from '@/app/lib/tasks';
-import TaskFormModal from './components/TaskFormModal';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/lib/hooks/useLanguage';
-import { getTaskPageLabels, getTaskStatusLabel, getTaskPriorityLabel } from '@/lib/services/tasks.utils';
 import { Button } from '@/app/components/ui/Button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/app/components/ui/dropdown-menu';
+import { Plus, Edit, Trash2, MoreHorizontal, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog';
+import { PermissionGuard } from '@/app/components/PermissionGuard';
+import { UserRole } from '@/lib/auth';
+import PageTransition from '@/app/components/PageTransition';
+import { Skeleton } from '@/app/components/ui/Skeleton';
+import TaskForm from '@/app/components/TaskForm';
+import { getTasks, createTask, updateTask, deleteTask } from '@/lib/tasks';
+import { toast } from 'react-hot-toast';
 
-const getPriorityIcon = (priority: string) => {
-    switch (priority) {
-        case 'urgent': return <ArrowUp className="w-4 h-4 text-red-500" />;
-        case 'high': return <ArrowUp className="w-4 h-4 text-orange-500" />;
-        case 'medium': return <ArrowRight className="w-4 h-4 text-yellow-500" />;
-        case 'low': return <ArrowDown className="w-4 h-4 text-green-500" />;
-        default: return null;
-    }
-};
-
-const getStatusIcon = (status: string) => {
-    switch (status) {
-        case 'done':
-        case 'completed': return <CheckCircle className="w-4 h-4 text-green-500" />;
-        case 'in_progress': return <MoreHorizontal className="w-4 h-4 text-blue-500 animate-pulse" />;
-        case 'cancelled': return <X className="w-4 h-4 text-slate-400" />;
-        default: return <Circle className="w-4 h-4 text-slate-300" />;
-    }
-};
+// Mock task type
+interface Task {
+    id: string;
+    title: string;
+    description?: string;
+    projectId?: string;
+    status: string;
+    priority: string;
+    dueDate?: string;
+    estimatedHours?: number;
+    actualHours?: number;
+    assignedTo?: string;
+    projects?: { id: string; name: string };
+    assigned_user?: { id: string; name: string };
+}
 
 export default function TasksPage() {
     const sp = useSearchParams();
     const query = (sp?.get('q') as string) || '';
-    const status = (sp?.get('status') as string) || '';
-    const priority = (sp?.get('priority') as string) || '';
     const { language } = useLanguage();
-    const labels = getTaskPageLabels(language);
+    const queryClient = useQueryClient();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
 
-    const queryClient = useQueryClient();
+    const labels = {
+        title: language === 'th' ? 'งาน' : 'Tasks',
+        addNew: language === 'th' ? 'เพิ่มงานใหม่' : 'Add New Task',
+        search: language === 'th' ? 'ค้นหางาน...' : 'Search tasks...',
+        noTasks: language === 'th' ? 'ไม่มีงาน' : 'No tasks found',
+        taskName: language === 'th' ? 'ชื่องาน' : 'Task Name',
+        project: language === 'th' ? 'โครงการ' : 'Project',
+        assignee: language === 'th' ? 'ผู้รับผิดชอบ' : 'Assignee',
+        status: language === 'th' ? 'สถานะ' : 'Status',
+        priority: language === 'th' ? 'ลำดับความสำคัญ' : 'Priority',
+        dueDate: language === 'th' ? 'วันครบกำหนด' : 'Due Date',
+        actions: language === 'th' ? 'การกระทำ' : 'Actions',
+        edit: language === 'th' ? 'แก้ไข' : 'Edit',
+        delete: language === 'th' ? 'ลบ' : 'Delete',
+        loading: language === 'th' ? 'กำลังโหลด...' : 'Loading...',
+    };
 
-    // Delete Task Mutation
-    const deleteTaskMutation = useMutation({
-        mutationFn: (taskId: string) => deleteTask(taskId),
+    // Fetch tasks with real API
+    const tasksQuery = useQuery({
+        queryKey: ['tasks', query],
+        queryFn: () => getTasks({ q: query }),
+    });
+
+    // Fetch projects for dropdown
+    const projectsQuery = useQuery({
+        queryKey: ['projects'],
+        queryFn: async () => {
+            const res = await fetch('/api/timesheet/projects');
+            if (res.ok) return res.json();
+            return [];
+        }
+    });
+
+    // Fetch users for assignee dropdown
+    const usersQuery = useQuery({
+        queryKey: ['users'],
+        queryFn: async () => {
+            const res = await fetch('/api/users');
+            if (res.ok) return res.json();
+            return [];
+        }
+    });
+
+    // Fetch milestones for dropdown
+    const milestonesQuery = useQuery({
+        queryKey: ['milestones'],
+        queryFn: async () => {
+            const res = await fetch('/api/milestones');
+            if (res.ok) return res.json();
+            return [];
+        }
+    });
+
+    const tasks = tasksQuery.data || [];
+    const projects = projectsQuery.data || [];
+    const users = usersQuery.data || [];
+    const milestones = milestonesQuery.data || [];
+
+    // Mutations
+    const createTaskMutation = useMutation({
+        mutationFn: createTask,
         onSuccess: () => {
-            toast.success('✅ ลบงานสำเร็จแล้ว');
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
-            setDeleteConfirm(null);
+            toast.success(language === 'th' ? 'สร้างงานสำเร็จ' : 'Task created successfully');
         },
         onError: (error: any) => {
-            toast.error(`❌ ลบไม่สำเร็จ: ${error?.message || 'เกิดข้อผิดพลาด'}`);
-        },
+            toast.error(error.message || (language === 'th' ? 'สร้างงานไม่สำเร็จ' : 'Failed to create task'));
+        }
     });
 
-    const tasksQuery = useQuery({
-        queryKey: ['tasks', query, status, priority],
-        queryFn: () => getTasks({ q: query, status, priority })
+    const updateTaskMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<Task> }) => updateTask(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            toast.success(language === 'th' ? 'อัปเดตงานสำเร็จ' : 'Task updated successfully');
+        },
+        onError: (error: any) => {
+            toast.error(error.message || (language === 'th' ? 'อัปเดตงานไม่สำเร็จ' : 'Failed to update task'));
+        }
     });
-    
-    const tasks = tasksQuery.data || [];
+
+    const deleteTaskMutation = useMutation({
+        mutationFn: deleteTask,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            toast.success(language === 'th' ? 'ลบงานสำเร็จ' : 'Task deleted successfully');
+        },
+        onError: (error: any) => {
+            toast.error(error.message || (language === 'th' ? 'ลบงานไม่สำเร็จ' : 'Failed to delete task'));
+        }
+    });
 
     const handleOpenModal = (task?: Task) => {
         setEditingTask(task || null);
         setIsModalOpen(true);
     };
 
+    const handleSaveTask = (task: Task) => {
+        if (editingTask) {
+            updateTaskMutation.mutate({ id: editingTask.id, data: task });
+        } else {
+            createTaskMutation.mutate(task);
+        }
+        setIsModalOpen(false);
+        setEditingTask(null);
+    };
+
     const handleDeleteClick = (task: Task) => {
         setDeleteConfirm({ id: task.id, title: task.title });
     };
 
-    const handleConfirmDelete = async () => {
-        if (!deleteConfirm) return;
-        deleteTaskMutation.mutate(deleteConfirm.id);
+    const handleConfirmDelete = () => {
+        if (deleteConfirm) {
+            deleteTaskMutation.mutate(deleteConfirm.id);
+            setDeleteConfirm(null);
+        }
     };
 
-    return (
-        <div className="min-h-screen bg-slate-50/50">
-            <Header
-                title="Task Management"
-                breadcrumbs={[{ label: 'Workspace', href: '/' }, { label: labels.title }]}
-            />
-            <div className="pt-24 px-6 pb-6 container mx-auto">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">{labels.title}</h1>
-                        <p className="text-slate-500 mt-1">{language === 'th' ? 'จัดการงานและการมอบหมายของโครงการ' : 'Manage project tasks and assignments.'}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <LanguageSwitcher />
-                        <Button onClick={() => handleOpenModal()} className="gap-2 bg-blue-600 hover:bg-blue-700">
-                            <Plus className="h-4 w-4" /> {labels.addNew}
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-                    <div className="px-6 py-4 border-b border-slate-200">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h2 className="text-lg font-semibold text-slate-900">{language === 'th' ? 'งานทั้งหมด' : 'All Tasks'}</h2>
-                                <p className="text-sm text-slate-500">{tasks.length} {language === 'th' ? 'งานที่พบ' : 'tasks found'}</p>
-                            </div>
-                            <ProfessionalTaskFilters />
-                        </div>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-slate-50">
-                                <tr>
-                                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600 w-1/3">{labels.taskName}</th>
-                                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">{labels.project}</th>
-                                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">{labels.assignee}</th>
-                                    <th className="text-center py-3 px-6 text-sm font-medium text-slate-600">{labels.status}</th>
-                                    <th className="text-center py-3 px-6 text-sm font-medium text-slate-600">{labels.priority}</th>
-                                    <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">{labels.dueDate}</th>
-                                    <th className="text-right py-3 px-6 text-sm font-medium text-slate-600">{language === 'th' ? 'การกระทำ' : 'Actions'}</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {tasks.map((task: any) => (
-                                    <tr key={task.id} className="hover:bg-slate-50">
-                                        <td className="py-3 px-6">
-                                            <div className="font-medium text-slate-900">{task.title}</div>
-                                            {task.description && <div className="text-xs text-slate-500 truncate max-w-[200px]">{task.description}</div>}
-                                        </td>
-                                        <td className="py-3 px-6 text-sm">
-                                            {task.projects ? (
-                                                <Link href={`/projects/${task.projects.id}`} className="text-blue-600 hover:underline">
-                                                    {task.projects.name}
-                                                </Link>
-                                            ) : '-'}
-                                        </td>
-                                        <td className="py-3 px-6 text-sm text-slate-600">
-                                            {task.assigned_user?.name || 'Unassigned'}
-                                        </td>
-                                        <td className="py-3 px-6 text-sm text-center">
-                                             <span className="flex items-center justify-center gap-2 capitalize">
-                                                 {getStatusIcon(task.status)}
-                                                 {getTaskStatusLabel(task.status, language)}
-                                             </span>
-                                         </td>
-                                         <td className="py-3 px-6 text-sm text-center">
-                                             <span className="flex items-center justify-center gap-2 capitalize">
-                                                 {getPriorityIcon(task.priority)}
-                                                 {getTaskPriorityLabel(task.priority, language)}
-                                             </span>
-                                         </td>
-                                        <td className="py-3 px-6 text-sm text-slate-600">
-                                            {task.due_date ? new Date(task.due_date).toLocaleDateString('th-TH', { month: 'short', day: 'numeric' }) : '-'}
-                                        </td>
-                                        <td className="py-3 px-6 text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuLabel>{language === 'th' ? 'การกระทำ' : 'Actions'}</DropdownMenuLabel>
-                                                    <DropdownMenuItem onClick={() => handleOpenModal(task)}>
-                                                        <Edit className="h-4 w-4 mr-2" /> {labels.edit}
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem 
-                                                        className="text-red-600 cursor-pointer"
-                                                        onClick={() => handleDeleteClick(task)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4 mr-2" /> {labels.delete}
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {tasks.length === 0 && !tasksQuery.isLoading && (
-                                    <tr>
-                                        <td colSpan={7} className="py-8 px-6 text-center text-slate-500">{labels.noTasks}</td>
-                                    </tr>
-                                )}
-                                {tasksQuery.isLoading && (
-                                    <tr>
-                                        <td colSpan={7} className="py-8 px-6 text-center text-slate-500">{labels.loading}</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+    if (tasksQuery.isLoading || projectsQuery.isLoading || usersQuery.isLoading || milestonesQuery.isLoading) {
+        return (
+            <div className="min-h-screen bg-slate-50/50">
+                <Header
+                    title={labels.loading}
+                    breadcrumbs={[
+                        { label: language === 'th' ? 'แดชบอร์ด' : 'Dashboard', href: '/' },
+                        { label: labels.title },
+                    ]}
+                />
+                <div className="pt-24 px-6 pb-6 container mx-auto space-y-6 w-full max-w-full">
+                    <Skeleton className="h-12 w-32 rounded-lg" />
+                    <Skeleton className="h-[400px] w-full rounded-xl" />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {[1, 2, 3, 4].map((i) => (
+                            <Skeleton key={i} className="h-24 w-full rounded-xl" />
+                        ))}
                     </div>
                 </div>
             </div>
+        );
+    }
 
-            <TaskFormModal 
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)} 
-                task={editingTask}
-                onSuccess={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}
-            />
+    return (
+        <PageTransition>
+            <div className="min-h-screen bg-slate-50/50">
+                <Header
+                    title={labels.title}
+                    breadcrumbs={[
+                        { label: language === 'th' ? 'แดชบอร์ด' : 'Dashboard', href: '/' },
+                        { label: labels.title },
+                    ]}
+                />
 
-            {/* Delete Confirmation Modal */}
-            <DeleteConfirmationDialog
-                open={!!deleteConfirm}
-                title={language === 'th' ? 'ยืนยันการลบงาน' : 'Confirm Delete Task'}
-                description={language === 'th' ? 'เมื่อลบงานนี้ จะไม่สามารถกู้คืนข้อมูลได้' : 'This action cannot be undone.'}
-                entityName={deleteConfirm?.title}
-                isLoading={deleteTaskMutation.isPending}
-                onConfirm={handleConfirmDelete}
-                onCancel={() => setDeleteConfirm(null)}
-                isDangerous={true}
-            />
-        </div>
+                <div className="pt-24 px-6 pb-6 container mx-auto space-y-6 w-full max-w-full">
+                    {/* Header Section */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="w-full">
+                            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                                {labels.title}
+                            </h1>
+                            <p className="text-slate-500 mt-1">
+                                {language === 'th'
+                                    ? 'จัดการงานและการมอบหมายของโครงการ'
+                                    : 'Manage project tasks and assignments.'}
+                            </p>
+                        </div>
+
+                        <PermissionGuard
+                            roles={[UserRole.ADMIN, UserRole.MANAGER]}
+                            fallback={
+                                <div className="text-center py-8 w-full">
+                                    <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold">
+                                        {language === 'th' ? 'ต้องการสิทธิ์ Admin/Manager' : 'Admin/Manager access required'}
+                                    </h3>
+                                    <p className="text-slate-600">
+                                        {language === 'th'
+                                            ? 'หน้านี้สำหรับเฉพาะผู้ดูแลและจัดการงานเท่านั้น'
+                                            : 'This page is for admins and managers only.'}
+                                    </p>
+                                </div>
+                            }
+                        >
+                            <Button
+                                onClick={() => handleOpenModal()}
+                                className="gap-2 bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+                            >
+                                <Plus className="h-4 w-4" /> {labels.addNew}
+                            </Button>
+                        </PermissionGuard>
+                    </div>
+
+                    {/* Task List Card */}
+                    <Card className="shadow-sm border-slate-200 w-full">
+                        <CardHeader className="pb-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle>
+                                        {language === 'th' ? 'งานทั้งหมด' : 'All Tasks'}
+                                    </CardTitle>
+                                    <p className="text-sm text-slate-500 mt-1">
+                                        {tasks.length}{' '}
+                                        {language === 'th' ? 'งานที่พบ' : 'tasks found'}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardHeader>
+
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-slate-50 border-t border-slate-200">
+                                        <tr>
+                                            <th className="text-left py-3 px-6 text-sm font-medium text-slate-600 w-1/3">
+                                                {labels.taskName}
+                                            </th>
+                                            <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">
+                                                {labels.project}
+                                            </th>
+                                            <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">
+                                                {labels.assignee}
+                                            </th>
+                                            <th className="text-center py-3 px-6 text-sm font-medium text-slate-600">
+                                                {labels.status}
+                                            </th>
+                                            <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">
+                                                {labels.dueDate}
+                                            </th>
+                                            <th className="text-right py-3 px-6 text-sm font-medium text-slate-600">
+                                                {labels.actions}
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {tasks.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={6} className="py-12 px-6 text-center text-slate-500">
+                                                    {labels.noTasks}
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            tasks.map((task) => (
+                                                <tr key={task.id} className="hover:bg-slate-50 transition-colors">
+                                                    <td className="py-3 px-6">
+                                                        <div className="font-medium text-slate-900">
+                                                            {task.title}
+                                                        </div>
+                                                        {task.description && (
+                                                            <div className="text-xs text-slate-500 truncate max-w-[200px]">
+                                                                {task.description}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 px-6 text-sm">
+                                                        {task.projects ? (
+                                                            <a
+                                                                href={`/projects/${task.projects.id}`}
+                                                                className="text-blue-600 hover:underline"
+                                                            >
+                                                                {task.projects.name}
+                                                            </a>
+                                                        ) : (
+                                                            '-'
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 px-6 text-sm text-slate-600">
+                                                        {task.assigned_user?.name ||
+                                                            (language === 'th' ? 'ไม่ได้มอบหมาย' : 'Unassigned')}
+                                                    </td>
+                                                    <td className="py-3 px-6 text-sm text-center">
+                                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 capitalize">
+                                                            {task.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-6 text-sm text-slate-600">
+                                                        {task.dueDate
+                                                            ? new Date(task.dueDate).toLocaleDateString('th-TH', {
+                                                                month: 'short',
+                                                                day: 'numeric',
+                                                            })
+                                                            : '-'}
+                                                    </td>
+                                                    <td className="py-3 px-6 text-right">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" size="icon">
+                                                                    <MoreHorizontal className="h-4 w-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="w-48">
+                                                                <DropdownMenuLabel>
+                                                                    {labels.actions}
+                                                                </DropdownMenuLabel>
+                                                                <DropdownMenuItem
+                                                                    onClick={() => handleOpenModal(task)}
+                                                                >
+                                                                    <Edit className="h-4 w-4 mr-2" />
+                                                                    {labels.edit}
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem
+                                                                    className="text-red-600 cursor-pointer"
+                                                                    onClick={() => handleDeleteClick(task)}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                                    {labels.delete}
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Task Form Modal */}
+                    <TaskForm
+                        task={editingTask}
+                        isOpen={isModalOpen}
+                        onClose={() => {
+                            setIsModalOpen(false);
+                            setEditingTask(null);
+                        }}
+                        onSave={handleSaveTask}
+                        projects={projects}
+                        users={users}
+                        milestones={milestones}
+                    />
+
+                    {/* Delete Confirmation Modal */}
+                    {deleteConfirm && (
+                        <DeleteConfirmationDialog
+                            open={true}
+                            title={
+                                language === 'th' ? 'ยืนยันการลบงาน' : 'Confirm Delete Task'
+                            }
+                            description={
+                                language === 'th'
+                                    ? 'เมื่อลบงานนี้ จะไม่สามารถกู้คืนข้อมูลได้'
+                                    : 'This action cannot be undone.'
+                            }
+                            entityName={deleteConfirm?.title}
+                            isLoading={deleteTaskMutation.isPending}
+                            onConfirm={handleConfirmDelete}
+                            onCancel={() => setDeleteConfirm(null)}
+                            isDangerous={true}
+                        />
+                    )}
+                </div>
+            </div>
+        </PageTransition>
     );
 }

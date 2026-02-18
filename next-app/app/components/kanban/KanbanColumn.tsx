@@ -4,24 +4,7 @@ import { KanbanCard } from './KanbanCard';
 import { clsx } from 'clsx';
 import { MoreHorizontal, Plus } from 'lucide-react';
 import { Button } from '@/app/components/ui/Button';
-
-interface Task {
-  id: string;
-  name: string;
-  phase: string;
-  weight: number;
-  progress_plan: number;
-  progress_actual: number;
-  start_date: string;
-  end_date: string;
-  assignee: string;
-  vendor: string;
-  status: string;
-  progressPlan?: number;
-  progressActual?: number;
-  startDate?: string;
-  endDate?: string;
-}
+import { Task } from '@/lib/tasks';
 
 interface KanbanColumnProps {
   id: string;
