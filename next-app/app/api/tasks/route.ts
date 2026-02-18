@@ -2,6 +2,7 @@
 import { ok, err } from '../_lib/db';
 import { NextRequest } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
+import redis from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,19 @@ export async function GET(req: NextRequest) {
     const projectId = u.searchParams.get('projectId');
     const assignedTo = u.searchParams.get('assignedTo');
     const milestoneId = u.searchParams.get('milestoneId');
+
+    // Create cache key based on filters
+    const cacheKey = `tasks:${JSON.stringify({ q, status, priority, projectId, assignedTo, milestoneId })}`;
+    
+    // Try to get from Redis cache first
+    const cachedTasks = await redis.get(cacheKey);
+    
+    if (cachedTasks) {
+      console.log('Cache hit for tasks:', cacheKey);
+      return ok(JSON.parse(cachedTasks), 200);
+    }
+
+    console.log('Cache miss for tasks, fetching from database');
 
     let query = supabase
       .from('tasks')
@@ -29,6 +43,10 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await query;
     if (error) throw error;
+    
+    // Cache the tasks for 2 minutes (shorter cache for frequently changing data)
+    await redis.set(cacheKey, JSON.stringify(data || []), { EX: 120 });
+    console.log('Cached tasks for 2 minutes:', cacheKey);
     
     return ok(data || [], 200);
   } catch (e: any) {
@@ -68,6 +86,11 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) throw error;
+    
+    // Invalidate all tasks cache after creating a new task
+    await redis.del('tasks:*');
+    console.log('Invalidated all tasks cache after POST');
+    
     return ok(data, 201);
   } catch (e: any) {
     return err(e?.message || 'error', 500);

@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { USER_ROLES } from '@/lib/enums';
 
 export const loginSchema = Joi.object({
   email: Joi.string().email().required().messages({
@@ -25,7 +26,7 @@ export const registerSchema = Joi.object({
     'string.min': 'Password must be at least 6 characters long',
     'any.required': 'Password is required',
   }),
-  role: Joi.string().valid('admin', 'manager', 'employee').optional(),
+  role: Joi.string().valid(...USER_ROLES).optional(),
 });
 
 export const forgotPasswordSchema = Joi.object({

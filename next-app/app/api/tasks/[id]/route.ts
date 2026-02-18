@@ -2,6 +2,7 @@
 import { ok, err } from '../../_lib/db';
 import { NextRequest } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
+import redis from '@/lib/redis';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -40,6 +41,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       .single();
 
     if (error) throw error;
+    
+    // Invalidate all tasks cache after updating a task
+    await redis.del('tasks:*');
+    console.log('Invalidated all tasks cache after PUT');
+    
     return ok(data, 200);
   } catch (e: any) {
     return err(e?.message || 'error', 500);
@@ -71,6 +77,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         .delete()
         .eq('id', id);
       if (error) throw error;
+      
+      // Invalidate all tasks cache after deleting a task
+      await redis.del('tasks:*');
+      console.log('Invalidated all tasks cache after DELETE');
+      
       return ok({ success: true, mode: 'deleted' }, 200);
     }
   } catch (e: any) {

@@ -26,6 +26,8 @@ import { PermissionGuard, CanCreateProjects, CanEditProjects } from '../componen
 import { Permission } from '../lib/auth';
 import { usePermissions } from '../hooks/usePermissions';
 import { logProjectAction } from '../lib/audit';
+import { createLazyComponent } from '@/lib/lazy-load';
+import { LoadingFallback } from '@/lib/lazy-load';
 
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/badge';

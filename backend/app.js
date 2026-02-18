@@ -2,9 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { checkDatabaseConnection } from './lib/db.js';
+import { initRedis } from './lib/redis.js';
 
 // Load environment variables
 dotenv.config();
+
+// Initialize Redis
+initRedis();
 
 const app = express();
 
@@ -55,6 +59,7 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       health: '/api/health',
+      cache: '/api/cache',
       auth: '/api/auth',
       users: '/api/users',
       projects: '/api/projects',
@@ -198,6 +203,7 @@ import vendorRoutes from './routes/vendor-routes.js';
 import stakeholderRoutes from './routes/stakeholder-routes.js';
 import staffRoutes from './routes/staff-routes.js';
 import approvalRoutes from './routes/approval-routes.js';
+import redisRoutes from './routes/redis-routes.js';
 // import projectInsightsRoutes from './routes/project-insights-routes.js';
 // import executiveReportRoutes from './routes/executive-report-routes.js';
 // import weeklySummaryRoutes from './routes/weekly-summary-routes.js';
@@ -225,6 +231,7 @@ app.use('/api/vendor', vendorRoutes);
 app.use('/api/stakeholder', stakeholderRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/approval', approvalRoutes);
+app.use('/api/cache', redisRoutes);
 // app.use('/api/projects/insights', projectInsightsRoutes);
 // app.use('/api/projects/executive-report', executiveReportRoutes);
 // app.use('/api/projects/weekly-summary', weeklySummaryRoutes);

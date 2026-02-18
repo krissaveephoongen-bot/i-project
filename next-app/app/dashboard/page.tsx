@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { AlertTriangle, Folder } from 'lucide-react';
 import PageTransition from '@/app/components/PageTransition';
 import { Skeleton } from '@/app/components/ui/Skeleton';
+import { createLazyComponent } from '@/lib/lazy-load';
+import { LoadingFallback } from '@/lib/lazy-load';
 
 import DashboardFilters from './components/DashboardFilters';
 import DashboardKPIs from './components/DashboardKPIs';
@@ -25,15 +27,38 @@ import type {
     DashboardSummary,
 } from './types';
 
-// Lazy load heavy chart components
-const FinancialChartCard = lazy(() => import('./components/FinancialChartCard'));
-const TrendChartCard = lazy(() => import('./components/TrendChartCard'));
-const PortfolioHealthCard = lazy(() => import('./components/PortfolioHealthCard'));
-const WeeklyPerformanceCard = lazy(() => import('./components/WeeklyPerformanceCard'));
+// Lazy load heavy chart components with optimized loading
+const FinancialChartCard = createLazyComponent(() => import('./components/FinancialChartCard'), {
+  loadingVariant: 'chart',
+  loadingClassName: 'h-80'
+});
 
-function ChartFallback() {
-    return <Skeleton className="h-80 w-full rounded-2xl" />;
-}
+const TrendChartCard = createLazyComponent(() => import('./components/TrendChartCard'), {
+  loadingVariant: 'chart',
+  loadingClassName: 'h-80'
+});
+
+const PortfolioHealthCard = createLazyComponent(() => import('./components/PortfolioHealthCard'), {
+  loadingVariant: 'card'
+});
+
+const WeeklyPerformanceCard = createLazyComponent(() => import('./components/WeeklyPerformanceCard'), {
+  loadingVariant: 'card'
+});
+
+const ExecutiveSummaryCard = createLazyComponent(() => import('./components/ExecutiveSummaryCard'), {
+  loadingVariant: 'card'
+});
+
+const RecentActivitiesCard = createLazyComponent(() => import('./components/RecentActivitiesCard'), {
+  loadingVariant: 'list',
+  loadingCount: 5
+});
+
+const ActiveProjectsTable = createLazyComponent(() => import('./components/ActiveProjectsTable'), {
+  loadingVariant: 'table',
+  loadingClassName: 'min-h-[400px]'
+});
 
 export default function UnifiedDashboard() {
     const [loading, setLoading] = useState(true);

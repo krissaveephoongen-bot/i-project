@@ -4,6 +4,7 @@ import { supabase } from '@/app/lib/supabaseClient';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import redis from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,20 @@ export async function GET(req: NextRequest) {
     const status = u.searchParams.get('status') || '';
     const page = Number(u.searchParams.get('page') || 1);
     const pageSize = Number(u.searchParams.get('pageSize') || 50);
+
+    // Create cache key based on filters
+    const cacheKey = `users:${JSON.stringify({ q, role, status, page, pageSize })}`;
+    
+    // Try to get from Redis cache first
+    const cached = await redis.get(cacheKey);
+    
+    if (cached) {
+      console.log('Cache hit for users:', cacheKey);
+      return ok(JSON.parse(cached), 200);
+    }
+
+    console.log('Cache miss for users, fetching from database');
+
     try {
       let query = supabase
         .from('users')
@@ -33,6 +48,11 @@ export async function GET(req: NextRequest) {
       const to = from + pageSize - 1;
       const { data: rows, count, error } = await query.range(from, to);
       if (error) throw error;
+      
+      // Cache the result for 3 minutes
+      await redis.set(cacheKey, JSON.stringify({ total: count || 0, rows: rows || [] }), { EX: 180 });
+      console.log('Cached users for 3 minutes:', cacheKey);
+      
       return ok({ total: count || 0, rows: rows || [] }, 200);
     } catch {
       const conds: string[] = [];

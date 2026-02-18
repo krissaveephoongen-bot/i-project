@@ -13,13 +13,34 @@ import {
 } from 'lucide-react';
 import { Button } from '@/app/components/ui/Button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
+import { createLazyComponent } from '@/lib/lazy-load';
+import { LoadingFallback } from '@/lib/lazy-load';
 
-// Tab Components
-import ExecutiveTab from './components/ExecutiveTab';
-import ProjectsTab from './components/ProjectsTab';
-import FinancialTab from './components/FinancialTab';
-import ResourcesTab from './components/ResourcesTab';
-import InsightsTab from './components/InsightsTab';
+// Lazy load tab components for better performance
+const LazyExecutiveTab = createLazyComponent(() => import('./components/ExecutiveTab'), {
+  loadingVariant: 'card',
+  loadingClassName: 'min-h-[400px]'
+});
+
+const LazyProjectsTab = createLazyComponent(() => import('./components/ProjectsTab'), {
+  loadingVariant: 'table',
+  loadingClassName: 'min-h-[400px]'
+});
+
+const LazyFinancialTab = createLazyComponent(() => import('./components/FinancialTab'), {
+  loadingVariant: 'card',
+  loadingClassName: 'min-h-[400px]'
+});
+
+const LazyResourcesTab = createLazyComponent(() => import('./components/ResourcesTab'), {
+  loadingVariant: 'card',
+  loadingClassName: 'min-h-[400px]'
+});
+
+const LazyInsightsTab = createLazyComponent(() => import('./components/InsightsTab'), {
+  loadingVariant: 'chart',
+  loadingClassName: 'min-h-[400px]'
+});
 
 export default function ReportsPage() {
   const printPdf = () => {
@@ -72,23 +93,23 @@ export default function ReportsPage() {
             </TabsList>
 
             <TabsContent value="executive">
-                <ExecutiveTab />
+                <LazyExecutiveTab />
             </TabsContent>
             
             <TabsContent value="projects">
-                <ProjectsTab />
+                <LazyProjectsTab />
             </TabsContent>
 
             <TabsContent value="financial">
-                <FinancialTab />
+                <LazyFinancialTab />
             </TabsContent>
 
             <TabsContent value="resources">
-                <ResourcesTab />
+                <LazyResourcesTab />
             </TabsContent>
 
             <TabsContent value="insights">
-                <InsightsTab />
+                <LazyInsightsTab />
             </TabsContent>
           </Tabs>
 

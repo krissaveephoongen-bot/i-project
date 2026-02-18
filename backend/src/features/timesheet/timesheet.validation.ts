@@ -11,6 +11,7 @@ import {
   calculateHours,
   parseDate,
 } from './timesheet.utils';
+import { WORK_TYPES, LEAVE_TYPES } from '@/lib/enums';
 
 export interface ValidationError {
   field: string;
@@ -121,13 +122,12 @@ export function validateTimeEntry(data: {
   }
 
   // Validate workType
-  const validWorkTypes = ['project', 'office', 'training', 'leave', 'overtime', 'other'];
   if (!data.workType) {
     errors.push({ field: 'workType', message: 'Work type is required' });
-  } else if (!validWorkTypes.includes(data.workType)) {
+  } else if (!WORK_TYPES.includes(data.workType as any)) {
     errors.push({
       field: 'workType',
-      message: `Work type must be one of: ${validWorkTypes.join(', ')}`,
+      message: `Work type must be one of: ${WORK_TYPES.join(', ')}`,
     });
   }
 
@@ -200,13 +200,12 @@ export function validateLeaveRequest(data: {
   }
 
   // Validate leaveType
-  const validLeaveTypes = ['annual', 'sick', 'personal', 'maternity', 'unpaid'];
   if (!data.leaveType) {
     errors.push({ field: 'leaveType', message: 'Leave type is required' });
-  } else if (!validLeaveTypes.includes(data.leaveType)) {
+  } else if (!LEAVE_TYPES.includes(data.leaveType as any)) {
     errors.push({
       field: 'leaveType',
-      message: `Leave type must be one of: ${validLeaveTypes.join(', ')}`,
+      message: `Leave type must be one of: ${LEAVE_TYPES.join(', ')}`,
     });
   }
 

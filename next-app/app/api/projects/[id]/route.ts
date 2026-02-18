@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/app/lib/supabaseClient'
+import redis from '@/lib/redis';
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -25,10 +26,20 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
         .update({ isArchived: true, updatedAt: new Date().toISOString() })
         .eq('id', id)
       if (updErr) throw updErr
+      
+      // Invalidate projects cache after archiving
+      await redis.del('projects:*');
+      console.log('Invalidated projects cache after archiving project:', id);
+      
       return NextResponse.json({ success: true, mode: 'archived' }, { status: 200 })
     } else {
       const { error: delErr } = await supabase.from('projects').delete().eq('id', id)
       if (delErr) throw delErr
+      
+      // Invalidate projects cache after deletion
+      await redis.del('projects:*');
+      console.log('Invalidated projects cache after deleting project:', id);
+      
       return NextResponse.json({ success: true, mode: 'deleted' }, { status: 200 })
     }
   } catch (e: any) {

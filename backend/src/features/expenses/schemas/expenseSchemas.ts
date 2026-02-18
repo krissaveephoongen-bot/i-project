@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { EXPENSE_CATEGORIES, EXPENSE_STATUSES } from '@/lib/enums';
 
 export const createExpenseSchema = Joi.object({
   date: Joi.date().required().messages({
@@ -19,11 +20,11 @@ export const createExpenseSchema = Joi.object({
     'number.positive': 'Amount must be greater than 0',
   }),
   category: Joi.string()
-    .valid('travel', 'supplies', 'equipment', 'training', 'other')
+    .valid(...EXPENSE_CATEGORIES)
     .required()
     .messages({
       'any.required': 'Category is required',
-      'any.only': 'Category must be one of: travel, supplies, equipment, training, other',
+      'any.only': `Category must be one of: ${EXPENSE_CATEGORIES.join(', ')}`,
     }),
   description: Joi.string().max(500).required().messages({
     'any.required': 'Description is required',
@@ -39,13 +40,13 @@ export const updateExpenseSchema = Joi.object({
   taskId: Joi.string().uuid().optional().allow(null),
   amount: Joi.number().positive().optional(),
   category: Joi.string()
-    .valid('travel', 'supplies', 'equipment', 'training', 'other')
+    .valid(...EXPENSE_CATEGORIES)
     .optional(),
   description: Joi.string().max(500).optional(),
   receiptUrl: Joi.string().uri().optional().allow(null),
   notes: Joi.string().max(1000).optional(),
   status: Joi.string()
-    .valid('pending', 'approved', 'rejected')
+    .valid(...EXPENSE_STATUSES)
     .optional(),
 });
 

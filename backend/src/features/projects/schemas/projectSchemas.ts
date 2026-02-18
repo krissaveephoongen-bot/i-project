@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { PROJECT_PRIORITIES, PROJECT_STATUSES } from '@/lib/enums';
 
 export const createProjectSchema = Joi.object({
   name: Joi.string().min(2).max(100).required().messages({
@@ -24,10 +25,10 @@ export const updateProjectSchema = Joi.object({
     'date.min': 'End date must be after start date',
   }),
   budget: Joi.number().min(0).optional(),
-  status: Joi.string().valid('todo', 'in_progress', 'in_review', 'done', 'active', 'inactive').optional(),
+  status: Joi.string().valid(...PROJECT_STATUSES).optional(),
   progress: Joi.number().min(0).max(100).optional(),
   actualCost: Joi.number().min(0).optional(),
-  priority: Joi.string().valid('low', 'medium', 'high').optional(),
+  priority: Joi.string().valid(...PROJECT_PRIORITIES).optional(),
   category: Joi.string().max(50).optional(),
   clientId: Joi.string().uuid().optional(),
 });

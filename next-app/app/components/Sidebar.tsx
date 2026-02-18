@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -306,10 +307,13 @@ export default function Sidebar({ isMobile = false, onNavigate }: SidebarProps) 
                 <div className="p-3 bg-muted/50 rounded-lg border border-border">
                     <div className="flex items-center gap-3">
                         <div className="relative">
-                            <img
-                                src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=0284c7&color=fff`}
+                            <Image
+                                src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=0284c7&color=fff`}
                                 alt={`รูปโปรไฟล์ของ ${user?.name || 'ผู้ใช้'}`}
-                                className="w-10 h-10 rounded-full ring-2 ring-background"
+                                width={40}
+                                height={40}
+                                className="rounded-full ring-2 ring-background object-cover"
+                                unoptimized={user?.avatar?.startsWith('https://ui-avatars.com') || !user?.avatar}
                             />
                             <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" aria-label="ออนไลน์" />
                         </div>

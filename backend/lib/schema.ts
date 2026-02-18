@@ -1,22 +1,115 @@
-import { pgTable, text, timestamp, integer, pgEnum, jsonb, numeric, time, uuid, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, pgEnum, jsonb, numeric, time, uuid, boolean, date, real } from 'drizzle-orm/pg-core';
 
-// Enums
-export const statusEnum = pgEnum('status', ['todo', 'in_progress', 'in_review', 'done', 'pending', 'approved', 'rejected', 'active', 'inactive']);
-export const priorityEnum = pgEnum('priority', ['low', 'medium', 'high']);
-export const activityTypeEnum = pgEnum('activity_type', [
-  'create',
-  'update',
-  'delete',
-  'comment',
-  'assign',
-  'status_change',
-]);
-
-export const workTypeEnum = pgEnum('work_type', ['project', 'office', 'other']);
-export const expenseCategoryEnum = pgEnum('expense_category', ['travel', 'supplies', 'equipment', 'training', 'other']);
-export const expenseStatusEnum = pgEnum('expense_status', ['pending', 'approved', 'rejected', 'reimbursed']);
+// ============================================================
+// USER RELATED ENUMS
+// ============================================================
 
 export const userRoleEnum = pgEnum('user_role', ['admin', 'manager', 'employee']);
+export const userStatusEnum = pgEnum('user_status', ['active', 'inactive']);
+
+// ============================================================
+// PROJECT RELATED ENUMS
+// ============================================================
+
+export const projectStatusEnum = pgEnum('project_status', ['planning', 'active', 'on_hold', 'completed', 'cancelled']);
+export const projectPriorityEnum = pgEnum('project_priority', ['low', 'medium', 'high', 'urgent']);
+export const riskLevelEnum = pgEnum('risk_level', ['low', 'medium', 'high', 'critical']);
+
+// ============================================================
+// TASK RELATED ENUMS
+// ============================================================
+
+export const taskStatusEnum = pgEnum('task_status', ['todo', 'in_progress', 'in_review', 'done', 'cancelled']);
+export const taskPriorityEnum = pgEnum('task_priority', ['low', 'medium', 'high', 'urgent']);
+export const taskCategoryEnum = pgEnum('task_category', ['development', 'design', 'testing', 'documentation', 'maintenance', 'other']);
+
+// ============================================================
+// TIMESHEET & TIME ENTRY ENUMS
+// ============================================================
+
+export const workTypeEnum = pgEnum('work_type', ['project', 'office', 'training', 'leave', 'overtime', 'other']);
+export const timeEntryStatusEnum = pgEnum('time_entry_status', ['pending', 'approved', 'rejected']);
+
+// ============================================================
+// LEAVE MANAGEMENT ENUMS
+// ============================================================
+
+export const leaveTypeEnum = pgEnum('leave_type', ['annual', 'sick', 'personal', 'maternity', 'unpaid']);
+export const leaveStatusEnum = pgEnum('leave_status', ['pending', 'approved', 'rejected', 'cancelled']);
+
+// ============================================================
+// EXPENSE ENUMS
+// ============================================================
+
+export const expenseCategoryEnum = pgEnum('expense_category', ['travel', 'supplies', 'equipment', 'training', 'other']);
+export const expenseStatusEnum = pgEnum('expense_status', ['pending', 'approved', 'rejected', 'reimbursed']);
+export const paymentMethodEnum = pgEnum('payment_method', ['cash', 'credit_card', 'bank_transfer', 'check', 'other']);
+
+// ============================================================
+// CLIENT ENUMS
+// ============================================================
+
+export const clientStatusEnum = pgEnum('client_status', ['active', 'inactive', 'archived']);
+export const clientTypeEnum = pgEnum('client_type', ['individual', 'company', 'government']);
+
+// ============================================================
+// SALES ENUMS
+// ============================================================
+
+export const salesStatusEnum = pgEnum('sales_status', ['prospect', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost']);
+export const salesStageEnum = pgEnum('sales_stage', ['lead', 'contact', 'meeting', 'demo', 'proposal', 'contract', 'won', 'lost']);
+
+// ============================================================
+// STAKEHOLDER ENUMS
+// ============================================================
+
+export const stakeholderRoleEnum = pgEnum('stakeholder_role', ['executive', 'manager', 'team_member', 'client', 'vendor', 'consultant', 'other']);
+export const stakeholderTypeEnum = pgEnum('stakeholder_type', ['internal', 'external', 'partner']);
+export const involvementLevelEnum = pgEnum('involvement_level', ['high', 'medium', 'low', 'minimal']);
+
+// ============================================================
+// RESOURCE ENUMS
+// ============================================================
+
+export const resourceTypeEnum = pgEnum('resource_type', ['human', 'equipment', 'material', 'software', 'facility', 'other']);
+export const resourceStatusEnum = pgEnum('resource_status', ['available', 'in_use', 'maintenance', 'retired', 'archived']);
+export const allocationStatusEnum = pgEnum('allocation_status', ['requested', 'approved', 'allocated', 'deallocated', 'rejected']);
+
+// ============================================================
+// AUDIT & ACTIVITY ENUMS
+// ============================================================
+
+export const activityTypeEnum = pgEnum('activity_type', ['create', 'update', 'delete', 'comment', 'assign', 'status_change']);
+export const auditEventTypeEnum = pgEnum('audit_event_type', [
+  'login', 'logout', 'login_failed', 'password_reset', 'password_change',
+  'user_create', 'user_update', 'user_delete', 'user_role_change',
+  'project_create', 'project_update', 'project_delete', 'project_status_change',
+  'task_create', 'task_update', 'task_delete', 'task_assign',
+  'data_export', 'data_import', 'data_bulk_delete',
+  'system_config_change', 'system_backup', 'system_restore'
+]);
+export const auditSeverityEnum = pgEnum('audit_severity', ['low', 'medium', 'high', 'critical']);
+
+// ============================================================
+// MILESTONE ENUMS
+// ============================================================
+
+export const milestoneStatusEnum = pgEnum('milestone_status', ['pending', 'in_progress', 'completed', 'cancelled']);
+
+// ============================================================
+// RISK ENUMS
+// ============================================================
+
+export const riskImpactEnum = pgEnum('risk_impact', ['low', 'medium', 'high', 'critical']);
+export const riskProbabilityEnum = pgEnum('risk_probability', ['low', 'medium', 'high', 'very_high']);
+export const riskStatusEnum = pgEnum('risk_status', ['open', 'mitigated', 'closed', 'accepted']);
+
+// ============================================================
+// GENERIC STATUS ENUM (for backward compatibility)
+// ============================================================
+
+export const statusEnum = pgEnum('status', ['todo', 'in_progress', 'in_review', 'done', 'pending', 'approved', 'rejected', 'active', 'inactive']);
+export const priorityEnum = pgEnum('priority', ['low', 'medium', 'high', 'urgent']);
 
 // Tables
 export const users = pgTable('users', {

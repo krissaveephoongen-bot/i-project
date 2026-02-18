@@ -178,6 +178,7 @@ model milestones {
   name        String?
   percentage  Decimal?  @default(0.00) @db.Decimal
   projects    projects? @relation(fields: [projectId], references: [id])
+  tasks       tasks[]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -272,6 +273,7 @@ model projects {
   tasks                      tasks[]
   time_entries               time_entries[]
   timesheets                 timesheets[]
+  resource_allocations       resource_allocations[]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -407,6 +409,24 @@ model system_settings {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model resource_allocations {
+  id            String   @id @default(cuid())
+  userId        String
+  projectId     String
+  hoursPerWeek  Decimal  @db.Decimal(5, 2)
+  startDate     DateTime @db.Date
+  endDate       DateTime @db.Date
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId, startDate])
+  @@map("resource_allocations")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model task_actual_logs {
   id               String   @id
   task_id          String
@@ -441,6 +461,7 @@ model tasks {
   weight                        Decimal            @default(1.00) @db.Decimal(10, 2)
   completedAt                   DateTime?
   projectId                     String
+  milestoneId                    String?
   assignedTo                    String?
   createdBy                     String
   parentTaskId                  String?
@@ -461,6 +482,7 @@ model tasks {
   tasks                         tasks?             @relation("tasksTotasks", fields: [parentTaskId], references: [id])
   other_tasks                   tasks[]            @relation("tasksTotasks")
   projects                      projects           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestones                    milestones?         @relation(fields: [milestoneId], references: [id])
   time_entries                  time_entries[]
   timesheets                    timesheets[]
 }
@@ -569,6 +591,8 @@ model users {
   createdAt                                   DateTime           @default(now())
   updatedAt                                   DateTime
   name_th                                     String?
+  weeklyCapacity                              Decimal?           @default(40.00) @db.Decimal(5, 2)
+  allocations                                 resource_allocations[]
   activity_log                                activity_log[]
   audit_logs                                  audit_logs[]
   budget_revisions                            budget_revisions[]
@@ -595,6 +619,267 @@ model users {
   time_entry_comments                         time_entry_comments[]
   }
 
+// ============================================================
+// USER RELATED ENUMS
+// ============================================================
+
+/// User roles for access control
+enum user_role {
+  admin
+  manager
+  employee
+}
+
+/// User account status
+enum user_status {
+  active
+  inactive
+}
+
+// ============================================================
+// PROJECT RELATED ENUMS
+// ============================================================
+
+/// Project status lifecycle
+enum ProjectStatus {
+  planning
+  active
+  onHold      // kept for backward compatibility with existing database
+  completed
+  cancelled
+}
+
+/// Project priority levels
+enum ProjectPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+/// Project risk levels
+enum RiskLevel {
+  low
+  medium
+  high
+  critical
+}
+
+// ============================================================
+// TASK RELATED ENUMS
+// ============================================================
+
+/// Task status workflow
+enum TaskStatus {
+  todo
+  in_progress
+  in_review
+  done
+  cancelled
+  inactive     // kept for backward compatibility with existing database
+}
+
+/// Task priority levels
+enum TaskPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+/// Task categories for classification
+enum TaskCategory {
+  development
+  design
+  testing
+  documentation
+  maintenance
+  other
+}
+
+// ============================================================
+// TIMESHEET & TIME ENTRY ENUMS
+// ============================================================
+
+/// Work type for time entries
+enum WorkType {
+  project      // billable project work
+  office       // office/admin work
+  training     // professional development
+  leave        // approved leave
+  overtime     // overtime work
+  other        // other work
+}
+
+/// Time entry approval status
+enum TimeEntryStatus {
+  pending
+  approved
+  rejected
+}
+
+// ============================================================
+// LEAVE MANAGEMENT ENUMS
+// ============================================================
+
+/// Leave types available for employees
+enum LeaveType {
+  annual       // annual vacation leave
+  sick         // sick leave
+  personal     // personal leave
+  maternity    // maternity leave
+  unpaid       // unpaid leave
+}
+
+/// Leave request status
+enum LeaveStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+// ============================================================
+// EXPENSE ENUMS
+// ============================================================
+
+/// Expense categories
+enum ExpenseCategory {
+  travel
+  supplies
+  equipment
+  training
+  other
+}
+
+/// Expense approval status
+enum ExpenseStatus {
+  pending
+  approved
+  rejected
+  reimbursed
+}
+
+/// Payment methods for expenses
+enum PaymentMethod {
+  cash
+  credit_card
+  bank_transfer
+  check
+  other
+}
+
+// ============================================================
+// CLIENT ENUMS
+// ============================================================
+
+/// Client status
+enum ClientStatus {
+  active
+  inactive
+  archived
+}
+
+/// Client types
+enum ClientType {
+  individual
+  company
+  government
+}
+
+// ============================================================
+// SALES ENUMS
+// ============================================================
+
+/// Sales deal status
+enum SalesStatus {
+  prospect
+  qualified
+  proposal
+  negotiation
+  closed_won
+  closed_lost
+}
+
+/// Sales pipeline stages
+enum SalesStage {
+  lead
+  contact
+  meeting
+  demo
+  proposal
+  contract
+  won
+  lost
+}
+
+// ============================================================
+// STAKEHOLDER ENUMS
+// ============================================================
+
+/// Stakeholder roles
+enum StakeholderRole {
+  executive
+  manager
+  team_member
+  client
+  vendor
+  consultant
+  other
+}
+
+/// Stakeholder types
+enum StakeholderType {
+  internal
+  external
+  partner
+}
+
+/// Stakeholder involvement levels
+enum InvolvementLevel {
+  high
+  medium
+  low
+  minimal
+}
+
+// ============================================================
+// RESOURCE ENUMS
+// ============================================================
+
+/// Resource types
+enum ResourceType {
+  human
+  equipment
+  material
+  software
+  facility
+  other
+}
+
+/// Resource status
+enum ResourceStatus {
+  available
+  in_use
+  maintenance
+  retired
+  archived
+}
+
+/// Resource allocation status
+enum AllocationStatus {
+  requested
+  approved
+  allocated
+  deallocated
+  rejected
+}
+
+// ============================================================
+// AUDIT & ACTIVITY ENUMS
+// ============================================================
+
+/// Activity log types
 enum ActivityType {
   create
   update
@@ -604,36 +889,60 @@ enum ActivityType {
   status_change
 }
 
-enum ExpenseCategory {
-  travel
-  supplies
-  equipment
-  training
-  other
-}
-
-enum ExpenseStatus {
-  pending
-  approved
-  rejected
-  reimbursed
-}
-
-enum Priority {
+/// Audit severity levels
+enum AuditSeverity {
   low
   medium
   high
-  urgent
+  critical
 }
 
-enum ProjectStatus {
-  planning
-  active
-  onHold
+// ============================================================
+// MILESTONE ENUMS
+// ============================================================
+
+/// Milestone status
+enum MilestoneStatus {
+  pending
+  in_progress
   completed
   cancelled
 }
 
+// ============================================================
+// RISK ENUMS
+// ============================================================
+
+/// Risk impact levels
+enum RiskImpact {
+  low
+  medium
+  high
+  critical
+}
+
+/// Risk probability levels
+enum RiskProbability {
+  low
+  medium
+  high
+  very_high
+}
+
+/// Risk status
+enum RiskStatus {
+  open
+  mitigated
+  closed
+  accepted
+}
+
+// ============================================================
+// GENERIC STATUS ENUM (for backward compatibility)
+// ============================================================
+
+/// Generic status enum used across multiple entities
+/// This is a superset of statuses for backward compatibility
 enum Status {
   todo
   in_progress
@@ -646,53 +955,12 @@ enum Status {
   inactive
 }
 
-enum TaskStatus {
-  todo
-  in_progress
-  in_review
-  done
-  cancelled
-  inactive
-}
-
-enum TimeEntryStatus {
-  pending
-  approved
-  rejected
-}
-
-enum UserRole {
-  admin
-  manager
-  employee
-}
-
-enum WorkType {
-  project      // billable project work
-  office       // office/admin work
-  training     // professional development
-  leave        // approved leave
-  overtime     // overtime work
-  other        // other work
-}
-
-enum LeaveType {
-  annual
-  sick
-  personal
-  maternity
-  unpaid
-}
-
-enum user_role {
-  admin
-  manager
-  employee
-}
-
-enum user_status {
-  active
-  inactive
+/// Priority levels (for backward compatibility)
+enum Priority {
+  low
+  medium
+  high
+  urgent
 }
 
 /// Leave allocation model for tracking annual leave hours
