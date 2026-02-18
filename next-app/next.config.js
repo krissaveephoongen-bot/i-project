@@ -50,10 +50,6 @@ const nextConfig = {
     }
     return config;
   },
-  // Enable static generation for pages that don't need dynamic data
-  generateStaticParams: async () => {
-    return [];
-  },
   // Optimize fonts
   optimizeFonts: true,
 }
