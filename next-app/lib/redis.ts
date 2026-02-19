@@ -76,6 +76,13 @@ export default {
     const redis = await ensureConnected();
     return redis.del(key);
   },
+
+  async delPattern(pattern: string) {
+    const redis = await ensureConnected();
+    const keys = await redis.keys(pattern);
+    if (!keys.length) return 0;
+    return redis.del(keys);
+  },
   
   async exists(key: string) {
     const redis = await ensureConnected();

@@ -17,24 +17,39 @@ export async function GET(req: NextRequest) {
     const ids = (projects || []).map((p: any) => p.id);
 
     // 2. Fetch High Risks
-    const { data: risks, error: riskError } = ids.length ? await supabaseAdmin
-        .from('risks')
-        .select('project_id, severity, status')
-        .in('project_id', ids) 
-        : { data: [], error: null };
+    let risks: any[] = [];
+    if (ids.length) {
+      const r1 = await supabaseAdmin.from('risks').select('*').in('project_id', ids as any);
+      if (!r1.error) {
+        risks = r1.data || [];
+      } else {
+        const msg = `${r1.error.message || ''}`;
+        if (msg.includes('Could not find the') || msg.includes('schema cache')) {
+          const r2 = await supabaseAdmin.from('risks').select('*').in('projectId', ids as any);
+          risks = r2.data || [];
+        } else {
+          throw r1.error;
+        }
+      }
+    }
     
-    if (riskError) throw riskError;
-
     // 3. Fetch Overdue Milestones
     const today = new Date().toISOString().slice(0, 10);
-    const { data: milestones, error: mileError } = ids.length ? await supabaseAdmin
-        .from('milestones')
-        .select('id, project_id, due_date, status')
-        .in('project_id', ids)
-        .lt('due_date', today) // Overdue
-        : { data: [], error: null };
-
-    if (mileError) throw mileError;
+    let milestones: any[] = [];
+    if (ids.length) {
+      const m1 = await supabaseAdmin.from('milestones').select('*').in('project_id', ids as any).lt('due_date', today);
+      if (!m1.error) {
+        milestones = m1.data || [];
+      } else {
+        const msg = `${m1.error.message || ''}`;
+        if (msg.includes('Could not find the') || msg.includes('schema cache')) {
+          const m2 = await supabaseAdmin.from('milestones').select('*').in('projectId', ids as any).lt('dueDate', today);
+          milestones = m2.data || [];
+        } else {
+          throw m1.error;
+        }
+      }
+    }
 
     // --- Calculations ---
 
@@ -42,7 +57,8 @@ export async function GET(req: NextRequest) {
     const riskCounts: Record<string, number> = {};
     (risks || []).forEach((r: any) => {
         if ((r.severity || '').toLowerCase() === 'high' && (r.status || '').toLowerCase() !== 'closed') {
-            riskCounts[r.project_id] = (riskCounts[r.project_id] || 0) + 1;
+            const pid = r.project_id ?? r.projectId;
+            if (pid) riskCounts[pid] = (riskCounts[pid] || 0) + 1;
         }
     });
 

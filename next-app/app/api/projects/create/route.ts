@@ -71,22 +71,36 @@ export async function POST(request: NextRequest) {
 
     // Handle milestones if any
     if (Array.isArray(milestones) && milestones.length > 0) {
-      const msPayloads = milestones.map((m: any) => ({
-        project_id,
-        name: m.name || '',
-        percentage: Number(m.percentage || 0),
-        amount: Number(m.amount || 0),
-        dueDate: m.dueDate || null,
-        status: m.status || 'Pending',
-        created_at: nowIso,
-        updated_at: nowIso
-      }));
+      for (const m of milestones) {
+        const id = m?.id ?? crypto.randomUUID();
+        const title = m?.title ?? m?.name ?? '';
+        const description = m?.description ?? null;
+        const due = m?.due_date ?? m?.dueDate ?? null;
+        const status = m?.status ?? 'pending';
+        const amount = Number(m?.amount ?? 0);
+        const progress = Number(m?.percentage ?? m?.progress ?? 0);
 
-      const { error: msError } = await supabaseAdmin
-        .from('milestones')
-        .insert(msPayloads);
-        
-      if (msError) console.error('Error creating milestones:', msError);
+        const candidates = [
+          { id, project_id, title, description, status, due_date: due, amount, progress, created_at: nowIso, updated_at: nowIso },
+          { id, projectId: project_id, title, description, status, dueDate: due, amount, progress, created_at: nowIso, updated_at: nowIso },
+          { id, project_id, title, description, status, due_date: due, created_at: nowIso, updated_at: nowIso },
+          { id, projectId: project_id, title, description, status, dueDate: due, created_at: nowIso, updated_at: nowIso },
+        ];
+
+        let lastErr: any = null;
+        for (const p of candidates) {
+          const { error } = await supabaseAdmin.from('milestones').insert(p as any);
+          if (!error) {
+            lastErr = null;
+            break;
+          }
+          lastErr = error;
+          const msg = `${error.message || ''}`;
+          if (msg.includes('Could not find the') || msg.includes('schema cache')) continue;
+          break;
+        }
+        if (lastErr) console.error('Error creating milestones:', lastErr);
+      }
     }
 
     // Handle team members (roles) if provided
@@ -111,69 +125,92 @@ export async function POST(request: NextRequest) {
 
     // Handle Tasks (with Weights) and Generate Plan Points
     if (Array.isArray(tasks) && tasks.length > 0) {
-        const taskPayloads = tasks.map((t: any) => ({
-            project_id,
-            title: t.title,
-            description: t.description || null,
-            status: 'todo',
-            priority: t.priority || 'medium',
-            weight: Number(t.weight || 0),
-            startDate: t.startDate || null,
-            dueDate: t.dueDate || null,
-            createdBy: 'system', // or current user if available
-            created_at: nowIso,
-            updated_at: nowIso
+        const normalized = tasks.map((t: any) => ({
+          id: t?.id ?? crypto.randomUUID(),
+          title: t?.title ?? t?.name ?? '',
+          description: t?.description ?? null,
+          status: t?.status ?? 'todo',
+          priority: t?.priority ?? 'medium',
+          weight: Number(t?.weight ?? 0),
+          start: t?.start_date ?? t?.startDate ?? null,
+          due: t?.due_date ?? t?.dueDate ?? t?.end_date ?? t?.endDate ?? null,
         }));
-        
-        const { data: createdTasks, error: taskErr } = await supabaseAdmin
-            .from('tasks')
-            .insert(taskPayloads)
-            .select();
-            
-        if (taskErr) {
-             console.error('Error creating tasks:', taskErr);
-        } else if (createdTasks && createdTasks.length > 0) {
-            // Generate Task Plan Points for S-Curve
-            const planPoints: any[] = [];
-            
-            createdTasks.forEach((task: any) => {
-                const weight = Number(task.weight || 0);
-                if (weight > 0 && task.startDate && task.dueDate) {
-                    const start = new Date(task.startDate);
-                    const end = new Date(task.dueDate);
-                    const durationMs = end.getTime() - start.getTime();
-                    const days = Math.ceil(durationMs / (1000 * 60 * 60 * 24)) + 1;
-                    
-                    if (days > 0) {
-                        const dailyWeight = weight / days;
-                        for (let i = 0; i < days; i++) {
-                            const d = new Date(start);
-                            d.setDate(d.getDate() + i);
-                            const dateStr = d.toISOString().slice(0, 10);
-                            
-                            // Check if point already exists (unlikely in new project, but good practice)
-                            planPoints.push({
-                                id: crypto.randomUUID(),
-                                task_id: task.id,
-                                date: dateStr,
-                                plan_percent: Number(dailyWeight.toFixed(4)) // Incremental daily weight
-                            });
-                        }
-                    }
-                }
-            });
 
-            if (planPoints.length > 0) {
-                // Insert in batches to avoid payload limits if large
-                const batchSize = 1000;
-                for (let i = 0; i < planPoints.length; i += batchSize) {
-                    const batch = planPoints.slice(i, i + batchSize);
-                    const { error: ppError } = await supabaseAdmin
-                        .from('task_plan_points')
-                        .insert(batch);
-                    if (ppError) console.error('Error creating plan points:', ppError);
-                }
+        const snakePayloads = normalized.map((t: any) => ({
+          id: t.id,
+          project_id,
+          title: t.title,
+          description: t.description,
+          status: t.status,
+          priority: t.priority,
+          weight: t.weight,
+          start_date: t.start,
+          due_date: t.due,
+          created_at: nowIso,
+          updated_at: nowIso,
+        }));
+        const camelPayloads = normalized.map((t: any) => ({
+          id: t.id,
+          projectId: project_id,
+          title: t.title,
+          description: t.description,
+          status: t.status,
+          priority: t.priority,
+          weight: t.weight,
+          startDate: t.start,
+          dueDate: t.due,
+          created_at: nowIso,
+          updated_at: nowIso,
+        }));
+
+        let taskErr: any = null;
+        for (const payloads of [snakePayloads, camelPayloads]) {
+          const { error } = await supabaseAdmin.from('tasks').insert(payloads as any);
+          if (!error) {
+            taskErr = null;
+            break;
+          }
+          taskErr = error;
+          const msg = `${error.message || ''}`;
+          if (msg.includes('Could not find the') || msg.includes('schema cache')) continue;
+          break;
+        }
+        if (taskErr) {
+          console.error('Error creating tasks:', taskErr);
+        }
+
+        const planPoints: any[] = [];
+        for (const t of normalized) {
+          const weight = Number(t.weight || 0);
+          if (weight > 0 && t.start && t.due) {
+            const start = new Date(t.start);
+            const end = new Date(t.due);
+            const durationMs = end.getTime() - start.getTime();
+            const days = Math.ceil(durationMs / (1000 * 60 * 60 * 24)) + 1;
+            if (days > 0) {
+              const dailyWeight = weight / days;
+              for (let i = 0; i < days; i++) {
+                const d = new Date(start);
+                d.setDate(d.getDate() + i);
+                const dateStr = d.toISOString().slice(0, 10);
+                planPoints.push({
+                  id: crypto.randomUUID(),
+                  task_id: t.id,
+                  date: dateStr,
+                  plan_percent: Number(dailyWeight.toFixed(4))
+                });
+              }
             }
+          }
+        }
+
+        if (planPoints.length > 0) {
+          const batchSize = 1000;
+          for (let i = 0; i < planPoints.length; i += batchSize) {
+            const batch = planPoints.slice(i, i + batchSize);
+            const { error: ppError } = await supabaseAdmin.from('task_plan_points').insert(batch);
+            if (ppError) console.error('Error creating plan points:', ppError);
+          }
         }
     }
 

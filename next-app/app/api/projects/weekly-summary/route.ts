@@ -19,20 +19,37 @@ export async function GET(req: NextRequest) {
     const lastWeekStr = lastWeek.toISOString().slice(0, 10);
 
     // Fetch snapshot from ~7 days ago for all projects
-    const { data: snaps, error: snapError } = ids.length ? await supabaseAdmin
+    let snaps: any[] = [];
+    if (ids.length) {
+      const s1 = await supabaseAdmin
         .from('spi_cpi_daily_snapshot')
-        .select('projectid, date, progress')
-        .in('projectid', ids)
+        .select('*')
+        .in('projectId', ids as any)
         .gte('date', lastWeekStr)
-        .order('date', { ascending: true }) // Oldest first (closest to 7 days ago)
-        : { data: [], error: null };
-
-    if (snapError) throw snapError;
+        .order('date', { ascending: true });
+      if (!s1.error) {
+        snaps = s1.data || [];
+      } else {
+        const msg = `${s1.error.message || ''}`;
+        if (msg.includes('Could not find the') || msg.includes('schema cache')) {
+          const s2 = await supabaseAdmin
+            .from('spi_cpi_daily_snapshot')
+            .select('*')
+            .in('projectid', ids as any)
+            .gte('date', lastWeekStr)
+            .order('date', { ascending: true });
+          snaps = s2.data || [];
+        } else {
+          throw s1.error;
+        }
+      }
+    }
 
     const snapMap: Record<string, number> = {};
     (snaps || []).forEach((s: any) => {
         // Since sorted asc, first one encountered for a project is the oldest in range
-        if (!snapMap[s.projectid]) snapMap[s.projectid] = Number(s.progress || 0);
+        const pid = s.projectId ?? s.projectid;
+        if (pid && !snapMap[pid]) snapMap[pid] = Number(s.progress || 0);
     });
 
     const summary = (projects || []).map((p: any) => {
@@ -44,7 +61,7 @@ export async function GET(req: NextRequest) {
             id: p.id,
             name: p.name,
             progressActual: currentProgress,
-            progressPlan: Number(p.progressPlan || 0),
+            progressPlan: Number(p.progress_plan ?? p.progressPlan ?? 0),
             spi: Number(p.spi || 1),
             weeklyDelta: Number(delta.toFixed(2))
         };

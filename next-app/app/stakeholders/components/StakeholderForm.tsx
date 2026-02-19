@@ -21,7 +21,7 @@ export default function StakeholderForm({ stakeholder, onSave, onCancel, project
     organization: stakeholder?.organization || '',
     email: stakeholder?.email || '',
     phone: stakeholder?.phone || '',
-    project_id: stakeholder?.project_id || '',
+    project_id: stakeholder?.project_id || stakeholder?.project?.id || '',
     type: stakeholder?.type || 'stakeholder'
   });
 
@@ -133,14 +133,15 @@ export default function StakeholderForm({ stakeholder, onSave, onCancel, project
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Project
+                Project *
               </label>
               <select
                 value={formData.project_id}
                 onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2"
+                required
               >
-                <option value="">Select Project (Optional)</option>
+                <option value="">Select Project</option>
                 {projects?.map((project: any) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
@@ -152,7 +153,7 @@ export default function StakeholderForm({ stakeholder, onSave, onCancel, project
             <div className="flex gap-2 pt-4">
               <Button
                 type="submit"
-                disabled={saving || !formData.name}
+                disabled={saving || !formData.name || !formData.project_id}
                 className="flex-1"
               >
                 <Save className="w-4 h-4 mr-2" />

@@ -21,19 +21,19 @@
  
     const { data: entries, error } = await supabase
       .from('time_entries')
-      .select('id,date,hours,startTime,endTime,projectId,taskId,userId')
+      .select('*')
       .gte('date', start)
       .lte('date', end);
     if (error) {
       return NextResponse.json({ root: { name: 'No Data', value: 0, children: [] } }, { status: 200 });
     }
-    const pids = Array.from(new Set((entries || []).map((e: any) => e.projectId).filter(Boolean)));
-    const tids = Array.from(new Set((entries || []).map((e: any) => e.taskId).filter(Boolean)));
-    const uids = Array.from(new Set((entries || []).map((e: any) => e.userId).filter(Boolean)));
+    const pids = Array.from(new Set((entries || []).map((e: any) => e.projectId ?? e.project_id).filter(Boolean)));
+    const tids = Array.from(new Set((entries || []).map((e: any) => e.taskId ?? e.task_id).filter(Boolean)));
+    const uids = Array.from(new Set((entries || []).map((e: any) => e.userId ?? e.user_id).filter(Boolean)));
     const [{ data: projects }, { data: tasks }, { data: users }] = await Promise.all([
-      supabase.from('projects').select('id,name,title').in('id', pids),
-      supabase.from('tasks').select('id,name,title').in('id', tids),
-      supabase.from('users').select('id,name,full_name').in('id', uids),
+      pids.length ? supabase.from('projects').select('id,name').in('id', pids) : Promise.resolve({ data: [] } as any),
+      tids.length ? supabase.from('tasks').select('*').in('id', tids) : Promise.resolve({ data: [] } as any),
+      uids.length ? supabase.from('users').select('id,name').in('id', uids) : Promise.resolve({ data: [] } as any),
     ]);
  
      const safeName = (v: any, fallback: string) => (v && String(v)) || fallback;
@@ -43,17 +43,20 @@
      const level2 = new Map<string, any>();
  
     const pMap: Record<string, string> = {};
-    for (const p of projects || []) pMap[p.id] = p.name || p.title || p.id;
+    for (const p of projects || []) pMap[p.id] = p.name || p.id;
     const tMap: Record<string, string> = {};
     for (const t of tasks || []) tMap[t.id] = t.name || t.title || t.id;
     const uMap: Record<string, string> = {};
-    for (const u of users || []) uMap[u.id] = u.name || u.full_name || u.id;
+    for (const u of users || []) uMap[u.id] = u.name || u.id;
  
     for (const r of entries || []) {
-      const { start: st, end: et } = inferTimes(r.startTime, r.endTime, r.date, r.hours);
-      const proj = safeName(pMap[r.projectId], `Project ${r.projectId || ''}`);
-      const task = safeName(tMap[r.taskId], `Task ${r.taskId || ''}`);
-      const user = safeName(uMap[r.userId], `User ${r.userId || ''}`);
+      const { start: st, end: et } = inferTimes(r.startTime ?? r.start_time, r.endTime ?? r.end_time, r.date, r.hours);
+      const pid = r.projectId ?? r.project_id;
+      const tid = r.taskId ?? r.task_id;
+      const uid = r.userId ?? r.user_id;
+      const proj = safeName(pMap[pid], `Project ${pid || ''}`);
+      const task = safeName(tMap[tid], `Task ${tid || ''}`);
+      const user = safeName(uMap[uid], `User ${uid || ''}`);
  
       const a = focus === 'staff' ? user : proj;
       const b = mode === 'worktype' ? task : (focus === 'staff' ? proj : task);

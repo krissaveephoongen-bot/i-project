@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
     const { data: projects, error } = await supabaseAdmin
       .from('projects')
       .select('*')
+      .order('updated_at', { ascending: false })
       .order('updatedAt', { ascending: false })
 
     if (error) throw error
@@ -32,7 +33,21 @@ export async function GET(req: NextRequest) {
     for (const c of (clients || [])) clientsMap[c.id] = c
 
     const ids = list.map(p => p.id)
-    const { data: milestones } = ids.length ? await supabaseAdmin.from('milestones').select('id,project_id,status,percentage,due_date').in('project_id', ids) : { data: [] }
+    let milestones: any[] = []
+    if (ids.length) {
+      const mRes1 = await supabaseAdmin.from('milestones').select('*').in('project_id', ids as any)
+      if (!mRes1.error) {
+        milestones = mRes1.data || []
+      } else {
+        const msg = `${mRes1.error.message || ''}`
+        if (msg.includes('Could not find the') || msg.includes('schema cache')) {
+          const mRes2 = await supabaseAdmin.from('milestones').select('*').in('projectId', ids as any)
+          milestones = mRes2.data || []
+        } else {
+          throw mRes1.error
+        }
+      }
+    }
     const budgetByProject: Record<string, number> = {}
     for (const p of list) budgetByProject[p.id] = Number(p.budget || 0)
     // Pre-process milestones for all projects
@@ -43,12 +58,12 @@ export async function GET(req: NextRequest) {
     const today = new Date().toISOString().slice(0, 10);
 
     for (const m of (milestones || [])) {
-        const pid = m.project_id
+        const pid = m.project_id ?? m.projectId
         if (!milestonesByProject[pid]) milestonesByProject[pid] = []
         milestonesByProject[pid].push(m)
 
         // Overdue check
-        const d = m.due_date
+        const d = m.due_date ?? m.dueDate
         const st = String(m.status || '').toLowerCase()
         if (d && d < today && st !== 'paid' && st !== 'completed') {
             overdueCounts[pid] = (overdueCounts[pid] || 0) + 1
@@ -57,7 +72,7 @@ export async function GET(req: NextRequest) {
         // Committed check (approved status)
         if (st === 'approved') {
             const budget = budgetByProject[pid] || 0
-            const pct = Number(m.percentage || 0)
+            const pct = Number(m.percentage ?? m.progress ?? 0)
             const amt = (pct / 100) * budget
             committedByProject[pid] = (committedByProject[pid] || 0) + amt
         }
@@ -65,11 +80,11 @@ export async function GET(req: NextRequest) {
 
     const linesByProject: Record<string, any[]> = {}
     for (const m of (milestones || [])) {
-      const pid = m.project_id
+      const pid = m.project_id ?? m.projectId
       const budget = budgetByProject[pid] || 0
-      const pct = Number(m.percentage || 0)
+      const pct = Number(m.percentage ?? m.progress ?? 0)
       const amount = (pct / 100) * budget
-      const date = m.due_date || null
+      const date = m.due_date ?? m.dueDate ?? null
       const status = String(m.status || '').toLowerCase()
       const type = status === 'paid' ? 'paid' : (status === 'approved' ? 'committed' : null)
       if (!type) continue
@@ -106,10 +121,24 @@ export async function GET(req: NextRequest) {
     const spiTrend = Object.keys(spiByDate).sort().map(d => ({ date: d, spi: spiByDate[d].count ? spiByDate[d].sum / spiByDate[d].count : 1 }))
 
     // Risk Aggregation
-    const { data: risks } = ids.length ? await supabaseAdmin.from('risks').select('projectId,severity,status').in('projectId', ids) : { data: [] }
+    let risks: any[] = []
+    if (ids.length) {
+      const rRes1 = await supabaseAdmin.from('risks').select('*').in('projectId', ids as any)
+      if (!rRes1.error) {
+        risks = rRes1.data || []
+      } else {
+        const msg = `${rRes1.error.message || ''}`
+        if (msg.includes('Could not find the') || msg.includes('schema cache')) {
+          const rRes2 = await supabaseAdmin.from('risks').select('*').in('project_id', ids as any)
+          risks = rRes2.data || []
+        } else {
+          throw rRes1.error
+        }
+      }
+    }
     const risksByProject: Record<string, { high: number; medium: number; low: number }> = {}
     for (const r of (risks || [])) {
-        const pid = r.projectId
+        const pid = r.projectId ?? r.project_id
         if (!risksByProject[pid]) risksByProject[pid] = { high: 0, medium: 0, low: 0 }
         const sev = (r.severity || '').toLowerCase()
         if (sev === 'high') risksByProject[pid].high++

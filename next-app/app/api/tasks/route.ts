@@ -3,6 +3,7 @@ import { ok, err } from '../_lib/db';
 import { NextRequest } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
 import redis from '@/lib/redis';
+import { withMilestoneId, withProjectId } from '../_lib/supabaseCompat';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,17 +30,14 @@ export async function GET(req: NextRequest) {
 
     console.log('Cache miss for tasks, fetching from database');
 
-    let query = supabase
-      .from('tasks')
-      .select('*, projects(id, name), milestones(id, title), assigned_user:users!assignedTo(id, name)')
-      .order('dueDate', { ascending: true });
+    let query = supabase.from('tasks').select('*').order('due_date', { ascending: true }).order('dueDate', { ascending: true });
 
     if (q) query = query.ilike('title', `%${q}%`);
     if (status) query = query.eq('status', status);
     if (priority) query = query.eq('priority', priority);
-    if (projectId) query = query.eq('projectId', projectId);
+    if (projectId) query = withProjectId(query, projectId);
     if (assignedTo) query = query.eq('assignedTo', assignedTo);
-    if (milestoneId) query = query.eq('milestoneId', milestoneId);
+    if (milestoneId) query = withMilestoneId(query, milestoneId);
 
     const { data, error } = await query;
     if (error) throw error;
@@ -65,7 +63,21 @@ export async function POST(req: NextRequest) {
     if (!title) return err('Title is required', 400);
     if (!projectId) return err('Project is required', 400);
 
-    const payload = {
+    const nowIso = new Date().toISOString();
+    const snakePayload: any = {
+      title,
+      description,
+      status,
+      priority,
+      due_date: dueDate || null,
+      estimated_hours: estimatedHours ? Number(estimatedHours) : 0,
+      project_id: projectId,
+      milestone_id: milestoneId || null,
+      assigned_to: assignedTo || null,
+      created_at: nowIso,
+      updated_at: nowIso
+    };
+    const camelPayload: any = {
       title,
       description,
       status,
@@ -75,20 +87,25 @@ export async function POST(req: NextRequest) {
       projectId,
       milestoneId: milestoneId || null,
       assignedTo: assignedTo || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      created_at: nowIso,
+      updated_at: nowIso
     };
 
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert([payload])
-      .select()
-      .single();
-
+    let data: any = null;
+    let error: any = null;
+    for (const p of [snakePayload, camelPayload]) {
+      const res = await supabase.from('tasks').insert([p]).select().single();
+      data = res.data;
+      error = res.error;
+      if (!error) break;
+      const msg = `${error.message || ''}`;
+      if (msg.includes('Could not find the') || msg.includes('schema cache')) continue;
+      break;
+    }
     if (error) throw error;
     
     // Invalidate all tasks cache after creating a new task
-    await redis.del('tasks:*');
+    await redis.delPattern('tasks:*');
     console.log('Invalidated all tasks cache after POST');
     
     return ok(data, 201);

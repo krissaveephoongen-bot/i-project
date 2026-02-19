@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
+import { withProjectId } from '../../../_lib/supabaseCompat';
 
 type Point = { date: string; plan: number; actual: number; spi: number; milestone: number };
 
@@ -31,10 +32,8 @@ export async function GET(req: NextRequest) {
     const startDate: string | null = project.start_date ?? project.startDate ?? null;
     const endDate: string | null = project.end_date ?? project.endDate ?? null;
 
-    const { data: milestones } = await supabase
-      .from('milestones')
-      .select('*')
-      .eq('projectId', projectId);
+    const msQuery = withProjectId(supabase.from('milestones').select('*'), projectId);
+    const { data: milestones } = await msQuery;
 
     const ms = (milestones || []).map((m: any) => {
       const pct = m.percentage != null ? Number(m.percentage || 0)
@@ -47,10 +46,8 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    const { data: tasks } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('projectId', projectId);
+    const tasksQuery = withProjectId(supabase.from('tasks').select('*'), projectId);
+    const { data: tasks } = await tasksQuery;
     const tasksByMilestone: Record<string, any[]> = {};
     for (const t of (tasks || [])) {
       const mid = t.milestoneId || t.milestone_id || 'none';

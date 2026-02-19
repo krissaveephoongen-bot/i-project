@@ -1,5 +1,6 @@
  import { NextRequest, NextResponse } from 'next/server';
  import { supabase } from '@/app/lib/supabaseClient';
+ import { orEq } from '../../_lib/supabaseCompat';
  
  export async function GET(request: NextRequest) {
    try {
@@ -8,18 +9,16 @@
      const end = searchParams.get('end') || new Date().toISOString().slice(0, 10);
      const userId = searchParams.get('userId') || '';
  
-     const q = supabase
-       .from('time_entries')
-       .select('projectId,hours,date,userId')
-       .gte('date', start)
-       .lte('date', end);
-     const { data: entries, error } = userId ? await q.eq('userId', userId) : await q;
+    let q = supabase.from('time_entries').select('*').gte('date', start).lte('date', end);
+    const res = userId ? await orEq(q, ['user_id', 'userId', 'userid'], userId) : await q;
+    const entries = res.data as any[] | null;
+    const error = res.error;
      if (error) {
        return NextResponse.json([], { status: 200 });
      }
      const totals: Record<string, number> = {};
      for (const e of entries || []) {
-       const pid = e.projectId || 'unknown';
+      const pid = e.projectId ?? e.project_id ?? 'unknown';
        totals[pid] = (totals[pid] || 0) + Number(e.hours || 0);
      }
      const projectIds = Object.keys(totals).filter(id => id && id !== 'unknown');

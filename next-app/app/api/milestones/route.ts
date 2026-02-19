@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
+import { withProjectId } from '../_lib/supabaseCompat';
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
       .order('due_date', { ascending: true });
     
     if (projectId) {
-      query = query.eq('project_id', projectId);
+      query = withProjectId(query, projectId);
     }
     
     const { data, error } = await query;

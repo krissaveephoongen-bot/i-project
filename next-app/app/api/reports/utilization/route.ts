@@ -1,5 +1,6 @@
  import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
+import { orEq } from '../../_lib/supabaseCompat';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,12 +11,10 @@ export async function GET(request: NextRequest) {
     const end = searchParams.get('end') || new Date().toISOString().slice(0, 10);
     const projectId = searchParams.get('projectId') || '';
 
-    const q = supabase
-      .from('time_entries')
-      .select('userId,hours,date,projectId,billable')
-      .gte('date', start)
-      .lte('date', end);
-    const { data: entries, error } = projectId ? await q.eq('projectId', projectId) : await q;
+    let q = supabase.from('time_entries').select('*').gte('date', start).lte('date', end);
+    const res = projectId ? await orEq(q, ['project_id', 'projectId', 'projectid'], projectId) : await q;
+    const entries = res.data as any[] | null;
+    const error = res.error;
     
     if (error) {
       console.error('Error fetching utilization:', error);
@@ -24,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     const totals: Record<string, { total: number; billable: number }> = {};
     for (const e of entries || []) {
-      const uid = e.userId || 'unknown';
+      const uid = e.userId ?? e.user_id ?? 'unknown';
       if (!totals[uid]) totals[uid] = { total: 0, billable: 0 };
       const h = Number(e.hours || 0);
       totals[uid].total += h;

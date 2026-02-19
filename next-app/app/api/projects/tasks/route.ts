@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
+import { withMilestoneId, withProjectId } from '../../_lib/supabaseCompat';
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,8 +8,8 @@ export async function GET(request: NextRequest) {
     const projectId = searchParams.get('projectId');
     const milestoneId = searchParams.get('milestoneId');
     let query = supabase.from('tasks').select('*');
-    if (projectId) query = query.eq('projectId', projectId);
-    if (milestoneId) query = query.eq('milestoneId', milestoneId);
+    if (projectId) query = withProjectId(query, projectId);
+    if (milestoneId) query = withMilestoneId(query, milestoneId);
     const { data, error } = await query;
     if (error) return NextResponse.json([], { status: 200 });
     const rows = (data || []).map((t: any) => ({
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
       name: t.name,
       phase: t.phase ?? null,
       milestoneId: t.milestoneId ?? null,
-      projectId: t.projectId,
+      projectId: t.projectId ?? t.project_id ?? null,
       weight: Number(t.weight ?? 0),
       progressPlan: Number(t.progressPlan ?? t.progress_plan ?? 0),
       progressActual: Number(t.progressActual ?? t.progress_actual ?? 0),
@@ -29,4 +30,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json([], { status: 200 });
   }
 }
-

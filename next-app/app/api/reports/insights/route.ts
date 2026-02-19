@@ -20,20 +20,20 @@ export async function GET(req: NextRequest) {
 
     const { data: entries, error } = await supabaseAdmin
       .from('time_entries')
-      .select('id,date,hours,startTime,endTime,projectId,taskId,userId')
+      .select('*')
       .gte('date', start)
       .lte('date', end);
       
     if (error) throw error;
     
     // Fetch related data
-    const pids = Array.from(new Set((entries || []).map((e: any) => e.projectId).filter(Boolean)));
-    const tids = Array.from(new Set((entries || []).map((e: any) => e.taskId).filter(Boolean)));
-    const uids = Array.from(new Set((entries || []).map((e: any) => e.userId).filter(Boolean)));
+    const pids = Array.from(new Set((entries || []).map((e: any) => e.projectId ?? e.project_id).filter(Boolean)));
+    const tids = Array.from(new Set((entries || []).map((e: any) => e.taskId ?? e.task_id).filter(Boolean)));
+    const uids = Array.from(new Set((entries || []).map((e: any) => e.userId ?? e.user_id).filter(Boolean)));
     
     const [{ data: projects }, { data: tasks }, { data: users }] = await Promise.all([
       pids.length ? supabaseAdmin.from('projects').select('id,name,code').in('id', pids) : { data: [] },
-      tids.length ? supabaseAdmin.from('tasks').select('id,title').in('id', tids) : { data: [] },
+      tids.length ? supabaseAdmin.from('tasks').select('*').in('id', tids) : { data: [] },
       uids.length ? supabaseAdmin.from('users').select('id,name').in('id', uids) : { data: [] },
     ]);
 
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     const pMap: Record<string, string> = {};
     for (const p of projects || []) pMap[p.id] = p.name || p.code || p.id;
     const tMap: Record<string, string> = {};
-    for (const t of tasks || []) tMap[t.id] = t.title || t.id;
+    for (const t of tasks || []) tMap[t.id] = t.title || t.name || t.id;
     const uMap: Record<string, string> = {};
     for (const u of users || []) uMap[u.id] = u.name || u.id;
 
@@ -60,9 +60,12 @@ export async function GET(req: NextRequest) {
     };
 
     for (const r of (entries || [])) {
-      const proj = safeName(pMap[r.projectId], `Project ${r.projectId || 'Unknown'}`);
-      const task = safeName(tMap[r.taskId], `Task ${r.taskId || 'General'}`);
-      const user = safeName(uMap[r.userId], `User ${r.userId || 'Unknown'}`);
+      const pid = r.projectId ?? r.project_id;
+      const tid = r.taskId ?? r.task_id;
+      const uid = r.userId ?? r.user_id;
+      const proj = safeName(pMap[pid], `Project ${pid || 'Unknown'}`);
+      const task = safeName(tMap[tid], `Task ${tid || 'General'}`);
+      const user = safeName(uMap[uid], `User ${uid || 'Unknown'}`);
       const hours = Number(r.hours || 0);
 
       const a = focus === 'staff' ? user : proj;
