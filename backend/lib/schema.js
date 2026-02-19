@@ -132,10 +132,10 @@ export const clients = pgTable('clients', {
   email: text('email'),
   phone: text('phone'),
   address: text('address'),
-  taxId: text('tax_id'),
+  taxId: text('taxId'),
   notes: text('notes'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
 });
 
 export const projects = pgTable('projects', {
