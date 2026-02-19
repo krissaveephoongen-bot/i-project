@@ -13,7 +13,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { Progress } from '../../components/ui/progress';
 import { getDashboardProjects } from '../../lib/data-service';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function TimesheetRecordPage() {
   const { user } = useAuth();
