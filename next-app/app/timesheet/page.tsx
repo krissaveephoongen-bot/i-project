@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
-import { useFetchWithAbort } from '@/hooks/useFetchWithAbort';
 import { 
   Edit2, 
   X, 
@@ -15,7 +14,6 @@ import {
 import Header from '../components/Header';
 import { useAuth } from '../components/AuthProvider';
 import { useThaiLocale } from '@/lib/hooks/useThaiLocale';
-import { UserRole } from '@/lib/auth';
 
 // Shadcn UI Components
 import { Button } from '@/app/components/ui/Button';
@@ -39,11 +37,14 @@ import ActivityLog from './components/ActivityLog';
 import TimesheetModal from './components/TimesheetModal';
 import { Project, TimesheetEntry, WeeklyData, ActivityData, ModalRow, SubmissionStatus, EntryStatus } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+// Service
+import { timesheetService } from '@/app/lib/timesheet-service';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function TimesheetPage() {
   const { user } = useAuth();
-  const { formatThaiDateWithDay, isThaiLanguage } = useThaiLocale();
+  const { isThaiLanguage } = useThaiLocale();
   
   // State
   const [projects, setProjects] = useState<Project[]>([]);
@@ -91,25 +92,18 @@ export default function TimesheetPage() {
         return;
       }
 
-      if (!API_BASE) {
-        toast.error('API configuration missing');
-        setLoading(false);
-        return;
-      }
-
       try {
         setLoading(true);
         
         // Fetch submission status
         const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-        const subRes = await fetch(`${API_BASE}/api/timesheet/submission?userId=${user.id}&start=${startOfMonth.toISOString().split('T')[0]}`);
-        if (subRes.ok) {
-          const subJson = await subRes.json();
-          setSubmissionStatus(subJson.status || 'Draft');
-        }
+        const status = await timesheetService.getSubmissionStatus(user.id, startOfMonth.toISOString().split('T')[0]);
+        setSubmissionStatus({ status });
         setIsEditing(false);
 
         // Fetch projects
+        // We still fetch projects directly as this might be specific to this page view logic (filtering etc)
+        // Or we can move it to service. For now, keep as fetch but use API_BASE
         const projRes = await fetch(`${API_BASE}/api/timesheet/projects?userId=${user.id}`);
         if (projRes.ok) {
           const projJson = await projRes.json();
@@ -129,10 +123,10 @@ export default function TimesheetPage() {
         const weekday = weekStart.getDay();
         const diff = (weekday + 6) % 7;
         weekStart.setDate(weekStart.getDate() - diff);
-        const wres = await fetch(`${API_BASE}/api/timesheet/weekly?start=${weekStart.toISOString().split('T')[0]}`);
-        if (wres.ok) {
-          const wjson = await wres.json();
-          setWeekly(wjson);
+        
+        const wData = await timesheetService.getWeeklySummary(weekStart.toISOString().split('T')[0]);
+        if (wData) {
+          setWeekly(wData);
           setWeeklyStart(weekStart.toISOString().split('T')[0]);
         }
 
@@ -148,29 +142,19 @@ export default function TimesheetPage() {
   }, [currentMonth, user]);
 
   const fetchTimesheetEntries = async (month: Date, projectIds?: string[]) => {
-    if (!user || !API_BASE) return;
+    if (!user) return;
     const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
     const endOfMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0);
 
-    const params = new URLSearchParams({
-      userId: user.id,
-      start: startOfMonth.toISOString().split('T')[0],
-      end: endOfMonth.toISOString().split('T')[0],
-      projects: (projectIds || []).join(',')
-    }).toString();
-    const res = await fetch(`${API_BASE}/api/timesheet/entries?${params}`);
-    if (res.ok) {
-      const data = await res.json();
-      const mappedData = (data || []).map((d: any) => ({
-        id: d.id,
-        projectId: d.projectId || d.project_id, // Handle both cases just in case
-        taskId: d.taskId || d.task_id,
-        date: d.date,
-        hours: d.hours,
-        description: d.description
-      }));
-      setEntries(mappedData);
-    }
+    const loadedEntries = await timesheetService.getEntries(
+        user.id, 
+        startOfMonth.toISOString().split('T')[0], 
+        endOfMonth.toISOString().split('T')[0],
+        projectIds
+    );
+    
+    // Map service TimeEntry to local TimesheetEntry if needed (they should be compatible)
+    setEntries(loadedEntries as unknown as TimesheetEntry[]);
   };
 
   // Actions
@@ -202,7 +186,6 @@ export default function TimesheetPage() {
           status: e.status || 'Draft'
         })));
     } else {
-        // Always allow adding new entry, even if no existing entries
         setModalRows([{ 
           id: 'new',
           date: dateStr,
@@ -219,51 +202,37 @@ export default function TimesheetPage() {
   };
 
   const saveDayEditor = async (rows: ModalRow[]) => {
-    if (!API_BASE) return;
     try {
       for (const r of rows) {
         if (r.deleted) {
           if (r.id && r.id !== 'new') {
-            await fetch(`${API_BASE}/api/timesheet/entries?id=${r.id}`, { method: 'DELETE' });
+            await timesheetService.deleteEntry(r.id);
             setEntries(prev => prev.filter(e => e.id !== r.id));
           }
           continue;
         }
+        
+        const entryData = {
+            hours: r.hours,
+            taskId: r.task || null,
+            description: r.description,
+            startTime: r.startTime,
+            endTime: r.endTime,
+            date: modalDate,
+            projectId: modalProjectId,
+            userId: user?.id
+        };
+
         if (r.id && r.id !== 'new') {
-          await fetch(`${API_BASE}/api/timesheet/entries`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: r.id, hours: r.hours, task_id: r.task, description: r.description, start_time: r.startTime || null, end_time: r.endTime || null }),
-          });
-          setEntries(prev => prev.map(e => e.id === r.id ? { ...e, hours: r.hours, taskId: r.task, date: modalDate, description: r.description } : e));
+          const updated = await timesheetService.updateEntry({ ...entryData, id: r.id });
+          if (updated) {
+             setEntries(prev => prev.map(e => e.id === r.id ? (updated as unknown as TimesheetEntry) : e));
+          }
         } else if (r.hours > 0) {
-          const res = await fetch(`${API_BASE}/api/timesheet/entries`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: user?.id, project_id: modalProjectId, task_id: r.task, date: modalDate, hours: r.hours, description: r.description, start_time: r.startTime || null, end_time: r.endTime || null }),
-          });
-          const row = res.ok ? await res.json() : null;
-          const newId = row?.id || `${modalProjectId}-${modalDate}-${Math.random().toString(36).slice(2,7)}`;
-          setEntries(prev => [...prev, { 
-          id: newId, 
-          projectId: modalProjectId, 
-          taskId: r.task, 
-          date: modalDate, 
-          hours: r.hours, 
-          description: r.description,
-          startTime: r.startTime,
-          endTime: r.endTime,
-          workType: 'project' as any,
-          breakDuration: 0,
-          userId: user?.id || '',
-          billableHours: r.hours,
-          status: EntryStatus.PENDING,
-          approvedBy: null,
-          approvedAt: null,
-          rejectedReason: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }]);
+          const created = await timesheetService.createEntry(entryData);
+          if (created) {
+             setEntries(prev => [...prev, (created as unknown as TimesheetEntry)]);
+          }
         }
       }
       setModalOpen(false);
@@ -274,23 +243,20 @@ export default function TimesheetPage() {
   };
 
   const handleSubmitForApproval = async () => {
-    if (!user || !API_BASE) return;
+    if (!user) return;
     setLoading(true);
     const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
     const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
     const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
 
-    const res = await fetch(`${API_BASE}/api/timesheet/submission`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: user.id,
-        period_start_date: startOfMonth.toISOString().split('T')[0],
-        period_end_date: endOfMonth.toISOString().split('T')[0],
-        total_hours: totalHours
-      })
-    });
-    if (res.ok) {
+    const success = await timesheetService.submitTimesheet(
+        user.id,
+        startOfMonth.toISOString().split('T')[0],
+        endOfMonth.toISOString().split('T')[0],
+        totalHours
+    );
+
+    if (success) {
       setSubmissionStatus({ status: 'Submitted', submittedAt: new Date().toISOString() });
       setIsEditing(false);
       toast.success('ส่งอนุมัติเรียบร้อยแล้ว');
@@ -301,13 +267,8 @@ export default function TimesheetPage() {
   };
 
   const handleWeeklySearch = async () => {
-    if (!API_BASE) return;
-    const url = new URL(`${API_BASE}/api/timesheet/weekly`);
-    url.searchParams.set('start', weeklyStart);
-    if (weeklyProject && weeklyProject !== 'all') url.searchParams.set('projectId', weeklyProject);
-    const r = await fetch(url.toString());
-    const j = await r.json();
-    setWeekly(j);
+    const data = await timesheetService.getWeeklySummary(weeklyStart, weeklyProject);
+    if (data) setWeekly(data);
   };
 
   const handleActivitySearch = async () => {
@@ -327,7 +288,7 @@ export default function TimesheetPage() {
   const isAuthority = ['admin','manager'].includes((user as any)?.role || '');
   const canEdit = submissionStatus.status === 'Draft' || submissionStatus.status === 'Rejected' || (isAuthority && submissionStatus.status === 'Submitted');
 
-  // Add Entry Handler - open modal to add entry for a specific date and project
+  // Add Entry Handler
   const handleAddEntry = () => {
     if (!projects.length) {
       toast.error('ต้องมีโครงการอย่างน้อย 1 รายการ');

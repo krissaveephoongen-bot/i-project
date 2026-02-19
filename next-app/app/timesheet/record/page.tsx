@@ -12,16 +12,17 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Progress } from '../../components/ui/progress';
 import { getDashboardProjects } from '../../lib/data-service';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+import { timesheetService } from '@/app/lib/timesheet-service';
+import { TimeEntry, WorkType } from '@/app/timesheet/types';
+import { toast } from 'react-hot-toast';
 
 export default function TimesheetRecordPage() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<any[]>([]);
   const [form, setForm] = useState<{
-    workType: 'Project' | 'Non-Project' | 'Leave';
-    project_id: string;
-    task_id?: string;
+    workType: WorkType;
+    projectId: string;
+    taskId?: string;
     date: string;
     startTime: string;
     endTime: string;
@@ -30,9 +31,9 @@ export default function TimesheetRecordPage() {
     description: string;
     billable: boolean;
   }>({
-    workType: 'Project',
-    project_id: '',
-    task_id: '',
+    workType: WorkType.PROJECT,
+    projectId: '',
+    taskId: '',
     date: new Date().toISOString().slice(0, 10),
     startTime: '09:00',
     endTime: '18:00',
@@ -41,14 +42,16 @@ export default function TimesheetRecordPage() {
     description: '',
     billable: true,
   });
-  const [entries, setEntries] = useState<any[]>([]);
+  
+  const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [teamLoad, setTeamLoad] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       if (!user) return;
       
-      // Load Projects (Using data-service for reliability)
+      // Load Projects
       try {
         const projs = await getDashboardProjects();
         setProjects(projs || []);
@@ -57,18 +60,24 @@ export default function TimesheetRecordPage() {
       }
 
       // Load Entries
-      const start = new Date(); start.setDate(start.getDate() - 7);
-      const resE = await fetch(`${API_BASE}/api/timesheet/entries?userId=${user.id}&start=${start.toISOString().slice(0,10)}&end=${new Date().toISOString().slice(0,10)}`);
-      const ejson = resE.ok ? await resE.json() : [];
-      setEntries(ejson || []);
+      try {
+        const start = new Date(); 
+        start.setDate(start.getDate() - 7);
+        const startDateStr = start.toISOString().slice(0,10);
+        const endDateStr = new Date().toISOString().slice(0,10);
+        
+        const loadedEntries = await timesheetService.getEntries(user.id, startDateStr, endDateStr);
+        setEntries(loadedEntries);
 
-      // Load Team Load (Mock for now, real implementation would need backend support)
-      // Simulating team load data
-      setTeamLoad({
-        weeklyCapacity: 40,
-        currentLoad: ejson.reduce((acc: number, cur: any) => acc + (Number(cur.hours) || 0), 0),
-        utilization: 0
-      });
+        // Load Team Load (Mock)
+        setTeamLoad({
+          weeklyCapacity: 40,
+          currentLoad: loadedEntries.reduce((acc, cur) => acc + (cur.hours || 0), 0),
+          utilization: 0
+        });
+      } catch (e) {
+        console.error('Failed to load entries', e);
+      }
     };
     load();
   }, [user]);
@@ -86,7 +95,7 @@ export default function TimesheetRecordPage() {
 
   const createEntry = async () => {
     if (!user) return;
-    if (form.workType === 'Project' && !form.project_id) {
+    if (form.workType === WorkType.PROJECT && !form.projectId) {
         alert('Please select a project');
         return;
     }
@@ -95,40 +104,46 @@ export default function TimesheetRecordPage() {
         return;
     }
 
-    const payload = {
-      user_id: user.id,
-      project_id: form.workType === 'Project' ? form.project_id : null,
-      task_id: form.workType === 'Project' ? form.task_id : null,
-      date: form.date,
-      hours: form.hours,
-      start_time: form.startTime,
-      end_time: form.endTime,
-      activity_type: form.workType, // Project, Non-Project, Leave
-      activity_name: form.activity,
-      description: form.description,
-      billable: form.workType === 'Project' ? form.billable : false
-    };
+    setLoading(true);
+    try {
+        // Prepare payload, handling optional fields
+        const entryData: Partial<TimeEntry> = {
+            userId: user.id,
+            date: form.date,
+            hours: form.hours,
+            startTime: form.startTime,
+            endTime: form.endTime,
+            workType: form.workType,
+            description: form.description,
+            projectId: form.workType === WorkType.PROJECT ? form.projectId : null,
+            taskId: form.workType === WorkType.PROJECT ? (form.taskId || null) : null,
+            billableHours: (form.workType === WorkType.PROJECT && form.billable) ? form.hours : 0
+        };
 
-    const res = await fetch(`${API_BASE}/api/timesheet/entries`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    
-    const row = res.ok ? await res.json() : null;
-    if (row) {
-        setEntries(prev => [row, ...prev]);
-        // Reset form slightly
-        setForm(prev => ({ ...prev, description: '', activity: '' }));
-    } else {
+        const newEntry = await timesheetService.createEntry(entryData);
+        
+        if (newEntry) {
+            setEntries(prev => [newEntry, ...prev]);
+            setForm(prev => ({ ...prev, description: '', activity: '' }));
+            toast.success('บันทึกข้อมูลสำเร็จ');
+        }
+    } catch (e) {
+        console.error(e);
         alert('Failed to save entry');
+    } finally {
+        setLoading(false);
     }
   };
 
   const deleteEntry = async (id: string) => {
     if (!confirm('Are you sure?')) return;
-    const res = await fetch(`${API_BASE}/api/timesheet/entries?id=${id}`, { method: 'DELETE' });
-    if (res.ok) setEntries(prev => prev.filter(e => e.id !== id));
+    const success = await timesheetService.deleteEntry(id);
+    if (success) {
+        setEntries(prev => prev.filter(e => e.id !== id));
+        toast.success('ลบรายการสำเร็จ');
+    } else {
+        alert('Failed to delete');
+    }
   };
 
   const getUtilizationColor = (percent: number) => {
@@ -174,21 +189,21 @@ export default function TimesheetRecordPage() {
             <div className="space-y-3">
                 <Label>ประเภทงาน</Label>
                 <RadioGroup 
-                    defaultValue="Project" 
+                    defaultValue={WorkType.PROJECT} 
                     value={form.workType} 
-                    onValueChange={(v: any) => setForm({...form, workType: v})}
+                    onValueChange={(v: WorkType) => setForm({...form, workType: v})}
                     className="flex flex-row gap-6"
                 >
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Project" id="r1" />
+                        <RadioGroupItem value={WorkType.PROJECT} id="r1" />
                         <Label htmlFor="r1">Project</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Non-Project" id="r2" />
+                        <RadioGroupItem value={WorkType.OFFICE} id="r2" />
                         <Label htmlFor="r2">Non-Project (Admin, Meeting, etc.)</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Leave" id="r3" />
+                        <RadioGroupItem value={WorkType.LEAVE} id="r3" />
                         <Label htmlFor="r3">Leave (ลาป่วย/ลากิจ)</Label>
                     </div>
                 </RadioGroup>
@@ -222,10 +237,10 @@ export default function TimesheetRecordPage() {
                 </div>
 
                 {/* Project Selection (Conditional) */}
-                {form.workType === 'Project' && (
+                {form.workType === WorkType.PROJECT && (
                     <div className="md:col-span-2">
                         <Label className="mb-1.5 block">เลือกโปรเจกต์</Label>
-                        <Select value={form.project_id} onValueChange={v => setForm({...form, project_id: v})}>
+                        <Select value={form.projectId} onValueChange={v => setForm({...form, projectId: v})}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select Project" />
                             </SelectTrigger>
@@ -248,7 +263,7 @@ export default function TimesheetRecordPage() {
                             <SelectValue placeholder="Select Activity" />
                         </SelectTrigger>
                         <SelectContent>
-                            {form.workType === 'Project' ? (
+                            {form.workType === WorkType.PROJECT ? (
                                 <>
                                     <SelectItem value="Development">Development</SelectItem>
                                     <SelectItem value="Design">Design</SelectItem>
@@ -256,7 +271,7 @@ export default function TimesheetRecordPage() {
                                     <SelectItem value="Deployment">Deployment</SelectItem>
                                     <SelectItem value="Meeting">Meeting</SelectItem>
                                 </>
-                            ) : form.workType === 'Non-Project' ? (
+                            ) : form.workType === WorkType.OFFICE ? (
                                 <>
                                     <SelectItem value="Internal Meeting">Internal Meeting</SelectItem>
                                     <SelectItem value="Training">Training</SelectItem>
@@ -285,7 +300,7 @@ export default function TimesheetRecordPage() {
                 </div>
 
                 {/* Billable Toggle (Project Only) */}
-                {form.workType === 'Project' && (
+                {form.workType === WorkType.PROJECT && (
                     <div className="md:col-span-2 flex items-center gap-2">
                         <input 
                             type="checkbox" 
@@ -300,8 +315,13 @@ export default function TimesheetRecordPage() {
 
             </div>
 
-            <Button onClick={createEntry} className="w-full md:w-auto bg-red-500 hover:bg-red-600 text-white">
-                บันทึกข้อมูล
+            <Button 
+                onClick={createEntry} 
+                disabled={loading}
+                className="w-full md:w-auto bg-red-500 hover:bg-red-600 text-white cursor-pointer"
+                style={{ pointerEvents: 'auto' }}
+            >
+                {loading ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
             </Button>
 
           </CardContent>
@@ -330,14 +350,14 @@ export default function TimesheetRecordPage() {
                                     <td className="py-3 px-4">{e.date}</td>
                                     <td className="py-3 px-4">
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                            e.activity_type === 'Project' ? 'bg-blue-100 text-blue-700' :
-                                            e.activity_type === 'Leave' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                                            e.workType === WorkType.PROJECT ? 'bg-blue-100 text-blue-700' :
+                                            e.workType === WorkType.LEAVE ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
                                         }`}>
-                                            {e.activity_type || 'Project'}
+                                            {e.workType || 'Project'}
                                         </span>
                                     </td>
                                     <td className="py-3 px-4">
-                                        <div className="font-medium">{projects.find(p => p.id === e.project_id)?.name || e.activity_name || '-'}</div>
+                                        <div className="font-medium">{projects.find(p => p.id === e.projectId)?.name || e.description || '-'}</div>
                                         <div className="text-slate-500 text-xs truncate max-w-[200px]">{e.description}</div>
                                     </td>
                                     <td className="py-3 px-4 font-semibold">{e.hours}</td>
