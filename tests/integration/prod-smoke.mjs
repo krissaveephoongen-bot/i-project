@@ -7,8 +7,8 @@ import fetch from 'node-fetch';
 
 // Configuration - Testing local backend
 const API_BASE_URL = 'https://ticket-apw-api.vercel.app/api';
-const TEST_EMAIL = 'jakgrits.ph@appworks.co.th';
-const TEST_PASSWORD = 'AppWorks@123!';
+const TEST_EMAIL = process.env.TEST_EMAIL;
+const TEST_PASSWORD = process.env.TEST_PASSWORD;
 
 // ANSI color codes for terminal output
 const colors = {
@@ -85,18 +85,23 @@ async function runTests() {
   console.log(`\n${colors.yellow}--- Authentication Tests ---${colors.reset}`);
 
   // Test Login
-  const loginResult = await apiRequest('/auth/login', 'POST', {
-    email: TEST_EMAIL,
-    password: TEST_PASSWORD
-  }, false);
-
-  if (loginResult.ok && loginResult.data.token) {
-    authToken = loginResult.data.token;
-    testUser = loginResult.data.user;
-    printResult('Login', true, `Logged in as ${testUser?.name || testUser?.email} (${testUser?.role})`);
-  } else {
-    printResult('Login', false, `Error: ${loginResult.data?.error || 'Unknown error'}`);
+  if (!TEST_EMAIL || !TEST_PASSWORD) {
+    printResult('Login', false, 'Missing TEST_EMAIL/TEST_PASSWORD environment variables');
     console.log(`${colors.yellow}Note: Continuing with tests without authentication...${colors.reset}`);
+  } else {
+    const loginResult = await apiRequest('/auth/login', 'POST', {
+      email: TEST_EMAIL,
+      password: TEST_PASSWORD
+    }, false);
+
+    if (loginResult.ok && loginResult.data.token) {
+      authToken = loginResult.data.token;
+      testUser = loginResult.data.user;
+      printResult('Login', true, `Logged in as ${testUser?.name || testUser?.email} (${testUser?.role})`);
+    } else {
+      printResult('Login', false, `Error: ${loginResult.data?.error || 'Unknown error'}`);
+      console.log(`${colors.yellow}Note: Continuing with tests without authentication...${colors.reset}`);
+    }
   }
 
   // Test Verify Token
