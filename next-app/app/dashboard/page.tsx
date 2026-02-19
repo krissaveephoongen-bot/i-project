@@ -12,9 +12,6 @@ import { LoadingFallback } from '@/lib/lazy-load';
 import DashboardFilters from './components/DashboardFilters';
 import DashboardKPIs from './components/DashboardKPIs';
 import DashboardStatus from './components/DashboardStatus';
-import ExecutiveSummaryCard from './components/ExecutiveSummaryCard';
-import RecentActivitiesCard from './components/RecentActivitiesCard';
-import ActiveProjectsTable from './components/ActiveProjectsTable';
 
 import type {
     ProjectRow,

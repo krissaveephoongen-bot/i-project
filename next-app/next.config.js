@@ -4,7 +4,6 @@ const nextConfig = {
   transpilePackages: ['@supabase/supabase-js'],
   experimental: {
     optimizePackageImports: ['@supabase/supabase-js', 'lucide-react', 'clsx'],
-    optimizeCss: true,
     scrollRestoration: true,
     largePageDataBytes: 128 * 1000, // 128KB
   },
@@ -38,17 +37,6 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384, 512],
     dangerouslyAllowSVG: true,
-  },
-  // Bundle analyzer
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        fallback: {
-          fs: false,
-        },
-      };
-    }
-    return config;
   },
   // Optimize fonts
   optimizeFonts: true,
