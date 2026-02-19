@@ -58,11 +58,18 @@ export function useStaffAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('staffToken');
-    const userData = localStorage.getItem('staffUser');
-    
-    if (token && userData) {
-      setUser(JSON.parse(userData));
+    // Only access localStorage on client side
+    if (typeof window !== 'undefined') {
+      try {
+        const token = localStorage.getItem('staffToken');
+        const userData = localStorage.getItem('staffUser');
+        
+        if (token && userData) {
+          setUser(JSON.parse(userData));
+        }
+      } catch (error) {
+        console.error('Error accessing localStorage:', error);
+      }
     }
     
     setLoading(false);
@@ -83,17 +90,30 @@ export function useStaffAuth() {
       throw new Error(data.error || 'Login failed');
     }
 
-    // Store token and user data
-    localStorage.setItem('staffToken', data.token);
-    localStorage.setItem('staffUser', JSON.stringify(data.user));
+    // Store token and user data (only on client side)
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('staffToken', data.token);
+        localStorage.setItem('staffUser', JSON.stringify(data.user));
+      } catch (error) {
+        console.error('Error storing in localStorage:', error);
+      }
+    }
     setUser(data.user);
 
     return data;
   };
 
   const signOut = () => {
-    localStorage.removeItem('staffToken');
-    localStorage.removeItem('staffUser');
+    // Remove token and user data (only on client side)
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('staffToken');
+        localStorage.removeItem('staffUser');
+      } catch (error) {
+        console.error('Error removing from localStorage:', error);
+      }
+    }
     setUser(null);
   };
 
@@ -111,11 +131,18 @@ export function useVendorAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('vendorToken');
-    const userData = localStorage.getItem('vendorUser');
-    
-    if (token && userData) {
-      setUser(JSON.parse(userData));
+    // Only access localStorage on client side
+    if (typeof window !== 'undefined') {
+      try {
+        const token = localStorage.getItem('vendorToken');
+        const userData = localStorage.getItem('vendorUser');
+        
+        if (token && userData) {
+          setUser(JSON.parse(userData));
+        }
+      } catch (error) {
+        console.error('Error accessing localStorage:', error);
+      }
     }
     
     setLoading(false);
@@ -136,17 +163,30 @@ export function useVendorAuth() {
       throw new Error(data.error || 'Login failed');
     }
 
-    // Store token and user data
-    localStorage.setItem('vendorToken', data.token);
-    localStorage.setItem('vendorUser', JSON.stringify(data.user));
+    // Store token and user data (only on client side)
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('vendorToken', data.token);
+        localStorage.setItem('vendorUser', JSON.stringify(data.user));
+      } catch (error) {
+        console.error('Error storing in localStorage:', error);
+      }
+    }
     setUser(data.user);
 
     return data;
   };
 
   const signOut = () => {
-    localStorage.removeItem('vendorToken');
-    localStorage.removeItem('vendorUser');
+    // Remove token and user data (only on client side)
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('vendorToken');
+        localStorage.removeItem('vendorUser');
+      } catch (error) {
+        console.error('Error removing from localStorage:', error);
+      }
+    }
     setUser(null);
   };
 

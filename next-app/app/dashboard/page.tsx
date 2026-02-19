@@ -9,6 +9,13 @@ import { Skeleton } from '@/app/components/ui/Skeleton';
 import { createLazyComponent } from '@/lib/lazy-load';
 import { LoadingFallback } from '@/lib/lazy-load';
 
+// Chart fallback component
+const ChartFallback = () => (
+  <div className="h-80 w-full flex items-center justify-center bg-gray-50 rounded-2xl">
+    <Skeleton className="h-64 w-full rounded-2xl" />
+  </div>
+);
+
 import DashboardFilters from './components/DashboardFilters';
 import DashboardKPIs from './components/DashboardKPIs';
 import DashboardStatus from './components/DashboardStatus';
@@ -125,7 +132,7 @@ export default function UnifiedDashboard() {
             // Weekly summary data is derived from rows, not a separate state
             void wsJson;
         } catch (e: unknown) {
-            if (e instanceof DOMException && e.name === 'AbortError') return;
+            if (e instanceof Error && e.name === 'AbortError') return;
             console.error('Dashboard error:', e);
             setError(e instanceof Error ? e.message : 'Unable to load dashboard data');
         } finally {

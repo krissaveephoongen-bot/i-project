@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Eye, EyeOff, AlertCircle, Briefcase, Lock } from 'lucide-react';
 import { useVendorAuth } from '@/hooks/useAuth';
+import { Skeleton } from '@/app/components/ui/Skeleton';
 
 export default function VendorLoginPage() {
   const [email, setEmail] = useState('');
@@ -13,7 +14,7 @@ export default function VendorLoginPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
-  const { signIn } = useVendorAuth();
+  const { signIn, loading: authLoading } = useVendorAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +30,44 @@ export default function VendorLoginPage() {
       setIsLoading(false);
     }
   };
+
+  // Show skeleton while auth is loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 border border-gray-100">
+          {/* Header Skeleton */}
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-gray-200 rounded-2xl mx-auto mb-6 animate-pulse" />
+            <Skeleton className="h-8 w-32 mx-auto mb-3" />
+            <Skeleton className="h-5 w-48 mx-auto" />
+          </div>
+
+          {/* Form Skeleton */}
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-16" />
+              <div className="relative">
+                <Skeleton className="h-12 w-full rounded-xl" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-20" />
+              <div className="relative">
+                <Skeleton className="h-12 w-full rounded-xl" />
+              </div>
+            </div>
+            <Skeleton className="h-12 w-full rounded-xl" />
+          </div>
+
+          {/* Footer Skeleton */}
+          <div className="mt-8 text-center">
+            <Skeleton className="h-4 w-48 mx-auto" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
@@ -125,15 +164,6 @@ export default function VendorLoginPage() {
               ติดต่อผู้ดูแลระบบ
             </a>
           </p>
-        </div>
-
-        {/* Demo Account Info */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200 shadow-sm">
-          <p className="text-sm text-blue-700 font-semibold mb-2">บัญชีสำหรับทดสอบ:</p>
-          <div className="space-y-1">
-            <p className="text-xs text-blue-600 font-medium">อีเมล: vendor@vendor.com</p>
-            <p className="text-xs text-blue-600 font-medium">รหัสผ่าน: AppWorks@123!</p>
-          </div>
         </div>
       </div>
     </div>
