@@ -5,26 +5,43 @@ export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
-    if (!supabaseAdmin) return NextResponse.json({ error: 'admin client missing' }, { status: 500 });
+    console.log('Resources Report API called');
+    
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client is null');
+      return NextResponse.json({ error: 'admin client missing' }, { status: 500 });
+    }
 
+    console.log('Fetching users for resources report...');
     const { data: users, error: usersError } = await supabaseAdmin
         .from('users')
         .select('id, name, position, avatar')
         .in('role', ['employee', 'manager']);
 
-    if (usersError) throw usersError;
+    if (usersError) {
+      console.error('Users fetch error:', usersError);
+      throw usersError;
+    }
+
+    console.log('Found users:', (users || []).length);
 
     // For simplicity, we'll calculate for the last 30 days.
     const date30DaysAgo = new Date();
     date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
     const date30DaysAgoStr = date30DaysAgo.toISOString().slice(0, 10);
 
+    console.log('Fetching timesheet data since:', date30DaysAgoStr);
     const { data: timesheetData, error: timesheetError } = await supabaseAdmin
         .from('time_entries')
         .select('userId, hours')
         .gte('date', date30DaysAgoStr);
     
-    if (timesheetError) throw timesheetError;
+    if (timesheetError) {
+      console.error('Timesheet fetch error:', timesheetError);
+      throw timesheetError;
+    }
+
+    console.log('Found timesheet entries:', (timesheetData || []).length);
 
     const userStats = (users || []).map((user: any) => {
         const userHours = (timesheetData || [])

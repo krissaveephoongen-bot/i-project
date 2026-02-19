@@ -13,15 +13,29 @@ export default function ResourcesTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('ResourcesTab: Loading data...');
     fetch('/api/reports/resources', { cache: 'no-store' })
-      .then(res => res.json())
-      .then(setData)
-      .catch(console.error)
+      .then(res => {
+        console.log('ResourcesTab: Response status:', res.status);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log('ResourcesTab: Data received:', data);
+        setData(data);
+      })
+      .catch(error => {
+        console.error('ResourcesTab: Error loading data:', error);
+        setData({ error: error.message });
+      })
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="space-y-4"><Skeleton className="h-32" /><Skeleton className="h-64" /></div>;
   if (!data) return <div className="text-red-500">Failed to load data</div>;
+  if (data.error) return <div className="text-red-500">Error: {data.error}</div>;
 
   const { userStats, kpis } = data;
 

@@ -1,3 +1,5 @@
+'use client';
+
 import toast from 'react-hot-toast';
 
 export const useToast = () => {
@@ -50,17 +52,22 @@ export const useToast = () => {
   };
 
   const showWarning = (message: string, duration = 3000) => {
-    toast((t) => (
-      <div style={{ fontSize: '14px', fontWeight: '500' }}>⚠ {message}</div>
+    toast.custom((t) => (
+      <div
+        style={{
+          background: '#f59e0b',
+          color: '#fff',
+          borderRadius: '8px',
+          padding: '16px 24px',
+          fontSize: '14px',
+          fontWeight: '500',
+        }}
+      >
+        ⚠ {message}
+      </div>
     ), {
       duration,
       position: 'top-right',
-      style: {
-        background: '#f59e0b',
-        color: '#fff',
-        borderRadius: '8px',
-        padding: '16px 24px',
-      },
     });
   };
 

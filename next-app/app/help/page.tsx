@@ -8,8 +8,8 @@ import { Button } from '@/app/components/ui/Button';
 import { Input } from '@/app/components/ui/Input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/ui/Dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/Select';
-import { Plus, Edit, Trash2, Mail, Phone, User as UserIcon, Building2, BookOpen, MessageCircle, Download, Search } from 'lucide-react';
+
+import { Plus, Edit, Trash2, Mail, Phone, User as UserIcon, Building2, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 // Types
@@ -24,22 +24,7 @@ interface Contact {
     role?: string;
 }
 
-interface HelpResource {
-    id: string;
-    title: string;
-    description: string;
-    category: string;
-    url?: string;
-    file_path?: string;
-}
 
-interface FAQ {
-    id: string;
-    question: string;
-    answer: string;
-    category: string;
-    views: number;
-}
 
 export default function HelpPage() {
     const queryClient = useQueryClient();
@@ -47,7 +32,6 @@ export default function HelpPage() {
     const [editingStakeholder, setEditingStakeholder] = useState<Contact | null>(null);
     const [stakeholderForm, setStakeholderForm] = useState<Partial<Contact>>({});
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('all');
 
     // Fetch comprehensive help data
     const { data: helpData, isLoading } = useQuery({
@@ -59,25 +43,7 @@ export default function HelpPage() {
         }
     });
 
-    // Fetch help resources
-    const { data: resources = [] } = useQuery({
-        queryKey: ['help-resources'],
-        queryFn: async () => {
-            const res = await fetch('/api/help/resources');
-            if (!res.ok) return [];
-            return res.json();
-        }
-    });
 
-    // Fetch FAQs
-    const { data: faqs = [] } = useQuery({
-        queryKey: ['help-faqs'],
-        queryFn: async () => {
-            const res = await fetch('/api/help/faqs');
-            if (!res.ok) return [];
-            return res.json();
-        }
-    });
 
     // Mutations
     const deleteStakeholderMutation = useMutation({
@@ -126,33 +92,24 @@ export default function HelpPage() {
         if (confirm('Are you sure?')) deleteStakeholderMutation.mutate(id);
     };
 
-    const filteredTeam = helpData?.team?.filter((c: Contact) => 
+    const filteredTeam = helpData?.team?.filter((c: Contact) =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.email.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
-    const filteredStakeholders = helpData?.stakeholders?.filter((c: Contact) => 
+    const filteredStakeholders = helpData?.stakeholders?.filter((c: Contact) =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.email.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
-
-    const filteredResources = resources?.filter((r: HelpResource) => 
-        selectedCategory === 'all' || r.category === selectedCategory
-    ) || [];
-
-    const filteredFAQs = faqs?.filter((faq: FAQ) => 
-        faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
     return (
         <div className="min-h-screen bg-slate-50/50">
             <Header title="Help & Support" breadcrumbs={[{ label: 'Help & Support' }]} />
-            
+
             <div className="container mx-auto px-6 py-8 pt-24 space-y-8">
-                
+
                 {/* Search Bar */}
                 <Card>
                     <CardContent className="pt-6">
@@ -160,59 +117,17 @@ export default function HelpPage() {
                             <div className="flex-1 relative">
                                 <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                                 <Input
-                                    placeholder="Search contacts, resources, or FAQs..."
+                                    placeholder="Search contacts..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="pl-10"
                                 />
                             </div>
-                            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                                <SelectTrigger className="w-48">
-                                    <SelectValue placeholder="Filter by category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Categories</SelectItem>
-                                    <SelectItem value="documentation">Documentation</SelectItem>
-                                    <SelectItem value="training">Training</SelectItem>
-                                    <SelectItem value="support">Support</SelectItem>
-                                    <SelectItem value="technical">Technical</SelectItem>
-                                </SelectContent>
-                            </Select>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Quick Links */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                        <CardContent className="p-4 text-center">
-                            <BookOpen className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                            <h3 className="font-semibold">Documentation</h3>
-                            <p className="text-sm text-slate-600 mt-1">User guides and manuals</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                        <CardContent className="p-4 text-center">
-                            <MessageCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                            <h3 className="font-semibold">Live Chat</h3>
-                            <p className="text-sm text-slate-600 mt-1">Chat with support team</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                        <CardContent className="p-4 text-center">
-                            <Download className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                            <h3 className="font-semibold">Downloads</h3>
-                            <p className="text-sm text-slate-600 mt-1">Templates and forms</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                        <CardContent className="p-4 text-center">
-                            <Phone className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                            <h3 className="font-semibold">Emergency</h3>
-                            <p className="text-sm text-slate-600 mt-1">Critical support contacts</p>
-                        </CardContent>
-                    </Card>
-                </div>
+
 
                 {/* Team Contacts Section */}
                 <Card>
@@ -352,77 +267,9 @@ export default function HelpPage() {
                     </CardContent>
                 </Card>
 
-                {/* Help Resources Section */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <BookOpen className="h-5 w-5 text-green-600" />
-                            Help Resources ({filteredResources.length})
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {filteredResources.map((resource: HelpResource) => (
-                                <Card key={resource.id} className="hover:shadow-md transition-shadow">
-                                    <CardContent className="p-4">
-                                        <h3 className="font-semibold text-slate-900 mb-2">{resource.title}</h3>
-                                        <p className="text-sm text-slate-600 mb-3">{resource.description}</p>
-                                        <div className="flex items-center justify-between">
-                                            <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded">
-                                                {resource.category}
-                                            </span>
-                                            {resource.url && (
-                                                <Button variant="outline" size="sm" asChild>
-                                                    <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                                                        Open
-                                                    </a>
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                            {filteredResources.length === 0 && (
-                                <div className="col-span-full text-center py-8 text-slate-500">
-                                    No resources found.
-                                </div>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
 
-                {/* FAQs Section */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <MessageCircle className="h-5 w-5 text-purple-600" />
-                            Frequently Asked Questions ({filteredFAQs.length})
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {filteredFAQs.map((faq: FAQ) => (
-                                <Card key={faq.id} className="border-l-4 border-l-purple-500">
-                                    <CardContent className="p-4">
-                                        <h3 className="font-semibold text-slate-900 mb-2">{faq.question}</h3>
-                                        <p className="text-slate-600 text-sm">{faq.answer}</p>
-                                        <div className="flex items-center justify-between mt-3">
-                                            <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded">
-                                                {faq.category}
-                                            </span>
-                                            <span className="text-xs text-slate-500">{faq.views} views</span>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                            {filteredFAQs.length === 0 && (
-                                <div className="text-center py-8 text-slate-500">
-                                    No FAQs found.
-                                </div>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
+
+
 
                 {/* Stakeholder Modal */}
                 <Dialog open={isStakeholderModalOpen} onOpenChange={setIsStakeholderModalOpen}>
@@ -433,43 +280,43 @@ export default function HelpPage() {
                         <div className="grid gap-4 py-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Name</label>
-                                <Input 
-                                    value={stakeholderForm.name || ''} 
-                                    onChange={e => setStakeholderForm({...stakeholderForm, name: e.target.value})} 
+                                <Input
+                                    value={stakeholderForm.name || ''}
+                                    onChange={e => setStakeholderForm({ ...stakeholderForm, name: e.target.value })}
                                     placeholder="Full Name"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Role</label>
-                                    <Input 
-                                        value={stakeholderForm.position || ''} 
-                                        onChange={e => setStakeholderForm({...stakeholderForm, position: e.target.value})} 
+                                    <Input
+                                        value={stakeholderForm.position || ''}
+                                        onChange={e => setStakeholderForm({ ...stakeholderForm, position: e.target.value })}
                                         placeholder="e.g. Project Sponsor"
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Organization</label>
-                                    <Input 
-                                        value={stakeholderForm.department || ''} 
-                                        onChange={e => setStakeholderForm({...stakeholderForm, department: e.target.value})} 
+                                    <Input
+                                        value={stakeholderForm.department || ''}
+                                        onChange={e => setStakeholderForm({ ...stakeholderForm, department: e.target.value })}
                                         placeholder="Company Name"
                                     />
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Email</label>
-                                <Input 
-                                    value={stakeholderForm.email || ''} 
-                                    onChange={e => setStakeholderForm({...stakeholderForm, email: e.target.value})} 
+                                <Input
+                                    value={stakeholderForm.email || ''}
+                                    onChange={e => setStakeholderForm({ ...stakeholderForm, email: e.target.value })}
                                     placeholder="email@example.com"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Phone</label>
-                                <Input 
-                                    value={stakeholderForm.phone || ''} 
-                                    onChange={e => setStakeholderForm({...stakeholderForm, phone: e.target.value})} 
+                                <Input
+                                    value={stakeholderForm.phone || ''}
+                                    onChange={e => setStakeholderForm({ ...stakeholderForm, phone: e.target.value })}
                                     placeholder="Phone Number"
                                 />
                             </div>
