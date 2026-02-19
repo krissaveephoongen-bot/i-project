@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
         snaps = s1.data || [];
       } else {
         const msg = `${s1.error.message || ''}`;
-        if (msg.includes('Could not find the') || msg.includes('schema cache')) {
+        if (msg.includes('Could not find the') || msg.includes('schema cache') || msg.toLowerCase().includes('does not exist')) {
           const s2 = await supabaseAdmin
             .from('spi_cpi_daily_snapshot')
             .select('*')
