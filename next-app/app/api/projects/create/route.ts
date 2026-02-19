@@ -1,14 +1,32 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/app/lib/supabaseClient';
+import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
+import redis from '@/lib/redis';
 import crypto from 'node:crypto';
 
 export async function POST(request: NextRequest) {
   try {
+    if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase is not configured' }, { status: 500 });
+
     const body = await request.json();
     const {
-      name, code, description, status = 'in_progress', progress = 0,
-      end_date, budget = 0, manager_id, client_id, priority = 'medium', category,
+      id,
+      name,
+      code,
+      description,
+      status = 'in_progress',
+      progress = 0,
+      startDate,
+      start_date,
+      endDate,
+      end_date,
+      budget = 0,
+      managerId,
+      manager_id,
+      clientId,
+      client_id,
+      priority = 'medium',
+      category,
       milestones = [],
       members = [],
       tasks = [],
@@ -17,33 +35,66 @@ export async function POST(request: NextRequest) {
 
     if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
 
-    const payload = {
+    const projectId = id ?? crypto.randomUUID();
+    const nowIso = new Date().toISOString();
+    const start = start_date ?? startDate ?? null;
+    const end = end_date ?? endDate ?? null;
+    const manager = manager_id ?? managerId ?? null;
+    const client = client_id ?? clientId ?? null;
+
+    const snakePayload: any = {
+      id: projectId,
       name,
-      code,
-      description,
+      code: code || null,
+      description: description || null,
       status,
-      progress,
-      end_date: end_date || null,
-      budget,
-      manager_id: manager_id || null,
-      client_id: client_id || null,
+      progress: Number(progress ?? 0),
+      progress_plan: 0,
+      start_date: start,
+      end_date: end,
+      budget: Number(budget ?? 0),
+      spent: 0,
+      manager_id: manager,
+      client_id: client,
       priority,
       category: category || null,
-      progressPlan: 0,
-      spi: 1.0,
-      riskLevel: 'medium',
-      spent: 0,
-      remaining: budget, // Initial remaining = budget
-      isArchived: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      is_archived: false,
+      created_at: nowIso,
+      updated_at: nowIso,
     };
 
-    const { data, error } = await supabase
-      .from('projects')
-      .insert([payload])
-      .select()
-      .single();
+    const camelPayload: any = {
+      id: projectId,
+      name,
+      code: code || null,
+      description: description || null,
+      status,
+      progress: Number(progress ?? 0),
+      progressPlan: 0,
+      startDate: start,
+      endDate: end,
+      budget: Number(budget ?? 0),
+      spent: 0,
+      managerId: manager,
+      clientId: client,
+      priority,
+      category: category || null,
+      isArchived: false,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+
+    let data: any = null;
+    let error: any = null;
+    for (const p of [snakePayload, camelPayload]) {
+      const res = await supabaseAdmin.from('projects').insert([p]).select().single();
+      data = res.data;
+      error = res.error;
+      if (!error) break;
+      const msg = `${error.message || ''}`;
+      if (msg.includes('Could not find the') || msg.includes('schema cache')) continue;
+      break;
+    }
 
     if (error) throw error;
 
@@ -58,11 +109,11 @@ export async function POST(request: NextRequest) {
         amount: Number(m.amount || 0),
         dueDate: m.dueDate || null,
         status: m.status || 'Pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_at: nowIso,
+        updated_at: nowIso
       }));
 
-      const { error: msError } = await supabase
+      const { error: msError } = await supabaseAdmin
         .from('milestones')
         .insert(msPayloads);
         
@@ -77,12 +128,12 @@ export async function POST(request: NextRequest) {
           project_id,
           user_id: m.user_id,
           role: m.role,
-          joinedAt: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          joinedAt: nowIso,
+          created_at: nowIso,
+          updated_at: nowIso,
         }));
       if (memberPayloads.length > 0) {
-        const { error: memErr } = await supabase
+        const { error: memErr } = await supabaseAdmin
           .from('project_members')
           .insert(memberPayloads);
         if (memErr) console.error('Error creating project members:', memErr);
@@ -101,11 +152,11 @@ export async function POST(request: NextRequest) {
             startDate: t.startDate || null,
             dueDate: t.dueDate || null,
             createdBy: 'system', // or current user if available
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            created_at: nowIso,
+            updated_at: nowIso
         }));
         
-        const { data: createdTasks, error: taskErr } = await supabase
+        const { data: createdTasks, error: taskErr } = await supabaseAdmin
             .from('tasks')
             .insert(taskPayloads)
             .select();
@@ -148,7 +199,7 @@ export async function POST(request: NextRequest) {
                 const batchSize = 1000;
                 for (let i = 0; i < planPoints.length; i += batchSize) {
                     const batch = planPoints.slice(i, i + batchSize);
-                    const { error: ppError } = await supabase
+                    const { error: ppError } = await supabaseAdmin
                         .from('task_plan_points')
                         .insert(batch);
                     if (ppError) console.error('Error creating plan points:', ppError);
@@ -169,13 +220,14 @@ export async function POST(request: NextRequest) {
             is_key_person: c.isKeyPerson || false
         }));
 
-        const { error: contactErr } = await supabase
+        const { error: contactErr } = await supabaseAdmin
             .from('contacts')
             .insert(contactPayloads);
 
         if (contactErr) console.error('Error creating contacts:', contactErr);
     }
 
+    await redis.del('projects:all');
     return NextResponse.json({ id: project_id }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
