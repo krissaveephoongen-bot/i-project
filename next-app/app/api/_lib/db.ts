@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 
 // PostgreSQL pool connections
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
