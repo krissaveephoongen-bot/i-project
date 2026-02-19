@@ -1,28 +1,7 @@
 
-import { ok, err, poolDirect } from '../../_lib/db';
+import { ok, err } from '../../_lib/db';
 import { NextRequest } from 'next/server';
-
-let cachedClientColumns: Set<string> | null = null;
-
-function sqlIdent(columnName: string) {
-  if (/[^a-z0-9_]/.test(columnName) || /[A-Z]/.test(columnName)) {
-    return `"${columnName.replaceAll('"', '""')}"`;
-  }
-  return columnName;
-}
-
-async function getClientColumns() {
-  if (cachedClientColumns) return cachedClientColumns;
-  const res = await poolDirect.query(
-    `
-    SELECT column_name
-    FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'clients'
-    `
-  );
-  cachedClientColumns = new Set(res.rows.map((r) => r.column_name));
-  return cachedClientColumns;
-}
+import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
 
 function mapDbClientToApiClient(row: any) {
   return {
@@ -37,20 +16,46 @@ function mapDbClientToApiClient(row: any) {
   };
 }
 
+async function updateClient(
+  id: string,
+  body: { name?: string; email?: string; phone?: string; address?: string; taxId?: string }
+) {
+  const base = {
+    ...(body.name !== undefined ? { name: body.name } : {}),
+    ...(body.email !== undefined ? { email: body.email } : {}),
+    ...(body.phone !== undefined ? { phone: body.phone } : {}),
+    ...(body.address !== undefined ? { address: body.address } : {}),
+  } as Record<string, any>;
+
+  const attempts: Array<Record<string, any>> = [
+    body.taxId !== undefined ? { ...base, taxId: body.taxId } : base,
+    body.taxId !== undefined ? { ...base, tax_id: body.taxId } : base,
+    body.taxId !== undefined ? { ...base, notes: `taxId=${body.taxId}` } : base,
+  ];
+
+  let lastError: any = null;
+  for (const payload of attempts) {
+    if (Object.keys(payload).length === 0) return null;
+    const { data, error } = await supabaseAdmin.from('clients').update(payload).eq('id', id).select().single();
+    if (!error) return data;
+    lastError = error;
+    const message = `${error.message || ''}`;
+    if (message.includes("Could not find the 'taxId' column") || message.includes("Could not find the 'tax_id' column")) {
+      continue;
+    }
+    break;
+  }
+  throw lastError ?? new Error('Failed to update client');
+}
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
-    const { rows } = await poolDirect.query(
-      `
-      SELECT *
-      FROM public.clients
-      WHERE id = $1
-      LIMIT 1
-      `,
-      [id]
-    );
-    if (!rows[0]) return err('Client not found', 404);
-    return ok(mapDbClientToApiClient(rows[0]), 200);
+    if (!supabaseAdmin) return err('Supabase is not configured', 500);
+
+    const { data, error } = await supabaseAdmin.from('clients').select('*').eq('id', id).single();
+    if (error) throw error;
+    return ok(mapDbClientToApiClient(data), 200);
   } catch (e: any) {
     return err(e?.message || 'error', 500);
   }
@@ -60,45 +65,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   try {
     const { id } = params;
     const body = await req.json();
+    if (!supabaseAdmin) return err('Supabase is not configured', 500);
 
-    const cols = await getClientColumns();
-    const setParts: string[] = [];
-    const values: any[] = [];
-
-    const pushSet = (col: string, value: any) => {
-      setParts.push(`${sqlIdent(col)} = $${values.length + 1}`);
-      values.push(value);
-    };
-
-    if (body.name !== undefined && cols.has('name')) pushSet('name', body.name);
-    if (body.email !== undefined && cols.has('email')) pushSet('email', body.email);
-    if (body.phone !== undefined && cols.has('phone')) pushSet('phone', body.phone);
-    if (body.address !== undefined && cols.has('address')) pushSet('address', body.address);
-
-    if (body.taxId !== undefined) {
-      if (cols.has('taxId')) pushSet('taxId', body.taxId);
-      else if (cols.has('tax_id')) pushSet('tax_id', body.taxId);
-      else if (cols.has('notes')) pushSet('notes', `taxId=${body.taxId}`);
-    }
-
-    if (cols.has('updated_at')) setParts.push(`updated_at = CURRENT_TIMESTAMP`);
-    if (cols.has('updatedAt')) setParts.push(`${sqlIdent('updatedAt')} = CURRENT_TIMESTAMP`);
-
-    if (setParts.length === 0) return err('No valid fields to update', 400);
-
-    values.push(id);
-    const { rows } = await poolDirect.query(
-      `
-      UPDATE public.clients
-      SET ${setParts.join(', ')}
-      WHERE id = $${values.length}
-      RETURNING *
-      `,
-      values
-    );
-
-    if (!rows[0]) return err('Client not found', 404);
-    return ok(mapDbClientToApiClient(rows[0]), 200);
+    const data = await updateClient(id, body);
+    if (!data) return err('No valid fields to update', 400);
+    return ok(mapDbClientToApiClient(data), 200);
   } catch (e: any) {
     return err(e?.message || 'error', 500);
   }
@@ -107,15 +78,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
-    const { rowCount } = await poolDirect.query(
-      `
-      DELETE FROM public.clients
-      WHERE id = $1
-      `,
-      [id]
-    );
+    if (!supabaseAdmin) return err('Supabase is not configured', 500);
 
-    if (rowCount === 0) return err('Client not found', 404);
+    const { error } = await supabaseAdmin.from('clients').delete().eq('id', id);
+    if (error) throw error;
     return ok({ success: true }, 200);
   } catch (e: any) {
     return err(e?.message || 'error', 500);
