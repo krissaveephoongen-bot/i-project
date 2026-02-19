@@ -22,28 +22,40 @@ export function useSupabaseData<T extends Record<string, any>>(
     fetchData();
     
     if (options?.realTime) {
-      const channel = supabase
-        .channel(`${table}-changes`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: table as string },
-          (payload) => {
-            if (payload.eventType === 'INSERT') {
-              setData(prev => prev ? [...prev, payload.new as T] : [payload.new as T]);
-            } else if (payload.eventType === 'UPDATE') {
-              setData(prev => prev ? prev.map(item => 
-                (item as any).id === payload.new.id ? payload.new as T : item
-              ) : [payload.new as T]);
-            } else if (payload.eventType === 'DELETE') {
-              setData(prev => prev ? prev.filter(item => (item as any).id !== payload.old.id) : []);
+      try {
+        const channel = supabase
+          .channel(`${table}-changes`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: table as string },
+            (payload) => {
+              if (payload.eventType === 'INSERT') {
+                setData(prev => prev ? [...prev, payload.new as T] : [payload.new as T]);
+              } else if (payload.eventType === 'UPDATE') {
+                setData(prev => prev ? prev.map(item => 
+                  (item as any).id === payload.new.id ? payload.new as T : item
+                ) : [payload.new as T]);
+              } else if (payload.eventType === 'DELETE') {
+                setData(prev => prev ? prev.filter(item => (item as any).id !== payload.old.id) : []);
+              }
             }
-          }
-        )
-        .subscribe();
+          )
+          .subscribe((status) => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              console.warn(`⚠️ Realtime subscription failed for ${table}:`, status);
+              // Fall back to polling - data is already loaded, just won't get live updates
+            }
+          });
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
+        return () => {
+          channel.unsubscribe().then(() => {
+            supabase.removeChannel(channel);
+          });
+        };
+      } catch (error) {
+        console.warn(`Failed to setup realtime for ${table}:`, error);
+        // Data loading already happened, realtime is just a nice-to-have
+      }
     }
   }, [table, options?.filter, options?.orderBy, options?.limit, options?.realTime]);
 

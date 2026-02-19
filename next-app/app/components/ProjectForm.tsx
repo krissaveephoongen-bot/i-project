@@ -211,83 +211,12 @@ export default function ProjectForm({ project, onSave, onCancel }: ProjectFormPr
          </div>
        </div>
      </div>
-     {errorText && (
-       <div className="px-3 py-2 bg-red-50 text-red-700 rounded text-sm">{errorText}</div>
-     )}
+      {errorText && (
+        <div className="px-3 py-2 bg-red-50 text-red-700 rounded text-sm">{errorText}</div>
+      )}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onCancel}>ยกเลิก</Button>
         <Button type="submit">บันทึก</Button>
-      </div>
-      <div className="space-y-3">
-        <h3 className="text-md font-semibold text-slate-900">ทีมโครงการสำหรับรายงาน</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">บทบาท</th>
-                <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">ผู้ใช้</th>
-                <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">ลบ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m, i) => (
-                <tr key={i} className="border-b border-slate-100">
-                  <td className="py-2 px-3">
-                    <select
-                      className="w-full border rounded px-2 py-1 text-sm"
-                      value={m.role}
-                      onChange={e => {
-                        const v = e.target.value;
-                        setMembers(prev => prev.map((x, idx) => idx === i ? { ...x, role: v } : x));
-                      }}
-                    >
-                      <option value="Account Manager">Account Manager</option>
-                      <option value="Project Manager">Project Manager</option>
-                      <option value="Project Engineer">Project Engineer</option>
-                      <option value="Project Co">Project Co</option>
-                    </select>
-                  </td>
-                  <td className="py-2 px-3">
-                    <select
-                      className="w-full border rounded px-2 py-1 text-sm"
-                      value={m.userId}
-                      onChange={e => {
-                        const v = e.target.value;
-                        setMembers(prev => prev.map((x, idx) => idx === i ? { ...x, userId: v } : x));
-                      }}
-                    >
-                      <option value="">เลือกผู้ใช้</option>
-                      {managers.map(u => (
-                        <option key={u.id} value={u.id}>{u.name}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="py-2 px-3">
-                    <button
-                      type="button"
-                      className="px-2 py-1 text-sm bg-red-100 text-red-700 rounded"
-                      onClick={() => setMembers(prev => prev.filter((_, idx) => idx !== i))}
-                    >
-                      ลบ
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {members.length === 0 && (
-                <tr>
-                  <td className="py-3 px-3 text-sm text-slate-500" colSpan={3}>ยังไม่ได้กำหนดทีมสำหรับรายงาน</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <button
-          type="button"
-          className="px-3 py-1 bg-slate-100 text-slate-900 rounded text-sm"
-          onClick={() => setMembers(prev => [...prev, { role: 'Project Manager', userId: '' }])}
-        >
-          เพิ่มสมาชิกทีม
-        </button>
       </div>
     </form>
   );

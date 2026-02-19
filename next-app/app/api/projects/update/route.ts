@@ -5,6 +5,8 @@ import { supabase } from '@/app/lib/supabaseClient';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('Update Project Request:', body);
+    
     const { id, updatedFields = {} } = body || {};
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
@@ -14,9 +16,14 @@ export async function POST(request: NextRequest) {
       if (k in updatedFields) payload[k] = updatedFields[k];
     }
     payload.updated_at = new Date().toISOString();
+    
+    console.log('Update Payload:', payload);
 
     const { data, error } = await supabase.from('projects').update(payload).eq('id', id).select('*').limit(1);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      console.error('Supabase Update Error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
     // Track Progress History if progress changed
     if ('progress' in updatedFields) {
@@ -31,6 +38,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log('Update Success:', data);
     return NextResponse.json((data || [])[0] || {}, { status: 200 });
   } catch (e: any) {
     console.error('Update Project Error:', e);
