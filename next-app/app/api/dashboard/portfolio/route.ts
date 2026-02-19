@@ -123,7 +123,16 @@ export async function GET(req: NextRequest) {
       const actual = Number(p.spent || 0)
       const committed = committedByProject[p.id] || 0
       const ev = budget * (progress / 100)
-      const cpi = actual > 0 ? ev / actual : (progress > 0 ? 1 : 0)
+      
+      // Better CPI calculation for projects with zero budget
+      let cpi = 0
+      if (budget > 0) {
+        cpi = actual > 0 ? ev / actual : (progress > 0 ? 1 : 0)
+      } else if (progress > 0) {
+        // For projects with no budget, use progress as a proxy
+        cpi = 1
+      }
+      
       const riskCounts = risksByProject[p.id] || { high: 0, medium: 0, low: 0 }
       
       console.log(`Project ${p.id}: budget=${budget}, progress=${progress}, actual=${actual}, ev=${ev}, cpi=${cpi}`)
@@ -142,8 +151,8 @@ export async function GET(req: NextRequest) {
         remaining: Math.max(budget - actual - committed, 0),
         risks: riskCounts,
         overdueMilestones: overdueCounts[p.id] || 0,
-        managerName: managersMap[p.managerId || p.manager_id]?.name || '',
-        clientName: clientsMap[p.clientId || p.client_id]?.name || ''
+        managerName: managersMap[p.managerId || p.manager_id]?.name || 'Unassigned',
+        clientName: clientsMap[p.clientId || p.client_id]?.name || 'No Client'
       }
     })
 
