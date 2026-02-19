@@ -9,14 +9,17 @@
      if (!projectId) {
        return NextResponse.json({ error: 'projectId required' }, { status: 400 });
      }
-    const res = await firstOk(PROJECT_ID_COLUMNS, (col) =>
-      supabase
-        .from('milestones')
-        .select('*')
-        .eq(col, projectId)
-        .order('due_date', { ascending: true })
-        .order('dueDate', { ascending: true })
-    );
+    let res: any = null;
+    for (const orderCol of ['due_date', 'dueDate']) {
+      res = await firstOk(PROJECT_ID_COLUMNS, (col) =>
+        supabase
+          .from('milestones')
+          .select('*')
+          .eq(col, projectId)
+          .order(orderCol, { ascending: true })
+      );
+      if (!res?.error) break;
+    }
     const { data, error } = res as any;
      if (error) return NextResponse.json([], { status: 200 });
     const rows = (data || []).map((m: any) => ({

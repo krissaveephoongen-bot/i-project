@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     const assignedCols = assignedTo ? (['assigned_to', 'assignedTo', 'assignedto'] as const) : ([] as any);
 
     const run = (pCol?: string, mCol?: string, aCol?: string) => {
-      let query: any = supabase.from('tasks').select('*').order('due_date', { ascending: true }).order('dueDate', { ascending: true });
+      let query: any = supabase.from('tasks').select('*').order('created_at', { ascending: false });
       if (q) query = query.ilike('title', `%${q}%`);
       if (status) query = query.eq('status', status);
       if (priority) query = query.eq('priority', priority);
@@ -104,31 +104,33 @@ export async function POST(req: NextRequest) {
     if (!projectId) return err('Project is required', 400);
 
     const nowIso = new Date().toISOString();
-    const snakePayload: any = {
+    const snakeBase: any = {
       title,
       description,
       status,
       priority,
       project_id: projectId,
-      created_by: 'system',
       created_at: nowIso,
       updated_at: nowIso
     };
+    const snakeWithCreatedBy: any = { ...snakeBase, created_by: 'system' };
+    const snakePayload: any = { ...snakeWithCreatedBy };
     if (dueDate) snakePayload.due_date = dueDate;
     if (estimatedHours != null) snakePayload.estimated_hours = Number(estimatedHours) || 0;
     if (milestoneId) snakePayload.milestone_id = milestoneId;
     if (assignedTo) snakePayload.assigned_to = assignedTo;
 
-    const camelPayload: any = {
+    const camelBase: any = {
       title,
       description,
       status,
       priority,
       projectId,
-      createdBy: 'system',
       created_at: nowIso,
       updated_at: nowIso
     };
+    const camelWithCreatedBy: any = { ...camelBase, createdBy: 'system' };
+    const camelPayload: any = { ...camelWithCreatedBy };
     if (dueDate) camelPayload.dueDate = dueDate;
     if (estimatedHours != null) camelPayload.estimatedHours = Number(estimatedHours) || 0;
     if (milestoneId) camelPayload.milestoneId = milestoneId;
@@ -136,7 +138,7 @@ export async function POST(req: NextRequest) {
 
     let data: any = null;
     let error: any = null;
-    for (const p of [snakePayload, camelPayload]) {
+    for (const p of [snakePayload, snakeBase, camelPayload, camelBase]) {
       const res = await supabase.from('tasks').insert([p]).select().single();
       data = res.data;
       error = res.error;
