@@ -123,8 +123,10 @@ export async function GET(req: NextRequest) {
       const actual = Number(p.spent || 0)
       const committed = committedByProject[p.id] || 0
       const ev = budget * (progress / 100)
-      const cpi = actual > 0 ? ev / actual : (progress > 0 ? 2 : 1)
+      const cpi = actual > 0 ? ev / actual : (progress > 0 ? 1 : 0)
       const riskCounts = risksByProject[p.id] || { high: 0, medium: 0, low: 0 }
+      
+      console.log(`Project ${p.id}: budget=${budget}, progress=${progress}, actual=${actual}, ev=${ev}, cpi=${cpi}`)
       
       return {
         id: p.id,

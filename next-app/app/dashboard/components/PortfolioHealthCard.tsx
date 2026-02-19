@@ -8,6 +8,9 @@ interface PortfolioHealthCardProps {
 }
 
 function PortfolioHealthCard({ data }: PortfolioHealthCardProps) {
+  console.log('PortfolioHealthCard received data:', data.length, 'projects');
+  console.log('Sample project data:', data[0]);
+  
   return (
     <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-6 hover:shadow-md transition-all">
       <div className="flex items-center justify-between mb-6">
