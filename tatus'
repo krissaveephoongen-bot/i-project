@@ -1,0 +1,18 @@
+[1mdiff --git a/backend/lib/schema.js b/backend/lib/schema.js[m
+[1mindex eb9eb4158..c6cc892a5 100644[m
+[1m--- a/backend/lib/schema.js[m
+[1m+++ b/backend/lib/schema.js[m
+[36m@@ -132,10 +132,10 @@[m [mexport const clients = pgTable('clients', {[m
+   email: text('email'),[m
+   phone: text('phone'),[m
+   address: text('address'),[m
+[31m-  taxId: text('tax_id'),[m
+[32m+[m[32m  taxId: text('taxId'),[m
+   notes: text('notes'),[m
+[31m-  createdAt: timestamp('created_at').defaultNow().notNull(),[m
+[31m-  updatedAt: timestamp('updated_at').defaultNow().notNull(),[m
+[32m+[m[32m  createdAt: timestamp('createdAt').defaultNow().notNull(),[m
+[32m+[m[32m  updatedAt: timestamp('updatedAt').defaultNow().notNull(),[m
+ });[m
+ [m
+ export const projects = pgTable('projects', {[m
