@@ -1,6 +1,6 @@
  import { NextRequest, NextResponse } from 'next/server';
  import { supabase } from '@/app/lib/supabaseClient';
- import { withProjectId } from '../../_lib/supabaseCompat';
+ import { firstOk, PROJECT_ID_COLUMNS } from '../../_lib/supabaseCompat';
  
  export async function GET(request: NextRequest) {
    try {
@@ -9,10 +9,15 @@
      if (!projectId) {
        return NextResponse.json({ error: 'projectId required' }, { status: 400 });
      }
-    const base = supabase.from('milestones').select('*');
-    const { data, error } = await withProjectId(base, projectId)
-      .order('due_date', { ascending: true })
-      .order('dueDate', { ascending: true });
+    const res = await firstOk(PROJECT_ID_COLUMNS, (col) =>
+      supabase
+        .from('milestones')
+        .select('*')
+        .eq(col, projectId)
+        .order('due_date', { ascending: true })
+        .order('dueDate', { ascending: true })
+    );
+    const { data, error } = res as any;
      if (error) return NextResponse.json([], { status: 200 });
     const rows = (data || []).map((m: any) => ({
        id: m.id,

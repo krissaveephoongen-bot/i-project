@@ -1,6 +1,6 @@
  import { NextRequest, NextResponse } from 'next/server';
  import { supabase } from '@/app/lib/supabaseClient';
- import { orEq } from '../../_lib/supabaseCompat';
+ import { firstOk, USER_ID_COLUMNS } from '../../_lib/supabaseCompat';
  
  export async function GET(request: NextRequest) {
    try {
@@ -9,10 +9,17 @@
      const end = searchParams.get('end') || new Date().toISOString().slice(0, 10);
      const userId = searchParams.get('userId') || '';
  
-    let q = supabase.from('time_entries').select('*').gte('date', start).lte('date', end);
-    const res = userId ? await orEq(q, ['user_id', 'userId', 'userid'], userId) : await q;
-    const entries = res.data as any[] | null;
-    const error = res.error;
+    let entries: any[] | null = null;
+    let error: any = null;
+    if (userId) {
+      const res = await firstOk(USER_ID_COLUMNS, (col) => supabase.from('time_entries').select('*').gte('date', start).lte('date', end).eq(col, userId));
+      entries = (res as any).data;
+      error = (res as any).error;
+    } else {
+      const res = await supabase.from('time_entries').select('*').gte('date', start).lte('date', end);
+      entries = res.data;
+      error = res.error;
+    }
      if (error) {
        return NextResponse.json([], { status: 200 });
      }

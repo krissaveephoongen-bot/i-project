@@ -3,7 +3,7 @@ import { ok, err } from '../../_lib/db';
 import { NextRequest } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
 import redis from '@/lib/redis';
-import { orEq } from '../../_lib/supabaseCompat';
+import { firstOk, TASK_ID_COLUMNS } from '../../_lib/supabaseCompat';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -73,8 +73,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   try {
     const { id } = params;
     // Check for existing timesheet entries referencing this task
-    const base = supabase.from('time_entries').select('id').limit(1);
-    const { data: entries, error: entriesErr } = await orEq(base, ['task_id', 'taskId', 'taskid'], id);
+    const res = await firstOk(TASK_ID_COLUMNS, (col) => supabase.from('time_entries').select('id').eq(col, id).limit(1));
+    const entries = (res as any).data;
+    const entriesErr = (res as any).error;
     if (entriesErr) throw entriesErr;
 
     if ((entries || []).length > 0) {

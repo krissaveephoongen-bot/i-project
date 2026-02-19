@@ -1,6 +1,6 @@
  import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
-import { orEq } from '../../_lib/supabaseCompat';
+import { firstOk, PROJECT_ID_COLUMNS } from '../../_lib/supabaseCompat';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,10 +11,17 @@ export async function GET(request: NextRequest) {
     const end = searchParams.get('end') || new Date().toISOString().slice(0, 10);
     const projectId = searchParams.get('projectId') || '';
 
-    let q = supabase.from('time_entries').select('*').gte('date', start).lte('date', end);
-    const res = projectId ? await orEq(q, ['project_id', 'projectId', 'projectid'], projectId) : await q;
-    const entries = res.data as any[] | null;
-    const error = res.error;
+    let entries: any[] | null = null;
+    let error: any = null;
+    if (projectId) {
+      const res = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('time_entries').select('*').gte('date', start).lte('date', end).eq(col, projectId));
+      entries = (res as any).data;
+      error = (res as any).error;
+    } else {
+      const res = await supabase.from('time_entries').select('*').gte('date', start).lte('date', end);
+      entries = res.data;
+      error = res.error;
+    }
     
     if (error) {
       console.error('Error fetching utilization:', error);

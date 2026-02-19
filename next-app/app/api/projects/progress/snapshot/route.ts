@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
-import { withProjectId } from '../../../_lib/supabaseCompat';
+import { firstOk, PROJECT_ID_COLUMNS } from '../../../_lib/supabaseCompat';
 
 type Point = { date: string; plan: number; actual: number; spi: number; milestone: number };
 
@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
     const startDate: string | null = project.start_date ?? project.startDate ?? null;
     const endDate: string | null = project.end_date ?? project.endDate ?? null;
 
-    const msQuery = withProjectId(supabase.from('milestones').select('*'), projectId);
-    const { data: milestones } = await msQuery;
+    const msRes = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('milestones').select('*').eq(col, projectId));
+    const milestones = (msRes as any).data || [];
 
     const ms = (milestones || []).map((m: any) => {
       const pct = m.percentage != null ? Number(m.percentage || 0)
@@ -46,8 +46,8 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    const tasksQuery = withProjectId(supabase.from('tasks').select('*'), projectId);
-    const { data: tasks } = await tasksQuery;
+    const tRes = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('tasks').select('*').eq(col, projectId));
+    const tasks = (tRes as any).data || [];
     const tasksByMilestone: Record<string, any[]> = {};
     for (const t of (tasks || [])) {
       const mid = t.milestoneId || t.milestone_id || 'none';

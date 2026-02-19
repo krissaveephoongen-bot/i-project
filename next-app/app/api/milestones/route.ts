@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
-import { withProjectId } from '../_lib/supabaseCompat';
+import { firstOk, PROJECT_ID_COLUMNS } from '../_lib/supabaseCompat';
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,7 +13,27 @@ export async function GET(req: NextRequest) {
       .order('due_date', { ascending: true });
     
     if (projectId) {
-      query = withProjectId(query, projectId);
+      const res = await firstOk(PROJECT_ID_COLUMNS, (col) =>
+        supabase
+          .from('milestones')
+          .select('id, title, description, status, due_date, created_at')
+          .order('due_date', { ascending: true })
+          .eq(col, projectId)
+      );
+      const { data, error } = res as any;
+      if (error) {
+        console.error('Error fetching milestones:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      const transformed = (data || []).map((milestone: any) => ({
+        id: milestone.id,
+        title: milestone.title,
+        description: milestone.description,
+        status: milestone.status,
+        dueDate: milestone.due_date,
+        createdAt: milestone.created_at
+      }));
+      return NextResponse.json(transformed, { status: 200 });
     }
     
     const { data, error } = await query;

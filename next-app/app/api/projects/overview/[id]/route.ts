@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../lib/supabaseClient';
-import { withProjectId } from '../../../_lib/supabaseCompat';
+import { firstOk, PROJECT_ID_COLUMNS } from '../../../_lib/supabaseCompat';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const projectId = params.id;
@@ -10,7 +10,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     if (!project) return NextResponse.json({ error: 'project not found' }, { status: 404 });
 
     // Tasks
-    const { data: tasks } = await withProjectId(supabase.from('tasks').select('*'), projectId);
+    const tRes = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('tasks').select('*').eq(col, projectId));
+    const tasks = (tRes as any).data || [];
     const totalWeight = (tasks || []).reduce((s: number, t: any) => s + Number(t.weight || 0), 0) || 1;
     const actualWeighted = (tasks || []).reduce((s: number, t: any) => s + (Number(t.weight || 0) * Number(t.progressActual ?? t.progress_actual ?? 0)), 0);
     const progressOverall = Number((actualWeighted / totalWeight).toFixed(2));
@@ -18,7 +19,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     const progressPlanning = Number((planningWeighted / totalWeight).toFixed(2));
 
     // Milestones
-    const { data: milestonesRaw } = await withProjectId(supabase.from('milestones').select('*'), projectId);
+    const mRes = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('milestones').select('*').eq(col, projectId));
+    const milestonesRaw = (mRes as any).data || [];
     const milestones = (milestonesRaw || []).map((m: any) => ({
       id: m.id,
       title: m.title ?? m.name ?? '',
@@ -35,7 +37,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     }));
 
     // Risks
-    const { data: risks } = await withProjectId(supabase.from('risks').select('*'), projectId);
+    const rRes = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('risks').select('*').eq(col, projectId));
+    const risks = (rRes as any).data || [];
     const riskCounts = {
       high: (risks || []).filter((r: any) => (r.severity || '').toLowerCase() === 'high').length,
       medium: (risks || []).filter((r: any) => (r.severity || '').toLowerCase() === 'medium').length,
@@ -43,10 +46,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     };
 
     // Documents
-    const { data: documents } = await withProjectId(supabase.from('documents').select('*'), projectId);
+    const dRes = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('documents').select('*').eq(col, projectId));
+    const documents = (dRes as any).data || [];
 
     // Team
-    const { data: team } = await withProjectId(supabase.from('project_members').select('*'), projectId);
+    const pmRes = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('project_members').select('*').eq(col, projectId));
+    const team = (pmRes as any).data || [];
     let teamWithNames = team || [];
     if ((team || []).length > 0) {
       const userIds = (team || []).map((t: any) => t.userId ?? t.user_id).filter(Boolean);

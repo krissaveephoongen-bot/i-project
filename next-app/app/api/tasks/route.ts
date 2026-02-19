@@ -3,7 +3,7 @@ import { ok, err } from '../_lib/db';
 import { NextRequest } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
 import redis from '@/lib/redis';
-import { withMilestoneId, withProjectId } from '../_lib/supabaseCompat';
+import { firstOk, isSchemaColumnError, MILESTONE_ID_COLUMNS, PROJECT_ID_COLUMNS } from '../_lib/supabaseCompat';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,16 +30,56 @@ export async function GET(req: NextRequest) {
 
     console.log('Cache miss for tasks, fetching from database');
 
-    let query = supabase.from('tasks').select('*').order('due_date', { ascending: true }).order('dueDate', { ascending: true });
+    const projectCols = projectId ? PROJECT_ID_COLUMNS : ([] as any);
+    const milestoneCols = milestoneId ? MILESTONE_ID_COLUMNS : ([] as any);
+    const assignedCols = assignedTo ? (['assigned_to', 'assignedTo', 'assignedto'] as const) : ([] as any);
 
-    if (q) query = query.ilike('title', `%${q}%`);
-    if (status) query = query.eq('status', status);
-    if (priority) query = query.eq('priority', priority);
-    if (projectId) query = withProjectId(query, projectId);
-    if (assignedTo) query = query.eq('assignedTo', assignedTo);
-    if (milestoneId) query = withMilestoneId(query, milestoneId);
+    const run = (pCol?: string, mCol?: string, aCol?: string) => {
+      let query: any = supabase.from('tasks').select('*').order('due_date', { ascending: true }).order('dueDate', { ascending: true });
+      if (q) query = query.ilike('title', `%${q}%`);
+      if (status) query = query.eq('status', status);
+      if (priority) query = query.eq('priority', priority);
+      if (projectId && pCol) query = query.eq(pCol, projectId);
+      if (milestoneId && mCol) query = query.eq(mCol, milestoneId);
+      if (assignedTo && aCol) query = query.eq(aCol, assignedTo);
+      return query;
+    };
 
-    const { data, error } = await query;
+    let data: any = null;
+    let error: any = null;
+    if (projectId || milestoneId || assignedTo) {
+      const pList = projectId ? (projectCols as readonly string[]) : [undefined];
+      const mList = milestoneId ? (milestoneCols as readonly string[]) : [undefined];
+      const aList = assignedTo ? (assignedCols as readonly string[]) : [undefined];
+
+      let last: any = null;
+      outer: for (const pCol of pList) {
+        for (const mCol of mList) {
+          for (const aCol of aList) {
+            const res = await run(pCol, mCol, aCol);
+            last = res;
+            if (!res.error) {
+              data = res.data;
+              error = null;
+              break outer;
+            }
+            if (!isSchemaColumnError(res.error)) {
+              data = res.data;
+              error = res.error;
+              break outer;
+            }
+          }
+        }
+      }
+      if (error == null && data == null && last) {
+        data = last.data;
+        error = last.error;
+      }
+    } else {
+      const res = await run();
+      data = res.data;
+      error = res.error;
+    }
     if (error) throw error;
     
     // Cache the tasks for 2 minutes (shorter cache for frequently changing data)
@@ -69,29 +109,30 @@ export async function POST(req: NextRequest) {
       description,
       status,
       priority,
-      due_date: dueDate || null,
-      estimated_hours: estimatedHours ? Number(estimatedHours) : 0,
       project_id: projectId,
-      milestone_id: milestoneId || null,
-      assigned_to: assignedTo || null,
       created_by: 'system',
       created_at: nowIso,
       updated_at: nowIso
     };
+    if (dueDate) snakePayload.due_date = dueDate;
+    if (estimatedHours != null) snakePayload.estimated_hours = Number(estimatedHours) || 0;
+    if (milestoneId) snakePayload.milestone_id = milestoneId;
+    if (assignedTo) snakePayload.assigned_to = assignedTo;
+
     const camelPayload: any = {
       title,
       description,
       status,
       priority,
-      dueDate: dueDate || null,
-      estimatedHours: estimatedHours ? Number(estimatedHours) : 0,
       projectId,
-      milestoneId: milestoneId || null,
-      assignedTo: assignedTo || null,
       createdBy: 'system',
       created_at: nowIso,
       updated_at: nowIso
     };
+    if (dueDate) camelPayload.dueDate = dueDate;
+    if (estimatedHours != null) camelPayload.estimatedHours = Number(estimatedHours) || 0;
+    if (milestoneId) camelPayload.milestoneId = milestoneId;
+    if (assignedTo) camelPayload.assignedTo = assignedTo;
 
     let data: any = null;
     let error: any = null;
