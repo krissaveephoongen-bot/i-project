@@ -13,7 +13,7 @@ import ProjectGantt from '@/app/components/gantt/ProjectGantt';
 import BurndownChart from '@/app/components/charts/BurndownChart';
 import { Task } from '@/lib/tasks';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function ProjectTasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
