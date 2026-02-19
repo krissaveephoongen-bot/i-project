@@ -16,8 +16,16 @@ function mapDbClientToApiClient(row: any) {
   };
 }
 
-async function insertClient(row: { name: string; email?: string; phone?: string; address?: string; taxId?: string }) {
+async function insertClient(row: {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  taxId?: string;
+}) {
   const base = {
+    id: row.id,
     name: row.name,
     email: row.email,
     phone: row.phone,
@@ -27,7 +35,7 @@ async function insertClient(row: { name: string; email?: string; phone?: string;
   const attempts: Array<Record<string, any>> = [
     row.taxId ? { ...base, taxId: row.taxId } : base,
     row.taxId ? { ...base, tax_id: row.taxId } : base,
-    row.taxId ? { ...base, notes: `taxId=${row.taxId}` } : base,
+    base,
   ];
 
   let lastError: any = null;
@@ -68,11 +76,12 @@ export async function POST(req: NextRequest) {
     if (!supabaseAdmin) return err('Supabase is not configured', 500);
 
     const body = await req.json();
-    const { name, email, phone, address, taxId } = body;
+    const { id, name, email, phone, address, taxId } = body;
 
     if (!name) return err('Name is required', 400);
 
-    const data = await insertClient({ name, email, phone, address, taxId });
+    const newId = id ?? globalThis.crypto?.randomUUID?.() ?? `client-${Date.now()}`;
+    const data = await insertClient({ id: newId, name, email, phone, address, taxId });
     return ok(mapDbClientToApiClient(data), 201);
   } catch (e: any) {
     return err(e?.message || 'error', 500);
