@@ -45,15 +45,13 @@ export default function ClientFormModal({ isOpen, onClose, client, onSuccess }: 
             setValue('phone', client.phone);
             setValue('address', client.address);
             setValue('taxId', client.taxId);
-            setValue('notes', client.notes);
         } else {
             reset({
                 name: '',
                 email: '',
                 phone: '',
                 address: '',
-                taxId: '',
-                notes: ''
+                taxId: ''
             });
         }
     }, [client, isOpen, reset, setValue]);
@@ -181,15 +179,6 @@ export default function ClientFormModal({ isOpen, onClose, client, onSuccess }: 
                             id="address"
                             {...register('address')}
                             placeholder="123 Street, City, Country"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="notes">Notes</Label>
-                        <Input
-                            id="notes"
-                            {...register('notes')}
-                            placeholder="Additional information..."
                         />
                     </div>
 

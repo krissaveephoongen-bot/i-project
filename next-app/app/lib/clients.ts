@@ -8,7 +8,6 @@ export interface Client {
   phone?: string;
   address?: string;
   taxId?: string;
-  notes?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -93,7 +92,6 @@ function mapDbClientToClient(c: any): Client {
         phone: c.phone,
         address: c.address,
         taxId: c.taxId || c.tax_id,
-        notes: c.notes,
         createdAt: c.createdAt || c.created_at,
         updatedAt: c.updatedAt || c.updated_at
     };

@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
     if (error) throw error
     const list: any[] = projects || []
 
-    const managerIds = Array.from(new Set(list.map((p: any) => p.managerId || p.manager_id).filter(Boolean)))
-    const clientIds = Array.from(new Set(list.map((p: any) => p.clientId || p.client_id).filter(Boolean)))
+    const managerIds = Array.from(new Set(list.map((p: any) => p.manager_id).filter(Boolean)))
+    const clientIds = Array.from(new Set(list.map((p: any) => p.client_id).filter(Boolean)))
     const { data: managers } = managerIds.length ? await supabaseAdmin.from('users').select('id,name').in('id', managerIds) : { data: [] }
     const { data: clients } = clientIds.length ? await supabaseAdmin.from('clients').select('id,name').in('id', clientIds) : { data: [] }
     const managersMap: Record<string, any> = {}
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     for (const c of (clients || [])) clientsMap[c.id] = c
 
     const ids = list.map(p => p.id)
-    const { data: milestones } = ids.length ? await supabaseAdmin.from('milestones').select('id,projectId,project_id,status,percentage,dueDate,due_date').in('project_id', ids) : { data: [] }
+    const { data: milestones } = ids.length ? await supabaseAdmin.from('milestones').select('id,project_id,status,percentage,due_date').in('project_id', ids) : { data: [] }
     const budgetByProject: Record<string, number> = {}
     for (const p of list) budgetByProject[p.id] = Number(p.budget || 0)
     // Pre-process milestones for all projects
@@ -43,12 +43,12 @@ export async function GET(req: NextRequest) {
     const today = new Date().toISOString().slice(0, 10);
 
     for (const m of (milestones || [])) {
-        const pid = m.projectId || m.project_id
+        const pid = m.project_id
         if (!milestonesByProject[pid]) milestonesByProject[pid] = []
         milestonesByProject[pid].push(m)
 
         // Overdue check
-        const d = m.dueDate || m.due_date
+        const d = m.due_date
         const st = String(m.status || '').toLowerCase()
         if (d && d < today && st !== 'paid' && st !== 'completed') {
             overdueCounts[pid] = (overdueCounts[pid] || 0) + 1
@@ -65,11 +65,11 @@ export async function GET(req: NextRequest) {
 
     const linesByProject: Record<string, any[]> = {}
     for (const m of (milestones || [])) {
-      const pid = m.projectId || m.project_id
+      const pid = m.project_id
       const budget = budgetByProject[pid] || 0
       const pct = Number(m.percentage || 0)
       const amount = (pct / 100) * budget
-      const date = m.dueDate || m.due_date || null
+      const date = m.due_date || null
       const status = String(m.status || '').toLowerCase()
       const type = status === 'paid' ? 'paid' : (status === 'approved' ? 'committed' : null)
       if (!type) continue
@@ -151,8 +151,8 @@ export async function GET(req: NextRequest) {
         remaining: Math.max(budget - actual - committed, 0),
         risks: riskCounts,
         overdueMilestones: overdueCounts[p.id] || 0,
-        managerName: managersMap[p.managerId || p.manager_id]?.name || 'Unassigned',
-        clientName: clientsMap[p.clientId || p.client_id]?.name || 'No Client'
+        managerName: managersMap[p.manager_id]?.name || 'Unassigned',
+        clientName: clientsMap[p.client_id]?.name || 'No Client'
       }
     })
 

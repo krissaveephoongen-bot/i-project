@@ -30,15 +30,15 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     console.log('Client API POST request:', body);
-    const { name, email, phone, address, taxId, notes } = body;
+    const { name, email, phone, address, taxId } = body;
 
     if (!name) return err('Name is required', 400);
 
-    console.log('Creating client with data:', { name, email, phone, address, taxId, notes });
+    console.log('Creating client with data:', { name, email, phone, address, taxId });
 
     const { data, error } = await supabase
       .from('clients')
-      .insert([{ name, email, phone, address, taxId, notes }])
+      .insert([{ name, email, phone, address, taxId }])
       .select()
       .single();
 

@@ -35,8 +35,8 @@ export async function GET() {
     }
 
     // Manually fetch managers and clients to avoid "ambiguous relationship" errors
-    const manager_ids = Array.from(new Set(projects.map((p: any) => p.manager_id || p.manager_id).filter(Boolean)));
-    const client_ids = Array.from(new Set(projects.map((p: any) => p.client_id || p.client_id).filter(Boolean)));
+    const manager_ids = Array.from(new Set(projects.map((p: any) => p.manager_id).filter(Boolean)));
+    const client_ids = Array.from(new Set(projects.map((p: any) => p.client_id).filter(Boolean)));
 
     let managersMap: Record<string, any> = {};
     let clientsMap: Record<string, any> = {};
@@ -54,8 +54,8 @@ export async function GET() {
     // Attach details
     const enrichedProjects = projects.map((p: any) => ({
       ...p,
-      manager: managersMap[p.manager_id || p.manager_id] || null,
-      client: clientsMap[p.client_id || p.client_id] || null
+      manager: managersMap[p.manager_id] || null,
+      client: clientsMap[p.client_id] || null
     }));
 
     // Cache the enriched projects for 5 minutes
