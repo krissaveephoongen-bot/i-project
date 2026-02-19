@@ -1,10 +1,11 @@
 import { NextRequest } from 'next/server';
-import { ok, err, pool } from '../_lib/db';
+import { ok, err } from '../_lib/db';
 import { supabase } from '@/app/lib/supabaseClient';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import redis from '@/lib/redis';
+import { isSchemaColumnError } from '../_lib/supabaseCompat';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,104 +31,67 @@ export async function GET(req: NextRequest) {
 
     console.log('Cache miss for users, fetching from database');
 
-    try {
-      let query = supabase
-        .from('users')
-        .select('id,name,email,role,status,department,position,avatar,phone,timezone,is_active,is_deleted,failed_login_attempts,is_project_manager,is_supervisor,hourly_rate,employee_code,created_at,updated_at', { count: 'exact' })
-        .order('name', { ascending: true });
-      if (q) {
-        query = query.or(`name.ilike.%${q}%,email.ilike.%${q}%`);
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    const orderCols = ['name', 'created_at'] as const;
+    const statusModes = status ? (['status', 'is_active', 'none'] as const) : (['none'] as const);
+    const roleModes = role ? ([true, false] as const) : ([false] as const);
+
+    let rows: any[] = [];
+    let total = 0;
+    let lastErr: any = null;
+
+    outer: for (const orderCol of orderCols) {
+      for (const statusMode of statusModes) {
+        for (const applyRole of roleModes) {
+          let query: any = supabase.from('users').select('*', { count: 'exact' });
+          if (q) query = query.or(`name.ilike.%${q}%,email.ilike.%${q}%`);
+          if (applyRole && role) query = query.eq('role', role);
+          if (status && statusMode === 'status') query = query.eq('status', status);
+          if (status && statusMode === 'is_active') query = query.eq('is_active', String(status).toLowerCase() === 'active');
+          query = query.order(orderCol as any, { ascending: orderCol === 'name' });
+          const res = await query.range(from, to);
+          if (!res.error) {
+            rows = res.data || [];
+            total = res.count || 0;
+            lastErr = null;
+            break outer;
+          }
+          lastErr = res.error;
+          if (isSchemaColumnError(res.error)) continue;
+          break outer;
+        }
       }
-      if (role) {
-        query = query.eq('role', role);
-      }
-      if (status) {
-        query = query.eq('status', status);
-      }
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-      const { data: rows, count, error } = await query.range(from, to);
-      if (error) throw error;
-      
-      // Cache the result for 3 minutes
-      await redis.set(cacheKey, JSON.stringify({ total: count || 0, rows: rows || [] }), { EX: 180 });
-      console.log('Cached users for 3 minutes:', cacheKey);
-      
-      return ok({ total: count || 0, rows: rows || [] }, 200);
-    } catch {
-      const conds: string[] = [];
-      const params: any[] = [];
-      let idx = 1;
-      if (q) {
-        conds.push(`(LOWER(name) LIKE $${idx} OR LOWER(email) LIKE $${idx})`);
-        params.push(`%${q.toLowerCase()}%`);
-        idx++;
-      }
-      if (role) {
-        conds.push(`LOWER(role::text) = $${idx}`);
-        params.push(role.toLowerCase());
-        idx++;
-      }
-      if (status) {
-        conds.push(`LOWER(COALESCE(status, "status")) = $${idx}`);
-        params.push(status.toLowerCase());
-        idx++;
-      }
-      const whereSql = conds.length > 0 ? `WHERE ${conds.join(' AND ')}` : '';
-      const countSql = `SELECT COUNT(*)::int AS count FROM users ${whereSql}`;
-      const totalRes = await pool.query(countSql, params);
-      params.push(pageSize);
-      params.push((page - 1) * pageSize);
-      const rowsSql = `
-        SELECT
-          id,
-          name,
-          email,
-          role,
-          status,
-          department,
-          position,
-          avatar,
-          REGEXP_REPLACE(COALESCE(phone, ''), E'[\\r\\n]+', '', 'g') AS phone,
-          timezone,
-          is_active,
-          is_deleted,
-          failed_login_attempts,
-          is_project_manager,
-          is_supervisor,
-          hourly_rate,
-          employee_code,
-          created_at,
-          updated_at
-        FROM users
-        ${whereSql}
-        ORDER BY name ASC NULLS LAST
-        LIMIT $${idx} OFFSET $${idx + 1}
-      `;
-      const rowsRes = await pool.query(rowsSql, params);
-      const rows = rowsRes.rows.map((r: any) => ({
-        id: r.id,
-        name: r.name,
-        email: r.email,
-        role: r.role,
-        status: r.status,
-        department: r.department,
-        position: r.position,
-        avatar: r.avatar,
-        phone: r.phone,
-        timezone: r.timezone,
-        is_active: r.is_active ?? true,
-        is_deleted: r.is_deleted ?? false,
-        failed_login_attempts: r.failed_login_attempts ?? 0,
-        is_project_manager: r.is_project_manager ?? false,
-        is_supervisor: r.is_supervisor ?? false,
-        hourly_rate: Number(r.hourly_rate ?? 0),
-        employee_code: r.employee_code ?? '',
-        created_at: r.created_at,
-        updated_at: r.updated_at,
-      }));
-      return ok({ total: totalRes.rows[0]?.count || 0, rows }, 200);
     }
+    if (lastErr) throw lastErr;
+
+    const mapped = (rows || []).map((r: any) => ({
+      id: r.id,
+      name: r.name ?? r.full_name ?? '',
+      email: r.email ?? '',
+      role: r.role ?? 'employee',
+      status: r.status ?? (r.is_active === false ? 'inactive' : 'active'),
+      department: r.department ?? null,
+      position: r.position ?? null,
+      avatar: r.avatar ?? r.avatar_url ?? null,
+      phone: String(r.phone ?? '').replace(/[\r\n]+/g, ''),
+      timezone: r.timezone ?? null,
+      is_active: r.is_active ?? true,
+      is_deleted: r.is_deleted ?? false,
+      failed_login_attempts: r.failed_login_attempts ?? 0,
+      is_project_manager: r.is_project_manager ?? false,
+      is_supervisor: r.is_supervisor ?? false,
+      hourly_rate: Number(r.hourly_rate ?? r.hourlyRate ?? 0),
+      employee_code: r.employee_code ?? r.employeeCode ?? '',
+      created_at: r.created_at ?? null,
+      updated_at: r.updated_at ?? null,
+    }));
+
+    await redis.set(cacheKey, JSON.stringify({ total: total || 0, rows: mapped || [] }), { EX: 180 });
+    console.log('Cached users for 3 minutes:', cacheKey);
+
+    return ok({ total: total || 0, rows: mapped || [] }, 200);
   } catch (e: any) {
     return err(e?.message || 'failed', 500);
   }
@@ -171,8 +135,6 @@ export async function GET(req: NextRequest) {
     if (body.password) {
       const hash = await bcrypt.hash(body.password, 10);
       payload.password = hash;
-      payload.password_hash = hash;
-      payload.hashed_password = hash;
     }
     const { data, error } = await supabase
       .from('users')
@@ -217,8 +179,6 @@ export async function GET(req: NextRequest) {
     if (updatedFields.password) {
       const hash = await bcrypt.hash(updatedFields.password, 10);
       payload.password = hash;
-      payload.password_hash = hash;
-      payload.hashed_password = hash;
     }
     if (typeof updatedFields.is_active === 'boolean') payload.is_active = updatedFields.is_active;
     if (typeof updatedFields.is_deleted === 'boolean') payload.is_deleted = updatedFields.is_deleted;

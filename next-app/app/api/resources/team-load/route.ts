@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
+import { firstOk, USER_ID_COLUMNS, isSchemaColumnError } from '../../_lib/supabaseCompat';
 
 export const revalidate = 0;
 
@@ -25,21 +26,28 @@ export async function GET(request: NextRequest) {
     }
 
     // 1. Fetch Users
-    const { data: users, error: userError } = await supabaseAdmin
-        .from('users')
-        .select('id, name, avatar')
-        .order('name');
-    
-    if (userError) throw userError;
+    const userSelects = ['id,name,avatar', 'id,name,avatar_url', 'id,name'] as const;
+    let users: any[] = [];
+    let userErr: any = null;
+    for (const sel of userSelects) {
+      const res = await supabaseAdmin.from('users').select(sel).order('name');
+      if (!res.error) {
+        users = res.data || [];
+        userErr = null;
+        break;
+      }
+      userErr = res.error;
+      if (isSchemaColumnError(res.error)) continue;
+      break;
+    }
+    if (userErr) throw userErr;
 
     // 2. Fetch Time Entries for the period
-    const { data: entries, error: entryError } = await supabaseAdmin
-        .from('time_entries')
-        .select('userId, date, hours')
-        .gte('date', start)
-        .lte('date', end);
-
-    if (entryError) throw entryError;
+    const entryRes = await firstOk(USER_ID_COLUMNS, (col) =>
+      supabaseAdmin.from('time_entries').select(`${col},date,hours`).gte('date', start).lte('date', end)
+    );
+    if ((entryRes as any).error) throw (entryRes as any).error;
+    const entries = (entryRes as any).data || [];
 
     // 3. Aggregate Data
     const loadMap: Record<string, Record<string, number>> = {};
@@ -50,19 +58,20 @@ export async function GET(request: NextRequest) {
     });
 
     entries?.forEach((e: any) => {
-        if (!loadMap[e.userId]) return; // Skip if user not found
+        const uid = e.user_id ?? e.userId ?? e.userid ?? null;
+        if (!uid || !loadMap[uid]) return; // Skip if user not found
         
         const date = new Date(e.date);
         const day = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
         const hours = Number(e.hours || 0);
 
-        if (day === 1) loadMap[e.userId].mon += hours;
-        else if (day === 2) loadMap[e.userId].tue += hours;
-        else if (day === 3) loadMap[e.userId].wed += hours;
-        else if (day === 4) loadMap[e.userId].thu += hours;
-        else if (day === 5) loadMap[e.userId].fri += hours;
-        else if (day === 6) loadMap[e.userId].sat += hours;
-        else if (day === 0) loadMap[e.userId].sun += hours;
+        if (day === 1) loadMap[uid].mon += hours;
+        else if (day === 2) loadMap[uid].tue += hours;
+        else if (day === 3) loadMap[uid].wed += hours;
+        else if (day === 4) loadMap[uid].thu += hours;
+        else if (day === 5) loadMap[uid].fri += hours;
+        else if (day === 6) loadMap[uid].sat += hours;
+        else if (day === 0) loadMap[uid].sun += hours;
     });
 
     // 4. Format for Frontend
@@ -71,7 +80,7 @@ export async function GET(request: NextRequest) {
         return {
             id: u.id,
             name: u.name,
-            avatar: u.avatar,
+            avatar: u.avatar ?? u.avatar_url ?? null,
             mon: load.mon,
             tue: load.tue,
             wed: load.wed,
