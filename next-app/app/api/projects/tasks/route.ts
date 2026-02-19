@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       phase: t.phase ?? null,
       milestoneId: t.milestoneId ?? null,
       projectId: t.projectId ?? t.project_id ?? null,
-      weight: Number(t.weight ?? 0),
+      weight: Number(t.weight ?? t.estimatedHours ?? t.estimated_hours ?? 0),
       progressPlan: Number(t.progressPlan ?? t.progress_plan ?? 0),
       progressActual: Number(t.progressActual ?? t.progress_actual ?? 0),
       startDate: t.startDate ?? t.start_date ?? null,

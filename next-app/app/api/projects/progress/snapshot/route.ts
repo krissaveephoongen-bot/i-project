@@ -83,12 +83,13 @@ export async function GET(req: NextRequest) {
     }
 
     // Distribute plan based on tasks duration and milestone percentage
-    const totalWeight = (tasks || []).reduce((s: number, t: any) => s + Number(t.weight || 0), 0) || 1;
+    const weightOf = (t: any) => Number(t.weight ?? t.estimatedHours ?? t.estimated_hours ?? 1) || 0;
+    const totalWeight = (tasks || []).reduce((s: number, t: any) => s + weightOf(t), 0) || 1;
     for (const mid of Object.keys(tasksByMilestone)) {
       const list = tasksByMilestone[mid];
       const msObj = ms.find((m: any) => String(m.id) === String(mid));
       const msPct = Number(msObj?.percentage || 0);
-      const msWeight = list.reduce((s: number, t: any) => s + Number(t.weight || 0), 0) || 1;
+      const msWeight = list.reduce((s: number, t: any) => s + weightOf(t), 0) || 1;
       // If no tasks under this milestone, credit the milestone at its due week directly
       if (!list || list.length === 0) {
         if (msObj?.due) {
@@ -106,8 +107,8 @@ export async function GET(req: NextRequest) {
       }
       for (const t of list) {
         const taskShare = msPct > 0
-          ? (Number(t.weight || 0) / msWeight) * msPct
-          : (Number(t.weight || 0) / totalWeight) * 100;
+          ? (weightOf(t) / msWeight) * msPct
+          : (weightOf(t) / totalWeight) * 100;
         const sDate = t.startDate ?? t.start_date ?? earliest;
         const eDate = t.endDate ?? t.end_date ?? latest;
         const sW = startOfWeek(new Date(sDate));
