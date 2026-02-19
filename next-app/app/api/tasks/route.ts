@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
 import redis from '@/lib/redis';
 import { firstOk, isSchemaColumnError, MILESTONE_ID_COLUMNS, PROJECT_ID_COLUMNS } from '../_lib/supabaseCompat';
+import crypto from 'node:crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -104,7 +105,9 @@ export async function POST(req: NextRequest) {
     if (!projectId) return err('Project is required', 400);
 
     const nowIso = new Date().toISOString();
+    const id = crypto.randomUUID();
     const snakeBase: any = {
+      id,
       title,
       description,
       status,
@@ -121,6 +124,7 @@ export async function POST(req: NextRequest) {
     if (assignedTo) snakePayload.assigned_to = assignedTo;
 
     const camelBase: any = {
+      id,
       title,
       description,
       status,
