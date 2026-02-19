@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
 
     let data: any = null;
     let error: any = null;
-    for (const p of [snakePayload, snakeBase, camelPayload, camelBase]) {
+    for (const p of [snakeBase, camelBase, snakePayload, camelPayload]) {
       const res = await supabase.from('tasks').insert([p]).select().single();
       data = res.data;
       error = res.error;
