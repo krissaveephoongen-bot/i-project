@@ -48,7 +48,7 @@ import {
     toastNetworkError
 } from '@/lib/toast-utils';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 interface Expense {
     id: string;
@@ -272,7 +272,7 @@ export default function ExpensesPage() {
         <div className="min-h-screen bg-slate-50/50">
             <Header title="My Expenses" breadcrumbs={[{ label: 'Dashboard', href: '/' }, { label: labels.title }]} />
             
-            <PermissionGuard roles={[UserRole.ADMIN, UserRole.MANAGER]} fallback={
+            <PermissionGuard roles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE]} fallback={
                 <div className="text-center py-8">
                     <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold">ต้องการสิทธิ์ Admin/Manager</h3>

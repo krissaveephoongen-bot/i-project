@@ -76,7 +76,7 @@ export default function ProjectTasksPage() {
                 setTasks(transformedTasks);
                 setError(null);
             } catch (err) {
-                setError('โหลดข้อมูลงานไม่สำเร็จ');
+                setError(`โหลดข้อมูลงานไม่สำเร็จ: ${(err as Error).message} (API_BASE: "${API_BASE}")`);
                 console.error('Error fetching tasks:', err);
             } finally {
                 setLoading(false);
