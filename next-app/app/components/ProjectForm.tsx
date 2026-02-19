@@ -6,6 +6,7 @@ import { Project } from '../lib/projects';
 import { Button } from './ui/Button';
 import { getUsers, User } from '../lib/users';
 import { getClients, Client } from '../lib/clients';
+import { useToast } from '@/hooks/useToast';
 
 interface ProjectFormProps {
   project: Project | null;
@@ -15,6 +16,7 @@ interface ProjectFormProps {
 }
 
 export default function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
+  const { showSuccess, showError } = useToast();
   const [form, setForm] = useState<Partial<Project>>({
     name: project?.name || '',
     code: project?.code || '',
@@ -37,8 +39,26 @@ export default function ProjectForm({ project, onSave, onCancel }: ProjectFormPr
 
   useEffect(() => {
     // Fetch all users for manager dropdown, not just those with manager role
-    getUsers({ status: 'active' }).then(setManagers).catch(() => setManagers([]));
-    getClients().then(setClients).catch(() => setClients([]));
+    console.log('Fetching managers for dropdown...');
+    getUsers({ status: 'active' })
+      .then(data => {
+        console.log('Managers fetched:', data.length, 'users');
+        console.log('Sample manager:', data[0]);
+        setManagers(data);
+      })
+      .catch(error => {
+        console.error('Error fetching managers:', error);
+        setManagers([]);
+      });
+    getClients()
+      .then(data => {
+        console.log('Clients fetched:', data.length, 'clients');
+        setClients(data);
+      })
+      .catch(error => {
+        console.error('Error fetching clients:', error);
+        setClients([]);
+      });
   }, []);
 
   const update = (key: keyof Project, value: any) => {
@@ -51,23 +71,36 @@ export default function ProjectForm({ project, onSave, onCancel }: ProjectFormPr
     const totalPct = milestones.reduce((sum, m) => sum + (Number(m.percentage || 0)), 0);
     const totalAmt = milestones.reduce((sum, m) => sum + (Number(m.amount || 0)), 0);
     if (totalPct > 100) {
-      setErrorText('เปอร์เซ็นต์รวมของงวดงานต้องไม่เกิน 100%');
+      const msg = 'เปอร์เซ็นต์รวมของงวดงานต้องไม่เกิน 100%';
+      setErrorText(msg);
+      showError(msg);
       return;
     }
     if (form.budget && totalAmt > Number(form.budget)) {
-      setErrorText('จำนวนเงินรวมของงวดงานมากกว่างบประมาณ');
+      const msg = 'จำนวนเงินรวมของงวดงานมากกว่างบประมาณ';
+      setErrorText(msg);
+      showError(msg);
       return;
     }
     if (!form.name || String(form.name).trim().length < 3) {
-      setErrorText('ชื่อโครงการต้องมีอย่างน้อย 3 ตัวอักษร');
+      const msg = 'ชื่อโครงการต้องมีอย่างน้อย 3 ตัวอักษร';
+      setErrorText(msg);
+      showError(msg);
       return;
     }
     if (form.progress != null && (Number(form.progress) < 0 || Number(form.progress) > 100)) {
-      setErrorText('ความคืบหน้าต้องอยู่ระหว่าง 0 ถึง 100');
+      const msg = 'ความคืบหน้าต้องอยู่ระหว่าง 0 ถึง 100';
+      setErrorText(msg);
+      showError(msg);
       return;
     }
     const payload = { ...form, milestones, members };
-    await onSave(payload);
+    try {
+      await onSave(payload);
+      showSuccess(project ? 'อัปเดตโครงการสำเร็จ' : 'สร้างโครงการสำเร็จ');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'เกิดข้อผิดพลาด');
+    }
   };
 
   return (

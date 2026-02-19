@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient';
 
-const API_BASE = '';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export interface User {
   id: string;

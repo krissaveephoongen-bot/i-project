@@ -96,26 +96,24 @@ export default function AuditLogViewer() {
             </div>
             
             <div className="flex gap-2">
-              <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder={t('audit.filter.event')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">{t('audit.filter.allEvents')}</SelectItem>
-                  {Object.values(AuditEventType).map((event) => (
-                    <SelectItem key={event} value={event}>
-                      {AUDIT_EVENT_LABELS[event]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select value={selectedEvent || ''} onValueChange={setSelectedEvent}>
+               <SelectTrigger className="w-[180px]">
+                 <SelectValue placeholder={t('audit.filter.allEvents')} />
+               </SelectTrigger>
+               <SelectContent>
+                 {Object.values(AuditEventType).map((event) => (
+                   <SelectItem key={event} value={event}>
+                     {AUDIT_EVENT_LABELS[event]}
+                   </SelectItem>
+                 ))}
+               </SelectContent>
               </Select>
               
-              <Select value={selectedSeverity} onValueChange={setSelectedSeverity}>
+              <Select value={selectedSeverity || ''} onValueChange={setSelectedSeverity}>
                 <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder={t('audit.filter.severity')} />
+                  <SelectValue placeholder={t('audit.filter.allSeverities')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{t('audit.filter.allSeverities')}</SelectItem>
                   {Object.values(AuditSeverity).map((severity) => (
                     <SelectItem key={severity} value={severity}>
                       {severity}

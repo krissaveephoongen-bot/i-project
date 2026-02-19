@@ -7,9 +7,9 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { X, Calendar, User, Flag, Clock, Edit } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import { Task } from '@/lib/tasks';
 import { useLanguage } from '@/lib/hooks/useLanguage';
+import { useToast } from '@/hooks/useToast';
 
 interface TaskFormProps {
   task?: Task | null;
@@ -23,6 +23,7 @@ interface TaskFormProps {
 
 export default function TaskForm({ task, isOpen, onClose, onSave, projects, users, milestones }: TaskFormProps) {
   const { language } = useLanguage();
+  const { showSuccess, showError } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -100,12 +101,12 @@ export default function TaskForm({ task, isOpen, onClose, onSave, projects, user
     
     // Validation
     if (!formData.title.trim()) {
-      toast.error(language === 'th' ? 'กรุณากรอกชื่องาน' : 'Please enter task title');
+      showError(language === 'th' ? 'กรุณากรอกชื่องาน' : 'Please enter task title');
       return;
     }
     
     if (!formData.projectId) {
-      toast.error(language === 'th' ? 'กรุณาเลือกโครงการ' : 'Please select a project');
+      showError(language === 'th' ? 'กรุณาเลือกโครงการ' : 'Please select a project');
       return;
     }
 
@@ -138,7 +139,7 @@ export default function TaskForm({ task, isOpen, onClose, onSave, projects, user
         
         const updatedTask = await response.json();
         onSave(updatedTask);
-        toast.success(language === 'th' ? 'อัปเดตงานสำเร็จ' : 'Task updated successfully');
+        showSuccess(language === 'th' ? 'อัปเดตงานสำเร็จ' : 'Task updated successfully');
       } else {
         // Create new task
         const response = await fetch('/api/tasks', {
@@ -154,12 +155,12 @@ export default function TaskForm({ task, isOpen, onClose, onSave, projects, user
         
         const newTask = await response.json();
         onSave(newTask);
-        toast.success(language === 'th' ? 'สร้างงานสำเร็จ' : 'Task created successfully');
+        showSuccess(language === 'th' ? 'สร้างงานสำเร็จ' : 'Task created successfully');
       }
       
       onClose();
     } catch (error: any) {
-      toast.error(error.message || (language === 'th' ? 'เกิดข้อผิดพลาด' : 'An error occurred'));
+      showError(error.message || (language === 'th' ? 'เกิดข้อผิดพลาด' : 'An error occurred'));
     } finally {
       setLoading(false);
     }
@@ -228,12 +229,11 @@ export default function TaskForm({ task, isOpen, onClose, onSave, projects, user
                 <label className="text-sm font-medium flex items-center gap-1">
                   <Flag className="w-4 h-4" /> {labels.milestone}
                 </label>
-                <Select value={formData.milestoneId} onValueChange={(value) => setFormData({ ...formData, milestoneId: value })}>
+                <Select value={formData.milestoneId || ''} onValueChange={(value) => setFormData({ ...formData, milestoneId: value || null })}>
                   <SelectTrigger>
                     <SelectValue placeholder={language === 'th' ? 'เลือกระยะงาน' : 'Select milestone'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">{language === 'th' ? 'ไม่ระบุ' : 'No milestone'}</SelectItem>
                     {milestones.map((milestone) => (
                       <SelectItem key={milestone.id} value={milestone.id}>
                         {milestone.title}
@@ -247,12 +247,11 @@ export default function TaskForm({ task, isOpen, onClose, onSave, projects, user
                 <label className="text-sm font-medium flex items-center gap-1">
                   <User className="w-4 h-4" /> {labels.assignee}
                 </label>
-                <Select value={formData.assignedTo} onValueChange={(value) => setFormData({ ...formData, assignedTo: value })}>
+                <Select value={formData.assignedTo || ''} onValueChange={(value) => setFormData({ ...formData, assignedTo: value || null })}>
                   <SelectTrigger>
                     <SelectValue placeholder={language === 'th' ? 'เลือกผู้รับผิดชอบ' : 'Select assignee'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">{language === 'th' ? 'ไม่ได้มอบหมาย' : 'Unassigned'}</SelectItem>
                     {users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.name}
