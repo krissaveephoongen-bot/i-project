@@ -106,6 +106,29 @@ export async function POST(req: NextRequest) {
 
     const nowIso = new Date().toISOString();
     const id = crypto.randomUUID();
+    const opts: Array<[string, any]> = [];
+    if (dueDate) opts.push(['due_date', dueDate]);
+    if (estimatedHours != null) opts.push(['estimated_hours', Number(estimatedHours) || 0]);
+    if (milestoneId) opts.push(['milestone_id', milestoneId]);
+    if (assignedTo) opts.push(['assigned_to', assignedTo]);
+
+    const buildVariants = (pairs: Array<[string, any]>) => {
+      const all: any = {};
+      for (const [k, v] of pairs) all[k] = v;
+      const singles = pairs.map(([k, v]) => ({ [k]: v }));
+      return [all, ...singles, {}];
+    };
+
+    const snakeVariants = buildVariants(opts);
+    const camelVariants = buildVariants(opts.map(([k, v]) => [
+      k === 'due_date' ? 'dueDate'
+      : k === 'estimated_hours' ? 'estimatedHours'
+      : k === 'milestone_id' ? 'milestoneId'
+      : k === 'assigned_to' ? 'assignedTo'
+      : k,
+      v
+    ] as [string, any]));
+
     const snakeBase: any = {
       id,
       title,
@@ -116,12 +139,7 @@ export async function POST(req: NextRequest) {
       created_at: nowIso,
       updated_at: nowIso
     };
-    const snakePayload: any = { ...snakeBase };
-    if (dueDate) snakePayload.due_date = dueDate;
-    if (estimatedHours != null) snakePayload.estimated_hours = Number(estimatedHours) || 0;
-    if (milestoneId) snakePayload.milestone_id = milestoneId;
-    if (assignedTo) snakePayload.assigned_to = assignedTo;
-    const snakeWithCreatedBy: any = { ...snakePayload, created_by: 'system' };
+    const snakeBaseWithCreatedBy: any = { ...snakeBase, created_by: 'system' };
 
     const camelBase: any = {
       id,
@@ -133,23 +151,24 @@ export async function POST(req: NextRequest) {
       created_at: nowIso,
       updated_at: nowIso
     };
-    const camelPayload: any = { ...camelBase };
-    if (dueDate) camelPayload.dueDate = dueDate;
-    if (estimatedHours != null) camelPayload.estimatedHours = Number(estimatedHours) || 0;
-    if (milestoneId) camelPayload.milestoneId = milestoneId;
-    if (assignedTo) camelPayload.assignedTo = assignedTo;
-    const camelWithCreatedBy: any = { ...camelPayload, createdBy: 'system' };
+    const camelBaseWithCreatedBy: any = { ...camelBase, createdBy: 'system' };
 
     let data: any = null;
     let error: any = null;
-    for (const p of [snakePayload, snakeWithCreatedBy, snakeBase, camelPayload, camelWithCreatedBy, camelBase]) {
-      const res = await supabase.from('tasks').insert([p]).select().single();
-      data = res.data;
-      error = res.error;
+    const bases: any[] = [snakeBase, snakeBaseWithCreatedBy, camelBase, camelBaseWithCreatedBy];
+    for (const base of bases) {
+      const variants = base.project_id != null ? snakeVariants : camelVariants;
+      for (const extra of variants) {
+        const p = { ...base, ...extra };
+        const res = await supabase.from('tasks').insert([p]).select().single();
+        data = res.data;
+        error = res.error;
+        if (!error) break;
+        const msg = `${error.message || ''}`;
+        if (msg.includes('Could not find the') || msg.includes('schema cache')) continue;
+        break;
+      }
       if (!error) break;
-      const msg = `${error.message || ''}`;
-      if (msg.includes('Could not find the') || msg.includes('schema cache')) continue;
-      break;
     }
     if (error) throw error;
     
