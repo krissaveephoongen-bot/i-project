@@ -1,28 +1,28 @@
  import { NextRequest, NextResponse } from 'next/server';
+ import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
  import redis from '@/lib/redis';
- import { pool } from '../../_lib/db';
- 
- function quoteIdent(name: string) {
-   return /^[a-z_][a-z0-9_]*$/.test(name) ? name : `"${name.replace(/"/g, '""')}"`;
- }
- 
- async function pickColumn(table: string, candidates: string[]) {
-   const res = await pool.query(
-     `SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name=$1 AND column_name = ANY($2::text[]) LIMIT 1`,
-     [table, candidates]
-   );
-   return res.rows[0]?.column_name as string | undefined;
- }
  
  async function anyRecordExists(table: string, columns: string[], id: string) {
-   const col = await pickColumn(table, columns);
-   if (!col) return false;
-   const res = await pool.query(`SELECT 1 FROM ${quoteIdent(table)} WHERE ${quoteIdent(col)} = $1 LIMIT 1`, [id]);
-   return res.rows.length > 0;
+   let lastError: any = null;
+   for (const col of columns) {
+     const { data, error } = await supabaseAdmin.from(table).select('id').eq(col, id).limit(1);
+     if (!error) return (data || []).length > 0;
+     lastError = error;
+     const msg = `${error.message || ''}`;
+     if (msg.includes('Could not find the') || msg.includes('schema cache')) continue;
+     break;
+   }
+   if (lastError) {
+     const msg = `${lastError.message || ''}`;
+     if (!(msg.includes('Could not find the') || msg.includes('schema cache'))) throw lastError;
+   }
+   return false;
  }
  
  export async function POST(request: NextRequest) {
    try {
+     if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase is not configured' }, { status: 500 });
+ 
      const body = await request.json();
      const { id } = body || {};
      if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
@@ -35,23 +35,17 @@
        (await anyRecordExists('documents', ['project_id', 'projectId', 'projectid'], id));
  
      if (hasDeps) {
-       const colArchived = await pickColumn('projects', ['is_archived', 'isArchived']);
-       if (!colArchived) return NextResponse.json({ error: 'projects schema missing archive flag' }, { status: 500 });
- 
-       const sets: string[] = [`${quoteIdent(colArchived)} = true`];
-       const values: any[] = [];
-       const colUpdated = await pickColumn('projects', ['updated_at', 'updatedAt']);
-       if (colUpdated) {
-         values.push(nowIso);
-         sets.push(`${quoteIdent(colUpdated)} = $${values.length}`);
-       }
-       values.push(id);
-       await pool.query(`UPDATE projects SET ${sets.join(', ')} WHERE id = $${values.length}`, values);
+       const { error: updErr } = await supabaseAdmin
+         .from('projects')
+         .update({ is_archived: true, updated_at: nowIso } as any)
+         .eq('id', id);
+       if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 });
        await redis.del('projects:all');
        return NextResponse.json({ ok: true, mode: 'archived' }, { status: 200 });
      }
  
-     await pool.query('DELETE FROM projects WHERE id = $1', [id]);
+     const { error: delErr } = await supabaseAdmin.from('projects').delete().eq('id', id);
+     if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
      await redis.del('projects:all');
      return NextResponse.json({ ok: true, mode: 'deleted' }, { status: 200 });
    } catch {

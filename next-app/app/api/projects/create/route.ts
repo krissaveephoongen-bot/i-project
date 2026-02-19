@@ -3,19 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
 import redis from '@/lib/redis';
 import crypto from 'node:crypto';
-import { pool } from '../../_lib/db';
-
-function quoteIdent(name: string) {
-  return /^[a-z_][a-z0-9_]*$/.test(name) ? name : `"${name.replace(/"/g, '""')}"`;
-}
-
-async function pickColumn(table: string, candidates: string[]) {
-  const res = await pool.query(
-    `SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name=$1 AND column_name = ANY($2::text[]) LIMIT 1`,
-    [table, candidates]
-  );
-  return res.rows[0]?.column_name as string | undefined;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,64 +42,30 @@ export async function POST(request: NextRequest) {
     const manager = manager_id ?? managerId ?? null;
     const client = client_id ?? clientId ?? null;
 
-    const colId = await pickColumn('projects', ['id']);
-    const colName = await pickColumn('projects', ['name']);
-    if (!colId || !colName) return NextResponse.json({ error: 'projects schema missing id/name' }, { status: 500 });
-
-    const colCode = await pickColumn('projects', ['code']);
-    const colDesc = await pickColumn('projects', ['description']);
-    const colStatus = await pickColumn('projects', ['status']);
-    const colProgress = await pickColumn('projects', ['progress']);
-    const colProgressPlan = await pickColumn('projects', ['progress_plan', 'progressPlan', 'progress_plan']);
-    const colStart = await pickColumn('projects', ['start_date', 'startDate']);
-    const colEnd = await pickColumn('projects', ['end_date', 'endDate']);
-    const colBudget = await pickColumn('projects', ['budget']);
-    const colSpent = await pickColumn('projects', ['spent']);
-    const colRemaining = await pickColumn('projects', ['remaining']);
-    const colSpi = await pickColumn('projects', ['spi']);
-    const colCpi = await pickColumn('projects', ['cpi']);
-    const colManager = await pickColumn('projects', ['manager_id', 'managerId']);
-    const colClient = await pickColumn('projects', ['client_id', 'clientId']);
-    const colPriority = await pickColumn('projects', ['priority']);
-    const colCategory = await pickColumn('projects', ['category']);
-    const colIsArchived = await pickColumn('projects', ['is_archived', 'isArchived']);
-    const colCreated = await pickColumn('projects', ['created_at', 'createdAt']);
-    const colUpdated = await pickColumn('projects', ['updated_at', 'updatedAt']);
-
-    const cols: string[] = [colId, colName];
-    const values: any[] = [projectId, name];
-
-    const add = (c: string | undefined, v: any) => {
-      if (!c) return;
-      cols.push(c);
-      values.push(v);
+    const payload: any = {
+      id: projectId,
+      name,
+      code: code || null,
+      description: description || null,
+      status,
+      progress: Number(progress ?? 0),
+      progress_plan: 0,
+      start_date: start,
+      end_date: end,
+      budget: Number(budget ?? 0),
+      spent: 0,
+      spi: 1.0,
+      cpi: 1.0,
+      client_id: client,
+      manager_id: manager,
+      category: category || null,
+      is_archived: false,
+      created_at: nowIso,
+      updated_at: nowIso,
     };
 
-    add(colCode, code || null);
-    add(colDesc, description || null);
-    add(colStatus, status);
-    add(colProgress, Number(progress ?? 0));
-    add(colProgressPlan, 0);
-    add(colStart, start);
-    add(colEnd, end);
-    add(colBudget, Number(budget ?? 0));
-    add(colSpent, 0);
-    add(colRemaining, Number(budget ?? 0));
-    add(colSpi, 1.0);
-    add(colCpi, 1.0);
-    add(colManager, manager);
-    add(colClient, client);
-    add(colPriority, priority);
-    add(colCategory, category || null);
-    add(colIsArchived, false);
-    add(colCreated, nowIso);
-    add(colUpdated, nowIso);
-
-    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
-    await pool.query(
-      `INSERT INTO projects (${cols.map(quoteIdent).join(', ')}) VALUES (${placeholders})`,
-      values
-    );
+    const { error: createErr } = await supabaseAdmin.from('projects').insert([payload]);
+    if (createErr) return NextResponse.json({ error: createErr.message }, { status: 500 });
 
     const project_id = projectId;
 
