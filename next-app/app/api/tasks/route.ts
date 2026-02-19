@@ -116,12 +116,12 @@ export async function POST(req: NextRequest) {
       created_at: nowIso,
       updated_at: nowIso
     };
-    const snakeWithCreatedBy: any = { ...snakeBase, created_by: 'system' };
-    const snakePayload: any = { ...snakeWithCreatedBy };
+    const snakePayload: any = { ...snakeBase };
     if (dueDate) snakePayload.due_date = dueDate;
     if (estimatedHours != null) snakePayload.estimated_hours = Number(estimatedHours) || 0;
     if (milestoneId) snakePayload.milestone_id = milestoneId;
     if (assignedTo) snakePayload.assigned_to = assignedTo;
+    const snakeWithCreatedBy: any = { ...snakePayload, created_by: 'system' };
 
     const camelBase: any = {
       id,
@@ -133,16 +133,16 @@ export async function POST(req: NextRequest) {
       created_at: nowIso,
       updated_at: nowIso
     };
-    const camelWithCreatedBy: any = { ...camelBase, createdBy: 'system' };
-    const camelPayload: any = { ...camelWithCreatedBy };
+    const camelPayload: any = { ...camelBase };
     if (dueDate) camelPayload.dueDate = dueDate;
     if (estimatedHours != null) camelPayload.estimatedHours = Number(estimatedHours) || 0;
     if (milestoneId) camelPayload.milestoneId = milestoneId;
     if (assignedTo) camelPayload.assignedTo = assignedTo;
+    const camelWithCreatedBy: any = { ...camelPayload, createdBy: 'system' };
 
     let data: any = null;
     let error: any = null;
-    for (const p of [snakeBase, camelBase, snakePayload, camelPayload]) {
+    for (const p of [snakePayload, snakeWithCreatedBy, snakeBase, camelPayload, camelWithCreatedBy, camelBase]) {
       const res = await supabase.from('tasks').insert([p]).select().single();
       data = res.data;
       error = res.error;
