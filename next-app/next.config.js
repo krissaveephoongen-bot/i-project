@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ['@supabase/supabase-js'],
   experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
     optimizePackageImports: ['@supabase/supabase-js', 'lucide-react', 'clsx'],
     optimizeCss: true,
     scrollRestoration: true,
