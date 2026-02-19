@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
       project_id: projectId,
       milestone_id: milestoneId || null,
       assigned_to: assignedTo || null,
+      created_by: 'system',
       created_at: nowIso,
       updated_at: nowIso
     };
@@ -87,6 +88,7 @@ export async function POST(req: NextRequest) {
       projectId,
       milestoneId: milestoneId || null,
       assignedTo: assignedTo || null,
+      createdBy: 'system',
       created_at: nowIso,
       updated_at: nowIso
     };

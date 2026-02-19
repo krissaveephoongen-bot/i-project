@@ -80,12 +80,16 @@ export async function POST(request: NextRequest) {
         const amount = Number(m?.amount ?? 0);
         const progress = Number(m?.percentage ?? m?.progress ?? 0);
 
-        const candidates = [
-          { id, project_id, title, description, status, due_date: due, amount, progress, created_at: nowIso, updated_at: nowIso },
-          { id, projectId: project_id, title, description, status, dueDate: due, amount, progress, created_at: nowIso, updated_at: nowIso },
-          { id, project_id, title, description, status, due_date: due, created_at: nowIso, updated_at: nowIso },
-          { id, projectId: project_id, title, description, status, dueDate: due, created_at: nowIso, updated_at: nowIso },
-        ];
+        const snakeRich: any = { id, project_id, title, description, status, due_date: due, created_at: nowIso, updated_at: nowIso };
+        if (amount !== 0) snakeRich.amount = amount;
+        if (progress !== 0) snakeRich.progress = progress;
+        const snakeMin: any = { id, project_id, title, description, status, due_date: due, created_at: nowIso, updated_at: nowIso };
+        const camelRich: any = { id, projectId: project_id, title, description, status, dueDate: due, created_at: nowIso, updated_at: nowIso };
+        if (amount !== 0) camelRich.amount = amount;
+        if (progress !== 0) camelRich.progress = progress;
+        const camelMin: any = { id, projectId: project_id, title, description, status, dueDate: due, created_at: nowIso, updated_at: nowIso };
+
+        const candidates = [snakeRich, snakeMin, camelRich, camelMin];
 
         let lastErr: any = null;
         for (const p of candidates) {
@@ -146,6 +150,7 @@ export async function POST(request: NextRequest) {
           weight: t.weight,
           start_date: t.start,
           due_date: t.due,
+          created_by: 'system',
           created_at: nowIso,
           updated_at: nowIso,
         }));
@@ -159,6 +164,7 @@ export async function POST(request: NextRequest) {
           weight: t.weight,
           startDate: t.start,
           dueDate: t.due,
+          createdBy: 'system',
           created_at: nowIso,
           updated_at: nowIso,
         }));

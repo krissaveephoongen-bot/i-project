@@ -1,47 +1,67 @@
  import { NextRequest, NextResponse } from 'next/server';
  import { supabase } from '@/app/lib/supabaseClient';
+ import crypto from 'node:crypto';
  
  export async function POST(request: NextRequest) {
    try {
     const body = await request.json();
-    const { projectId, project_id, name, percentage = 0, amount = 0, dueDate, due_date, actualDate, actual_date, invoiceDate, invoice_date, planReceivedDate, plan_received_date, receiptDate, receipt_date, status = 'pending', note, notes } = body || {};
+    const { projectId, project_id, id, name, title, percentage = 0, amount = 0, dueDate, due_date, status = 'pending', note, notes } = body || {};
      const pid = project_id ?? projectId;
-     if (!pid || !name) return NextResponse.json({ error: 'projectId and name required' }, { status: 400 });
+     const nm = title ?? name;
+     if (!pid || !nm) return NextResponse.json({ error: 'projectId and name required' }, { status: 400 });
      const nowIso = new Date().toISOString();
-     const snakePayload: any = {
+     const mileId = id ?? crypto.randomUUID();
+     const due = due_date ?? dueDate ?? null;
+ 
+     const snakeRich: any = {
+       id: mileId,
        project_id: pid,
-       title: name,
-       progress: percentage,
-       amount,
-       due_date: due_date ?? dueDate ?? null,
-       actual_date: actual_date ?? actualDate ?? null,
-       invoice_date: invoice_date ?? invoiceDate ?? null,
-       plan_received_date: plan_received_date ?? planReceivedDate ?? null,
-       receipt_date: receipt_date ?? receiptDate ?? null,
+       title: nm,
        status,
-       notes: note ?? notes ?? null,
+       due_date: due,
        created_at: nowIso,
        updated_at: nowIso,
      };
-     const camelPayload: any = {
-       projectId: pid,
-       title: name,
-       progress: percentage,
-       amount,
-       dueDate: due_date ?? dueDate ?? null,
-       actualDate: actual_date ?? actualDate ?? null,
-       invoiceDate: invoice_date ?? invoiceDate ?? null,
-       planReceivedDate: plan_received_date ?? planReceivedDate ?? null,
-       receiptDate: receipt_date ?? receiptDate ?? null,
+     if (Number(percentage || 0) !== 0) snakeRich.progress = Number(percentage || 0);
+     if (Number(amount || 0) !== 0) snakeRich.amount = Number(amount || 0);
+     if ((note ?? notes) != null && String(note ?? notes).length) snakeRich.notes = note ?? notes;
+ 
+     const snakeMin: any = {
+       id: mileId,
+       project_id: pid,
+       title: nm,
        status,
-       notes: note ?? notes ?? null,
+       due_date: due,
+       created_at: nowIso,
+       updated_at: nowIso,
+     };
+ 
+     const camelRich: any = {
+       id: mileId,
+       projectId: pid,
+       title: nm,
+       status,
+       dueDate: due,
+       created_at: nowIso,
+       updated_at: nowIso,
+     };
+     if (Number(percentage || 0) !== 0) camelRich.progress = Number(percentage || 0);
+     if (Number(amount || 0) !== 0) camelRich.amount = Number(amount || 0);
+     if ((note ?? notes) != null && String(note ?? notes).length) camelRich.notes = note ?? notes;
+ 
+     const camelMin: any = {
+       id: mileId,
+       projectId: pid,
+       title: nm,
+       status,
+       dueDate: due,
        created_at: nowIso,
        updated_at: nowIso,
      };
 
      let data: any = null;
      let error: any = null;
-     for (const p of [snakePayload, camelPayload]) {
+     for (const p of [snakeRich, snakeMin, camelRich, camelMin]) {
        const res = await supabase.from('milestones').insert(p).select('*').limit(1);
        data = res.data;
        error = res.error;
