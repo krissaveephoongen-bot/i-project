@@ -10,7 +10,7 @@ export interface Task {
   dueDate?: string;
   estimatedHours?: number;
   actualHours?: number;
-  projectId: string;
+  projectId?: string;
   milestoneId?: string;
   assignedTo?: string;
   createdAt?: string;

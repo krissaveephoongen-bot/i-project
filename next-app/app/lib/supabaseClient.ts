@@ -11,14 +11,20 @@ if (!isValidUrl(supabaseUrl) || (!isValidKey(supabaseServiceKey) && !isValidKey(
     console.warn('Supabase credentials missing or invalid. Check your .env file.');
 }
 
-export const supabase = (supabaseUrl && supabaseAnonKey)
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      db: {
-        schema: 'public',
-      },
+export const supabase = (supabaseUrl && supabaseServiceKey)
+    ? createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+        },
+        db: {
+            schema: 'public',
+        },
+        realtime: {
+            // Disable realtime for now to avoid WebSocket connection issues
+            params: {
+                ws: false
+            }
+        }
     })
-  : null as any;
+    : null as any;

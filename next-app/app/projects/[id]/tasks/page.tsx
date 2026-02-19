@@ -13,7 +13,7 @@ import ProjectGantt from '@/app/components/gantt/ProjectGantt';
 import BurndownChart from '@/app/components/charts/BurndownChart';
 import { Task } from '@/lib/tasks';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function ProjectTasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -45,19 +45,33 @@ export default function ProjectTasksPage() {
                 const transformedTasks = (rows || []).map((task: any) => ({
                     id: task.id,
                     title: task.title,
+                    description: task.description,
+                    status: task.status,
+                    priority: task.priority || 'medium',
+                    dueDate: task.due_date,
+                    estimatedHours: task.estimated_hours,
+                    actualHours: task.actual_hours,
+                    projectId: task.project_id || projectId,
+                    milestoneId: task.milestone_id,
+                    assignedTo: task.assigned_to,
+                    createdAt: task.created_at,
+                    updatedAt: task.updated_at,
+                    // Kanban-specific fields
                     phase: task.phase,
-                    weight: task.weight,
-                    progress_plan: task.progress_plan,
-                    progress_actual: task.progress_actual,
+                    weight: task.weight || 5,
+                    progress_plan: task.progress_plan || 0,
+                    progress_actual: task.progress_actual || 0,
                     start_date: task.start_date,
                     end_date: task.end_date,
-                    assigned_to: 'Unassigned',
+                    assigned_to: task.assigned_to || 'Unassigned',
                     vendor: task.vendor || '',
-                    status: task.status,
-                    progressPlan: task.progress_plan,
-                    progressActual: task.progress_actual,
+                    progressPlan: task.progress_plan || 0,
+                    progressActual: task.progress_actual || 0,
                     startDate: task.start_date,
-                    endDate: task.end_date
+                    endDate: task.end_date,
+                    // Relations
+                    projects: { id: projectId, name: task.project_name || 'Unknown' },
+                    assigned_user: task.assigned_user || { id: task.assigned_to || '', name: task.assigned_user?.name || 'Unassigned' }
                 }));
                 setTasks(transformedTasks);
                 setError(null);
@@ -79,13 +93,21 @@ export default function ProjectTasksPage() {
             const payload = {
                 project_id: dbProjectId,
                 title: 'งานใหม่',
+                description: 'งานที่สร้างขึ้นใหม่',
+                status: 'Pending',
+                priority: 'medium',
                 phase: 'Development',
                 weight: 5,
                 progress_plan: 0,
                 progress_actual: 0,
                 start_date: new Date().toISOString(),
                 end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                status: 'Pending'
+                assigned_to: '',
+                vendor: '',
+                estimated_hours: 8,
+                actual_hours: 0,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
             };
             const res = await fetch(`${API_BASE}/api/projects/tasks`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const data = res.ok ? await res.json() : null;
@@ -93,19 +115,33 @@ export default function ProjectTasksPage() {
                 setTasks(prev => [...prev, {
                     id: data.id,
                     title: data.title,
+                    description: data.description,
+                    status: data.status,
+                    priority: data.priority,
+                    dueDate: data.due_date,
+                    estimatedHours: data.estimated_hours,
+                    actualHours: data.actual_hours,
+                    projectId: data.project_id || projectId,
+                    milestoneId: data.milestone_id,
+                    assignedTo: data.assigned_to,
+                    createdAt: data.created_at,
+                    updatedAt: data.updated_at,
+                    // Kanban-specific fields
                     phase: data.phase,
                     weight: data.weight,
                     progress_plan: data.progress_plan,
                     progress_actual: data.progress_actual,
                     start_date: data.start_date,
                     end_date: data.end_date,
-                    assigned_to: 'Unassigned',
-                    vendor: data.vendor || '',
-                    status: data.status,
+                    assigned_to: data.assigned_to,
+                    vendor: data.vendor,
                     progressPlan: data.progress_plan,
                     progressActual: data.progress_actual,
                     startDate: data.start_date,
-                    endDate: data.end_date
+                    endDate: data.end_date,
+                    // Relations
+                    projects: { id: projectId, name: 'Project' },
+                    assigned_user: { id: data.assigned_to || '', name: data.assigned_to || 'Unassigned' }
                 }]);
                 const id = data.id;
                 if (id && projectId) {
@@ -191,9 +227,9 @@ export default function ProjectTasksPage() {
         return task.status.toLowerCase().replace(' ', '-') === filter;
     });
 
-    const totalWeight = tasks.reduce((sum, t) => sum + t.weight, 0);
-    const completedWeight = tasks.filter(t => t.status === 'Completed').reduce((sum, t) => sum + t.weight, 0);
-    const inProgressWeight = tasks.filter(t => t.status === 'In Progress').reduce((sum, t) => sum + (t.weight * (t.progressActual || t.progress_actual || 0) / 100), 0);
+    const totalWeight = tasks.reduce((sum, t) => sum + (t.weight || 0), 0);
+    const completedWeight = tasks.filter(t => t.status === 'Completed').reduce((sum, t) => sum + (t.weight || 0), 0);
+    const inProgressWeight = tasks.filter(t => t.status === 'In Progress').reduce((sum, t) => sum + (t.weight || 0) * (t.progressActual || t.progress_actual || 0) / 100, 0);
 
     if (loading) {
         return (
