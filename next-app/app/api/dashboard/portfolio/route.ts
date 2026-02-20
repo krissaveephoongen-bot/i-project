@@ -14,11 +14,11 @@ export async function GET(req: NextRequest) {
   try {
     if (!supabaseAdmin) return NextResponse.json({ rows: [], cashflow: [], spiTrend: [], spiSnaps: [], error: 'admin client missing' }, { status: 200, headers })
 
+    // Order by snake_case column only to avoid errors on instances without camelCase alias
     const { data: projects, error } = await supabaseAdmin
       .from('projects')
       .select('*')
       .order('updated_at', { ascending: false })
-      .order('updatedAt', { ascending: false })
 
     if (error) throw error
     const list: any[] = projects || []
