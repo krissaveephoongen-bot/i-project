@@ -102,20 +102,19 @@ export default function TimesheetPage() {
         setIsEditing(false);
 
         // Fetch projects
-        // We still fetch projects directly as this might be specific to this page view logic (filtering etc)
-        // Or we can move it to service. For now, keep as fetch but use API_BASE
-        const projRes = await fetch(`${API_BASE}/api/timesheet/projects?userId=${user.id}`);
-        if (projRes.ok) {
-          const projJson = await projRes.json();
-          const transformedProjects = (projJson || []).map((project: any, index: number) => ({
-            id: project.id,
-            name: project.name,
-            color: `hsl(${index * 60}, 70%, 50%)`,
-            is_billable: !!project.is_billable,
-            tasks: project.tasks || [],
-          }));
-          setProjects(transformedProjects);
-          await fetchTimesheetEntries(currentMonth, transformedProjects.map((p: any) => p.id));
+        try {
+            const projects = await timesheetService.getProjects(user.id);
+            const transformedProjects = (projects || []).map((project: any, index: number) => ({
+                id: project.id,
+                name: project.name,
+                color: `hsl(${index * 60}, 70%, 50%)`,
+                is_billable: !!project.is_billable,
+                tasks: project.tasks || [],
+            }));
+            setProjects(transformedProjects);
+            await fetchTimesheetEntries(currentMonth, transformedProjects.map((p: any) => p.id));
+        } catch (e) {
+            console.error('Failed to load projects', e);
         }
 
         // Fetch Weekly Data (Initial)

@@ -25,6 +25,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Toggle mock auth for development/verification when DB is not available
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || true;
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -42,6 +45,19 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     // Check for existing session on app load
     const checkUser = async () => {
       try {
+        if (USE_MOCK) {
+          // Simulate a logged-in user for dev/demo
+          const mockUser: User = {
+            id: 'mock-user-1',
+            email: 'demo@example.com',
+            name: 'Demo User',
+            role: 'manager'
+          };
+          setUser(mockUser);
+          setLoading(false);
+          return;
+        }
+
         const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
         const rememberedEmail = localStorage.getItem('remembered_email');
         
@@ -80,6 +96,19 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const signIn = async (email: string, password: string, rememberMe = false) => {
+    if (USE_MOCK) {
+       const mockUser: User = {
+         id: 'mock-user-1',
+         email,
+         name: 'Demo User',
+         role: 'manager'
+       };
+       setUser(mockUser);
+       if (rememberMe) localStorage.setItem('auth_token', 'mock-token');
+       else sessionStorage.setItem('auth_token', 'mock-token');
+       return;
+    }
+
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {
@@ -109,6 +138,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   };
 
   const signOut = async () => {
+    if (USE_MOCK) {
+       setUser(null);
+       localStorage.removeItem('auth_token');
+       sessionStorage.removeItem('auth_token');
+       return;
+    }
+
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
@@ -125,6 +161,17 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   };
   
   const signUp = async (email: string, password: string, name?: string, role: 'admin'|'manager'|'employee' = 'employee') => {
+    if (USE_MOCK) {
+       const mockUser: User = {
+         id: `mock-user-${Date.now()}`,
+         email,
+         name: name || 'New User',
+         role
+       };
+       setUser(mockUser);
+       return;
+    }
+
     const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -141,6 +188,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   };
   
   const forgotPassword = async (email: string) => {
+    if (USE_MOCK) return;
+
     const response = await fetch('/api/auth/forgot-password', {
       method: 'POST',
       headers: {

@@ -11,7 +11,6 @@ import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Progress } from '../../components/ui/progress';
-import { getDashboardProjects } from '../../lib/data-service';
 import { timesheetService } from '@/app/lib/timesheet-service';
 import { TimeEntry, WorkType } from '@/app/timesheet/types';
 import { toast } from 'react-hot-toast';
@@ -53,7 +52,7 @@ export default function TimesheetRecordPage() {
       
       // Load Projects
       try {
-        const projs = await getDashboardProjects();
+        const projs = await timesheetService.getProjects(user.id);
         setProjects(projs || []);
       } catch (e) {
         console.error('Failed to load projects', e);
