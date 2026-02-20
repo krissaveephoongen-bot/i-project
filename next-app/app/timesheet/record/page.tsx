@@ -42,11 +42,17 @@ export default function TimesheetRecordPage() {
     activity: '',
     description: '',
     billable: true,
+    taskMode: 'planned' as 'planned' | 'adhoc', // 'planned' = Task from Project, 'adhoc' = Other Activity
   });
   
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [teamLoad, setTeamLoad] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  // Filtered tasks based on selected project
+  const projectTasks = form.projectId 
+    ? (projects.find(p => p.id === form.projectId)?.tasks || []) 
+    : [];
 
   useEffect(() => {
     const load = async () => {
@@ -100,9 +106,15 @@ export default function TimesheetRecordPage() {
 
   const createEntry = async () => {
     if (!user) return;
-    if (form.workType === WorkType.PROJECT && !form.projectId) {
-        alert('Please select a project');
-        return;
+    if (form.workType === WorkType.PROJECT) {
+        if (!form.projectId) {
+            alert('Please select a project');
+            return;
+        }
+        if (form.taskMode === 'planned' && !form.taskId) {
+            alert('Please select a task');
+            return;
+        }
     }
     if (!form.description) {
         alert('Please enter description');
@@ -121,7 +133,7 @@ export default function TimesheetRecordPage() {
             workType: form.workType,
             description: form.description,
             projectId: form.workType === WorkType.PROJECT ? form.projectId : null,
-            taskId: form.workType === WorkType.PROJECT ? (form.taskId || null) : null,
+            taskId: form.workType === WorkType.PROJECT && form.taskMode === 'planned' ? (form.taskId || null) : null,
             billableHours: (form.workType === WorkType.PROJECT && form.billable) ? form.hours : 0
         };
 
@@ -237,24 +249,67 @@ export default function TimesheetRecordPage() {
 
                 {/* Project Selection (Conditional) */}
                 {form.workType === WorkType.PROJECT && (
-                    <div className="md:col-span-2">
-                        <Label className="mb-1.5 block">เลือกโปรเจกต์</Label>
-                        <Select value={form.projectId} onValueChange={v => setForm({...form, projectId: v})}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select Project" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {projects.map((p: any) => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                        {p.code ? `[${p.code}] ` : ''}{p.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    <>
+                        <div className="md:col-span-2">
+                            <Label className="mb-1.5 block">เลือกโปรเจกต์</Label>
+                            <Select value={form.projectId} onValueChange={v => setForm({...form, projectId: v, taskId: ''})}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Project" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {projects.map((p: any) => (
+                                        <SelectItem key={p.id} value={p.id}>
+                                            {p.code ? `[${p.code}] ` : ''}{p.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Task Mode Selection */}
+                        <div className="md:col-span-2">
+                            <Label className="mb-1.5 block">รูปแบบกิจกรรม</Label>
+                            <RadioGroup 
+                                value={form.taskMode} 
+                                onValueChange={(v: 'planned' | 'adhoc') => setForm({...form, taskMode: v, taskId: '', activity: ''})}
+                                className="flex flex-row gap-6"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="planned" id="tm1" />
+                                    <Label htmlFor="tm1">กิจกรรมตามแผนงาน (Tasks)</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="adhoc" id="tm2" />
+                                    <Label htmlFor="tm2">กิจกรรมอื่นๆ (Adhoc)</Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+
+                        {/* Task Dropdown (Planned Only) */}
+                        {form.taskMode === 'planned' && (
+                            <div className="md:col-span-2">
+                                <Label className="mb-1.5 block">เลือกงาน (Task) <span className="text-red-500">*</span></Label>
+                                <Select value={form.taskId} onValueChange={v => setForm({...form, taskId: v})}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Task" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {projectTasks.length > 0 ? (
+                                            projectTasks.map((t: any) => (
+                                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                            ))
+                                        ) : (
+                                            <SelectItem value="_empty" disabled>ไม่มีงานในโปรเจกต์นี้</SelectItem>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                    </>
                 )}
 
-                {/* Activity Dropdown */}
+                {/* Activity Dropdown (Adhoc Only or Non-Project) */}
+                {(form.workType !== WorkType.PROJECT || form.taskMode === 'adhoc') && (
                 <div className="md:col-span-2">
                     <Label className="mb-1.5 block">กิจกรรม (Activity)</Label>
                     <Select value={form.activity} onValueChange={v => setForm({...form, activity: v})}>
@@ -274,6 +329,7 @@ export default function TimesheetRecordPage() {
                         </SelectContent>
                     </Select>
                 </div>
+                )}
 
                 {/* Description */}
                 <div className="md:col-span-2">

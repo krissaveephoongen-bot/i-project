@@ -26,7 +26,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Toggle mock auth for development/verification when DB is not available
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || true;
+const USE_MOCK = false;
 
 export function useAuth() {
   const context = useContext(AuthContext);

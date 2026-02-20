@@ -2,7 +2,7 @@ import { TimeEntry, WorkType, EntryStatus } from '@/app/timesheet/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 // Toggle mock data for development/verification when DB is not available
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || true;
+const USE_MOCK = false;
 
 /**
  * Maps database entry (snake_case) to frontend model (camelCase)
