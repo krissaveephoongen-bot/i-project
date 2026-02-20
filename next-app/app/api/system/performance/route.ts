@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabaseClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     // Get table statistics
@@ -33,14 +36,16 @@ export async function GET() {
       }
     ];
 
-    // Get cache performance
-    const cacheStats = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/redis/stats`, {
-      cache: 'no-store'
-    });
-
-    let cacheData = null;
-    if (cacheStats.ok) {
-      cacheData = await cacheStats.json();
+    // Get cache performance (optional)
+    const base = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
+    let cacheData: any = null;
+    try {
+      const cacheStats = await fetch(`${base}/api/redis/stats`, { cache: 'no-store' });
+      if (cacheStats.ok) {
+        cacheData = await cacheStats.json();
+      }
+    } catch (e) {
+      // ignore cache errors in build/runtime
     }
 
     // Calculate performance metrics

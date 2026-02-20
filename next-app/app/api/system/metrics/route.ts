@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import redis from '@/lib/redis';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     // Get system metrics
@@ -39,9 +42,12 @@ export async function GET() {
       timestamp: new Date().toISOString()
     };
 
+    // Normalize base URL for internal API calls
+    const base = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
+
     // Get Redis metrics
     try {
-      const redisHealth = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/redis/health`, {
+      const redisHealth = await fetch(`${base}/api/redis/health`, {
         cache: 'no-store'
       });
       
@@ -63,7 +69,7 @@ export async function GET() {
 
     // Get database metrics
     try {
-      const dbHealth = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/health`, {
+      const dbHealth = await fetch(`${base}/api/health`, {
         cache: 'no-store'
       });
       
@@ -82,7 +88,7 @@ export async function GET() {
 
     // Get API metrics
     try {
-      const apiHealth = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/system/health`, {
+      const apiHealth = await fetch(`${base}/api/system/health`, {
         cache: 'no-store'
       });
       

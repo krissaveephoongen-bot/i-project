@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@supabase/supabase-js'],
+  staticPageGenerationTimeout: 120,
   experimental: {
     optimizePackageImports: ['@supabase/supabase-js', 'lucide-react', 'clsx'],
     scrollRestoration: true,

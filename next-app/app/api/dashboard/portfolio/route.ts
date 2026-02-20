@@ -20,7 +20,12 @@ export async function GET(req: NextRequest) {
       .select('*')
 
     if (error) throw error
-    const list: any[] = projects || []
+    // Exclude internal projects (department cost) from portfolio
+    const list: any[] = (projects || []).filter((p: any) => {
+      const isInternal = p.is_internal === true
+      const cat = String(p.internal_category || p.category || '').toLowerCase()
+      return !(isInternal || cat === 'internal' || cat.includes('department'))
+    })
 
     const managerIds = Array.from(new Set(list.map((p: any) => p.manager_id).filter(Boolean)))
     const clientIds = Array.from(new Set(list.map((p: any) => p.client_id).filter(Boolean)))

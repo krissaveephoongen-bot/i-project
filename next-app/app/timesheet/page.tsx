@@ -29,6 +29,7 @@ import {
 } from "@/app/components/ui/Dialog";
 import PageTransition from '../components/PageTransition';
 import { Skeleton } from '../components/ui/Skeleton';
+import { useRouter } from 'next/navigation';
 
 // Custom Components
 import MonthlyView from './components/MonthlyView';
@@ -45,6 +46,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 export default function TimesheetPage() {
   const { user } = useAuth();
   const { isThaiLanguage } = useThaiLocale();
+  const router = useRouter();
   
   // State
   const [projects, setProjects] = useState<Project[]>([]);
@@ -375,14 +377,14 @@ export default function TimesheetPage() {
                </Button>
              )}
 
-             {canEdit && (
-               <Button 
-                 onClick={handleAddEntry}
-                 className="gap-2 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg shadow-green-600/20"
-               >
-                 <Plus className="h-4 w-4" /> เพิ่มรายการใหม่
-               </Button>
-             )}
+            {canEdit && (
+              <Button 
+                onClick={() => router.push('/timesheet/record')}
+                className="gap-2 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg shadow-green-600/20"
+              >
+                <Plus className="h-4 w-4" /> เพิ่มรายการใหม่
+              </Button>
+            )}
              
              {submissionStatus.status === 'Draft' && (
                <Button onClick={() => setConfirmSubmit(true)} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20">

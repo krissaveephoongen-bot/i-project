@@ -10,11 +10,17 @@ export async function GET(req: NextRequest) {
     // 1. Fetch all projects
     const { data: projects, error: projError } = await supabaseAdmin
         .from('projects')
-        .select('id, name, spi, budget, status');
+        .select('id, name, spi, budget, status, is_internal, internal_category');
 
     if (projError) throw projError;
 
-    const ids = (projects || []).map((p: any) => p.id);
+    // Exclude internal/department projects from executive metrics
+    const filtered = (projects || []).filter((p: any) => {
+      const isInternal = p.is_internal === true
+      const cat = String(p.internal_category || '').toLowerCase()
+      return !(isInternal || cat === 'internal' || cat.includes('department'))
+    });
+    const ids = filtered.map((p: any) => p.id);
 
     // 2. Fetch High Risks
     let risks: any[] = [];
@@ -62,7 +68,7 @@ export async function GET(req: NextRequest) {
         }
     });
 
-    const highRiskProjects = (projects || []).filter((p: any) => riskCounts[p.id] > 0).map((p: any) => ({
+    const highRiskProjects = filtered.filter((p: any) => riskCounts[p.id] > 0).map((p: any) => ({
         id: p.id,
         name: p.name,
         highRiskCount: riskCounts[p.id]
@@ -75,11 +81,11 @@ export async function GET(req: NextRequest) {
     }).length;
 
     // C. Avg SPI
-    const totalSpi = (projects || []).reduce((sum: number, p: any) => sum + Number(p.spi || 1), 0);
-    const avgSpi = projects?.length ? totalSpi / projects.length : 1;
+    const totalSpi = filtered.reduce((sum: number, p: any) => sum + Number(p.spi || 1), 0);
+    const avgSpi = filtered.length ? totalSpi / filtered.length : 1;
 
     // D. Watchlist (Lowest SPI)
-    const watchlist = [...(projects || [])]
+    const watchlist = [...filtered]
         .sort((a: any, b: any) => Number(a.spi || 1) - Number(b.spi || 1))
         .slice(0, 5)
         .map((p: any) => ({
@@ -92,7 +98,7 @@ export async function GET(req: NextRequest) {
       title: 'Executive Project Report',
       date: today,
       summary: {
-        totalProjects: projects?.length || 0,
+        totalProjects: filtered.length || 0,
         avgSpi: avgSpi.toFixed(2),
         highRiskProjects,
         overdueMilestones: overdueCount,

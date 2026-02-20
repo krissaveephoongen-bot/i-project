@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     // Check API endpoints health
@@ -12,11 +15,12 @@ export async function GET() {
       '/api/redis/health'
     ];
 
+    const base = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
     const apiHealthChecks = await Promise.allSettled(
       apiEndpoints.map(async (endpoint) => {
         const start = Date.now();
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}${endpoint}`, {
+          const response = await fetch(`${base}${endpoint}`, {
             cache: 'no-store',
             headers: {
               'User-Agent': 'System-Health-Check/1.0'
