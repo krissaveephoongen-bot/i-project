@@ -117,6 +117,8 @@ export default function UnifiedDashboard() {
             if (signal.aborted) return;
 
             const pfJson = pf.ok ? await (pf as Response).json() : { rows: [], cashflow: [], spiTrend: [], spiSnaps: [] };
+            console.log('Dashboard: API Response - rows count:', (pfJson.rows || []).length);
+            console.log('Dashboard: API Response - sample row:', (pfJson.rows || [])[0]);
             setRows(pfJson.rows || []);
             setCashflow(pfJson.cashflow || []);
             setSpiTrend(pfJson.spiTrend || []);
@@ -164,11 +166,18 @@ export default function UnifiedDashboard() {
     }, [rows]);
 
     const filteredRows = useMemo(() => {
-        return rows.filter(r => {
+        console.log('Dashboard: Original rows count:', rows.length);
+        console.log('Dashboard: Filter status:', status);
+        console.log('Dashboard: Search term:', search);
+        
+        const filtered = rows.filter(r => {
             const okStatus = status === 'all' ? true : (String(r.status || '').toLowerCase() === status.toLowerCase());
             const okSearch = search ? String(r.name || '').toLowerCase().includes(search.toLowerCase()) : true;
             return okStatus && okSearch;
         });
+        
+        console.log('Dashboard: Filtered rows count:', filtered.length);
+        return filtered;
     }, [rows, status, search]);
 
     const filteredTotals = useMemo<DashboardTotals>(() => {
