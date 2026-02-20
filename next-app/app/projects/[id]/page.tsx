@@ -495,6 +495,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                     { id: 'risks', label: 'Risks', icon: AlertTriangle, href: `/projects/${params.id}/risks` },
                     { id: 'milestones', label: 'Milestones', icon: CheckCircle2, href: `/projects/${params.id}/milestones` },
                     { id: 'budget', label: 'Budget', icon: DollarSign, href: `/projects/${params.id}/budget` },
+                    { id: 'cost-sheet', label: 'Cost Sheet', icon: TrendingUp, href: `/projects/${params.id}/cost-sheet` },
                     { id: 'documents', label: 'Documents', icon: FileText, href: `/projects/${params.id}/documents` },
                     { id: 'team', label: 'Team', icon: Users, href: `/projects/${params.id}/team` }
                   ].map((tab) => (

@@ -45,6 +45,7 @@ export interface Project {
   status: string;
   client?: string;
   manager?: string;
+  finalApprover?: string; // Added for 2-step approval
   color?: string;
   tasks?: Array<{
     id: string;
@@ -474,7 +475,7 @@ export interface ModalRow {
 }
 
 export interface SubmissionStatus {
-  status: 'Draft' | 'Submitted' | 'Approved' | 'Rejected';
+  status: 'Draft' | 'Submitted' | 'ManagerApproved' | 'Approved' | 'Rejected';
   submittedAt?: string;
   reviewedBy?: string;
   reviewedAt?: string;

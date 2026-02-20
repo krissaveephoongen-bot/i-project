@@ -59,8 +59,24 @@ export const timesheetService = {
   getProjects: async (userId: string): Promise<any[]> => {
     if (USE_MOCK) {
         return [
-            { id: 'p1', name: 'Project Alpha', code: 'PRJ-001', is_billable: true, tasks: [{id: 't1', name: 'Development'}, {id: 't2', name: 'Meeting'}] },
-            { id: 'p2', name: 'Project Beta', code: 'PRJ-002', is_billable: false, tasks: [{id: 't3', name: 'Design'}] }
+            { 
+              id: 'p1', 
+              name: 'Project Alpha', 
+              code: 'PRJ-001', 
+              is_billable: true, 
+              manager: 'manager-1',
+              finalApprover: 'director-1',
+              tasks: [{id: 't1', name: 'Development'}, {id: 't2', name: 'Meeting'}] 
+            },
+            { 
+              id: 'p2', 
+              name: 'Project Beta', 
+              code: 'PRJ-002', 
+              is_billable: false, 
+              manager: 'manager-2',
+              finalApprover: 'director-1',
+              tasks: [{id: 't3', name: 'Design'}] 
+            }
         ];
     }
     try {
@@ -262,6 +278,25 @@ export const timesheetService = {
       return res.ok;
     } catch (error) {
       console.error('Error submitting timesheet:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Approve timesheet submission (Step 1 or Final)
+   */
+  approveSubmission: async (userId: string, start: string, approverId: string, level: 'manager' | 'final'): Promise<boolean> => {
+    if (USE_MOCK) return true;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/timesheet/submission/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, period_start_date: start, approver_id: approverId, level }),
+      });
+      return res.ok;
+    } catch (error) {
+      console.error('Error approving timesheet:', error);
       return false;
     }
   },

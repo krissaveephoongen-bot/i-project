@@ -12,12 +12,14 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Progress } from '../../components/ui/progress';
 import { timesheetService } from '@/app/lib/timesheet-service';
+import { activityService, ActivityType } from '@/app/lib/activity-service';
 import { TimeEntry, WorkType } from '@/app/timesheet/types';
 import { toast } from 'react-hot-toast';
 
 export default function TimesheetRecordPage() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<any[]>([]);
+  const [activities, setActivities] = useState<ActivityType[]>([]);
   const [form, setForm] = useState<{
     workType: WorkType;
     projectId: string;
@@ -54,8 +56,12 @@ export default function TimesheetRecordPage() {
       try {
         const projs = await timesheetService.getProjects(user.id);
         setProjects(projs || []);
+        
+        // Load Activities
+        const acts = await activityService.getAll();
+        setActivities(acts);
       } catch (e) {
-        console.error('Failed to load projects', e);
+        console.error('Failed to load projects or activities', e);
       }
 
       // Load Entries
@@ -187,25 +193,19 @@ export default function TimesheetRecordPage() {
             {/* Work Type Selection */}
             <div className="space-y-3">
                 <Label>ประเภทงาน</Label>
-                <RadioGroup 
-                    defaultValue={WorkType.PROJECT} 
+                <Select 
                     value={form.workType} 
                     onValueChange={(v: WorkType) => setForm({...form, workType: v})}
-                    className="flex flex-row gap-6"
                 >
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value={WorkType.PROJECT} id="r1" />
-                        <Label htmlFor="r1">Project</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value={WorkType.OFFICE} id="r2" />
-                        <Label htmlFor="r2">Non-Project (Admin, Meeting, etc.)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value={WorkType.LEAVE} id="r3" />
-                        <Label htmlFor="r3">Leave (ลาป่วย/ลากิจ)</Label>
-                    </div>
-                </RadioGroup>
+                    <SelectTrigger>
+                        <SelectValue placeholder="เลือกประเภทงาน" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={WorkType.PROJECT}>Project</SelectItem>
+                        <SelectItem value={WorkType.OFFICE}>Non-Project (Admin, Meeting, etc.)</SelectItem>
+                        <SelectItem value={WorkType.LEAVE}>Leave (ลาป่วย/ลากิจ)</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             {/* Main Form Grid */}
@@ -262,26 +262,14 @@ export default function TimesheetRecordPage() {
                             <SelectValue placeholder="Select Activity" />
                         </SelectTrigger>
                         <SelectContent>
-                            {form.workType === WorkType.PROJECT ? (
-                                <>
-                                    <SelectItem value="Development">Development</SelectItem>
-                                    <SelectItem value="Design">Design</SelectItem>
-                                    <SelectItem value="Testing">Testing</SelectItem>
-                                    <SelectItem value="Deployment">Deployment</SelectItem>
-                                    <SelectItem value="Meeting">Meeting</SelectItem>
-                                </>
-                            ) : form.workType === WorkType.OFFICE ? (
-                                <>
-                                    <SelectItem value="Internal Meeting">Internal Meeting</SelectItem>
-                                    <SelectItem value="Training">Training</SelectItem>
-                                    <SelectItem value="Admin">Admin Tasks</SelectItem>
-                                </>
-                            ) : (
-                                <>
-                                    <SelectItem value="Sick Leave">Sick Leave (ลาป่วย)</SelectItem>
-                                    <SelectItem value="Personal Leave">Personal Leave (ลากิจ)</SelectItem>
-                                    <SelectItem value="Annual Leave">Annual Leave (ลาพักร้อน)</SelectItem>
-                                </>
+                            {activities
+                                .filter(a => a.workType === form.workType && a.isActive)
+                                .map(a => (
+                                    <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>
+                                ))
+                            }
+                            {activities.filter(a => a.workType === form.workType && a.isActive).length === 0 && (
+                                <SelectItem value="Other">Other</SelectItem>
                             )}
                         </SelectContent>
                     </Select>
@@ -308,7 +296,7 @@ export default function TimesheetRecordPage() {
                             onChange={e => setForm({...form, billable: e.target.checked})}
                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <Label htmlFor="billable" className="cursor-pointer">Billable (คิดเงินลูกค้าได้)</Label>
+                        <Label htmlFor="billable" className="cursor-pointer">Billable (คิดเป็นค่าใช้จ่ายโครงการ)</Label>
                     </div>
                 )}
 
