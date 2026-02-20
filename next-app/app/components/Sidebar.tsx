@@ -288,7 +288,7 @@ export default function Sidebar({ isMobile = false, onNavigate }: SidebarProps) 
             {/* Bottom Area */}
             <div className="p-4 border-t border-border space-y-2">
                 <Link
-                    href="/profile"
+                    href="/settings"
                     onClick={onNavigate}
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >

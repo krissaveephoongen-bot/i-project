@@ -9,6 +9,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     const email = searchParams.get('email');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     if (!userId && !email) return err('User ID or email is required', 400);
     let user: any = null;
     if (userId) {
@@ -49,10 +52,17 @@ export async function GET(request: NextRequest) {
     };
     const { data: allProjects } = await supabase.from('projects').select('*');
     const { data: allTasks } = await supabase.from('tasks').select('*');
-    const { data: entries } = await supabase
+    
+    let entriesQuery = supabase
       .from('time_entries')
       .select('id,date,hours,projectId,userId')
       .eq('userId', userId || '');
+
+    if (startDate) entriesQuery = entriesQuery.gte('date', startDate);
+    if (endDate) entriesQuery = entriesQuery.lte('date', endDate);
+
+    const { data: entries } = await entriesQuery;
+
     const myProjects = (allProjects || []).filter((p: any) => String(p.managerId || '') === String(userId || ''));
     const myTasks = (allTasks || []).filter((t: any) => String(t.assignedTo || '') === String(userId || ''));
     const stats = {
