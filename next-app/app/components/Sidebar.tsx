@@ -226,6 +226,7 @@ export default function Sidebar({ isMobile = false, onNavigate }: SidebarProps) 
                     children: [
                         { name: t('navigation.users'), href: '/admin/users', icon: Users },
                         { name: 'ประเภทกิจกรรม', href: '/admin/activities', icon: FileText },
+                        { name: 'Cost Codes', href: '/admin/cost-codes', icon: FileText },
                         { name: 'System Health', href: '/admin/health', icon: BarChart3 },
                         // { name: 'Activity Logs', href: '/admin/logs', icon: FileText }, // Hidden
                     ]
