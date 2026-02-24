@@ -20,14 +20,6 @@ test.describe('Timesheet Smoke', () => {
     }
 
     await doLogin()
-    // Touch /projects first to ensure session is active
-    await page.goto(`${PROD_URL}/projects`, { waitUntil: 'networkidle' })
-    if (page.url().includes('/staff/login')) {
-      await doLogin()
-      await page.goto(`${PROD_URL}/projects`, { waitUntil: 'networkidle' })
-    }
-    await expect(page).toHaveURL(/.*\/projects/)
-
     // Navigate to /timesheet (retry login if redirected)
     const gotoTimesheet = async () => {
       await page.goto(`${PROD_URL}/timesheet`, { waitUntil: 'networkidle' })
@@ -50,14 +42,44 @@ test.describe('Timesheet Smoke', () => {
     await expect(weeklyTab).toBeVisible()
     await expect(activitiesTab).toBeVisible()
 
+    // Try toggle edit mode and open day editor if available
+    const editBtn = page.getByRole('button', { name: /แก้ไขเวลา|Edit/i })
+    if (await editBtn.isVisible().catch(() => false)) {
+      await editBtn.click()
+      // Click any editable cell (if present)
+      const editableCell = page.locator('td div.cursor-pointer').first()
+      if (await editableCell.isVisible().catch(() => false)) {
+        await editableCell.click()
+        // Modal should be visible; cancel out
+        await expect(page.getByRole('dialog')).toBeVisible()
+        const cancelBtn = page.getByRole('button', { name: /ยกเลิก|Cancel/i })
+        if (await cancelBtn.isVisible().catch(() => false)) {
+          await cancelBtn.click()
+        }
+      }
+    }
+
     // Switch tabs to verify content mounts without crashing
     await weeklyTab.click()
     await page.waitForLoadState('networkidle')
     await expect(weeklyTab).toHaveAttribute('data-state', 'active')
+    // Weekly: ensure table exists and search button works
+    const weeklySearch = page.getByRole('button', { name: /ค้นหา|Search/i })
+    if (await weeklySearch.isVisible().catch(() => false)) {
+      await weeklySearch.click()
+      await page.waitForLoadState('networkidle')
+    }
+    await expect(page.locator('table')).toBeVisible()
 
     await activitiesTab.click()
     await page.waitForLoadState('networkidle')
     await expect(activitiesTab).toHaveAttribute('data-state', 'active')
+    const actSearch = page.getByRole('button', { name: /ค้นหา|Search/i })
+    if (await actSearch.isVisible().catch(() => false)) {
+      await actSearch.click()
+      await page.waitForLoadState('networkidle')
+    }
+    await expect(page.locator('table')).toBeVisible()
 
     await monthlyTab.click()
     await page.waitForLoadState('networkidle')
