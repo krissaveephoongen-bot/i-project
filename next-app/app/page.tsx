@@ -20,7 +20,6 @@ import { Button } from './components/ui/Button';
 import PageTransition from './components/PageTransition';
 import { 
   getDashboardKPI, 
-  getDashboardProjects, 
   getDashboardFinancials, 
   getDashboardTeamLoad 
 } from '@/app/lib/data-service';
@@ -92,7 +91,29 @@ const translateRisk = (risk: string) => {
 
 export default async function ExecutiveDashboard() {
   const kpiData = await getDashboardKPI();
-  const projects = await getDashboardProjects();
+  // Use unified API to ensure Portfolio Health Matrix uses existing projects
+  let projects: any[] = [];
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ? process.env.NEXT_PUBLIC_BASE_URL : ''}/api/dashboard/portfolio`, { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json();
+      const rows = json?.rows || [];
+      projects = rows.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        code: r.code || '',
+        progress_plan: 100,
+        progress_actual: Number(r.progress || 0),
+        spi: Number(r.spi ?? 1),
+        cpi: Number(r.cpi ?? 1),
+        budget: Number(r.budget || 0),
+        risk_level: (r.risks?.high || 0) > 0 ? 'high' : ((r.risks?.medium || 0) > 0 ? 'medium' : 'low'),
+        client: r.clientName || ''
+      }));
+    }
+  } catch {
+    projects = [];
+  }
   const financialData = await getDashboardFinancials();
   const teamLoadData = await getDashboardTeamLoad();
 
