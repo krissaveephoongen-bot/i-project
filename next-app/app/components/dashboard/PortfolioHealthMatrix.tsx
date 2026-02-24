@@ -20,16 +20,28 @@ import Link from 'next/link';
 import { ArrowUpRight, ArrowDownRight, ExternalLink, Maximize2, LayoutList } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/Select';
 
-interface PortfolioHealthMatrixProps {
-  projects: ProjectHealth[];
-}
+type ExtendedProject = ProjectHealth & { status?: string; managerName?: string };
+
+interface PortfolioHealthMatrixProps { projects: ExtendedProject[] }
 
 export default function PortfolioHealthMatrix({ projects }: PortfolioHealthMatrixProps) {
   const [viewMode, setViewMode] = useState<'matrix' | 'list'>('matrix');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [managerFilter, setManagerFilter] = useState<string>('all');
+
+  const statuses = Array.from(new Set((projects || []).map(p => (p.status || 'Unknown')))).filter(Boolean);
+  const managers = Array.from(new Set((projects || []).map(p => (p.managerName || 'Unassigned')))).filter(Boolean);
+
+  const filtered = (projects || []).filter(p => {
+    const okStatus = statusFilter === 'all' ? true : String(p.status || '').toLowerCase() === statusFilter.toLowerCase();
+    const okMgr = managerFilter === 'all' ? true : String(p.managerName || '').toLowerCase() === managerFilter.toLowerCase();
+    return okStatus && okMgr;
+  });
 
   // Prepare data for scatter plot
-  const data = projects.map(p => ({
+  const data = filtered.map(p => ({
     ...p,
     x: p.spi,
     y: p.cpi,
@@ -73,9 +85,33 @@ export default function PortfolioHealthMatrix({ projects }: PortfolioHealthMatri
   return (
     <Card className="col-span-1 lg:col-span-2 shadow-sm border-slate-200">
       <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50 py-4 px-6">
-        <div>
+        <div className="flex items-center gap-6">
           <CardTitle className="text-lg font-semibold text-slate-900">Portfolio Health Matrix</CardTitle>
           <p className="text-xs text-slate-500 mt-1">Cost (CPI) vs Schedule (SPI) Performance</p>
+          <div className="hidden md:flex items-center gap-2">
+            <Select onValueChange={setStatusFilter} value={statusFilter}>
+              <SelectTrigger className="h-8 w-40 text-xs">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                {statuses.map(s => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select onValueChange={setManagerFilter} value={managerFilter}>
+              <SelectTrigger className="h-8 w-48 text-xs">
+                <SelectValue placeholder="Filter by manager" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Managers</SelectItem>
+                {managers.map(m => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="flex bg-white rounded-lg border border-slate-200 p-0.5">
           <button
@@ -173,7 +209,7 @@ export default function PortfolioHealthMatrix({ projects }: PortfolioHealthMatri
                 </tr>
               </thead>
               <tbody>
-                {projects.map((project, idx) => (
+                {filtered.map((project, idx) => (
                   <motion.tr 
                     key={project.id}
                     initial={{ opacity: 0, x: -10 }}

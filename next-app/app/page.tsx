@@ -108,7 +108,9 @@ export default async function ExecutiveDashboard() {
         cpi: Number(r.cpi ?? 1),
         budget: Number(r.budget || 0),
         risk_level: (r.risks?.high || 0) > 0 ? 'high' : ((r.risks?.medium || 0) > 0 ? 'medium' : 'low'),
-        client: r.clientName || ''
+        client: r.clientName || '',
+        status: r.status || '',
+        managerName: r.managerName || ''
       }));
     }
   } catch {
