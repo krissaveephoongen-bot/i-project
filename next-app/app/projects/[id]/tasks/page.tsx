@@ -44,34 +44,30 @@ export default function ProjectTasksPage() {
                 const rows = res.ok ? await res.json() : [];
                 const transformedTasks = (rows || []).map((task: any) => ({
                     id: task.id,
-                    title: task.title,
+                    title: task.title || task.name || 'Untitled Task',
                     description: task.description,
                     status: task.status,
                     priority: task.priority || 'medium',
-                    dueDate: task.due_date,
-                    estimatedHours: task.estimated_hours,
-                    actualHours: task.actual_hours,
-                    projectId: task.project_id || projectId,
-                    milestoneId: task.milestone_id,
-                    assignedTo: task.assigned_to,
-                    createdAt: task.created_at,
-                    updatedAt: task.updated_at,
+                    dueDate: task.dueDate,
+                    estimatedHours: task.estimatedHours,
+                    actualHours: task.actualHours,
+                    projectId: task.projectId || projectId,
+                    milestoneId: task.milestoneId,
+                    assignedTo: task.assignedTo,
+                    createdAt: task.createdAt,
+                    updatedAt: task.updatedAt,
                     // Kanban-specific fields
                     phase: task.phase,
                     weight: task.weight || 5,
-                    progress_plan: task.progress_plan || 0,
-                    progress_actual: task.progress_actual || 0,
-                    start_date: task.start_date,
-                    end_date: task.end_date,
-                    assigned_to: task.assigned_to || 'Unassigned',
+                    progressPlan: task.progressPlan || 0,
+                    progressActual: task.progressActual || 0,
+                    startDate: task.startDate,
+                    endDate: task.endDate,
+                    assigned_to: task.assignedTo || 'Unassigned',
                     vendor: task.vendor || '',
-                    progressPlan: task.progress_plan || 0,
-                    progressActual: task.progress_actual || 0,
-                    startDate: task.start_date,
-                    endDate: task.end_date,
                     // Relations
                     projects: { id: projectId, name: task.project_name || 'Unknown' },
-                    assigned_user: task.assigned_user || { id: task.assigned_to || '', name: task.assigned_user?.name || 'Unassigned' }
+                    assigned_user: task.assigned_user || { id: task.assignedTo || '', name: task.assigned_user?.name || 'Unassigned' }
                 }));
                 setTasks(transformedTasks);
                 setError(null);
@@ -91,25 +87,25 @@ export default function ProjectTasksPage() {
 
         try {
             const payload = {
-                project_id: dbProjectId,
+                projectId: dbProjectId,
                 title: 'งานใหม่',
                 description: 'งานที่สร้างขึ้นใหม่',
                 status: 'Pending',
                 priority: 'medium',
                 phase: 'Development',
                 weight: 5,
-                progress_plan: 0,
-                progress_actual: 0,
-                start_date: new Date().toISOString(),
-                end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                assigned_to: '',
+                progressPlan: 0,
+                progressActual: 0,
+                startDate: new Date().toISOString(),
+                endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                assignedTo: '',
                 vendor: '',
-                estimated_hours: 8,
-                actual_hours: 0,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                estimatedHours: 8,
+                actualHours: 0,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
             };
-            const res = await fetch(`${API_BASE}/api/projects/tasks`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const res = await fetch(`${API_BASE}/api/projects/tasks/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const data = res.ok ? await res.json() : null;
             if (data) {
                 setTasks(prev => [...prev, {
@@ -118,30 +114,26 @@ export default function ProjectTasksPage() {
                     description: data.description,
                     status: data.status,
                     priority: data.priority,
-                    dueDate: data.due_date,
-                    estimatedHours: data.estimated_hours,
-                    actualHours: data.actual_hours,
-                    projectId: data.project_id || projectId,
-                    milestoneId: data.milestone_id,
-                    assignedTo: data.assigned_to,
-                    createdAt: data.created_at,
-                    updatedAt: data.updated_at,
+                    dueDate: data.dueDate,
+                    estimatedHours: data.estimatedHours,
+                    actualHours: data.actualHours,
+                    projectId: data.projectId || projectId,
+                    milestoneId: data.milestoneId,
+                    assignedTo: data.assignedTo,
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt,
                     // Kanban-specific fields
                     phase: data.phase,
                     weight: data.weight,
-                    progress_plan: data.progress_plan,
-                    progress_actual: data.progress_actual,
-                    start_date: data.start_date,
-                    end_date: data.end_date,
-                    assigned_to: data.assigned_to,
+                    progressPlan: data.progressPlan,
+                    progressActual: data.progressActual,
+                    startDate: data.startDate,
+                    endDate: data.endDate,
+                    assigned_to: data.assignedTo,
                     vendor: data.vendor,
-                    progressPlan: data.progress_plan,
-                    progressActual: data.progress_actual,
-                    startDate: data.start_date,
-                    endDate: data.end_date,
                     // Relations
                     projects: { id: projectId, name: 'Project' },
-                    assigned_user: { id: data.assigned_to || '', name: data.assigned_to || 'Unassigned' }
+                    assigned_user: { id: data.assignedTo || '', name: data.assignedTo || 'Unassigned' }
                 }]);
                 const id = data.id;
                 if (id && projectId) {
