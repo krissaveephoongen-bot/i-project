@@ -37,7 +37,7 @@ export async function GET() {
     ];
 
     // Get cache performance (optional)
-    const base = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
+    const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
     let cacheData: any = null;
     try {
       const cacheStats = await fetch(`${base}/api/redis/stats`, { cache: 'no-store' });

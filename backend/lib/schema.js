@@ -36,6 +36,18 @@ export const contacts = pgTable('contacts', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Vendor KPI Criteria
+export const vendor_kpi_criteria = pgTable('vendor_kpi_criteria', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description'),
+  weight: numeric('weight', { precision: 5, scale: 2 }).notNull(), // 0-100
+  category: text('category').notNull(), // 'quality', 'timeliness', 'cost', 'communication'
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Team Structure table
 export const teamStructure = pgTable('team_structure', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -93,6 +105,112 @@ export const approvalActions = pgTable('approval_actions', {
   comments: text('comments'),
   actionAt: timestamp('action_at').defaultNow().notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Vendors
+export const vendors = pgTable('vendors', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  code: text('code'),
+  type: text('type').notNull(), // 'supplier', 'contractor', 'service'
+  category: text('category'),
+  status: text('status').default('active'),
+  // Contact & identity
+  contactPerson: text('contactPerson'),
+  email: text('email'),
+  phone: text('phone'),
+  website: text('website'),
+  taxId: text('taxId'),
+  registrationNumber: text('registrationNumber'),
+  // Address
+  address: text('address'),
+  city: text('city'),
+  province: text('province'),
+  postalCode: text('postalCode'),
+  country: text('country'),
+  // Banking & payment
+  bankAccount: text('bankAccount'),
+  bankName: text('bankName'),
+  paymentTerms: integer('paymentTerms'),
+  creditLimit: numeric('creditLimit', { precision: 15, scale: 2 }),
+  // Metrics & notes
+  notes: text('notes'),
+  overallRating: numeric('overallRating', { precision: 5, scale: 2 }),
+  onTimeDeliveryRate: numeric('onTimeDeliveryRate', { precision: 5, scale: 2 }),
+  totalProjects: integer('totalProjects').default(0),
+  successfulProjects: integer('successfulProjects').default(0),
+  // Status flags & timestamps
+  isActive: boolean('isActive').default(true),
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+});
+
+// Vendor Contracts
+export const vendor_contracts = pgTable('vendor_contracts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  vendorId: uuid('vendorId').references(() => vendors.id, { onDelete: 'cascade' }).notNull(),
+  projectId: uuid('projectId').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  contractNumber: text('contractNumber').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  type: text('type'),
+  startDate: timestamp('startDate').notNull(),
+  endDate: timestamp('endDate'),
+  value: numeric('value', { precision: 15, scale: 2 }).notNull(),
+  currency: text('currency').default('THB'),
+  paymentTerms: text('paymentTerms'),
+  paymentSchedule: text('paymentSchedule'),
+  status: text('status').default('active'),
+  signedDate: timestamp('signedDate'),
+  signedBy: uuid('signedBy').references(() => users.id, { onDelete: 'set null' }),
+  notes: text('notes'),
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+});
+
+// Vendor Payments
+export const vendor_payments = pgTable('vendor_payments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  vendorId: uuid('vendorId').references(() => vendors.id, { onDelete: 'cascade' }).notNull(),
+  contractId: uuid('contractId').references(() => vendor_contracts.id, { onDelete: 'set null' }),
+  projectId: uuid('projectId').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  paymentType: text('paymentType').notNull(), // 'milestone', 'installment', 'final'
+  amount: numeric('amount', { precision: 15, scale: 2 }).notNull(),
+  currency: text('currency').default('THB'),
+  dueDate: timestamp('dueDate').notNull(),
+  paidDate: timestamp('paidDate'),
+  status: text('status').default('pending'), // 'pending', 'paid', 'overdue', 'cancelled'
+  paymentMethod: text('paymentMethod'),
+  transactionId: text('transactionId'),
+  receiptUrl: text('receiptUrl'),
+  description: text('description'),
+  installmentNumber: integer('installmentNumber'),
+  totalInstallments: integer('totalInstallments'),
+  approvedBy: uuid('approvedBy').references(() => users.id, { onDelete: 'set null' }),
+  approvedAt: timestamp('approvedAt'),
+  rejectedReason: text('rejectedReason'),
+  notes: text('notes'),
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+});
+
+// Vendor KPI Evaluations
+export const vendor_kpi_evaluations = pgTable('vendor_kpi_evaluations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  vendorId: uuid('vendor_id').references(() => vendors.id, { onDelete: 'cascade' }).notNull(),
+  contractId: uuid('contract_id').references(() => vendor_contracts.id, { onDelete: 'cascade' }).notNull(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  evaluationPeriod: text('evaluation_period').notNull(), // 'monthly', 'quarterly', 'project_end'
+  qualityScore: numeric('quality_score', { precision: 5, scale: 2 }).notNull(), // 0-100
+  timelinessScore: numeric('timeliness_score', { precision: 5, scale: 2 }).notNull(), // 0-100
+  costScore: numeric('cost_score', { precision: 5, scale: 2 }).notNull(), // 0-100
+  communicationScore: numeric('communication_score', { precision: 5, scale: 2 }).notNull(), // 0-100
+  overallScore: numeric('overall_score', { precision: 5, scale: 2 }).notNull(), // 0-100
+  comments: text('comments'),
+  evaluatedBy: uuid('evaluated_by').references(() => users.id, { onDelete: 'set null' }).notNull(),
+  evaluationDate: timestamp('evaluation_date').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 // Tables
@@ -239,6 +357,22 @@ export const budgetRevisions = pgTable('budget_revisions', {
   changedAt: timestamp('changed_at').defaultNow().notNull(),
 });
 
+// Expense Items table
+export const expense_items = pgTable('expense_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  expenseId: uuid('expense_id').references(() => expenses.id, { onDelete: 'cascade' }).notNull(),
+  vendorId: uuid('vendor_id').references(() => vendors.id, { onDelete: 'set null' }),
+  category: text('category').notNull(),
+  subcategory: text('subcategory'),
+  description: text('description').notNull(),
+  quantity: numeric('quantity', { precision: 10, scale: 2 }).default('1.00'),
+  unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull(),
+  totalPrice: numeric('total_price', { precision: 12, scale: 2 }).notNull(),
+  vendorItemCode: text('vendor_item_code'),
+  vendorInvoice: text('vendor_invoice'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
 
 export const activityLog = pgTable('activity_log', {
   id: uuid('id').primaryKey().defaultRandom(),

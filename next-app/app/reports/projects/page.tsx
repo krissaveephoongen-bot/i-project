@@ -30,7 +30,10 @@ export default function ProjectsReportPage() {
                 <Briefcase className="h-8 w-8" />
                 Projects Report
               </h1>
-              <p className="text-slate-500 mt-1">Project status, progress, and timeline overview.</p>
+              <p className="text-slate-500 mt-1">
+                Project status, progress, and timeline overview.
+                <span className="ml-2 text-slate-400">(External projects only)</span>
+              </p>
             </div>
             <Button variant="outline" onClick={printPdf} className="gap-2 hover:bg-slate-100">
               <Printer className="h-4 w-4" /> Print PDF

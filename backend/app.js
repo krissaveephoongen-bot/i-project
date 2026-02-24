@@ -62,6 +62,7 @@ app.get('/', (req, res) => {
       cache: '/api/cache',
       auth: '/api/auth',
       users: '/api/users',
+      debug: '/api/debug/users',
       projects: '/api/projects',
       insights: '/api/projects/insights',
       executiveReport: '/api/projects/executive-report',
@@ -200,6 +201,12 @@ import resourceUtilizationRoutes from './routes/resource-utilization-routes.js';
 // import teamCapacityRoutes from './routes/team-capacity-routes.js';
 // import progressRoutes from './routes/progress-routes.js';
 import vendorRoutes from './routes/vendor-routes.js';
+import vendorsManagementRoutes from './routes/vendors-management-routes.js';
+import vendorContractsRoutes from './routes/vendor-contracts-routes.js';
+import vendorPaymentsRoutes from './routes/vendor-payments-routes.js';
+import vendorKpiRoutes from './routes/vendor-kpi-routes.js';
+import expenseItemsRoutes from './routes/expense-items-routes.js';
+import debugRoutes from './routes/debug-routes.js';
 import stakeholderRoutes from './routes/stakeholder-routes.js';
 import staffRoutes from './routes/staff-routes.js';
 import approvalRoutes from './routes/approval-routes.js';
@@ -227,6 +234,12 @@ app.use('/api/resources', resourceRoutes);
 app.use('/api/resource-utilization', resourceUtilizationRoutes);
 // app.use('/api/team-capacity', teamCapacityRoutes);
 // app.use('/api/progress', progressRoutes);
+app.use('/api/debug', debugRoutes);
+app.use('/api/vendors-management', vendorsManagementRoutes);
+app.use('/api/vendor-contracts', vendorContractsRoutes);
+app.use('/api/vendor-payments', vendorPaymentsRoutes);
+app.use('/api/vendor-kpi', vendorKpiRoutes);
+app.use('/api/expense-items', expenseItemsRoutes);
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/stakeholder', stakeholderRoutes);
 app.use('/api/staff', staffRoutes);

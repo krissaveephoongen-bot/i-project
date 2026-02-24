@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Header from '@/app/components/Header';
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 import { AlertTriangle, AlertCircle, TrendingUp, TrendingDown, Plus, Filter, X, Bug, CheckCircle, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
 import ProjectTabs from '@/app/components/ProjectTabs';

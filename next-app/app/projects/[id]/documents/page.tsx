@@ -8,7 +8,7 @@ import { FileText, Download, Upload, FolderOpen, Search, X, Eye } from 'lucide-r
 import { clsx } from 'clsx';
 import ProjectTabs from '@/app/components/ProjectTabs';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function ProjectDocumentsPage() {
   const params = useParams() as Record<string, string | string[] | undefined> | null;

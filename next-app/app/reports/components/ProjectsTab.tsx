@@ -8,18 +8,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/ca
 import { Skeleton } from '@/app/components/ui/Skeleton';
 import { Badge } from '@/app/components/ui/badge';
 import { Briefcase, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
+import { Switch, Label } from '@/app/components/ui';
 
 export default function ProjectsTab() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [includeInternal, setIncludeInternal] = useState(false);
 
   useEffect(() => {
-    fetch('/api/reports/projects', { cache: 'no-store' })
+    const q = includeInternal ? '?includeInternal=1' : '';
+    fetch(`/api/reports/projects${q}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [includeInternal]);
 
   if (loading) return <div className="space-y-4"><Skeleton className="h-32" /><Skeleton className="h-64" /></div>;
   if (!data) return <div className="text-red-500">Failed to load data</div>;
@@ -28,6 +31,10 @@ export default function ProjectsTab() {
 
   return (
     <div className="space-y-6">
+       <div className="flex items-center justify-end gap-2">
+         <Label htmlFor="include-internal" className="text-slate-600">รวม Internal</Label>
+         <Switch id="include-internal" checked={includeInternal} onCheckedChange={setIncludeInternal} />
+       </div>
        {/* KPIs */}
        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>

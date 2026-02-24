@@ -43,7 +43,7 @@ export async function GET() {
     };
 
     // Normalize base URL for internal API calls
-    const base = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
+    const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
 
     // Get Redis metrics
     try {

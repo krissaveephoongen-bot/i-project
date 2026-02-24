@@ -1,19 +1,15 @@
+// next-app/app/api/help/contacts/route.ts (Improved Version)
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
+import { supabase } from '@/app/lib/supabaseClient';
 
 export async function GET(request: NextRequest) {
     try {
         console.log('🔄 Starting help contacts fetch...');
         
-        if (!supabaseAdmin) {
-            console.error('❌ Supabase admin client missing');
-            return NextResponse.json({ error: 'admin client missing' }, { status: 500 });
-        }
-        
-        // Fetch team members (users) via admin client (RLS-safe on server)
-        const { data: users, error: usersError } = await supabaseAdmin
+        // Fetch team members (users)
+        const { data: users, error: usersError } = await supabase
             .from('users')
-            .select('*');
+            .select('id,name,full_name,phone,phone_number,email,position,role,department,isActive');
             
         if (usersError) {
             console.error('❌ Error fetching users:', usersError);
@@ -27,12 +23,12 @@ export async function GET(request: NextRequest) {
 
         // Map users data with better handling
         const team = (users || []).map((u: any) => {
-            const name = u.name || u.full_name || u.fullName || 'Unknown';
-            const phone = u.phone || u.phone_number || u.phoneNumber || '';
-            const email = u.email || u.work_email || '';
-            const position = u.position || u.title || u.role || '';
-            const role = u.role || u.system_role || '';
-            const department = u.department || u.division || '';
+            const name = u.name || u.full_name || 'Unknown';
+            const phone = u.phone || u.phone_number || '';
+            const email = u.email || '';
+            const position = u.position || u.role || '';
+            const role = u.role || '';
+            const department = u.department || '';
             const management = ['admin', 'manager'].includes(String(role || '').toLowerCase());
             
             return {
@@ -44,14 +40,14 @@ export async function GET(request: NextRequest) {
                 role: role.trim(),
                 department: department.trim(),
                 management,
-                isActive: u.isActive !== false && u.active !== false // Default to true if not specified
+                isActive: u.isActive !== false // Default to true if not specified
             };
         }).filter(u => u.isActive !== false); // Only show active users
 
         // Fetch stakeholders
-        const { data: stakeholderRows, error: stakeholdersError } = await supabaseAdmin
+        const { data: stakeholderRows, error: stakeholdersError } = await supabase
             .from('stakeholders')
-            .select('*');
+            .select('id,name,full_name,phone,phone_number,email,position,title,organization');
             
         if (stakeholdersError) {
             console.error('❌ Error fetching stakeholders:', stakeholdersError);
@@ -65,10 +61,10 @@ export async function GET(request: NextRequest) {
 
         // Map stakeholders data with better handling
         const stakeholders = (stakeholderRows || []).map((s: any) => {
-            const name = s.name || s.full_name || s.fullName || 'Unknown';
-            const phone = s.phone || s.phone_number || s.phoneNumber || '';
-            const email = s.email || s.work_email || '';
-            const position = s.position || s.title || s.role || '';
+            const name = s.name || s.full_name || 'Unknown';
+            const phone = s.phone || s.phone_number || '';
+            const email = s.email || '';
+            const position = s.position || s.title || '';
             
             return {
                 id: s.id || '',
@@ -77,7 +73,7 @@ export async function GET(request: NextRequest) {
                 email: email || null,
                 position: position.trim(),
                 management: false,
-                organization: s.organization || s.company || ''
+                organization: s.organization || ''
             };
         });
 

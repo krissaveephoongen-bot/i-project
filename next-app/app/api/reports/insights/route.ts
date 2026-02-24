@@ -18,13 +18,19 @@ export async function GET(req: NextRequest) {
     const start = new Date(Date.UTC(year, month - 1, 1)).toISOString().slice(0, 10);
     const end = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
 
-    const { data: entries, error } = await supabaseAdmin
-      .from('time_entries')
-      .select('*')
-      .gte('date', start)
-      .lte('date', end);
-      
-    if (error) throw error;
+    // Robust fetch for different date column names
+    let entries: any[] = [];
+    const q1 = await supabaseAdmin.from('time_entries').select('*').gte('date', start).lte('date', end);
+    if (!q1.error) {
+      entries = q1.data || [];
+    } else {
+      const q2 = await supabaseAdmin.from('time_entries').select('*').gte('work_date' as any, start).lte('work_date' as any, end);
+      if (!q2.error) {
+        entries = q2.data || [];
+      } else {
+        throw q2.error;
+      }
+    }
     
     // Fetch related data
     const pids = Array.from(new Set((entries || []).map((e: any) => e.projectId ?? e.project_id).filter(Boolean)));

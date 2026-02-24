@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     console.log('Fetching users for resources report...');
     const { data: users, error: usersError } = await supabaseAdmin
         .from('users')
-        .select('id, name, position, avatar')
+        .select('*')
         .in('role', ['employee', 'manager']);
 
     if (usersError) {
@@ -31,35 +31,42 @@ export async function GET(req: NextRequest) {
     const date30DaysAgoStr = date30DaysAgo.toISOString().slice(0, 10);
 
     console.log('Fetching timesheet data since:', date30DaysAgoStr);
-    const { data: timesheetData, error: timesheetError } = await supabaseAdmin
-        .from('time_entries')
-        .select('userId, hours')
-        .gte('date', date30DaysAgoStr);
-    
-    if (timesheetError) {
-      console.error('Timesheet fetch error:', timesheetError);
-      throw timesheetError;
+    // Be robust to snake_case vs camelCase columns
+    let timesheetData: any[] = [];
+    const t1 = await supabaseAdmin.from('time_entries').select('*').gte('date', date30DaysAgoStr);
+    if (!t1.error) {
+      timesheetData = t1.data || [];
+    } else {
+      console.warn('Timesheet fetch with date failed, trying work_date...', t1.error);
+      const t2 = await supabaseAdmin.from('time_entries').select('*').gte('work_date' as any, date30DaysAgoStr);
+      if (!t2.error) {
+        timesheetData = t2.data || [];
+      } else {
+        console.error('Timesheet fetch error:', t2.error);
+        throw t2.error;
+      }
     }
 
     console.log('Found timesheet entries:', (timesheetData || []).length);
 
     const userStats = (users || []).map((user: any) => {
         const userHours = (timesheetData || [])
-            .filter((t: any) => t.userId === user.id)
+            .filter((t: any) => (t.userId ?? t.user_id) === user.id)
             .reduce((sum: number, t: any) => sum + (Number(t.hours || 0)), 0);
         
         // Assuming 8 hours a day, 22 working days in the last 30 days
         const capacity = 8 * 22;
         const utilization = capacity > 0 ? (userHours / capacity) * 100 : 0;
 
-        return {
+        const result = {
             id: user.id,
             name: user.name,
-            position: user.position || 'Employee',
-            avatar: user.avatar,
+            position: user.position || user.job_title || 'Employee',
+            avatar: user.avatar || null,
             total_hours: userHours,
             utilization: Math.round(utilization)
         };
+        return result;
     });
 
     const totalTeamMembers = (users || []).length;

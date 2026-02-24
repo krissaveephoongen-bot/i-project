@@ -7,7 +7,7 @@ import Header from '@/app/components/Header';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/Button';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function EditTaskPage() {
   const params = useParams() as Record<string, string | string[] | undefined> | null;

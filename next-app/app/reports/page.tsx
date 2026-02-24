@@ -64,7 +64,10 @@ export default function ReportsPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900">Reports Center</h1>
-              <p className="text-slate-500 mt-1">Unified view of project performance, finance, and resources.</p>
+              <p className="text-slate-500 mt-1">
+                Unified view of project performance, finance, and resources.
+                <span className="ml-2 text-slate-400">(External projects only; internal/department costs excluded)</span>
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={printPdf} className="gap-2 hover:bg-slate-100">

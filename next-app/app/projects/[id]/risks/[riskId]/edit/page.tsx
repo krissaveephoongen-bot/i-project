@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/Button';
 import { clsx } from 'clsx';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function EditRiskPage() {
   const params = useParams() as Record<string, string | string[] | undefined> | null;

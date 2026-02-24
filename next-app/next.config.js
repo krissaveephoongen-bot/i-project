@@ -41,6 +41,35 @@ const nextConfig = {
   },
   // Optimize fonts
   optimizeFonts: true,
+  async rewrites() {
+    const isDev = process.env.NODE_ENV === 'development';
+    const backendBase = isDev 
+      ? 'http://localhost:3001' 
+      : (process.env.NEXT_PUBLIC_API_URL || 'https://i-project-mgnt-apw.vercel.app');
+    return [
+      // Proxy vendor & expense item APIs to Express backend
+      {
+        source: '/api/vendors-management/:path*',
+        destination: `${backendBase}/api/vendors-management/:path*`,
+      },
+      {
+        source: '/api/vendor-contracts/:path*',
+        destination: `${backendBase}/api/vendor-contracts/:path*`,
+      },
+      {
+        source: '/api/vendor-payments/:path*',
+        destination: `${backendBase}/api/vendor-payments/:path*`,
+      },
+      {
+        source: '/api/vendor-kpi/:path*',
+        destination: `${backendBase}/api/vendor-kpi/:path*`,
+      },
+      {
+        source: '/api/expense-items/:path*',
+        destination: `${backendBase}/api/expense-items/:path*`,
+      },
+    ];
+  }
 }
 
 module.exports = nextConfig

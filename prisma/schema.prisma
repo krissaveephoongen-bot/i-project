@@ -149,6 +149,7 @@ model expenses {
   projects                         projects        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks                            tasks?          @relation(fields: [taskId], references: [id])
   users_expenses_userIdTousers     users           @relation("expenses_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+  expenseItems                     expense_items[]
 
   @@index([status, date], map: "idx_expenses_status_date")
 }
@@ -274,6 +275,9 @@ model projects {
   time_entries               time_entries[]
   timesheets                 timesheets[]
   resource_allocations       resource_allocations[]
+  vendorContracts            vendor_contracts[]
+  vendorPayments             vendor_payments[]
+  vendorKpiEvaluations       vendor_kpi_evaluations[]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -617,6 +621,7 @@ model users {
   leave_requests_user                         leave_requests[]
   leave_requests_approver                     leave_requests[]   @relation("leave_request_approver")
   time_entry_comments                         time_entry_comments[]
+  vendorKpiEvaluations                        vendor_kpi_evaluations[]
   }
 
 // ============================================================
@@ -750,6 +755,15 @@ enum ExpenseCategory {
   equipment
   training
   other
+  // New vendor-specific categories
+  hardware_vendor
+  software_vendor
+  custom_software_vendor
+  material_vendor
+  service_vendor
+  consulting_vendor
+  maintenance_vendor
+  license_vendor
 }
 
 /// Expense approval status
@@ -767,6 +781,97 @@ enum PaymentMethod {
   bank_transfer
   check
   other
+}
+
+// ============================================================
+// VENDOR MANAGEMENT ENUMS
+// ============================================================
+
+/// Vendor payment types
+enum VendorPaymentType {
+  full_payment
+  installment
+  milestone_based
+  recurring
+  progress_based
+}
+
+/// Vendor performance rating
+enum VendorRating {
+  excellent
+  good
+  satisfactory
+  needs_improvement
+  poor
+}
+
+/// Vendor types
+enum VendorType {
+  company
+  individual
+  partnership
+  government
+}
+
+/// Vendor business categories
+enum VendorCategory {
+  hardware
+  software
+  custom_software
+  materials
+  services
+  consulting
+  maintenance
+  licensing
+  other
+}
+
+/// Vendor status
+enum VendorStatus {
+  active
+  inactive
+  suspended
+  blacklisted
+}
+
+/// Contract types
+enum ContractType {
+  fixed_price
+  time_materials
+  retainer
+  service_agreement
+  purchase_order
+}
+
+/// Contract status
+enum ContractStatus {
+  draft
+  pending_approval
+  active
+  completed
+  terminated
+  expired
+}
+
+/// Payment status
+enum PaymentStatus {
+  pending
+  approved
+  paid
+  overdue
+  cancelled
+  rejected
+}
+
+/// KPI categories
+enum KpiCategory {
+  quality
+  timeliness
+  cost
+  communication
+  technical
+  compliance
+  innovation
 }
 
 // ============================================================
@@ -980,6 +1085,245 @@ model leave_allocations {
   @@unique([user_id, year])
   @@index([user_id])
   @@map("leave_allocations")
+}
+
+// ============================================================
+// VENDOR MANAGEMENT TABLES
+// ============================================================
+
+/// Vendors table for managing vendor information and performance
+model vendors {
+  id                    String    @id
+  name                  String
+  code                  String?   @unique
+  type                  VendorType
+  category              VendorCategory
+  status                VendorStatus @default(active)
+  
+  // Contact Information
+  contactPerson         String?
+  email                 String?
+  phone                 String?
+  website               String?
+  
+  // Business Information
+  taxId                 String?
+  registrationNumber    String?
+  address               String?
+  city                  String?
+  province              String?
+  postalCode            String?
+  country               String?   @default("Thailand")
+  
+  // Financial Information
+  bankAccount           String?
+  bankName              String?
+  paymentTerms          Int?      // days
+  creditLimit           Decimal?  @db.Decimal(12, 2)
+  
+  // Performance & Rating
+  overallRating         VendorRating @default(satisfactory)
+  totalProjects         Int       @default(0)
+  successfulProjects    Int       @default(0)
+  averageDeliveryTime   Int?      // days
+  onTimeDeliveryRate    Decimal?  @db.Decimal(5, 2) // percentage
+  
+  // Metadata
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime
+  
+  // Relations
+  vendorContracts       vendor_contracts[]
+  vendorPayments        vendor_payments[]
+  vendorKpiEvaluations  vendor_kpi_evaluations[]
+  expenseItems          expense_items[]
+  
+  @@index([type, status])
+  @@index([category])
+  @@index([overallRating])
+}
+
+/// Vendor contracts for managing vendor agreements
+model vendor_contracts {
+  id              String    @id
+  vendorId        String
+  projectId       String?
+  contractNumber  String?   @unique
+  title           String
+  description     String?
+  
+  // Contract Details
+  type            ContractType
+  startDate       DateTime
+  endDate         DateTime?
+  value           Decimal   @db.Decimal(12, 2)
+  currency        String    @default("THB")
+  
+  // Payment Terms
+  paymentTerms    String?
+  paymentSchedule Json?     // detailed payment schedule
+  
+  // Contract Status
+  status          ContractStatus @default(draft)
+  signedDate      DateTime?
+  signedBy        String?
+  
+  // Metadata
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
+  
+  // Relations
+  vendor          vendors    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  project         projects?  @relation(fields: [projectId], references: [id])
+  vendorPayments  vendor_payments[]
+  
+  @@index([vendorId, status])
+  @@index([projectId])
+}
+
+/// Vendor payments for tracking payments to vendors
+model vendor_payments {
+  id                String           @id
+  vendorId          String
+  contractId        String?
+  projectId         String?
+  
+  // Payment Details
+  paymentType       VendorPaymentType
+  amount            Decimal          @db.Decimal(12, 2)
+  currency          String           @default("THB")
+  dueDate           DateTime
+  paidDate          DateTime?
+  
+  // Installment Information
+  installmentNumber Int?             // for installment payments
+  totalInstallments Int?             // total number of installments
+  
+  // Payment Status
+  status            PaymentStatus    @default(pending)
+  paymentMethod     PaymentMethod?
+  transactionId      String?
+  receiptUrl        String?
+  
+  // Approval Workflow
+  approvedBy        String?
+  approvedAt        DateTime?
+  rejectedReason    String?
+  
+  // Metadata
+  description       String?
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime
+  
+  // Relations
+  vendor            vendors          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  contract          vendor_contracts? @relation(fields: [contractId], references: [id])
+  project           projects?        @relation(fields: [projectId], references: [id])
+  
+  @@index([vendorId, status])
+  @@index([dueDate, status])
+  @@index([projectId])
+}
+
+/// Expense items for detailed expense breakdown with vendor information
+model expense_items {
+  id              String           @id
+  expenseId       String
+  vendorId        String?
+  
+  // Item Details
+  category        ExpenseCategory
+  subcategory     String?          // detailed subcategory (e.g., "laptops", "servers", "licenses")
+  description     String
+  quantity        Decimal          @default(1) @db.Decimal(10, 2)
+  unitPrice       Decimal          @db.Decimal(12, 2)
+  totalPrice      Decimal          @db.Decimal(12, 2)
+  
+  // Cost Breakdown
+  baseCost        Decimal          @db.Decimal(12, 2)  // actual cost
+  markup          Decimal          @default(0) @db.Decimal(5, 2) // percentage
+  marginAmount    Decimal          @db.Decimal(12, 2)  // calculated margin
+  finalPrice      Decimal          @db.Decimal(12, 2)  // price charged to client
+  
+  // Vendor Information
+  vendorItemCode  String?          // vendor's item code/SKU
+  vendorInvoice   String?          // vendor invoice number
+  
+  // Metadata
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime
+  
+  // Relations
+  expense         expenses         @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  vendor          vendors?         @relation(fields: [vendorId], references: [id])
+  
+  @@index([expenseId])
+  @@index([vendorId])
+  @@index([category])
+}
+
+/// Vendor KPI evaluations for performance tracking
+model vendor_kpi_evaluations {
+  id              String    @id
+  vendorId        String
+  projectId       String?
+  evaluationPeriod String   // e.g., "2024-Q1", "2024-01"
+  
+  // KPI Metrics (1-10 scale)
+  qualityScore    Decimal   @db.Decimal(3, 1)  // Quality of deliverables
+  timelinessScore Decimal   @db.Decimal(3, 1)  // On-time delivery
+  costScore       Decimal   @db.Decimal(3, 1)  // Cost competitiveness
+  communicationScore Decimal @db.Decimal(3, 1) // Communication & responsiveness
+  technicalScore   Decimal   @db.Decimal(3, 1)  // Technical capability
+  
+  // Overall Metrics
+  overallScore    Decimal   @db.Decimal(3, 1)
+  rating          VendorRating
+  
+  // Evaluation Details
+  evaluatorId     String
+  strengths       String?   // documented strengths
+  weaknesses      String?   // areas for improvement
+  recommendations String?   // action items
+  nextEvaluationDate DateTime?
+  
+  // Metadata
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
+  
+  // Relations
+  vendor          vendors   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  project         projects? @relation(fields: [projectId], references: [id])
+  evaluator       users     @relation(fields: [evaluatorId], references: [id])
+  
+  @@index([vendorId, evaluationPeriod])
+  @@index([projectId])
+  @@index([overallScore])
+}
+
+/// Vendor KPI criteria for standardized evaluation
+model vendor_kpi_criteria {
+  id              String    @id
+  name            String
+  category        KpiCategory
+  description     String
+  weight          Decimal   @db.Decimal(3, 1) @default(1.0) // relative importance
+  measurementUnit String?   // e.g., "days", "percentage", "score (1-10)"
+  targetValue     Decimal?  @db.Decimal(10, 2)
+  minValue        Decimal?  @db.Decimal(10, 2)
+  maxValue        Decimal?  @db.Decimal(10, 2)
+  
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
+  
+  @@index([category])
+  @@index([isActive])
 }
 
 /// Leave request model for tracking leave requests

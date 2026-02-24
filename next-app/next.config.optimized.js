@@ -125,7 +125,30 @@ const nextConfig = {
   
   // Rewrites for API routes
   async rewrites() {
+    const backendBase = process.env.NEXT_PUBLIC_API_URL || 'https://i-project-mgnt-apw.vercel.app';
     return [
+      // Proxy vendor/expense backoffice APIs to Express backend
+      {
+        source: '/api/vendors-management/:path*',
+        destination: `${backendBase}/api/vendors-management/:path*`,
+      },
+      {
+        source: '/api/vendor-contracts/:path*',
+        destination: `${backendBase}/api/vendor-contracts/:path*`,
+      },
+      {
+        source: '/api/vendor-payments/:path*',
+        destination: `${backendBase}/api/vendor-payments/:path*`,
+      },
+      {
+        source: '/api/vendor-kpi/:path*',
+        destination: `${backendBase}/api/vendor-kpi/:path*`,
+      },
+      {
+        source: '/api/expense-items/:path*',
+        destination: `${backendBase}/api/expense-items/:path*`,
+      },
+      // Keep internal Next APIs untouched
       {
         source: '/api/health',
         destination: '/api/health',

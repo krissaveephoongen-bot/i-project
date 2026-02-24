@@ -31,7 +31,7 @@ export class ApiClient {
   private retryOptions: RetryOptions;
 
   constructor(
-    baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+    baseUrl = process.env.NEXT_PUBLIC_API_URL || '',
     timeout = 30000,
     retryOptions?: RetryOptions
   ) {

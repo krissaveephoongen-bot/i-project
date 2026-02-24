@@ -126,24 +126,17 @@ export default function Sidebar({ isMobile = false, onNavigate }: SidebarProps) 
         {
             title: t('navigation.analytics', 'ANALYTICS'),
             items: [
-                {
-                    name: t('navigation.dashboard'),
-                    href: '/dashboard',
-                    icon: LayoutDashboard,
-                    roles: ['admin', 'manager', 'employee']
-                },
+                // {
+                //     name: t('navigation.dashboard'),
+                //     href: '/dashboard',
+                //     icon: LayoutDashboard,
+                //     roles: ['admin', 'manager', 'employee']
+                // },
                 {
                     name: t('navigation.reports'),
+                    href: '/reports',
                     icon: BarChart3,
-                    roles: ['admin', 'manager'],
-                    children: [
-                        { name: t('reports.financial'), href: '/reports/financial', icon: FileText },
-                        { name: t('reports.resource'), href: '/reports/resources', icon: Users },
-                        { name: t('reports.project'), href: '/reports/projects', icon: FolderKanban },
-                        { name: t('reports.insights'), href: '/reports/insights', icon: BarChart3 },
-                        { name: t('reports.utilization'), href: '/reports/utilization', icon: BarChart3 },
-                        { name: t('reports.hours'), href: '/reports/hours', icon: BarChart3 },
-                    ]
+                    roles: ['admin', 'manager']
                 },
             ]
         },
@@ -185,6 +178,8 @@ export default function Sidebar({ isMobile = false, onNavigate }: SidebarProps) 
                         { name: 'All Expenses', href: '/expenses', icon: CreditCard },
                         { name: 'Memo Expenses', href: '/expenses/memo', icon: FileText },
                         { name: 'Travel Expenses', href: '/expenses/travel', icon: FolderKanban },
+                        { name: 'Vendor Items', href: '/expenses/vendor-items', icon: FileText },
+                        { name: 'Vendor Payments', href: '/expenses/vendor-payments', icon: CreditCard },
                     ]
                 },
                 {
@@ -228,6 +223,7 @@ export default function Sidebar({ isMobile = false, onNavigate }: SidebarProps) 
                         { name: 'ประเภทกิจกรรม', href: '/admin/activities', icon: FileText },
                         { name: 'Cost Codes', href: '/admin/cost-codes', icon: FileText },
                         { name: 'System Health', href: '/admin/health', icon: BarChart3 },
+                        { name: 'Vendors', href: '/admin/vendors', icon: Users },
                         // { name: 'Activity Logs', href: '/admin/logs', icon: FileText }, // Hidden
                     ]
                 }

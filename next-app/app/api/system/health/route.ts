@@ -15,7 +15,7 @@ export async function GET() {
       '/api/redis/health'
     ];
 
-    const base = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
+    const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
     const apiHealthChecks = await Promise.allSettled(
       apiEndpoints.map(async (endpoint) => {
         const start = Date.now();

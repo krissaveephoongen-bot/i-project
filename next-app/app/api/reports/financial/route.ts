@@ -9,13 +9,25 @@ export async function GET(req: NextRequest) {
 
     const { data: projects, error } = await supabaseAdmin
         .from('projects')
-        .select('id, name, budget, spent, start_date')
-        .order('name');
+        .select('id, name, budget, spent, start_date');
 
     if (error) throw error;
 
-    const totalRevenue = (projects || []).reduce((sum: number, p: any) => sum + Number(p.budget || 0), 0);
-    const totalCost = (projects || []).reduce((sum: number, p: any) => sum + Number(p.spent || 0), 0);
+    const { searchParams } = new URL(req.url);
+    const includeInternalParam = (searchParams.get('includeInternal') || '').toLowerCase();
+    const includeInternal = includeInternalParam === 'true' || includeInternalParam === '1' || includeInternalParam === 'yes';
+
+    // Optionally exclude internal/department projects
+    const visibleProjects = includeInternal
+      ? (projects || [])
+      : (projects || []).filter((p: any) => {
+          const isInternal = p.is_internal === true;
+          const cat = String(p.internal_category || p.category || '').toLowerCase();
+          return !(isInternal || cat === 'internal' || cat.includes('department'));
+        });
+
+    const totalRevenue = (visibleProjects || []).reduce((sum: number, p: any) => sum + Number(p.budget || 0), 0);
+    const totalCost = (visibleProjects || []).reduce((sum: number, p: any) => sum + Number(p.spent || 0), 0);
     const netProfit = totalRevenue - totalCost;
     const margin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
@@ -31,7 +43,7 @@ export async function GET(req: NextRequest) {
     const monthlyMap: Record<string, { revenue: number, cost: number }> = {};
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    (projects || []).forEach((p: any) => {
+    (visibleProjects || []).forEach((p: any) => {
         if (!p.start_date) return;
         const date = new Date(p.start_date);
         const month = months[date.getMonth()];
@@ -48,7 +60,7 @@ export async function GET(req: NextRequest) {
         cost: monthlyMap[m]?.cost || 0
     }));
 
-    return NextResponse.json({ projects, kpis, chartData }, { status: 200 });
+    return NextResponse.json({ projects: visibleProjects, kpis, chartData }, { status: 200 });
   } catch (e: any) {
     console.error('Financial Report API Error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });

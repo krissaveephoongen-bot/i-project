@@ -9,13 +9,7 @@ function loadEnv() {
 }
 
 async function runSql(client, sql, name) {
-  const statements = sql
-    .split(/;\s*$/m)
-    .map(s => s.trim())
-    .filter(Boolean)
-  for (const stmt of statements) {
-    await client.query(stmt)
-  }
+  await client.query(sql)
   console.log(`[ok] ${name}`)
 }
 
@@ -40,6 +34,7 @@ async function main() {
       '20260211_fk_restrict_patch.sql',
       '20260211_fk_restrict_force.sql',
       '20260211_restrict_triggers.sql',
+      '2026-02-20_internal_office_project.sql',
     ]
     const diag = await client.query(`
       SELECT table_name, column_name
