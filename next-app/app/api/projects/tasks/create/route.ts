@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/app/lib/supabaseClient";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
+import redis from "@/lib/redis";
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await client.from("tasks").insert(payload).select("*").single();
     if (error)
       return NextResponse.json({ error: error.message }, { status: 500 });
+    await redis.delPattern("tasks:*");
     return NextResponse.json(data, { status: 201 });
   } catch (e: any) {
     return NextResponse.json(

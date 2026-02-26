@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/app/lib/supabaseClient";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
+import redis from "@/lib/redis";
 import {
   firstOk,
   MILESTONE_ID_COLUMNS,
@@ -99,6 +100,7 @@ export async function PUT(request: NextRequest) {
       .single();
     if (error)
       return NextResponse.json({ error: error.message }, { status: 500 });
+    await redis.delPattern("tasks:*");
     return NextResponse.json(data, { status: 200 });
   } catch (e: any) {
     return NextResponse.json(
@@ -119,6 +121,7 @@ export async function DELETE(request: NextRequest) {
     const { error } = await client.from("tasks").delete().eq("id", id);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 500 });
+    await redis.delPattern("tasks:*");
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (e: any) {
     return NextResponse.json(
