@@ -129,20 +129,31 @@ export default function ProjectTasksPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      let data: any = null;
       if (!res.ok) {
-        const msg = (() => {
+        // Fallback: try generic /api/tasks which is schema-flexible
+        const fbRes = await fetch(`/api/tasks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: "งานใหม่", projectId: pid }),
+        });
+        if (!fbRes.ok) {
+          const msg = (() => {
+            try {
+              return (res as any)?.statusText || "สร้างงานไม่สำเร็จ";
+            } catch {
+              return "สร้างงานไม่สำเร็จ";
+            }
+          })();
           try {
-            return (res as any)?.statusText || "สร้างงานไม่สำเร็จ";
-          } catch {
-            return "สร้างงานไม่สำเร็จ";
-          }
-        })();
-        try {
-          alert(msg);
-        } catch {}
-        return;
+            alert(msg);
+          } catch {}
+          return;
+        }
+        data = await fbRes.json();
+      } else {
+        data = await res.json();
       }
-      const data = await res.json();
       if (data) {
         setTasks((prev) => [
           ...prev,
