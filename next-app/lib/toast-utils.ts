@@ -3,7 +3,7 @@
  * Provides standardized success and error messages with emojis and Thai language support
  */
 
-import { toast } from 'react-hot-toast';
+import { toast } from "react-hot-toast";
 
 // ============================================================================
 // TOAST MESSAGE TEMPLATES
@@ -17,86 +17,86 @@ interface ToastMessage {
 const TOAST_MESSAGES = {
   // ========== CREATE OPERATIONS ==========
   CREATE_SUCCESS: {
-    en: '✅ Successfully created',
-    th: '✅ สร้างสำเร็จ',
+    en: "✅ Successfully created",
+    th: "✅ สร้างสำเร็จ",
   } as ToastMessage,
 
   // ========== UPDATE OPERATIONS ==========
   UPDATE_SUCCESS: {
-    en: '✅ Successfully updated',
-    th: '✅ อัปเดตสำเร็จ',
+    en: "✅ Successfully updated",
+    th: "✅ อัปเดตสำเร็จ",
   } as ToastMessage,
 
   // ========== DELETE OPERATIONS ==========
   DELETE_SUCCESS: {
-    en: '✅ Successfully deleted',
-    th: '✅ ลบสำเร็จ',
+    en: "✅ Successfully deleted",
+    th: "✅ ลบสำเร็จ",
   } as ToastMessage,
 
   // ========== SAVE OPERATIONS ==========
   SAVE_SUCCESS: {
-    en: '💾 Saved successfully',
-    th: '💾 บันทึกสำเร็จ',
+    en: "💾 Saved successfully",
+    th: "💾 บันทึกสำเร็จ",
   } as ToastMessage,
 
   // ========== VALIDATION ERRORS ==========
   VALIDATION_ERROR: {
-    en: '⚠️ Please check your input',
-    th: '⚠️ กรุณาตรวจสอบข้อมูล',
+    en: "⚠️ Please check your input",
+    th: "⚠️ กรุณาตรวจสอบข้อมูล",
   } as ToastMessage,
 
   REQUIRED_FIELD: {
-    en: '⚠️ This field is required',
-    th: '⚠️ กรุณาระบุข้อมูลนี้',
+    en: "⚠️ This field is required",
+    th: "⚠️ กรุณาระบุข้อมูลนี้",
   } as ToastMessage,
 
   // ========== GENERIC ERRORS ==========
   ERROR: {
-    en: '❌ An error occurred',
-    th: '❌ เกิดข้อผิดพลาด',
+    en: "❌ An error occurred",
+    th: "❌ เกิดข้อผิดพลาด",
   } as ToastMessage,
 
   FAILED_TO_SAVE: {
-    en: '❌ Failed to save',
-    th: '❌ บันทึกล้มเหลว',
+    en: "❌ Failed to save",
+    th: "❌ บันทึกล้มเหลว",
   } as ToastMessage,
 
   FAILED_TO_DELETE: {
-    en: '❌ Failed to delete',
-    th: '❌ ลบล้มเหลว',
+    en: "❌ Failed to delete",
+    th: "❌ ลบล้มเหลว",
   } as ToastMessage,
 
   FAILED_TO_UPDATE: {
-    en: '❌ Failed to update',
-    th: '❌ อัปเดตล้มเหลว',
+    en: "❌ Failed to update",
+    th: "❌ อัปเดตล้มเหลว",
   } as ToastMessage,
 
   FAILED_TO_LOAD: {
-    en: '❌ Failed to load data',
-    th: '❌ โหลดข้อมูลล้มเหลว',
+    en: "❌ Failed to load data",
+    th: "❌ โหลดข้อมูลล้มเหลว",
   } as ToastMessage,
 
   // ========== OPERATION SPECIFIC ==========
   LOADING: {
-    en: '⏳ Loading...',
-    th: '⏳ กำลังโหลด...',
+    en: "⏳ Loading...",
+    th: "⏳ กำลังโหลด...",
   } as ToastMessage,
 
   SUBMITTING: {
-    en: '⏳ Submitting...',
-    th: '⏳ กำลังส่ง...',
+    en: "⏳ Submitting...",
+    th: "⏳ กำลังส่ง...",
   } as ToastMessage,
 
   // ========== PERMISSION ERRORS ==========
   UNAUTHORIZED: {
-    en: '🔒 You do not have permission to perform this action',
-    th: '🔒 คุณไม่มีสิทธิ์ในการดำเนินการนี้',
+    en: "🔒 You do not have permission to perform this action",
+    th: "🔒 คุณไม่มีสิทธิ์ในการดำเนินการนี้",
   } as ToastMessage,
 
   // ========== NETWORK ERRORS ==========
   NETWORK_ERROR: {
-    en: '📡 Network error. Please check your connection',
-    th: '📡 ข้อผิดพลาดด้านเครือข่าย โปรดตรวจสอบการเชื่อมต่อ',
+    en: "📡 Network error. Please check your connection",
+    th: "📡 ข้อผิดพลาดด้านเครือข่าย โปรดตรวจสอบการเชื่อมต่อ",
   } as ToastMessage,
 };
 
@@ -108,10 +108,10 @@ const TOAST_MESSAGES = {
  * Get user's preferred language (default: Thai)
  * Can be expanded to read from user preferences/localStorage
  */
-export const getPreferredLanguage = (): 'en' | 'th' => {
-  if (typeof window === 'undefined') return 'th';
-  const lang = localStorage.getItem('language') || 'th';
-  return (lang === 'en' ? 'en' : 'th') as 'en' | 'th';
+export const getPreferredLanguage = (): "en" | "th" => {
+  if (typeof window === "undefined") return "th";
+  const lang = localStorage.getItem("language") || "th";
+  return (lang === "en" ? "en" : "th") as "en" | "th";
 };
 
 /**
@@ -130,7 +130,7 @@ const getLocalizedMessage = (message: ToastMessage): string => {
  * Success toast for CREATE operations
  * @param itemType The type of item created (e.g., "User", "Project")
  */
-export const toastCreateSuccess = (itemType: string = '') => {
+export const toastCreateSuccess = (itemType: string = "") => {
   const baseMsg = getLocalizedMessage(TOAST_MESSAGES.CREATE_SUCCESS);
   const message = itemType ? `${baseMsg} ${itemType}` : baseMsg;
   toast.success(message);
@@ -140,7 +140,7 @@ export const toastCreateSuccess = (itemType: string = '') => {
  * Success toast for UPDATE operations
  * @param itemType The type of item updated (e.g., "User", "Project")
  */
-export const toastUpdateSuccess = (itemType: string = '') => {
+export const toastUpdateSuccess = (itemType: string = "") => {
   const baseMsg = getLocalizedMessage(TOAST_MESSAGES.UPDATE_SUCCESS);
   const message = itemType ? `${baseMsg} ${itemType}` : baseMsg;
   toast.success(message);
@@ -150,7 +150,7 @@ export const toastUpdateSuccess = (itemType: string = '') => {
  * Success toast for DELETE operations
  * @param itemType The type of item deleted (e.g., "User", "Project")
  */
-export const toastDeleteSuccess = (itemType: string = '') => {
+export const toastDeleteSuccess = (itemType: string = "") => {
   const baseMsg = getLocalizedMessage(TOAST_MESSAGES.DELETE_SUCCESS);
   const message = itemType ? `${baseMsg} ${itemType}` : baseMsg;
   toast.success(message);
@@ -160,7 +160,7 @@ export const toastDeleteSuccess = (itemType: string = '') => {
  * Success toast for SAVE operations
  * @param details Additional details about what was saved
  */
-export const toastSaveSuccess = (details: string = '') => {
+export const toastSaveSuccess = (details: string = "") => {
   const baseMsg = getLocalizedMessage(TOAST_MESSAGES.SAVE_SUCCESS);
   const message = details ? `${baseMsg} - ${details}` : baseMsg;
   toast.success(message);
@@ -176,8 +176,10 @@ export const toastValidationError = (fieldName?: string, errorMsg?: string) => {
     toast.error(errorMsg);
   } else if (fieldName) {
     const lang = getPreferredLanguage();
-    const baseMsg = lang === 'en' ? '⚠️' : '⚠️';
-    toast.error(`${baseMsg} ${fieldName} ${lang === 'en' ? 'is invalid' : 'ไม่ถูกต้อง'}`);
+    const baseMsg = lang === "en" ? "⚠️" : "⚠️";
+    toast.error(
+      `${baseMsg} ${fieldName} ${lang === "en" ? "is invalid" : "ไม่ถูกต้อง"}`,
+    );
   } else {
     toast.error(getLocalizedMessage(TOAST_MESSAGES.VALIDATION_ERROR));
   }
@@ -189,8 +191,14 @@ export const toastValidationError = (fieldName?: string, errorMsg?: string) => {
  * @param errorMsg Optional custom error message
  */
 export const toastError = (
-  operation: 'create' | 'update' | 'delete' | 'save' | 'load' | 'submit' = 'save',
-  errorMsg?: string
+  operation:
+    | "create"
+    | "update"
+    | "delete"
+    | "save"
+    | "load"
+    | "submit" = "save",
+  errorMsg?: string,
 ) => {
   if (errorMsg) {
     toast.error(`❌ ${errorMsg}`);
@@ -206,7 +214,9 @@ export const toastError = (
     submit: TOAST_MESSAGES.FAILED_TO_SAVE,
   };
 
-  const message = getLocalizedMessage(errorMap[operation] || TOAST_MESSAGES.ERROR);
+  const message = getLocalizedMessage(
+    errorMap[operation] || TOAST_MESSAGES.ERROR,
+  );
   toast.error(message);
 };
 

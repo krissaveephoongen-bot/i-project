@@ -1,7 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState, useEffect } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface TeamLoadData {
   name: string;
@@ -16,13 +24,15 @@ export function TeamLoadChart() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/dashboard/teamload', { cache: 'no-store' });
+        const res = await fetch("/api/dashboard/teamload", {
+          cache: "no-store",
+        });
         const rows = await res.json();
         const mapped: TeamLoadData[] = (rows || []).map((r: any) => ({
-          name: r.name || 'Unknown',
+          name: r.name || "Unknown",
           currentLoad: Number(r.hours || 0),
           capacity: 100,
-          utilization: Math.min(100, Math.round(Number(r.hours || 0)))
+          utilization: Math.min(100, Math.round(Number(r.hours || 0))),
         }));
         setData(mapped);
       } catch {

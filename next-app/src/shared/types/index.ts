@@ -2,7 +2,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'employee';
+  role: "admin" | "manager" | "employee";
   avatar?: string;
   createdAt: string;
   updatedAt: string;
@@ -12,7 +12,7 @@ export interface Project {
   id: string;
   name: string;
   description: string;
-  status: 'planning' | 'active' | 'completed' | 'on_hold';
+  status: "planning" | "active" | "completed" | "on_hold";
   startDate: string;
   endDate: string;
   budget: number;
@@ -28,8 +28,8 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'todo' | 'in_progress' | 'review' | 'completed';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: "todo" | "in_progress" | "review" | "completed";
+  priority: "low" | "medium" | "high" | "urgent";
   projectId: string;
   assigneeId?: string;
   dueDate: string;
@@ -47,7 +47,7 @@ export interface PaginationParams {
   page: number;
   limit: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface PaginatedResponse<T> extends ApiResponse<T[]> {

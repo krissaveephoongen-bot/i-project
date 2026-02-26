@@ -2,53 +2,53 @@
 
 export enum AuditEventType {
   // Authentication events
-  LOGIN = 'login',
-  LOGOUT = 'logout',
-  LOGIN_FAILED = 'login_failed',
-  PASSWORD_RESET = 'password_reset',
+  LOGIN = "login",
+  LOGOUT = "logout",
+  LOGIN_FAILED = "login_failed",
+  PASSWORD_RESET = "password_reset",
 
   // Project events
-  PROJECT_CREATED = 'project_created',
-  PROJECT_UPDATED = 'project_updated',
-  PROJECT_DELETED = 'project_deleted',
-  PROJECT_STATUS_CHANGED = 'project_status_changed',
+  PROJECT_CREATED = "project_created",
+  PROJECT_UPDATED = "project_updated",
+  PROJECT_DELETED = "project_deleted",
+  PROJECT_STATUS_CHANGED = "project_status_changed",
 
   // Task events
-  TASK_CREATED = 'task_created',
-  TASK_UPDATED = 'task_updated',
-  TASK_DELETED = 'task_deleted',
-  TASK_ASSIGNED = 'task_assigned',
-  TASK_STATUS_CHANGED = 'task_status_changed',
+  TASK_CREATED = "task_created",
+  TASK_UPDATED = "task_updated",
+  TASK_DELETED = "task_deleted",
+  TASK_ASSIGNED = "task_assigned",
+  TASK_STATUS_CHANGED = "task_status_changed",
 
   // Time tracking events
-  TIMESHEET_CREATED = 'timesheet_created',
-  TIMESHEET_UPDATED = 'timesheet_updated',
-  TIMESHEET_APPROVED = 'timesheet_approved',
-  TIMESHEET_REJECTED = 'timesheet_rejected',
+  TIMESHEET_CREATED = "timesheet_created",
+  TIMESHEET_UPDATED = "timesheet_updated",
+  TIMESHEET_APPROVED = "timesheet_approved",
+  TIMESHEET_REJECTED = "timesheet_rejected",
 
   // Expense events
-  EXPENSE_CREATED = 'expense_created',
-  EXPENSE_UPDATED = 'expense_updated',
-  EXPENSE_APPROVED = 'expense_approved',
-  EXPENSE_REJECTED = 'expense_rejected',
+  EXPENSE_CREATED = "expense_created",
+  EXPENSE_UPDATED = "expense_updated",
+  EXPENSE_APPROVED = "expense_approved",
+  EXPENSE_REJECTED = "expense_rejected",
 
   // User management events
-  USER_CREATED = 'user_created',
-  USER_UPDATED = 'user_updated',
-  USER_DELETED = 'user_deleted',
-  USER_ROLE_CHANGED = 'user_role_changed',
+  USER_CREATED = "user_created",
+  USER_UPDATED = "user_updated",
+  USER_DELETED = "user_deleted",
+  USER_ROLE_CHANGED = "user_role_changed",
 
   // System events
-  SYSTEM_CONFIG_CHANGED = 'system_config_changed',
-  PERMISSION_CHANGED = 'permission_changed',
-  DATA_EXPORTED = 'data_exported',
+  SYSTEM_CONFIG_CHANGED = "system_config_changed",
+  PERMISSION_CHANGED = "permission_changed",
+  DATA_EXPORTED = "data_exported",
 }
 
 export enum AuditSeverity {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical',
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+  CRITICAL = "critical",
 }
 
 export interface AuditLogEntry {
@@ -92,7 +92,7 @@ export function createAuditLog(
   action: string,
   description: string,
   changes?: Record<string, any>,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
 ): AuditLogEntry {
   return {
     id: generateAuditId(),
@@ -118,42 +118,42 @@ function generateAuditId(): string {
 
 // Audit event type labels
 export const AUDIT_EVENT_LABELS: Record<AuditEventType, string> = {
-  [AuditEventType.LOGIN]: 'User Login',
-  [AuditEventType.LOGOUT]: 'User Logout',
-  [AuditEventType.LOGIN_FAILED]: 'Login Failed',
-  [AuditEventType.PASSWORD_RESET]: 'Password Reset',
-  [AuditEventType.PROJECT_CREATED]: 'Project Created',
-  [AuditEventType.PROJECT_UPDATED]: 'Project Updated',
-  [AuditEventType.PROJECT_DELETED]: 'Project Deleted',
-  [AuditEventType.PROJECT_STATUS_CHANGED]: 'Project Status Changed',
-  [AuditEventType.TASK_CREATED]: 'Task Created',
-  [AuditEventType.TASK_UPDATED]: 'Task Updated',
-  [AuditEventType.TASK_DELETED]: 'Task Deleted',
-  [AuditEventType.TASK_ASSIGNED]: 'Task Assigned',
-  [AuditEventType.TASK_STATUS_CHANGED]: 'Task Status Changed',
-  [AuditEventType.TIMESHEET_CREATED]: 'Timesheet Created',
-  [AuditEventType.TIMESHEET_UPDATED]: 'Timesheet Updated',
-  [AuditEventType.TIMESHEET_APPROVED]: 'Timesheet Approved',
-  [AuditEventType.TIMESHEET_REJECTED]: 'Timesheet Rejected',
-  [AuditEventType.EXPENSE_CREATED]: 'Expense Created',
-  [AuditEventType.EXPENSE_UPDATED]: 'Expense Updated',
-  [AuditEventType.EXPENSE_APPROVED]: 'Expense Approved',
-  [AuditEventType.EXPENSE_REJECTED]: 'Expense Rejected',
-  [AuditEventType.USER_CREATED]: 'User Created',
-  [AuditEventType.USER_UPDATED]: 'User Updated',
-  [AuditEventType.USER_DELETED]: 'User Deleted',
-  [AuditEventType.USER_ROLE_CHANGED]: 'User Role Changed',
-  [AuditEventType.SYSTEM_CONFIG_CHANGED]: 'System Configuration Changed',
-  [AuditEventType.PERMISSION_CHANGED]: 'Permission Changed',
-  [AuditEventType.DATA_EXPORTED]: 'Data Exported',
+  [AuditEventType.LOGIN]: "User Login",
+  [AuditEventType.LOGOUT]: "User Logout",
+  [AuditEventType.LOGIN_FAILED]: "Login Failed",
+  [AuditEventType.PASSWORD_RESET]: "Password Reset",
+  [AuditEventType.PROJECT_CREATED]: "Project Created",
+  [AuditEventType.PROJECT_UPDATED]: "Project Updated",
+  [AuditEventType.PROJECT_DELETED]: "Project Deleted",
+  [AuditEventType.PROJECT_STATUS_CHANGED]: "Project Status Changed",
+  [AuditEventType.TASK_CREATED]: "Task Created",
+  [AuditEventType.TASK_UPDATED]: "Task Updated",
+  [AuditEventType.TASK_DELETED]: "Task Deleted",
+  [AuditEventType.TASK_ASSIGNED]: "Task Assigned",
+  [AuditEventType.TASK_STATUS_CHANGED]: "Task Status Changed",
+  [AuditEventType.TIMESHEET_CREATED]: "Timesheet Created",
+  [AuditEventType.TIMESHEET_UPDATED]: "Timesheet Updated",
+  [AuditEventType.TIMESHEET_APPROVED]: "Timesheet Approved",
+  [AuditEventType.TIMESHEET_REJECTED]: "Timesheet Rejected",
+  [AuditEventType.EXPENSE_CREATED]: "Expense Created",
+  [AuditEventType.EXPENSE_UPDATED]: "Expense Updated",
+  [AuditEventType.EXPENSE_APPROVED]: "Expense Approved",
+  [AuditEventType.EXPENSE_REJECTED]: "Expense Rejected",
+  [AuditEventType.USER_CREATED]: "User Created",
+  [AuditEventType.USER_UPDATED]: "User Updated",
+  [AuditEventType.USER_DELETED]: "User Deleted",
+  [AuditEventType.USER_ROLE_CHANGED]: "User Role Changed",
+  [AuditEventType.SYSTEM_CONFIG_CHANGED]: "System Configuration Changed",
+  [AuditEventType.PERMISSION_CHANGED]: "Permission Changed",
+  [AuditEventType.DATA_EXPORTED]: "Data Exported",
 };
 
 // Severity colors for UI
 export const AUDIT_SEVERITY_COLORS: Record<AuditSeverity, string> = {
-  [AuditSeverity.LOW]: 'text-blue-600 bg-blue-100',
-  [AuditSeverity.MEDIUM]: 'text-yellow-600 bg-yellow-100',
-  [AuditSeverity.HIGH]: 'text-orange-600 bg-orange-100',
-  [AuditSeverity.CRITICAL]: 'text-red-600 bg-red-100',
+  [AuditSeverity.LOW]: "text-blue-600 bg-blue-100",
+  [AuditSeverity.MEDIUM]: "text-yellow-600 bg-yellow-100",
+  [AuditSeverity.HIGH]: "text-orange-600 bg-orange-100",
+  [AuditSeverity.CRITICAL]: "text-red-600 bg-red-100",
 };
 
 // Common audit logging helper functions
@@ -164,7 +164,7 @@ export function logUserAction(
   action: string,
   description: string,
   severity: AuditSeverity = AuditSeverity.LOW,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
 ): AuditLogEntry {
   return createAuditLog(
     userId,
@@ -172,12 +172,12 @@ export function logUserAction(
     userRole,
     AuditEventType.USER_UPDATED,
     severity,
-    'user',
+    "user",
     userId,
     action,
     description,
     undefined,
-    metadata
+    metadata,
   );
 }
 
@@ -189,7 +189,7 @@ export function logProjectAction(
   action: string,
   description: string,
   changes?: Record<string, any>,
-  severity: AuditSeverity = AuditSeverity.MEDIUM
+  severity: AuditSeverity = AuditSeverity.MEDIUM,
 ): AuditLogEntry {
   const eventType = getProjectEventType(action);
   return createAuditLog(
@@ -198,11 +198,11 @@ export function logProjectAction(
     userRole,
     eventType,
     severity,
-    'project',
+    "project",
     projectId,
     action,
     description,
-    changes
+    changes,
   );
 }
 
@@ -214,7 +214,7 @@ export function logTaskAction(
   action: string,
   description: string,
   changes?: Record<string, any>,
-  severity: AuditSeverity = AuditSeverity.MEDIUM
+  severity: AuditSeverity = AuditSeverity.MEDIUM,
 ): AuditLogEntry {
   const eventType = getTaskEventType(action);
   return createAuditLog(
@@ -223,11 +223,11 @@ export function logTaskAction(
     userRole,
     eventType,
     severity,
-    'task',
+    "task",
     taskId,
     action,
     description,
-    changes
+    changes,
   );
 }
 
@@ -238,7 +238,7 @@ export function logSecurityEvent(
   eventType: AuditEventType,
   description: string,
   severity: AuditSeverity = AuditSeverity.HIGH,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
 ): AuditLogEntry {
   return createAuditLog(
     userId,
@@ -246,28 +246,28 @@ export function logSecurityEvent(
     userRole,
     eventType,
     severity,
-    'security',
+    "security",
     userId,
-    'security_event',
+    "security_event",
     description,
     undefined,
-    metadata
+    metadata,
   );
 }
 
 // Helper functions to map actions to event types
 function getProjectEventType(action: string): AuditEventType {
   switch (action.toLowerCase()) {
-    case 'create':
-    case 'created':
+    case "create":
+    case "created":
       return AuditEventType.PROJECT_CREATED;
-    case 'update':
-    case 'updated':
+    case "update":
+    case "updated":
       return AuditEventType.PROJECT_UPDATED;
-    case 'delete':
-    case 'deleted':
+    case "delete":
+    case "deleted":
       return AuditEventType.PROJECT_DELETED;
-    case 'status_change':
+    case "status_change":
       return AuditEventType.PROJECT_STATUS_CHANGED;
     default:
       return AuditEventType.PROJECT_UPDATED;
@@ -276,19 +276,19 @@ function getProjectEventType(action: string): AuditEventType {
 
 function getTaskEventType(action: string): AuditEventType {
   switch (action.toLowerCase()) {
-    case 'create':
-    case 'created':
+    case "create":
+    case "created":
       return AuditEventType.TASK_CREATED;
-    case 'update':
-    case 'updated':
+    case "update":
+    case "updated":
       return AuditEventType.TASK_UPDATED;
-    case 'delete':
-    case 'deleted':
+    case "delete":
+    case "deleted":
       return AuditEventType.TASK_DELETED;
-    case 'assign':
-    case 'assigned':
+    case "assign":
+    case "assigned":
       return AuditEventType.TASK_ASSIGNED;
-    case 'status_change':
+    case "status_change":
       return AuditEventType.TASK_STATUS_CHANGED;
     default:
       return AuditEventType.TASK_UPDATED;

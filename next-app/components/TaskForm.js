@@ -1,16 +1,16 @@
 function TaskForm({ onSave, task = null, projectId = null }) {
   try {
     const [formData, setFormData] = React.useState({
-      title: task?.title || '',
-      description: task?.description || '',
-      projectId: projectId || task?.projectId || '',
+      title: task?.title || "",
+      description: task?.description || "",
+      projectId: projectId || task?.projectId || "",
       weight: task?.weight || 10,
       progress: task?.progress || 0,
-      status: task?.status || 'todo',
-      priority: task?.priority || 'medium',
-      assignee: task?.assignee || '',
-      startDate: task?.startDate || new Date().toISOString().split('T')[0],
-      dueDate: task?.dueDate || ''
+      status: task?.status || "todo",
+      priority: task?.priority || "medium",
+      assignee: task?.assignee || "",
+      startDate: task?.startDate || new Date().toISOString().split("T")[0],
+      dueDate: task?.dueDate || "",
     });
 
     const [projects, setProjects] = React.useState([]);
@@ -21,14 +21,16 @@ function TaskForm({ onSave, task = null, projectId = null }) {
 
     const loadProjects = async () => {
       try {
-        if (typeof trickleListObjects !== 'function') {
+        if (typeof trickleListObjects !== "function") {
           setProjects([]);
           return;
         }
-        const result = await trickleListObjects('project', 50, true).catch(() => ({ items: [] }));
+        const result = await trickleListObjects("project", 50, true).catch(
+          () => ({ items: [] }),
+        );
         setProjects(result?.items || []);
       } catch (error) {
-        console.log('Error loading projects:', error.message);
+        console.log("Error loading projects:", error.message);
         setProjects([]);
       }
     };
@@ -36,14 +38,17 @@ function TaskForm({ onSave, task = null, projectId = null }) {
     const handleSubmit = async (e) => {
       e.preventDefault();
 
-      if (typeof ValidationHelper !== 'undefined') {
+      if (typeof ValidationHelper !== "undefined") {
         const errors = ValidationHelper.validateTask(formData);
         if (ValidationHelper.showErrors(errors)) return;
       }
 
       try {
-        if (typeof trickleCreateObject !== 'function' || typeof trickleUpdateObject !== 'function') {
-          console.error('Database not available');
+        if (
+          typeof trickleCreateObject !== "function" ||
+          typeof trickleUpdateObject !== "function"
+        ) {
+          console.error("Database not available");
           return;
         }
         const taskData = {
@@ -56,46 +61,145 @@ function TaskForm({ onSave, task = null, projectId = null }) {
           Priority: formData.priority,
           Assignee: formData.assignee,
           StartDate: formData.startDate,
-          DueDate: formData.dueDate
+          DueDate: formData.dueDate,
         };
 
         if (task) {
-          await trickleUpdateObject('task', task.id, taskData);
+          await trickleUpdateObject("task", task.id, taskData);
         } else {
-          await trickleCreateObject('task', taskData);
+          await trickleCreateObject("task", taskData);
         }
         onSave();
       } catch (error) {
-        console.error('Error saving task:', error);
+        console.error("Error saving task:", error);
       }
     };
 
     return (
-      <div className="max-w-2xl mx-auto" data-name="task-form" data-file="components/TaskForm.js">
-        <form onSubmit={handleSubmit} className="bg-background-base rounded-lg border border-neutral-200 p-6 shadow-sm space-y-5">
+      <div
+        className="max-w-2xl mx-auto"
+        data-name="task-form"
+        data-file="components/TaskForm.js"
+      >
+        <form
+          onSubmit={handleSubmit}
+          className="bg-background-base rounded-lg border border-neutral-200 p-6 shadow-sm space-y-5"
+        >
           <div>
-            <label className="block text-sm font-medium text-neutral-900 mb-2">ชื่องาน *</label>
+            <label className="block text-sm font-medium text-neutral-900 mb-2">
+              ชื่องาน *
+            </label>
             <input
               type="text"
               value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900 placeholder-neutral-500"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-neutral-900 mb-2">รายละเอียด</label>
+            <label className="block text-sm font-medium text-neutral-900 mb-2">
+              รายละเอียด
+            </label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               rows={3}
               className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900 placeholder-neutral-500"
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-neutral-900 mb-2">
+              Estimated Hours
+            </label>
+            <input
+              type="number"
+              name="EstimatedHours"
+              defaultValue={task?.objectData.EstimatedHours || 0}
+              min="0"
+              step="0.5"
+              className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
+              placeholder="e.g., 40"
+            />
+            <p className="text-xs text-neutral-500 mt-1">
+              For worklog-based progress calculation
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-900 mb-2">Estimated Hours</label>
+              <label className="block text-sm font-medium text-neutral-900 mb-2">
+                Planned Start
+              </label>
+              <input
+                type="date"
+                name="PlannedStartDate"
+                defaultValue={task?.objectData.PlannedStartDate}
+                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-900 mb-2">
+                Planned End
+              </label>
+              <input
+                type="date"
+                name="PlannedEndDate"
+                defaultValue={task?.objectData.PlannedEndDate}
+                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-900 mb-2">
+              Project
+            </label>
+            <select
+              value={formData.projectId}
+              onChange={(e) =>
+                setFormData({ ...formData, projectId: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
+              required
+              disabled={projectId !== null}
+            >
+              <option value="">เลือกโครงการ</option>
+              {projects.map((project) => (
+                <option key={project.objectId} value={project.objectId}>
+                  {project.objectData.Name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-900 mb-2">
+                Weight (%)
+              </label>
+              <input
+                type="number"
+                name="Weight"
+                defaultValue={task?.objectData.Weight || 0}
+                min="0"
+                max="100"
+                step="0.1"
+                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-900 mb-2">
+                Estimated Hours
+              </label>
               <input
                 type="number"
                 name="EstimatedHours"
@@ -105,12 +209,13 @@ function TaskForm({ onSave, task = null, projectId = null }) {
                 className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
                 placeholder="e.g., 40"
               />
-              <p className="text-xs text-neutral-500 mt-1">For worklog-based progress calculation</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-neutral-900 mb-2">Planned Start</label>
+                <label className="block text-sm font-medium text-neutral-900 mb-2">
+                  Planned Start Date
+                </label>
                 <input
                   type="date"
                   name="PlannedStartDate"
@@ -119,7 +224,9 @@ function TaskForm({ onSave, task = null, projectId = null }) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-neutral-900 mb-2">Planned End</label>
+                <label className="block text-sm font-medium text-neutral-900 mb-2">
+                  Planned End Date
+                </label>
                 <input
                   type="date"
                   name="PlannedEndDate"
@@ -128,81 +235,18 @@ function TaskForm({ onSave, task = null, projectId = null }) {
                 />
               </div>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-neutral-900 mb-2">Project</label>
-              <select
-              value={formData.projectId}
-              onChange={(e) => setFormData({...formData, projectId: e.target.value})}
-              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
-              required
-              disabled={projectId !== null}
-            >
-              <option value="">เลือกโครงการ</option>
-              {projects.map(project => (
-                <option key={project.objectId} value={project.objectId}>
-                  {project.objectData.Name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-neutral-900 mb-2">Weight (%)</label>
-                <input
-                  type="number"
-                  name="Weight"
-                  defaultValue={task?.objectData.Weight || 0}
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-neutral-900 mb-2">Estimated Hours</label>
-                <input
-                  type="number"
-                  name="EstimatedHours"
-                  defaultValue={task?.objectData.EstimatedHours || 0}
-                  min="0"
-                  step="0.5"
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
-                  placeholder="e.g., 40"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-neutral-900 mb-2">Planned Start Date</label>
-                  <input
-                    type="date"
-                    name="PlannedStartDate"
-                    defaultValue={task?.objectData.PlannedStartDate}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-900 mb-2">Planned End Date</label>
-                  <input
-                    type="date"
-                    name="PlannedEndDate"
-                    defaultValue={task?.objectData.PlannedEndDate}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
-                  />
-                </div>
-              </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-900 mb-2">ความคืบหน้า (%)</label>
+              <label className="block text-sm font-medium text-neutral-900 mb-2">
+                ความคืบหน้า (%)
+              </label>
               <input
                 type="number"
                 min="0"
                 max="100"
                 value={formData.progress}
-                onChange={(e) => setFormData({...formData, progress: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, progress: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
               />
             </div>
@@ -210,10 +254,14 @@ function TaskForm({ onSave, task = null, projectId = null }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-900 mb-2">สถานะ</label>
+              <label className="block text-sm font-medium text-neutral-900 mb-2">
+                สถานะ
+              </label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, status: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
               >
                 <option value="todo">ต้องทำ</option>
@@ -223,10 +271,14 @@ function TaskForm({ onSave, task = null, projectId = null }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-900 mb-2">ลำดับความสำคัญ</label>
+              <label className="block text-sm font-medium text-neutral-900 mb-2">
+                ลำดับความสำคัญ
+              </label>
               <select
                 value={formData.priority}
-                onChange={(e) => setFormData({...formData, priority: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, priority: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
               >
                 <option value="low">ต่ำ</option>
@@ -237,46 +289,61 @@ function TaskForm({ onSave, task = null, projectId = null }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-neutral-900 mb-2">ผู้รับผิดชอบ</label>
+            <label className="block text-sm font-medium text-neutral-900 mb-2">
+              ผู้รับผิดชอบ
+            </label>
             <input
               type="text"
               value={formData.assignee}
-              onChange={(e) => setFormData({...formData, assignee: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, assignee: e.target.value })
+              }
               className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900 placeholder-neutral-500"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-900 mb-2">วันที่เริ่ม</label>
+              <label className="block text-sm font-medium text-neutral-900 mb-2">
+                วันที่เริ่ม
+              </label>
               <input
                 type="date"
                 value={formData.startDate}
-                onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, startDate: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-900 mb-2">วันที่กำหนดส่ง *</label>
+              <label className="block text-sm font-medium text-neutral-900 mb-2">
+                วันที่กำหนดส่ง *
+              </label>
               <input
                 type="date"
                 value={formData.dueDate}
-                onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, dueDate: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-100 text-neutral-900"
                 required
               />
             </div>
           </div>
 
-          <button type="submit" className="w-full bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+          <button
+            type="submit"
+            className="w-full bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          >
             <div className="icon-save text-sm mr-2 inline-block"></div>
-            {task ? 'บันทึกการเปลี่ยนแปลง' : 'สร้างงาน'}
+            {task ? "บันทึกการเปลี่ยนแปลง" : "สร้างงาน"}
           </button>
         </form>
       </div>
     );
   } catch (error) {
-    console.error('TaskForm component error:', error);
+    console.error("TaskForm component error:", error);
     return null;
   }
 }

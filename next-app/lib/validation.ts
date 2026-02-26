@@ -15,8 +15,8 @@ export const validateEmail = (email: string): boolean => {
 };
 
 export const validateEmailMessage = (email: string): string | null => {
-  if (!email) return 'Email is required';
-  if (!validateEmail(email)) return 'Invalid email format';
+  if (!email) return "Email is required";
+  if (!validateEmail(email)) return "Invalid email format";
   return null;
 };
 
@@ -33,7 +33,8 @@ export const validatePhone = (phone: string): boolean => {
 
 export const validatePhoneMessage = (phone: string): string | null => {
   if (!phone) return null; // Optional
-  if (!validatePhone(phone)) return 'Invalid phone number format. Use 02-xxx-xxxx or 08-xxxx-xxxx';
+  if (!validatePhone(phone))
+    return "Invalid phone number format. Use 02-xxx-xxxx or 08-xxxx-xxxx";
   return null;
 };
 
@@ -50,7 +51,7 @@ export const validateThaiTaxId = (taxId: string): boolean => {
 
 export const validateThaiTaxIdMessage = (taxId: string): string | null => {
   if (!taxId) return null; // Optional
-  if (!validateThaiTaxId(taxId)) return 'Tax ID must be exactly 13 digits';
+  if (!validateThaiTaxId(taxId)) return "Tax ID must be exactly 13 digits";
   return null;
 };
 
@@ -58,14 +59,21 @@ export const validateThaiTaxIdMessage = (taxId: string): string | null => {
 // TEXT FIELD VALIDATION
 // ============================================================================
 
-export const validateRequired = (value: string, fieldName: string): string | null => {
+export const validateRequired = (
+  value: string,
+  fieldName: string,
+): string | null => {
   if (!value || !value.trim()) {
     return `${fieldName} is required`;
   }
   return null;
 };
 
-export const validateMinLength = (value: string, minLength: number, fieldName: string): string | null => {
+export const validateMinLength = (
+  value: string,
+  minLength: number,
+  fieldName: string,
+): string | null => {
   if (!value) return null; // Let validateRequired handle this
   if (value.length < minLength) {
     return `${fieldName} must be at least ${minLength} characters`;
@@ -73,7 +81,11 @@ export const validateMinLength = (value: string, minLength: number, fieldName: s
   return null;
 };
 
-export const validateMaxLength = (value: string, maxLength: number, fieldName: string): string | null => {
+export const validateMaxLength = (
+  value: string,
+  maxLength: number,
+  fieldName: string,
+): string | null => {
   if (!value) return null;
   if (value.length > maxLength) {
     return `${fieldName} must not exceed ${maxLength} characters`;
@@ -90,13 +102,18 @@ export const validateBudget = (budget: number | undefined | null): boolean => {
   return !isNaN(budget) && budget >= 0;
 };
 
-export const validateBudgetMessage = (budget: number | undefined | null): string | null => {
+export const validateBudgetMessage = (
+  budget: number | undefined | null,
+): string | null => {
   if (budget === undefined || budget === null) return null;
-  if (!validateBudget(budget)) return 'Budget must be a positive number';
+  if (!validateBudget(budget)) return "Budget must be a positive number";
   return null;
 };
 
-export const validatePositiveNumber = (value: number | undefined | null, fieldName: string): string | null => {
+export const validatePositiveNumber = (
+  value: number | undefined | null,
+  fieldName: string,
+): string | null => {
   if (value === undefined || value === null) return null;
   if (isNaN(value) || value <= 0) {
     return `${fieldName} must be greater than 0`;
@@ -104,7 +121,10 @@ export const validatePositiveNumber = (value: number | undefined | null, fieldNa
   return null;
 };
 
-export const validateNonNegativeNumber = (value: number | undefined | null, fieldName: string): string | null => {
+export const validateNonNegativeNumber = (
+  value: number | undefined | null,
+  fieldName: string,
+): string | null => {
   if (value === undefined || value === null) return null;
   if (isNaN(value) || value < 0) {
     return `${fieldName} cannot be negative`;
@@ -122,9 +142,9 @@ export const validatePassword = (password: string): boolean => {
 };
 
 export const validatePasswordMessage = (password: string): string | null => {
-  if (!password) return 'Password is required';
-  if (password.length < 6) return 'Password must be at least 6 characters';
-  if (password.length > 128) return 'Password is too long';
+  if (!password) return "Password is required";
+  if (password.length < 6) return "Password must be at least 6 characters";
+  if (password.length > 128) return "Password is too long";
   return null;
 };
 
@@ -136,7 +156,7 @@ export const validateStrongPassword = (password: string): boolean => {
   const hasNumber = /[0-9]/.test(password);
   const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
   const isLongEnough = password.length >= 8;
-  
+
   return hasUppercase && hasLowercase && hasNumber && isLongEnough;
 };
 
@@ -144,38 +164,50 @@ export const validateStrongPassword = (password: string): boolean => {
 // DATE VALIDATION
 // ============================================================================
 
-export const validateDateRange = (startDate: string | Date, endDate: string | Date): boolean => {
+export const validateDateRange = (
+  startDate: string | Date,
+  endDate: string | Date,
+): boolean => {
   const start = new Date(startDate);
   const end = new Date(endDate);
   return start < end;
 };
 
-export const validateDateRangeMessage = (startDate: string | Date, endDate: string | Date): string | null => {
+export const validateDateRangeMessage = (
+  startDate: string | Date,
+  endDate: string | Date,
+): string | null => {
   if (!startDate || !endDate) return null; // Let validateRequired handle this
   if (!validateDateRange(startDate, endDate)) {
-    return 'End date must be after start date';
+    return "End date must be after start date";
   }
   return null;
 };
 
-export const validateDateIsInFuture = (date: string | Date, fieldName: string): string | null => {
+export const validateDateIsInFuture = (
+  date: string | Date,
+  fieldName: string,
+): string | null => {
   if (!date) return null;
   const selected = new Date(date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   if (selected < today) {
     return `${fieldName} must be a future date`;
   }
   return null;
 };
 
-export const validateDateIsInPast = (date: string | Date, fieldName: string): string | null => {
+export const validateDateIsInPast = (
+  date: string | Date,
+  fieldName: string,
+): string | null => {
   if (!date) return null;
   const selected = new Date(date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   if (selected > today) {
     return `${fieldName} must be a past date`;
   }
@@ -193,13 +225,13 @@ export interface ValidationResult {
 
 export const validateForm = (
   data: Record<string, any>,
-  rules: Record<string, Array<() => string | null>>
+  rules: Record<string, Array<() => string | null>>,
 ): ValidationResult => {
   const errors: Record<string, string> = {};
 
   Object.entries(rules).forEach(([fieldName, validations]) => {
     const value = data[fieldName];
-    
+
     for (const validator of validations) {
       const error = validator();
       if (error) {

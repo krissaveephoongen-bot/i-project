@@ -3,10 +3,10 @@
  * Detects if the entered time overlaps with existing entries (Option 3)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/app/lib/supabaseClient';
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/app/lib/supabaseClient";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,25 +15,25 @@ export async function POST(request: NextRequest) {
 
     if (!date || !startTime || !endTime || !userId) {
       return NextResponse.json(
-        { error: 'Missing required fields: date, startTime, endTime, userId' },
-        { status: 400 }
+        { error: "Missing required fields: date, startTime, endTime, userId" },
+        { status: 400 },
       );
     }
 
     // Check for overlapping entries in the database
     const { data: existingEntries, error } = await supabase
-      .from('time_entries')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('date', date)
-      .neq('project_id', projectId || '')
-      .in('status', ['pending', 'in_progress', 'done']);
+      .from("time_entries")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("date", date)
+      .neq("project_id", projectId || "")
+      .in("status", ["pending", "in_progress", "done"]);
 
     if (error) {
-      console.error('Database error:', error);
+      console.error("Database error:", error);
       return NextResponse.json(
-        { error: 'Failed to check concurrent work' },
-        { status: 500 }
+        { error: "Failed to check concurrent work" },
+        { status: 500 },
       );
     }
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     for (const entry of existingEntries || []) {
       if (!entry.start_time || !entry.end_time) continue;
-      
+
       const entryStart = new Date(`2000-01-01T${entry.start_time}`);
       const entryEnd = new Date(`2000-01-01T${entry.end_time}`);
 
@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
       if (newStart < entryEnd && newEnd > entryStart) {
         const overlapStart = newStart > entryStart ? newStart : entryStart;
         const overlapEnd = newEnd < entryEnd ? newEnd : entryEnd;
-        const overlapMinutes = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60);
+        const overlapMinutes =
+          (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60);
 
         overlappingEntries.push({
           id: entry.id,
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
           startTime: entry.start_time,
           endTime: entry.end_time,
           hours: entry.hours || 0,
-          overlapMinutes
+          overlapMinutes,
         });
       }
     }
@@ -69,10 +70,12 @@ export async function POST(request: NextRequest) {
     const warnings: string[] = [];
 
     if (isConcurrent) {
-      warnings.push(`พบการทำงานที่ทับซ้อนกับ ${overlappingEntries.length} รายการอื่น`);
-      
+      warnings.push(
+        `พบการทำงานที่ทับซ้อนกับ ${overlappingEntries.length} รายการอื่น`,
+      );
+
       if (overlappingEntries.length > 1) {
-        warnings.push('คุณกำลังบันทึกเวลาทำงานพร้อมกันในหลายโครงการ');
+        warnings.push("คุณกำลังบันทึกเวลาทำงานพร้อมกันในหลายโครงการ");
       }
     }
 
@@ -80,14 +83,13 @@ export async function POST(request: NextRequest) {
       isConcurrent,
       warnings,
       requiresComment: isConcurrent,
-      overlappingEntries
+      overlappingEntries,
     });
-
   } catch (error) {
-    console.error('Error checking concurrent work:', error);
+    console.error("Error checking concurrent work:", error);
     return NextResponse.json(
-      { error: 'Failed to check concurrent work' },
-      { status: 500 }
+      { error: "Failed to check concurrent work" },
+      { status: 500 },
     );
   }
 }

@@ -1,31 +1,42 @@
-import React from 'react';
+import React from "react";
 
 function OnGoingProjects({ projects = [] }) {
   try {
     const onGoingData = React.useMemo(() => {
-      if (!Array.isArray(projects)) return { count: 0, currentYear: new Date().getFullYear() };
+      if (!Array.isArray(projects))
+        return { count: 0, currentYear: new Date().getFullYear() };
       const currentYear = new Date().getFullYear();
-      const count = projects.filter(p => {
+      const count = projects.filter((p) => {
         if (!p || !p.createdAt) return false;
         const created = new Date(p.createdAt);
         if (isNaN(created.getTime())) return false; // Skip invalid dates
-        return (p.status === 'in_progress' || p.objectData?.Status === 'active' || p.objectData?.Status === 'on-going') &&
-               created.getFullYear() === currentYear;
+        return (
+          (p.status === "in_progress" ||
+            p.objectData?.Status === "active" ||
+            p.objectData?.Status === "on-going") &&
+          created.getFullYear() === currentYear
+        );
       }).length;
       return { count, currentYear };
     }, [projects]);
 
     return (
       <div className="card bg-gradient-to-br from-blue-50 to-indigo-50">
-        <h3 className="text-lg font-bold text-[var(--navy-900)] mb-4">On Going Projects</h3>
+        <h3 className="text-lg font-bold text-[var(--navy-900)] mb-4">
+          On Going Projects
+        </h3>
         <div className="text-center">
-          <div className="text-4xl font-bold text-blue-600 mb-2">{onGoingCount}</div>
-          <div className="text-sm text-gray-500">โครงการที่กำลังดำเนินการ (ปี {currentYear + 543})</div>
+          <div className="text-4xl font-bold text-blue-600 mb-2">
+            {onGoingCount}
+          </div>
+          <div className="text-sm text-gray-500">
+            โครงการที่กำลังดำเนินการ (ปี {currentYear + 543})
+          </div>
         </div>
       </div>
     );
   } catch (error) {
-    console.error('OnGoingProjects error:', error);
+    console.error("OnGoingProjects error:", error);
     return null;
   }
 }

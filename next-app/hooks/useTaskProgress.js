@@ -5,7 +5,7 @@ function useTaskProgress(taskId) {
     estimatedHours: 0,
     loggedHours: 0,
     mandays: 0,
-    loading: true
+    loading: true,
   });
 
   React.useEffect(() => {
@@ -17,17 +17,19 @@ function useTaskProgress(taskId) {
   const loadProgress = async () => {
     try {
       const [task, timesheetsResponse] = await Promise.all([
-        trickleGetObject('task', taskId),
-        trickleListObjects('worklog', 500, true)
+        trickleGetObject("task", taskId),
+        trickleListObjects("worklog", 500, true),
       ]);
 
-      const taskTimesheets = timesheetsResponse.items.filter(ts =>
-        ts.objectData.TaskId === taskId &&
-        ts.objectData.Status === 'approved'
+      const taskTimesheets = timesheetsResponse.items.filter(
+        (ts) =>
+          ts.objectData.TaskId === taskId &&
+          ts.objectData.Status === "approved",
       );
 
-      const loggedHours = taskTimesheets.reduce((sum, ts) => 
-        sum + (ts.objectData.Hours || 0), 0
+      const loggedHours = taskTimesheets.reduce(
+        (sum, ts) => sum + (ts.objectData.Hours || 0),
+        0,
       );
 
       const estimatedHours = task.objectData.EstimatedHours || 0;
@@ -44,11 +46,11 @@ function useTaskProgress(taskId) {
         estimatedHours,
         loggedHours,
         mandays: MandayService.calculateManday(loggedHours),
-        loading: false
+        loading: false,
       });
     } catch (error) {
-      console.error('Error loading task progress:', error);
-      setProgress(prev => ({ ...prev, loading: false }));
+      console.error("Error loading task progress:", error);
+      setProgress((prev) => ({ ...prev, loading: false }));
     }
   };
 

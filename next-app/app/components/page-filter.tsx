@@ -1,45 +1,51 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { CalendarIcon, Filter, Search, X } from "lucide-react"
-import { format } from "date-fns"
+import * as React from "react";
+import { CalendarIcon, Filter, Search, X } from "lucide-react";
+import { format } from "date-fns";
 
 import { Button } from "./ui/Button";
-import { Calendar } from "./ui/calendar"
-import { Input } from "./ui/Input"
-import { Label } from "./ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/Select"
-import { Badge } from "./ui/badge"
-import { cn } from "@/lib/utils"
+import { Calendar } from "./ui/calendar";
+import { Input } from "./ui/Input";
+import { Label } from "./ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/Select";
+import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
 
 interface FilterOption {
-  value: string
-  label: string
+  value: string;
+  label: string;
 }
 
 interface DateRange {
-  from: Date | undefined
-  to: Date | undefined
+  from: Date | undefined;
+  to: Date | undefined;
 }
 
 interface PageFilterProps {
-  searchPlaceholder?: string
-  searchValue?: string
-  onSearchChange?: (value: string) => void
+  searchPlaceholder?: string;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
   filters?: Array<{
-    key: string
-    label: string
-    value: string
-    options: FilterOption[]
-    onChange: (value: string) => void
-  }>
-  dateRange?: DateRange
-  onDateRangeChange?: (range: DateRange) => void
-  showDateFilter?: boolean
-  className?: string
-  quickFilters?: Array<{ label: string; value: string; targetKey: string }>
-  savedViews?: { enabled: boolean; userId: string; pageKey: string }
+    key: string;
+    label: string;
+    value: string;
+    options: FilterOption[];
+    onChange: (value: string) => void;
+  }>;
+  dateRange?: DateRange;
+  onDateRangeChange?: (range: DateRange) => void;
+  showDateFilter?: boolean;
+  className?: string;
+  quickFilters?: Array<{ label: string; value: string; targetKey: string }>;
+  savedViews?: { enabled: boolean; userId: string; pageKey: string };
 }
 
 export function PageFilter({
@@ -54,32 +60,37 @@ export function PageFilter({
   quickFilters = [],
   savedViews,
 }: PageFilterProps) {
-  const [isFiltersOpen, setIsFiltersOpen] = React.useState(false)
-  const [views, setViews] = React.useState<Array<{ id: string; name: string; filters: any }>>([])
-  const [selectedView, setSelectedView] = React.useState<string>("")
+  const [isFiltersOpen, setIsFiltersOpen] = React.useState(false);
+  const [views, setViews] = React.useState<
+    Array<{ id: string; name: string; filters: any }>
+  >([]);
+  const [selectedView, setSelectedView] = React.useState<string>("");
 
   React.useEffect(() => {
     const load = async () => {
-      if (!savedViews?.enabled) return
-      const res = await fetch(`/api/saved-views?pageKey=${encodeURIComponent(savedViews.pageKey)}&userId=${encodeURIComponent(savedViews.userId)}`)
-      const json = await res.json()
-      setViews(json.views || [])
-    }
-    load()
-  }, [savedViews?.enabled, savedViews?.pageKey, savedViews?.userId])
+      if (!savedViews?.enabled) return;
+      const res = await fetch(
+        `/api/saved-views?pageKey=${encodeURIComponent(savedViews.pageKey)}&userId=${encodeURIComponent(savedViews.userId)}`,
+      );
+      const json = await res.json();
+      setViews(json.views || []);
+    };
+    load();
+  }, [savedViews?.enabled, savedViews?.pageKey, savedViews?.userId]);
 
-  const activeFiltersCount = filters.filter(f => f.value && f.value !== "all").length +
-    (dateRange?.from || dateRange?.to ? 1 : 0)
+  const activeFiltersCount =
+    filters.filter((f) => f.value && f.value !== "all").length +
+    (dateRange?.from || dateRange?.to ? 1 : 0);
 
   const clearAllFilters = () => {
-    filters.forEach(filter => filter.onChange("all"))
+    filters.forEach((filter) => filter.onChange("all"));
     if (onDateRangeChange) {
-      onDateRangeChange({ from: undefined, to: undefined })
+      onDateRangeChange({ from: undefined, to: undefined });
     }
     if (onSearchChange) {
-      onSearchChange("")
+      onSearchChange("");
     }
-  }
+  };
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -134,19 +145,19 @@ export function PageFilter({
       {quickFilters.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {quickFilters.map((qf, idx) => {
-            const target = filters.find(f => f.key === qf.targetKey)
-            const isActive = target?.value === qf.value
+            const target = filters.find((f) => f.key === qf.targetKey);
+            const isActive = target?.value === qf.value;
             return (
               <Button
                 key={`${qf.targetKey}-${qf.value}-${idx}`}
-                variant={isActive ? 'default' : 'outline'}
+                variant={isActive ? "default" : "outline"}
                 size="sm"
                 className="h-8"
                 onClick={() => target?.onChange(qf.value)}
               >
                 {qf.label}
               </Button>
-            )
+            );
           })}
         </div>
       )}
@@ -154,21 +165,26 @@ export function PageFilter({
       {/* Saved Views */}
       {savedViews?.enabled && (
         <div className="flex items-center gap-2">
-          <Select value={selectedView} onValueChange={(v) => {
-            setSelectedView(v)
-            const fv = views.find(x => x.id === v)
-            if (!fv) return
-            filters.forEach(f => {
-              const next = fv.filters?.[f.key]
-              if (typeof next === 'string') f.onChange(next)
-            })
-          }}>
+          <Select
+            value={selectedView}
+            onValueChange={(v) => {
+              setSelectedView(v);
+              const fv = views.find((x) => x.id === v);
+              if (!fv) return;
+              filters.forEach((f) => {
+                const next = fv.filters?.[f.key];
+                if (typeof next === "string") f.onChange(next);
+              });
+            }}
+          >
             <SelectTrigger className="w-52">
               <SelectValue placeholder={"Saved views"} />
             </SelectTrigger>
             <SelectContent>
-              {views.map(v => (
-                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+              {views.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -180,15 +196,23 @@ export function PageFilter({
                 userId: savedViews.userId,
                 pageKey: savedViews.pageKey,
                 name: `View ${new Date().toLocaleString()}`,
-                filters: Object.fromEntries(filters.map(f => [f.key, f.value]))
-              }
-              const res = await fetch('/api/saved-views', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-              const json = await res.json()
+                filters: Object.fromEntries(
+                  filters.map((f) => [f.key, f.value]),
+                ),
+              };
+              const res = await fetch("/api/saved-views", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              const json = await res.json();
               if (json.ok) {
-                setSelectedView(json.id)
-                const reload = await fetch(`/api/saved-views?pageKey=${encodeURIComponent(savedViews.pageKey)}&userId=${encodeURIComponent(savedViews.userId)}`)
-                const j = await reload.json()
-                setViews(j.views || [])
+                setSelectedView(json.id);
+                const reload = await fetch(
+                  `/api/saved-views?pageKey=${encodeURIComponent(savedViews.pageKey)}&userId=${encodeURIComponent(savedViews.userId)}`,
+                );
+                const j = await reload.json();
+                setViews(j.views || []);
               }
             }}
           >
@@ -199,11 +223,16 @@ export function PageFilter({
               variant="ghost"
               size="sm"
               onClick={async () => {
-                await fetch(`/api/saved-views?id=${encodeURIComponent(selectedView)}&userId=${encodeURIComponent(savedViews.userId)}`, { method: 'DELETE' })
-                setSelectedView("")
-                const reload = await fetch(`/api/saved-views?pageKey=${encodeURIComponent(savedViews.pageKey)}&userId=${encodeURIComponent(savedViews.userId)}`)
-                const j = await reload.json()
-                setViews(j.views || [])
+                await fetch(
+                  `/api/saved-views?id=${encodeURIComponent(selectedView)}&userId=${encodeURIComponent(savedViews.userId)}`,
+                  { method: "DELETE" },
+                );
+                setSelectedView("");
+                const reload = await fetch(
+                  `/api/saved-views?pageKey=${encodeURIComponent(savedViews.pageKey)}&userId=${encodeURIComponent(savedViews.userId)}`,
+                );
+                const j = await reload.json();
+                setViews(j.views || []);
               }}
             >
               Delete
@@ -223,10 +252,14 @@ export function PageFilter({
                 </Label>
                 <Select value={filter.value} onValueChange={filter.onChange}>
                   <SelectTrigger id={filter.key} className="w-full">
-                    <SelectValue placeholder={`Select ${filter.label.toLowerCase()}`} />
+                    <SelectValue
+                      placeholder={`Select ${filter.label.toLowerCase()}`}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All {filter.label.toLowerCase()}</SelectItem>
+                    <SelectItem value="all">
+                      All {filter.label.toLowerCase()}
+                    </SelectItem>
                     {filter.options.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
@@ -247,7 +280,7 @@ export function PageFilter({
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal h-10",
-                        !dateRange?.from && "text-muted-foreground"
+                        !dateRange?.from && "text-muted-foreground",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
@@ -280,7 +313,7 @@ export function PageFilter({
                         onDateRangeChange({
                           from: range?.from,
                           to: range?.to,
-                        })
+                        });
                       }}
                       numberOfMonths={1}
                       className="sm:hidden"
@@ -297,7 +330,7 @@ export function PageFilter({
                         onDateRangeChange({
                           from: range?.from,
                           to: range?.to,
-                        })
+                        });
                       }}
                       numberOfMonths={2}
                       className="hidden sm:block"
@@ -314,9 +347,11 @@ export function PageFilter({
       {activeFiltersCount > 0 && (
         <div className="flex flex-wrap gap-2">
           {filters
-            .filter(f => f.value && f.value !== "all")
+            .filter((f) => f.value && f.value !== "all")
             .map((filter) => {
-              const option = filter.options.find(opt => opt.value === filter.value)
+              const option = filter.options.find(
+                (opt) => opt.value === filter.value,
+              );
               return (
                 <Badge key={filter.key} variant="secondary" className="gap-1">
                   {filter.label}: {option?.label}
@@ -329,16 +364,20 @@ export function PageFilter({
                     <X className="h-3 w-3" />
                   </Button>
                 </Badge>
-              )
+              );
             })}
           {(dateRange?.from || dateRange?.to) && (
             <Badge variant="secondary" className="gap-1">
-              Date Range: {dateRange.from ? format(dateRange.from, "MMM dd") : ""} - {dateRange.to ? format(dateRange.to, "MMM dd") : ""}
+              Date Range:{" "}
+              {dateRange.from ? format(dateRange.from, "MMM dd") : ""} -{" "}
+              {dateRange.to ? format(dateRange.to, "MMM dd") : ""}
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-auto p-0 text-muted-foreground hover:text-foreground"
-                onClick={() => onDateRangeChange?.({ from: undefined, to: undefined })}
+                onClick={() =>
+                  onDateRangeChange?.({ from: undefined, to: undefined })
+                }
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -347,5 +386,5 @@ export function PageFilter({
         </div>
       )}
     </div>
-  )
+  );
 }

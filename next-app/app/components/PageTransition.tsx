@@ -1,9 +1,15 @@
-'use client';
+"use client";
 
-import { motion, useReducedMotion } from 'framer-motion';
-import { ReactNode } from 'react';
+import { motion, useReducedMotion } from "framer-motion";
+import { ReactNode } from "react";
 
-export default function PageTransition({ children, className }: { children: ReactNode; className?: string }) {
+export default function PageTransition({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   const shouldReduceMotion = useReducedMotion();
 
   return (
@@ -11,7 +17,7 @@ export default function PageTransition({ children, className }: { children: Reac
       initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={shouldReduceMotion ? undefined : { opacity: 0, y: -10 }}
-      transition={{ duration: shouldReduceMotion ? 0 : 0.3, ease: 'easeOut' }}
+      transition={{ duration: shouldReduceMotion ? 0 : 0.3, ease: "easeOut" }}
       className={className}
     >
       {children}

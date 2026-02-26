@@ -100,7 +100,7 @@ describe("Leave Request Validation", () => {
         start,
         end,
         LeaveTypeEnum.ANNUAL,
-        "Annual vacation"
+        "Annual vacation",
       );
       expect(result.valid).toBe(true);
       expect(result.errors.length).toBe(0);
@@ -182,7 +182,9 @@ describe("Leave Type Functions", () => {
 
   describe("getLeaveTypeLabel", () => {
     it("should return English label", () => {
-      expect(getLeaveTypeLabel(LeaveTypeEnum.ANNUAL, "en")).toBe("Annual Leave");
+      expect(getLeaveTypeLabel(LeaveTypeEnum.ANNUAL, "en")).toBe(
+        "Annual Leave",
+      );
     });
 
     it("should return Thai label", () => {
@@ -253,13 +255,13 @@ describe("Leave Type Functions", () => {
   describe("getLeaveTypePriority", () => {
     it("should prioritize maternity over other leave", () => {
       expect(getLeaveTypePriority(LeaveTypeEnum.MATERNITY)).toBeLessThan(
-        getLeaveTypePriority(LeaveTypeEnum.ANNUAL)
+        getLeaveTypePriority(LeaveTypeEnum.ANNUAL),
       );
     });
 
     it("should prioritize annual over personal", () => {
       expect(getLeaveTypePriority(LeaveTypeEnum.ANNUAL)).toBeLessThan(
-        getLeaveTypePriority(LeaveTypeEnum.PERSONAL)
+        getLeaveTypePriority(LeaveTypeEnum.PERSONAL),
       );
     });
   });
@@ -283,12 +285,14 @@ describe("Leave Status Functions", () => {
   describe("getLeaveStatusLabel", () => {
     it("should return English status", () => {
       expect(getLeaveStatusLabel(LeaveStatusEnum.APPROVED, "en")).toBe(
-        "Approved"
+        "Approved",
       );
     });
 
     it("should return Thai status", () => {
-      expect(getLeaveStatusLabel(LeaveStatusEnum.APPROVED, "th")).toBe("อนุมัติ");
+      expect(getLeaveStatusLabel(LeaveStatusEnum.APPROVED, "th")).toBe(
+        "อนุมัติ",
+      );
     });
   });
 });
@@ -308,7 +312,7 @@ describe("Leave Overlap Detection", () => {
       const overlapping = findOverlappingLeaves(
         requestStart,
         requestEnd,
-        existingLeaves
+        existingLeaves,
       );
       expect(overlapping.length).toBe(1);
     });
@@ -326,7 +330,7 @@ describe("Leave Overlap Detection", () => {
       const overlapping = findOverlappingLeaves(
         requestStart,
         requestEnd,
-        existingLeaves
+        existingLeaves,
       );
       expect(overlapping.length).toBe(0);
     });
@@ -344,7 +348,7 @@ describe("Leave Overlap Detection", () => {
       const overlapping = findOverlappingLeaves(
         requestStart,
         requestEnd,
-        existingLeaves
+        existingLeaves,
       );
       expect(overlapping.length).toBe(1);
     });
@@ -503,13 +507,17 @@ describe("Leave Entitlement Check", () => {
       const result = validateLeaveBalanceForApproval(
         10,
         5,
-        LeaveTypeEnum.ANNUAL
+        LeaveTypeEnum.ANNUAL,
       );
       expect(result.valid).toBe(true);
     });
 
     it("should reject insufficient balance", () => {
-      const result = validateLeaveBalanceForApproval(5, 10, LeaveTypeEnum.ANNUAL);
+      const result = validateLeaveBalanceForApproval(
+        5,
+        10,
+        LeaveTypeEnum.ANNUAL,
+      );
       expect(result.valid).toBe(false);
       expect(result.reason).toBeDefined();
     });
@@ -518,7 +526,7 @@ describe("Leave Entitlement Check", () => {
       const result = validateLeaveBalanceForApproval(
         0,
         10,
-        LeaveTypeEnum.UNPAID
+        LeaveTypeEnum.UNPAID,
       );
       expect(result.valid).toBe(true);
     });

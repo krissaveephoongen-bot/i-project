@@ -21,7 +21,7 @@ const LEAVE_ENDPOINT = `${API_BASE_URL}/api/leave`;
  */
 export async function getLeaveAllocation(
   userId: string,
-  year: number
+  year: number,
 ): Promise<LeaveAllocationDTO> {
   const response = await fetch(
     `${LEAVE_ENDPOINT}/allocation/${userId}/${year}`,
@@ -31,13 +31,11 @@ export async function getLeaveAllocation(
         "Content-Type": "application/json",
       },
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
-    throw new Error(
-      `Failed to fetch leave allocation: ${response.statusText}`
-    );
+    throw new Error(`Failed to fetch leave allocation: ${response.statusText}`);
   }
 
   return response.json();
@@ -49,7 +47,7 @@ export async function getLeaveAllocation(
 export async function updateLeaveAllocation(
   userId: string,
   year: number,
-  allocatedDays: number
+  allocatedDays: number,
 ): Promise<LeaveAllocationDTO> {
   const response = await fetch(
     `${LEAVE_ENDPOINT}/allocation/${userId}/${year}`,
@@ -60,14 +58,12 @@ export async function updateLeaveAllocation(
       },
       body: JSON.stringify({ allocatedDays }),
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(
-      error.message || "Failed to update leave allocation"
-    );
+    throw new Error(error.message || "Failed to update leave allocation");
   }
 
   return response.json();
@@ -82,7 +78,7 @@ export async function getLeaveRequests(
     status?: string;
     year?: number;
     leaveType?: string;
-  }
+  },
 ): Promise<LeaveRequestDTO[]> {
   const queryParams = new URLSearchParams();
   if (filters?.status) queryParams.append("status", filters.status);
@@ -111,7 +107,7 @@ export async function getLeaveRequests(
  * Get a single leave request
  */
 export async function getLeaveRequest(
-  requestId: string
+  requestId: string,
 ): Promise<LeaveRequestDTO> {
   const response = await fetch(`${LEAVE_ENDPOINT}/requests/${requestId}`, {
     method: "GET",
@@ -132,7 +128,7 @@ export async function getLeaveRequest(
  * Create a new leave request
  */
 export async function createLeaveRequest(
-  data: CreateLeaveRequestDTO
+  data: CreateLeaveRequestDTO,
 ): Promise<LeaveRequestDTO> {
   const response = await fetch(`${LEAVE_ENDPOINT}/requests`, {
     method: "POST",
@@ -156,7 +152,7 @@ export async function createLeaveRequest(
  */
 export async function updateLeaveRequest(
   requestId: string,
-  data: UpdateLeaveRequestDTO
+  data: UpdateLeaveRequestDTO,
 ): Promise<LeaveRequestDTO> {
   const response = await fetch(`${LEAVE_ENDPOINT}/requests/${requestId}`, {
     method: "PUT",
@@ -180,7 +176,7 @@ export async function updateLeaveRequest(
  */
 export async function cancelLeaveRequest(
   requestId: string,
-  reason?: string
+  reason?: string,
 ): Promise<LeaveRequestDTO> {
   const response = await fetch(
     `${LEAVE_ENDPOINT}/requests/${requestId}/cancel`,
@@ -191,7 +187,7 @@ export async function cancelLeaveRequest(
       },
       body: JSON.stringify({ reason }),
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -206,18 +202,15 @@ export async function cancelLeaveRequest(
  */
 export async function getLeaveBalance(
   userId: string,
-  year: number
+  year: number,
 ): Promise<LeaveBalanceDTO> {
-  const response = await fetch(
-    `${LEAVE_ENDPOINT}/balance/${userId}/${year}`,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-    }
-  );
+  const response = await fetch(`${LEAVE_ENDPOINT}/balance/${userId}/${year}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  });
 
   if (!response.ok) {
     throw new Error(`Failed to fetch leave balance: ${response.statusText}`);
@@ -232,7 +225,7 @@ export async function getLeaveBalance(
 export async function getLeaveHistory(
   userId: string,
   limit: number = 50,
-  offset: number = 0
+  offset: number = 0,
 ): Promise<LeaveHistoryDTO> {
   const response = await fetch(
     `${LEAVE_ENDPOINT}/history/${userId}?limit=${limit}&offset=${offset}`,
@@ -242,7 +235,7 @@ export async function getLeaveHistory(
         "Content-Type": "application/json",
       },
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -256,7 +249,7 @@ export async function getLeaveHistory(
  * Get pending leave approvals for a manager
  */
 export async function getPendingLeaveApprovals(
-  managerId: string
+  managerId: string,
 ): Promise<LeaveRequestDTO[]> {
   const response = await fetch(
     `${LEAVE_ENDPOINT}/pending-approvals/${managerId}`,
@@ -266,12 +259,12 @@ export async function getPendingLeaveApprovals(
         "Content-Type": "application/json",
       },
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch pending leave approvals: ${response.statusText}`
+      `Failed to fetch pending leave approvals: ${response.statusText}`,
     );
   }
 
@@ -282,7 +275,7 @@ export async function getPendingLeaveApprovals(
  * Approve leave requests (manager only)
  */
 export async function approveLeaveRequests(
-  data: BulkLeaveApproveDTO
+  data: BulkLeaveApproveDTO,
 ): Promise<{ approved: string[]; failed: string[] }> {
   const response = await fetch(`${LEAVE_ENDPOINT}/approve`, {
     method: "POST",
@@ -305,7 +298,7 @@ export async function approveLeaveRequests(
  */
 export async function rejectLeaveRequests(
   requestIds: string[],
-  reason: string
+  reason: string,
 ): Promise<{ rejected: string[]; failed: string[] }> {
   const response = await fetch(`${LEAVE_ENDPOINT}/reject`, {
     method: "POST",
@@ -328,7 +321,7 @@ export async function rejectLeaveRequests(
  */
 export async function getTeamLeaveStats(
   managerId: string,
-  year: number
+  year: number,
 ): Promise<{
   totalRequests: number;
   approved: number;
@@ -344,12 +337,12 @@ export async function getTeamLeaveStats(
         "Content-Type": "application/json",
       },
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch team leave statistics: ${response.statusText}`
+      `Failed to fetch team leave statistics: ${response.statusText}`,
     );
   }
 
@@ -362,7 +355,7 @@ export async function getTeamLeaveStats(
 export async function exportLeaveRecords(
   userId: string,
   year: number,
-  format: "pdf" | "excel" = "excel"
+  format: "pdf" | "excel" = "excel",
 ): Promise<{ url: string; filename: string }> {
   const response = await fetch(`${LEAVE_ENDPOINT}/export`, {
     method: "POST",

@@ -1,14 +1,27 @@
 // next-app/components/ExpenseItemsForm.tsx
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Textarea } from './ui/textarea';
-import { Badge } from './ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Plus, Trash2, Calculator } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Textarea } from "./ui/textarea";
+import { Badge } from "./ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+import { Plus, Trash2, Calculator } from "lucide-react";
 
 interface ExpenseItem {
   id?: string;
@@ -52,37 +65,81 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
   vendors,
   isOpen,
   onClose,
-  onSave
+  onSave,
 }) => {
   const [items, setItems] = useState<ExpenseItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const expenseCategories = [
-    { value: 'travel', label: 'ค่าเดินทาง' },
-    { value: 'supplies', label: 'วัสดุสิ้นเปลือง' },
-    { value: 'equipment', label: 'อุปกรณ์' },
-    { value: 'training', label: 'การอบรม' },
-    { value: 'other', label: 'อื่นๆ' },
-    { value: 'hardware_vendor', label: 'อุปกรณ์คอมพิวเตอร์ (Vendor)' },
-    { value: 'software_vendor', label: 'ซอฟต์แวร์ (Vendor)' },
-    { value: 'custom_software_vendor', label: 'ซอฟต์แวร์ตามสั่ง (Vendor)' },
-    { value: 'material_vendor', label: 'วัสดุอุปกรณ์ (Vendor)' },
-    { value: 'service_vendor', label: 'บริการ (Vendor)' },
-    { value: 'consulting_vendor', label: 'ที่ปรึกษา (Vendor)' },
-    { value: 'maintenance_vendor', label: 'บำรุงรักษา (Vendor)' },
-    { value: 'license_vendor', label: 'ลิขสิทธิ์ (Vendor)' }
+    { value: "travel", label: "ค่าเดินทาง" },
+    { value: "supplies", label: "วัสดุสิ้นเปลือง" },
+    { value: "equipment", label: "อุปกรณ์" },
+    { value: "training", label: "การอบรม" },
+    { value: "other", label: "อื่นๆ" },
+    { value: "hardware_vendor", label: "อุปกรณ์คอมพิวเตอร์ (Vendor)" },
+    { value: "software_vendor", label: "ซอฟต์แวร์ (Vendor)" },
+    { value: "custom_software_vendor", label: "ซอฟต์แวร์ตามสั่ง (Vendor)" },
+    { value: "material_vendor", label: "วัสดุอุปกรณ์ (Vendor)" },
+    { value: "service_vendor", label: "บริการ (Vendor)" },
+    { value: "consulting_vendor", label: "ที่ปรึกษา (Vendor)" },
+    { value: "maintenance_vendor", label: "บำรุงรักษา (Vendor)" },
+    { value: "license_vendor", label: "ลิขสิทธิ์ (Vendor)" },
   ];
 
   const subcategories = {
-    hardware_vendor: ['laptops', 'desktops', 'servers', 'networking', 'storage', 'peripherals'],
-    software_vendor: ['operating_system', 'office_suite', 'antivirus', 'database', 'development_tools'],
-    custom_software_vendor: ['web_application', 'mobile_app', 'desktop_app', 'api_integration', 'custom_system'],
-    material_vendor: ['office_supplies', 'furniture', 'construction_materials', 'electronics', 'other_materials'],
-    service_vendor: ['consulting', 'training', 'support', 'installation', 'maintenance_service'],
-    consulting_vendor: ['business_consulting', 'it_consulting', 'legal_consulting', 'financial_consulting'],
-    maintenance_vendor: ['hardware_maintenance', 'software_maintenance', 'facility_maintenance'],
-    license_vendor: ['software_license', 'subscription_license', 'perpetual_license']
+    hardware_vendor: [
+      "laptops",
+      "desktops",
+      "servers",
+      "networking",
+      "storage",
+      "peripherals",
+    ],
+    software_vendor: [
+      "operating_system",
+      "office_suite",
+      "antivirus",
+      "database",
+      "development_tools",
+    ],
+    custom_software_vendor: [
+      "web_application",
+      "mobile_app",
+      "desktop_app",
+      "api_integration",
+      "custom_system",
+    ],
+    material_vendor: [
+      "office_supplies",
+      "furniture",
+      "construction_materials",
+      "electronics",
+      "other_materials",
+    ],
+    service_vendor: [
+      "consulting",
+      "training",
+      "support",
+      "installation",
+      "maintenance_service",
+    ],
+    consulting_vendor: [
+      "business_consulting",
+      "it_consulting",
+      "legal_consulting",
+      "financial_consulting",
+    ],
+    maintenance_vendor: [
+      "hardware_maintenance",
+      "software_maintenance",
+      "facility_maintenance",
+    ],
+    license_vendor: [
+      "software_license",
+      "subscription_license",
+      "perpetual_license",
+    ],
   };
 
   useEffect(() => {
@@ -93,43 +150,43 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
 
   const addItem = () => {
     const newItem: ExpenseItem = {
-      category: '',
-      description: '',
+      category: "",
+      description: "",
       quantity: 1,
       unitPrice: 0,
       totalPrice: 0,
-      markup: 0
+      markup: 0,
     };
 
-    setItems(prev => [...prev, newItem]);
+    setItems((prev) => [...prev, newItem]);
   };
 
   const removeItem = (index: number) => {
-    setItems(prev => prev.filter((_, i) => i !== index));
+    setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
   const updateItem = (index: number, field: keyof ExpenseItem, value: any) => {
-    setItems(prev => {
+    setItems((prev) => {
       const newItems = [...prev];
       const item = { ...newItems[index] };
-      
+
       // Handle special cases
-      if (field === 'quantity' || field === 'unitPrice') {
+      if (field === "quantity" || field === "unitPrice") {
         const numValue = parseFloat(value) || 0;
         item[field] = numValue;
         item.totalPrice = item.quantity * item.unitPrice;
-        
+
         // Recalculate margin if baseCost is set
         if (item.baseCost) {
           item.marginAmount = item.totalPrice - item.baseCost;
           item.finalPrice = item.baseCost * (1 + item.markup / 100);
         }
-      } else if (field === 'baseCost') {
+      } else if (field === "baseCost") {
         const numValue = parseFloat(value) || 0;
         item[field] = numValue;
         item.marginAmount = item.totalPrice - numValue;
         item.finalPrice = numValue * (1 + item.markup / 100);
-      } else if (field === 'markup') {
+      } else if (field === "markup") {
         const numValue = parseFloat(value) || 0;
         item[field] = numValue;
         if (item.baseCost) {
@@ -139,25 +196,28 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
       } else {
         item[field] = value;
       }
-      
+
       newItems[index] = item;
       return newItems;
     });
   };
 
   const calculateTotals = () => {
-    return items.reduce((acc, item) => {
-      acc.totalPrice += item.totalPrice;
-      acc.totalBaseCost += item.baseCost || 0;
-      acc.totalMargin += item.marginAmount || 0;
-      acc.totalFinalPrice += item.finalPrice || 0;
-      return acc;
-    }, {
-      totalPrice: 0,
-      totalBaseCost: 0,
-      totalMargin: 0,
-      totalFinalPrice: 0
-    });
+    return items.reduce(
+      (acc, item) => {
+        acc.totalPrice += item.totalPrice;
+        acc.totalBaseCost += item.baseCost || 0;
+        acc.totalMargin += item.marginAmount || 0;
+        acc.totalFinalPrice += item.finalPrice || 0;
+        return acc;
+      },
+      {
+        totalPrice: 0,
+        totalBaseCost: 0,
+        totalMargin: 0,
+        totalFinalPrice: 0,
+      },
+    );
   };
 
   const validateForm = () => {
@@ -165,21 +225,21 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
 
     items.forEach((item, index) => {
       if (!item.category) {
-        newErrors[`item_${index}_category`] = 'กรุณาเลือกหมวดหมู่';
+        newErrors[`item_${index}_category`] = "กรุณาเลือกหมวดหมู่";
       }
       if (!item.description.trim()) {
-        newErrors[`item_${index}_description`] = 'กรุณากรอกรายละเอียด';
+        newErrors[`item_${index}_description`] = "กรุณากรอกรายละเอียด";
       }
       if (item.unitPrice <= 0) {
-        newErrors[`item_${index}_unitPrice`] = 'ราคาต่อหน่วยต้องมากกว่า 0';
+        newErrors[`item_${index}_unitPrice`] = "ราคาต่อหน่วยต้องมากกว่า 0";
       }
       if (item.quantity <= 0) {
-        newErrors[`item_${index}_quantity`] = 'จำนวนต้องมากกว่า 0';
+        newErrors[`item_${index}_quantity`] = "จำนวนต้องมากกว่า 0";
       }
     });
 
     if (items.length === 0) {
-      newErrors.general = 'กรุณาเพิ่มรายการค่าใช้จ่ายอย่างน้อย 1 รายการ';
+      newErrors.general = "กรุณาเพิ่มรายการค่าใช้จ่ายอย่างน้อย 1 รายการ";
     }
 
     setErrors(newErrors);
@@ -188,24 +248,24 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setLoading(true);
     try {
-      const itemsToSave = items.map(item => ({
+      const itemsToSave = items.map((item) => ({
         ...item,
         expenseId,
-        vendorId: item.vendorId || null
+        vendorId: item.vendorId || null,
       }));
 
       onSave(itemsToSave);
       onClose();
     } catch (error) {
-      console.error('Error saving expense items:', error);
-      setErrors({ general: 'เกิดข้อผิดพลาด กรุณาลองใหม่' });
+      console.error("Error saving expense items:", error);
+      setErrors({ general: "เกิดข้อผิดพลาด กรุณาลองใหม่" });
     } finally {
       setLoading(false);
     }
@@ -262,21 +322,34 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                           <Label>หมวดหมู่ *</Label>
                           <Select
                             value={item.category}
-                            onValueChange={(value) => updateItem(index, 'category', value)}
+                            onValueChange={(value) =>
+                              updateItem(index, "category", value)
+                            }
                           >
-                            <SelectTrigger className={errors[`item_${index}_category`] ? 'border-red-500' : ''}>
+                            <SelectTrigger
+                              className={
+                                errors[`item_${index}_category`]
+                                  ? "border-red-500"
+                                  : ""
+                              }
+                            >
                               <SelectValue placeholder="เลือกหมวดหมู่" />
                             </SelectTrigger>
                             <SelectContent>
-                              {expenseCategories.map(category => (
-                                <SelectItem key={category.value} value={category.value}>
+                              {expenseCategories.map((category) => (
+                                <SelectItem
+                                  key={category.value}
+                                  value={category.value}
+                                >
                                   {category.label}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                           {errors[`item_${index}_category`] && (
-                            <p className="text-red-500 text-sm mt-1">{errors[`item_${index}_category`]}</p>
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors[`item_${index}_category`]}
+                            </p>
                           )}
                         </div>
 
@@ -284,19 +357,31 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                         <div>
                           <Label>หมวดหมู่ย่อย</Label>
                           <Select
-                            value={item.subcategory || ''}
-                            onValueChange={(value) => updateItem(index, 'subcategory', value)}
-                            disabled={!item.category || !subcategories[item.category as keyof typeof subcategories]}
+                            value={item.subcategory || ""}
+                            onValueChange={(value) =>
+                              updateItem(index, "subcategory", value)
+                            }
+                            disabled={
+                              !item.category ||
+                              !subcategories[
+                                item.category as keyof typeof subcategories
+                              ]
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="เลือกหมวดหมู่ย่อย" />
                             </SelectTrigger>
                             <SelectContent>
-                              {item.category && subcategories[item.category as keyof typeof subcategories]?.map(sub => (
-                                <SelectItem key={sub} value={sub}>
-                                  {sub.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                </SelectItem>
-                              ))}
+                              {item.category &&
+                                subcategories[
+                                  item.category as keyof typeof subcategories
+                                ]?.map((sub) => (
+                                  <SelectItem key={sub} value={sub}>
+                                    {sub
+                                      .replace(/_/g, " ")
+                                      .replace(/\b\w/g, (l) => l.toUpperCase())}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                         </div>
@@ -305,16 +390,19 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                         <div>
                           <Label>Vendor</Label>
                           <Select
-                            value={item.vendorId || ''}
-                            onValueChange={(value) => updateItem(index, 'vendorId', value)}
+                            value={item.vendorId || ""}
+                            onValueChange={(value) =>
+                              updateItem(index, "vendorId", value)
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="เลือก Vendor" />
                             </SelectTrigger>
                             <SelectContent>
-                              {vendors.map(vendor => (
+                              {vendors.map((vendor) => (
                                 <SelectItem key={vendor.id} value={vendor.id}>
-                                  {vendor.name} {vendor.code && `(${vendor.code})`}
+                                  {vendor.name}{" "}
+                                  {vendor.code && `(${vendor.code})`}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -326,12 +414,20 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                           <Label>รายละเอียด *</Label>
                           <Input
                             value={item.description}
-                            onChange={(e) => updateItem(index, 'description', e.target.value)}
+                            onChange={(e) =>
+                              updateItem(index, "description", e.target.value)
+                            }
                             placeholder="รายละเอียดรายการ"
-                            className={errors[`item_${index}_description`] ? 'border-red-500' : ''}
+                            className={
+                              errors[`item_${index}_description`]
+                                ? "border-red-500"
+                                : ""
+                            }
                           />
                           {errors[`item_${index}_description`] && (
-                            <p className="text-red-500 text-sm mt-1">{errors[`item_${index}_description`]}</p>
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors[`item_${index}_description`]}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -343,13 +439,21 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                           <Input
                             type="number"
                             value={item.quantity}
-                            onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                            onChange={(e) =>
+                              updateItem(index, "quantity", e.target.value)
+                            }
                             min="1"
                             step="1"
-                            className={errors[`item_${index}_quantity`] ? 'border-red-500' : ''}
+                            className={
+                              errors[`item_${index}_quantity`]
+                                ? "border-red-500"
+                                : ""
+                            }
                           />
                           {errors[`item_${index}_quantity`] && (
-                            <p className="text-red-500 text-sm mt-1">{errors[`item_${index}_quantity`]}</p>
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors[`item_${index}_quantity`]}
+                            </p>
                           )}
                         </div>
 
@@ -359,13 +463,21 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                           <Input
                             type="number"
                             value={item.unitPrice}
-                            onChange={(e) => updateItem(index, 'unitPrice', e.target.value)}
+                            onChange={(e) =>
+                              updateItem(index, "unitPrice", e.target.value)
+                            }
                             min="0"
                             step="0.01"
-                            className={errors[`item_${index}_unitPrice`] ? 'border-red-500' : ''}
+                            className={
+                              errors[`item_${index}_unitPrice`]
+                                ? "border-red-500"
+                                : ""
+                            }
                           />
                           {errors[`item_${index}_unitPrice`] && (
-                            <p className="text-red-500 text-sm mt-1">{errors[`item_${index}_unitPrice`]}</p>
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors[`item_${index}_unitPrice`]}
+                            </p>
                           )}
                         </div>
 
@@ -385,8 +497,10 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                           <Label>ต้นทุนจริง</Label>
                           <Input
                             type="number"
-                            value={item.baseCost || ''}
-                            onChange={(e) => updateItem(index, 'baseCost', e.target.value)}
+                            value={item.baseCost || ""}
+                            onChange={(e) =>
+                              updateItem(index, "baseCost", e.target.value)
+                            }
                             min="0"
                             step="0.01"
                             placeholder="ต้นทุนจาก vendor"
@@ -399,7 +513,9 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                           <Input
                             type="number"
                             value={item.markup}
-                            onChange={(e) => updateItem(index, 'markup', e.target.value)}
+                            onChange={(e) =>
+                              updateItem(index, "markup", e.target.value)
+                            }
                             min="0"
                             step="0.1"
                           />
@@ -411,8 +527,14 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                         <div>
                           <Label>รหัสสินค้า Vendor</Label>
                           <Input
-                            value={item.vendorItemCode || ''}
-                            onChange={(e) => updateItem(index, 'vendorItemCode', e.target.value)}
+                            value={item.vendorItemCode || ""}
+                            onChange={(e) =>
+                              updateItem(
+                                index,
+                                "vendorItemCode",
+                                e.target.value,
+                              )
+                            }
                             placeholder="SKU/Item Code"
                           />
                         </div>
@@ -420,8 +542,10 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                         <div>
                           <Label>เลขที่ใบแจ้งหนี้ Vendor</Label>
                           <Input
-                            value={item.vendorInvoice || ''}
-                            onChange={(e) => updateItem(index, 'vendorInvoice', e.target.value)}
+                            value={item.vendorInvoice || ""}
+                            onChange={(e) =>
+                              updateItem(index, "vendorInvoice", e.target.value)
+                            }
                             placeholder="Invoice Number"
                           />
                         </div>
@@ -444,15 +568,21 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                         <div className="grid grid-cols-3 gap-4 mt-4 p-3 bg-gray-50 rounded">
                           <div className="text-center">
                             <div className="text-sm text-gray-500">ต้นทุน</div>
-                            <div className="font-semibold">฿{item.baseCost?.toFixed(2)}</div>
+                            <div className="font-semibold">
+                              ฿{item.baseCost?.toFixed(2)}
+                            </div>
                           </div>
                           <div className="text-center">
                             <div className="text-sm text-gray-500">Margin</div>
-                            <div className="font-semibold text-green-600">฿{item.marginAmount?.toFixed(2)}</div>
+                            <div className="font-semibold text-green-600">
+                              ฿{item.marginAmount?.toFixed(2)}
+                            </div>
                           </div>
                           <div className="text-center">
                             <div className="text-sm text-gray-500">ราคาขาย</div>
-                            <div className="font-semibold">฿{item.finalPrice?.toFixed(2)}</div>
+                            <div className="font-semibold">
+                              ฿{item.finalPrice?.toFixed(2)}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -461,8 +591,10 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                       <div>
                         <Label>หมายเหตุ</Label>
                         <Textarea
-                          value={item.notes || ''}
-                          onChange={(e) => updateItem(index, 'notes', e.target.value)}
+                          value={item.notes || ""}
+                          onChange={(e) =>
+                            updateItem(index, "notes", e.target.value)
+                          }
                           placeholder="หมายเหตุเพิ่มเติม..."
                           rows={2}
                         />
@@ -486,26 +618,38 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center">
                     <div className="text-sm text-gray-500">ราคารวม</div>
-                    <div className="font-semibold">฿{totals.totalPrice.toFixed(2)}</div>
+                    <div className="font-semibold">
+                      ฿{totals.totalPrice.toFixed(2)}
+                    </div>
                   </div>
                   <div className="text-center">
                     <div className="text-sm text-gray-500">ต้นทุนรวม</div>
-                    <div className="font-semibold">฿{totals.totalBaseCost.toFixed(2)}</div>
+                    <div className="font-semibold">
+                      ฿{totals.totalBaseCost.toFixed(2)}
+                    </div>
                   </div>
                   <div className="text-center">
                     <div className="text-sm text-gray-500">Margin รวม</div>
-                    <div className="font-semibold text-green-600">฿{totals.totalMargin.toFixed(2)}</div>
+                    <div className="font-semibold text-green-600">
+                      ฿{totals.totalMargin.toFixed(2)}
+                    </div>
                   </div>
                   <div className="text-center">
                     <div className="text-sm text-gray-500">ราคาขายรวม</div>
-                    <div className="font-semibold">฿{totals.totalFinalPrice.toFixed(2)}</div>
+                    <div className="font-semibold">
+                      ฿{totals.totalFinalPrice.toFixed(2)}
+                    </div>
                   </div>
                 </div>
                 {totals.totalBaseCost > 0 && (
                   <div className="mt-4 text-center">
                     <div className="text-sm text-gray-500">อัตรากำไรเฉลี่ย</div>
                     <div className="font-semibold text-lg">
-                      {((totals.totalMargin / totals.totalBaseCost) * 100).toFixed(2)}%
+                      {(
+                        (totals.totalMargin / totals.totalBaseCost) *
+                        100
+                      ).toFixed(2)}
+                      %
                     </div>
                   </div>
                 )}
@@ -518,7 +662,7 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
                 ยกเลิก
               </Button>
               <Button type="submit" disabled={loading || items.length === 0}>
-                {loading ? 'กำลังบันทึก...' : 'บันทึกรายการ'}
+                {loading ? "กำลังบันทึก..." : "บันทึกรายการ"}
               </Button>
             </div>
           </form>

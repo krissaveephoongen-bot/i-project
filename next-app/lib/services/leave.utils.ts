@@ -3,7 +3,11 @@
  * Calculations and helper functions for leave management
  */
 
-import { calculateBusinessDays, getMonthDateRange, isDateInPast } from "./timesheet.utils";
+import {
+  calculateBusinessDays,
+  getMonthDateRange,
+  isDateInPast,
+} from "./timesheet.utils";
 
 export { isDateInPast };
 
@@ -29,7 +33,7 @@ export function calculateLeaveDays(
   startDate: Date,
   endDate: Date,
   holidays: Date[] = [],
-  weekends: number[] = [0, 6]
+  weekends: number[] = [0, 6],
 ): number {
   let count = 0;
   const current = new Date(startDate);
@@ -56,7 +60,7 @@ export function calculateLeaveDays(
 export function calculateRemainingBalance(
   allocated: number,
   used: number,
-  pending: number = 0
+  pending: number = 0,
 ): number {
   return allocated - used - pending;
 }
@@ -66,7 +70,7 @@ export function calculateRemainingBalance(
  */
 export function isSufficientBalance(
   remaining: number,
-  requested: number
+  requested: number,
 ): boolean {
   return remaining >= requested;
 }
@@ -78,7 +82,7 @@ export function isValidLeaveRequest(
   startDate: Date,
   endDate: Date,
   leaveType: string,
-  reason: string
+  reason: string,
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
@@ -135,7 +139,10 @@ export function getLeaveTypeColor(leaveType: string): string {
 /**
  * Get leave type label (with Thai support)
  */
-export function getLeaveTypeLabel(leaveType: string, lang: string = "en"): string {
+export function getLeaveTypeLabel(
+  leaveType: string,
+  lang: string = "en",
+): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
       [LeaveTypeEnum.ANNUAL]: "Annual Leave",
@@ -172,7 +179,10 @@ export function getLeaveStatusColor(status: string): string {
 /**
  * Get leave status label (with Thai support)
  */
-export function getLeaveStatusLabel(status: string, lang: string = "en"): string {
+export function getLeaveStatusLabel(
+  status: string,
+  lang: string = "en",
+): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
       [LeaveStatusEnum.PENDING]: "Pending",
@@ -194,10 +204,7 @@ export function getLeaveStatusLabel(status: string, lang: string = "en"): string
 /**
  * Calculate leave quota by type for a year
  */
-export function getLeaveQuotaByType(
-  leaveType: string,
-  year: number
-): number {
+export function getLeaveQuotaByType(leaveType: string, year: number): number {
   const quotas: Record<string, number> = {
     [LeaveTypeEnum.ANNUAL]: 15, // Standard annual leave
     [LeaveTypeEnum.SICK]: 30, // Sick leave in minutes (e.g., 30 mins)
@@ -213,10 +220,7 @@ export function getLeaveQuotaByType(
  * Check if leave type requires approval
  */
 export function requiresApproval(leaveType: string): boolean {
-  const requiresApprovalTypes = [
-    LeaveTypeEnum.ANNUAL,
-    LeaveTypeEnum.MATERNITY,
-  ];
+  const requiresApprovalTypes = [LeaveTypeEnum.ANNUAL, LeaveTypeEnum.MATERNITY];
   return requiresApprovalTypes.includes(leaveType as LeaveTypeEnum);
 }
 
@@ -264,7 +268,7 @@ export function getLeaveTypePriority(leaveType: string): number {
 export function formatLeavePeriod(
   startDate: Date,
   endDate: Date,
-  format: "short" | "long" = "short"
+  format: "short" | "long" = "short",
 ): string {
   const dateFormat = {
     short: { month: "short", day: "numeric" } as const,
@@ -283,7 +287,7 @@ export function formatLeavePeriod(
 export function findOverlappingLeaves(
   startDate: Date,
   endDate: Date,
-  existingLeaves: Array<{ startDate: Date; endDate: Date }>
+  existingLeaves: Array<{ startDate: Date; endDate: Date }>,
 ): typeof existingLeaves {
   return existingLeaves.filter((leave) => {
     const leaveStart = new Date(leave.startDate);
@@ -303,11 +307,11 @@ export function getMonthLeaveUsage(
     startDate: Date;
     endDate: Date;
     status: string;
-  }>
+  }>,
 ): number {
   const { startDate: monthStart, endDate: monthEnd } = getMonthDateRange(
     year,
-    month
+    month,
   );
 
   let totalDays = 0;
@@ -319,8 +323,12 @@ export function getMonthLeaveUsage(
       const reqEnd = new Date(req.endDate);
 
       // Find overlap with month
-      const overlapStart = new Date(Math.max(monthStart.getTime(), reqStart.getTime()));
-      const overlapEnd = new Date(Math.min(monthEnd.getTime(), reqEnd.getTime()));
+      const overlapStart = new Date(
+        Math.max(monthStart.getTime(), reqStart.getTime()),
+      );
+      const overlapEnd = new Date(
+        Math.min(monthEnd.getTime(), reqEnd.getTime()),
+      );
 
       if (overlapStart <= overlapEnd) {
         totalDays += calculateBusinessDays(overlapStart, overlapEnd);
@@ -339,7 +347,7 @@ export function getUpcomingLeaves(
     status: string;
     userName?: string;
   }>,
-  daysAhead: number = 30
+  daysAhead: number = 30,
 ): typeof leaves {
   const today = new Date();
   const futureDate = new Date();
@@ -350,12 +358,10 @@ export function getUpcomingLeaves(
       (leave) =>
         new Date(leave.startDate) >= today &&
         new Date(leave.startDate) <= futureDate &&
-        leave.status === LeaveStatusEnum.APPROVED
+        leave.status === LeaveStatusEnum.APPROVED,
     )
     .sort((a, b) => {
-      return (
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-      );
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
     });
 }
 
@@ -365,7 +371,7 @@ export function getUpcomingLeaves(
 export function spansWeekend(
   startDate: Date,
   endDate: Date,
-  weekends: number[] = [0, 6]
+  weekends: number[] = [0, 6],
 ): boolean {
   const current = new Date(startDate);
 
@@ -385,7 +391,7 @@ export function spansWeekend(
 export function validateLeaveBalanceForApproval(
   remaining: number,
   requestedDays: number,
-  leaveType: string
+  leaveType: string,
 ): { valid: boolean; reason?: string } {
   if (leaveType === LeaveTypeEnum.UNPAID) {
     return { valid: true };
@@ -409,7 +415,7 @@ export function getLeavesSummary(
     leaveType: string;
     leaveDays: number;
     status: string;
-  }>
+  }>,
 ) {
   const summary: Record<string, { days: number; count: number }> = {};
 
@@ -432,7 +438,7 @@ export function getLeavesSummary(
 export function hasLeaveEntitlement(
   leaveType: string,
   allocated: number,
-  used: number
+  used: number,
 ): boolean {
   if (leaveType === LeaveTypeEnum.UNPAID) {
     return true; // Unpaid leave always allowed

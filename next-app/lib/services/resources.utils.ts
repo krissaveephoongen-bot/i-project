@@ -32,7 +32,7 @@ export enum AllocationStatusEnum {
  */
 export function getResourceTypeLabel(
   type: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -61,7 +61,7 @@ export function getResourceTypeLabel(
  */
 export function getResourceStatusLabel(
   status: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -88,7 +88,7 @@ export function getResourceStatusLabel(
  */
 export function getAllocationStatusLabel(
   status: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -113,7 +113,9 @@ export function getAllocationStatusLabel(
 /**
  * Get resource page labels (with Thai support)
  */
-export function getResourcePageLabels(lang: string = "en"): Record<string, string> {
+export function getResourcePageLabels(
+  lang: string = "en",
+): Record<string, string> {
   const labels: Record<string, Record<string, string>> = {
     en: {
       title: "Resources",

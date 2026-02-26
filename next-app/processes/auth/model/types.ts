@@ -102,8 +102,14 @@ export interface UseAuthReturn {
 }
 
 // API function types
-export type LoginApiFn = (credentials: LoginCredentials) => Promise<LoginResponse>;
+export type LoginApiFn = (
+  credentials: LoginCredentials,
+) => Promise<LoginResponse>;
 export type RegisterApiFn = (data: RegisterData) => Promise<RegisterResponse>;
 export type VerifyApiFn = () => Promise<VerifyResponse>;
-export type ForgotPasswordApiFn = (data: ForgotPasswordData) => Promise<ForgotPasswordResponse>;
-export type ResetPasswordApiFn = (data: ResetPasswordData) => Promise<ResetPasswordResponse>;
+export type ForgotPasswordApiFn = (
+  data: ForgotPasswordData,
+) => Promise<ForgotPasswordResponse>;
+export type ResetPasswordApiFn = (
+  data: ResetPasswordData,
+) => Promise<ResetPasswordResponse>;

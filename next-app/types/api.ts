@@ -10,7 +10,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'manager' | 'employee';
+  role: "admin" | "manager" | "employee";
   avatar?: string;
   department?: string;
   position?: string;
@@ -44,7 +44,7 @@ export interface Project {
   description?: string;
   budget: number;
   spent: number;
-  status: 'planning' | 'active' | 'completed' | 'archived';
+  status: "planning" | "active" | "completed" | "archived";
   managerId: string;
   startDate: string;
   endDate?: string;
@@ -67,8 +67,8 @@ export interface Task {
   projectId: string;
   title: string;
   description?: string;
-  status: 'open' | 'in_progress' | 'completed' | 'cancelled';
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  status: "open" | "in_progress" | "completed" | "cancelled";
+  priority: "low" | "medium" | "high" | "critical";
   assignedTo?: string;
   dueDate?: string;
   progress?: number;
@@ -93,7 +93,7 @@ export interface TimesheetEntry {
   date: string;
   hours: number;
   description?: string;
-  workType: 'project' | 'office' | 'other';
+  workType: "project" | "office" | "other";
   createdAt: string;
   updatedAt: string;
 }
@@ -102,7 +102,7 @@ export interface TimesheetSubmission {
   id: string;
   userId: string;
   month: string;
-  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  status: "draft" | "submitted" | "approved" | "rejected";
   entries: TimesheetEntry[];
   submittedAt?: string;
   approvedAt?: string;
@@ -120,7 +120,7 @@ export interface Expense {
   category: string;
   description: string;
   date: string;
-  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'paid';
+  status: "draft" | "submitted" | "approved" | "rejected" | "paid";
   receipt?: string;
   createdAt: string;
   updatedAt: string;
@@ -137,7 +137,7 @@ export interface Client {
   companyName?: string;
   address?: string;
   taxId?: string;
-  status: 'active' | 'inactive' | 'archived';
+  status: "active" | "inactive" | "archived";
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -213,7 +213,7 @@ export interface PaginationParams {
   page: number;
   limit: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface PaginatedResponse<T> {

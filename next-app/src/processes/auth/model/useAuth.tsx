@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from "react";
 
 interface User {
   id: string;
@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem("auth_token");
     if (token) {
       fetchUserInfo();
     } else {
@@ -33,9 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await fetch('/api/auth/me', {
+      const response = await fetch("/api/auth/me", {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
       });
       if (response.ok) {
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(userData);
       }
     } catch (error) {
-      console.error('Failed to fetch user info:', error);
+      console.error("Failed to fetch user info:", error);
     } finally {
       setIsLoading(false);
     }
@@ -51,29 +51,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
-        throw new Error('Login failed');
+        throw new Error("Login failed");
       }
 
       const { token, user: userData } = await response.json();
-      localStorage.setItem('auth_token', token);
+      localStorage.setItem("auth_token", token);
       setUser(userData);
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       throw error;
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem("auth_token");
     setUser(null);
   };
 
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

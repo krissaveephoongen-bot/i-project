@@ -3,7 +3,7 @@
  * Request and response data structures for API communication
  */
 
-import { WorkType, LeaveType, EntryStatus } from './types';
+import { WorkType, LeaveType, EntryStatus } from "./types";
 
 // ============================================================================
 // TIME ENTRY DTOs
@@ -43,14 +43,14 @@ export interface UpdateTimeEntryRequest {
  * Approve Time Entry Request
  */
 export interface ApproveTimeEntryRequest {
-  action: 'approve';
+  action: "approve";
 }
 
 /**
  * Reject Time Entry Request
  */
 export interface RejectTimeEntryRequest {
-  action: 'reject';
+  action: "reject";
   reason: string; // required when rejecting
 }
 
@@ -81,14 +81,14 @@ export interface CreateLeaveRequestPayload {
  * Approve Leave Request
  */
 export interface ApproveLeaveRequestPayload {
-  action: 'approve';
+  action: "approve";
 }
 
 /**
  * Reject Leave Request
  */
 export interface RejectLeaveRequestPayload {
-  action: 'reject';
+  action: "reject";
 }
 
 /**
@@ -110,7 +110,9 @@ export type TimeEntryApprovalPayload = ApprovalAction;
 export type CommentPayload = AddCommentRequest;
 
 export type LeaveRequestCreatePayload = CreateLeaveRequestPayload;
-export type LeaveRequestApprovalPayload = ApproveLeaveRequestPayload | RejectLeaveRequestPayload;
+export type LeaveRequestApprovalPayload =
+  | ApproveLeaveRequestPayload
+  | RejectLeaveRequestPayload;
 export type LeaveAllocationUpdatePayload = UpdateLeaveAllocationRequest;
 
 // ============================================================================
@@ -272,7 +274,7 @@ export interface FieldValidationError {
  */
 export interface TimeEntryModalState {
   isOpen: boolean;
-  mode: 'create' | 'edit' | 'view';
+  mode: "create" | "edit" | "view";
   entryId?: string;
   formData?: TimeEntryFormData;
   isLoading?: boolean;
@@ -284,7 +286,7 @@ export interface TimeEntryModalState {
  */
 export interface LeaveRequestModalState {
   isOpen: boolean;
-  mode: 'create' | 'view';
+  mode: "create" | "view";
   requestId?: string;
   formData?: LeaveRequestFormData;
   isLoading?: boolean;
@@ -297,7 +299,7 @@ export interface LeaveRequestModalState {
 export interface ApprovalDialogState {
   isOpen: boolean;
   entryId: string;
-  action: 'approve' | 'reject';
+  action: "approve" | "reject";
   reason?: string;
   isLoading?: boolean;
   error?: string;
@@ -321,7 +323,7 @@ export interface CommentInputState {
  */
 export interface BulkApprovalRequest {
   entryIds: string[];
-  action: 'approve' | 'reject';
+  action: "approve" | "reject";
   reason?: string;
 }
 
@@ -342,7 +344,7 @@ export interface BulkApprovalResponse {
  * Export Request Parameters
  */
 export interface ExportRequest {
-  format: 'pdf' | 'excel' | 'csv';
+  format: "pdf" | "excel" | "csv";
   month: number;
   year: number;
   userId?: string;
@@ -355,7 +357,7 @@ export interface ExportRequest {
 export interface ExportResponse {
   url: string;
   filename: string;
-  format: 'pdf' | 'excel' | 'csv';
+  format: "pdf" | "excel" | "csv";
   generatedAt: string;
 }
 
@@ -368,7 +370,12 @@ export interface ExportResponse {
  */
 export interface TimesheetNotification {
   id: string;
-  type: 'time_entry_approved' | 'time_entry_rejected' | 'leave_approved' | 'leave_rejected' | 'comment_added';
+  type:
+    | "time_entry_approved"
+    | "time_entry_rejected"
+    | "leave_approved"
+    | "leave_rejected"
+    | "comment_added";
   title: string;
   message: string;
   relatedId: string; // entry ID or request ID
@@ -397,7 +404,7 @@ export interface TimeEntrySearchResult {
   query: string;
   results: any[]; // TimeEntry[]
   totalCount: number;
-  searchFields: ('description' | 'workType' | 'status' | 'date')[];
+  searchFields: ("description" | "workType" | "status" | "date")[];
 }
 
 /**
@@ -420,7 +427,7 @@ export interface PaginationOptions {
   page: number;
   limit: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 /**
@@ -481,8 +488,8 @@ export interface DailyHoursData {
 export interface SyncRequest {
   lastSyncTime: string; // ISO datetime
   operations: Array<{
-    type: 'create' | 'update' | 'delete';
-    resource: 'time_entry' | 'leave_request';
+    type: "create" | "update" | "delete";
+    resource: "time_entry" | "leave_request";
     data: any;
   }>;
 }
@@ -558,7 +565,7 @@ export interface TimeSheetSummaryDTO {
 }
 
 export interface ApprovalStatusDTO {
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   submittedAt?: string;
   reviewedBy?: string;
   reviewedAt?: string;
@@ -567,7 +574,7 @@ export interface ApprovalStatusDTO {
 
 export interface BulkApproveDTO {
   entryIds: string[];
-  status: 'approved' | 'rejected';
+  status: "approved" | "rejected";
   comments?: string;
 }
 
@@ -609,7 +616,7 @@ export interface LeaveRequestDTO {
   endDate: string;
   days: number;
   reason?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   approvedBy?: string;
   approvedAt?: string;
   rejectedReason?: string;
@@ -640,7 +647,7 @@ export interface LeaveBalanceDTO {
 
 export interface BulkLeaveApproveDTO {
   requestIds: string[];
-  status: 'approved' | 'rejected';
+  status: "approved" | "rejected";
   comments?: string;
 }
 
@@ -652,7 +659,7 @@ export interface LeaveHistoryDTO {
   endDate: string;
   days: number;
   reason?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   approvedBy?: string;
   approvedAt?: string;
   rejectedReason?: string;

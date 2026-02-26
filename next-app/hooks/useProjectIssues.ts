@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from "react";
 
 export interface ProjectIssue {
   id: string;
@@ -7,8 +7,14 @@ export interface ProjectIssue {
   title: string;
   description: string;
   category: string;
-  status: 'open' | 'in-progress' | 'resolved' | 'closed' | 'on-hold' | 'cancelled';
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  status:
+    | "open"
+    | "in-progress"
+    | "resolved"
+    | "closed"
+    | "on-hold"
+    | "cancelled";
+  priority: "low" | "medium" | "high" | "critical";
   assigned_to: string;
   reported_by: string;
   reported_date: string;
@@ -44,7 +50,10 @@ interface UseProjectIssuesReturn {
   fetchIssues: () => Promise<void>;
   fetchSummary: () => Promise<void>;
   createIssue: (data: Partial<ProjectIssue>) => Promise<ProjectIssue>;
-  updateIssue: (issueId: string, data: Partial<ProjectIssue>) => Promise<ProjectIssue>;
+  updateIssue: (
+    issueId: string,
+    data: Partial<ProjectIssue>,
+  ) => Promise<ProjectIssue>;
   updateIssueStatus: (issueId: string, status: string) => Promise<void>;
   deleteIssue: (issueId: string) => Promise<void>;
 }
@@ -60,14 +69,17 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/projects/issues?projectId=${projectId}`, { cache: 'no-store' });
-      if (!response.ok) throw new Error('Failed to fetch issues');
+      const response = await fetch(
+        `/api/projects/issues?projectId=${projectId}`,
+        { cache: "no-store" },
+      );
+      if (!response.ok) throw new Error("Failed to fetch issues");
       const data = await response.json();
       setIssues(Array.isArray(data) ? data : []);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message : "Unknown error";
       setError(message);
-      console.error('Error fetching issues:', err);
+      console.error("Error fetching issues:", err);
     } finally {
       setIsLoading(false);
     }
@@ -77,74 +89,80 @@ export function useProjectIssues(projectId: string): UseProjectIssuesReturn {
     try {
       const s = {
         total_issues: issues.length,
-        open_issues: issues.filter(i => i.status === 'open').length,
-        in_progress_issues: issues.filter(i => i.status === 'in-progress').length,
-        resolved_issues: issues.filter(i => i.status === 'resolved').length,
-        closed_issues: issues.filter(i => i.status === 'closed').length,
-        critical_issues: issues.filter(i => i.priority === 'critical').length,
-        high_priority_issues: issues.filter(i => i.priority === 'high').length,
-        schedule_impact_count: issues.filter(i => i.impact_on_schedule).length,
-        budget_impact_count: issues.filter(i => i.impact_on_budget).length,
-        total_issue_cost: issues.reduce((sum, i) => sum + Number(i.estimated_cost || 0), 0),
+        open_issues: issues.filter((i) => i.status === "open").length,
+        in_progress_issues: issues.filter((i) => i.status === "in-progress")
+          .length,
+        resolved_issues: issues.filter((i) => i.status === "resolved").length,
+        closed_issues: issues.filter((i) => i.status === "closed").length,
+        critical_issues: issues.filter((i) => i.priority === "critical").length,
+        high_priority_issues: issues.filter((i) => i.priority === "high")
+          .length,
+        schedule_impact_count: issues.filter((i) => i.impact_on_schedule)
+          .length,
+        budget_impact_count: issues.filter((i) => i.impact_on_budget).length,
+        total_issue_cost: issues.reduce(
+          (sum, i) => sum + Number(i.estimated_cost || 0),
+          0,
+        ),
       } as IssueSummary;
       setSummary(s);
     } catch (err) {
-      console.error('Error computing summary:', err);
+      console.error("Error computing summary:", err);
     }
   }, [projectId, issues]);
 
   const createIssue = useCallback(
     async (data: Partial<ProjectIssue>): Promise<ProjectIssue> => {
       const response = await fetch(`/api/projects/issues`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error('Failed to create issue');
+      if (!response.ok) throw new Error("Failed to create issue");
       const result = await response.json();
       return result as ProjectIssue;
     },
-    []
+    [],
   );
 
   const updateIssue = useCallback(
-    async (issueId: string, data: Partial<ProjectIssue>): Promise<ProjectIssue> => {
+    async (
+      issueId: string,
+      data: Partial<ProjectIssue>,
+    ): Promise<ProjectIssue> => {
       const response = await fetch(`/api/projects/issues`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: issueId, updatedFields: data }),
       });
 
-      if (!response.ok) throw new Error('Failed to update issue');
+      if (!response.ok) throw new Error("Failed to update issue");
 
       const result = await response.json();
       return result as ProjectIssue;
     },
-    []
+    [],
   );
 
   const updateIssueStatus = useCallback(
     async (issueId: string, status: string): Promise<void> => {
       const response = await fetch(`/api/projects/issues`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: issueId, updatedFields: { status } }),
       });
 
-      if (!response.ok) throw new Error('Failed to update status');
+      if (!response.ok) throw new Error("Failed to update status");
     },
-    []
+    [],
   );
 
-  const deleteIssue = useCallback(
-    async (issueId: string): Promise<void> => {
-      const response = await fetch(`/api/projects/issues?id=${issueId}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to delete issue');
-    },
-    []
-  );
+  const deleteIssue = useCallback(async (issueId: string): Promise<void> => {
+    const response = await fetch(`/api/projects/issues?id=${issueId}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) throw new Error("Failed to delete issue");
+  }, []);
 
   // Fetch data on mount
   useEffect(() => {

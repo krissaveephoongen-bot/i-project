@@ -1,54 +1,74 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { CalendarIcon, Filter, Search, X, RefreshCw, AlertTriangle } from "lucide-react"
-import { format } from "date-fns"
+import * as React from "react";
+import {
+  CalendarIcon,
+  Filter,
+  Search,
+  X,
+  RefreshCw,
+  AlertTriangle,
+} from "lucide-react";
+import { format } from "date-fns";
 
-import { Button } from "./ui/button"
-import { Calendar } from "./ui/calendar"
-import { Input } from "./ui/input"
-import { Label } from "./ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { Badge } from "./ui/badge"
-import { EmptyState } from "./ui/EmptyState"
-import { cn } from "@/lib/utils"
-import { useDebounce } from "@/hooks/useDebounce"
-import { useDynamicFilterOptions } from "@/hooks/useDynamicFilterOptions"
+import { Button } from "./ui/button";
+import { Calendar } from "./ui/calendar";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Badge } from "./ui/badge";
+import { EmptyState } from "./ui/EmptyState";
+import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useDynamicFilterOptions } from "@/hooks/useDynamicFilterOptions";
 
 interface FilterOption {
-  value: string
-  label: string
+  value: string;
+  label: string;
 }
 
 interface DateRange {
-  from: Date | undefined
-  to: Date | undefined
+  from: Date | undefined;
+  to: Date | undefined;
 }
 
 interface ProfessionalFilterEnhancedProps {
-  searchPlaceholder?: string
-  searchValue?: string
-  onSearchChange?: (value: string) => void
+  searchPlaceholder?: string;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
   filters?: Array<{
-    key: string
-    label: string
-    value: string
-    type: 'static' | 'dynamic'
-    dynamicOptions?: 'projectStatuses' | 'projectCategories' | 'taskStatuses' | 'taskPriorities' | 'expenseCategories' | 'clients' | 'users'
-    staticOptions?: FilterOption[]
-    onChange: (value: string) => void
-  }>
-  dateRange?: DateRange
-  onDateRangeChange?: (range: DateRange) => void
-  showDateFilter?: boolean
-  className?: string
-  onClearAll?: () => void
-  resultCount?: number
-  totalItems?: number
-  showError?: boolean
-  errorMessage?: string
-  onRetry?: () => void
+    key: string;
+    label: string;
+    value: string;
+    type: "static" | "dynamic";
+    dynamicOptions?:
+      | "projectStatuses"
+      | "projectCategories"
+      | "taskStatuses"
+      | "taskPriorities"
+      | "expenseCategories"
+      | "clients"
+      | "users";
+    staticOptions?: FilterOption[];
+    onChange: (value: string) => void;
+  }>;
+  dateRange?: DateRange;
+  onDateRangeChange?: (range: DateRange) => void;
+  showDateFilter?: boolean;
+  className?: string;
+  onClearAll?: () => void;
+  resultCount?: number;
+  totalItems?: number;
+  showError?: boolean;
+  errorMessage?: string;
+  onRetry?: () => void;
 }
 
 export function ProfessionalFilterEnhanced({
@@ -67,53 +87,54 @@ export function ProfessionalFilterEnhanced({
   errorMessage,
   onRetry,
 }: ProfessionalFilterEnhancedProps) {
-  const [isFiltersOpen, setIsFiltersOpen] = React.useState(false)
-  const debouncedSearchValue = useDebounce(searchValue, 300)
-  
-  const { 
-    data: dynamicOptions, 
-    isLoading: optionsLoading, 
+  const [isFiltersOpen, setIsFiltersOpen] = React.useState(false);
+  const debouncedSearchValue = useDebounce(searchValue, 300);
+
+  const {
+    data: dynamicOptions,
+    isLoading: optionsLoading,
     error: optionsError,
-    refetch: refetchOptions 
-  } = useDynamicFilterOptions()
-  
+    refetch: refetchOptions,
+  } = useDynamicFilterOptions();
+
   React.useEffect(() => {
     if (debouncedSearchValue !== searchValue && onSearchChange) {
-      onSearchChange(debouncedSearchValue)
+      onSearchChange(debouncedSearchValue);
     }
-  }, [debouncedSearchValue, searchValue, onSearchChange])
+  }, [debouncedSearchValue, searchValue, onSearchChange]);
 
-  const activeFiltersCount = filters.filter(f => f.value && f.value !== "all").length +
+  const activeFiltersCount =
+    filters.filter((f) => f.value && f.value !== "all").length +
     (dateRange?.from || dateRange?.to ? 1 : 0) +
-    (searchValue ? 1 : 0)
+    (searchValue ? 1 : 0);
 
   const clearAllFilters = () => {
-    filters.forEach(filter => filter.onChange("all"))
+    filters.forEach((filter) => filter.onChange("all"));
     if (onDateRangeChange) {
-      onDateRangeChange({ from: undefined, to: undefined })
+      onDateRangeChange({ from: undefined, to: undefined });
     }
     if (onSearchChange) {
-      onSearchChange("")
+      onSearchChange("");
     }
     if (onClearAll) {
-      onClearAll()
+      onClearAll();
     }
-  }
+  };
 
-  const getFilterOptions = (filter: typeof filters[0]): FilterOption[] => {
-    if (filter.type === 'dynamic' && dynamicOptions && filter.dynamicOptions) {
-      return dynamicOptions[filter.dynamicOptions] || []
+  const getFilterOptions = (filter: (typeof filters)[0]): FilterOption[] => {
+    if (filter.type === "dynamic" && dynamicOptions && filter.dynamicOptions) {
+      return dynamicOptions[filter.dynamicOptions] || [];
     }
-    return filter.staticOptions || []
-  }
+    return filter.staticOptions || [];
+  };
 
   const handleRetry = () => {
     if (onRetry) {
-      onRetry()
+      onRetry();
     } else {
-      refetchOptions()
+      refetchOptions();
     }
-  }
+  };
 
   if (showError || optionsError) {
     return (
@@ -126,7 +147,9 @@ export function ProfessionalFilterEnhanced({
                 Filter Loading Error
               </h3>
               <p className="text-sm text-red-700 mt-1">
-                {errorMessage || optionsError?.message || 'Failed to load filter options'}
+                {errorMessage ||
+                  optionsError?.message ||
+                  "Failed to load filter options"}
               </p>
             </div>
             <Button
@@ -140,7 +163,7 @@ export function ProfessionalFilterEnhanced({
             </Button>
           </div>
         </div>
-        
+
         {/* Fallback basic filters */}
         <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
           <div className="relative w-full sm:max-w-sm">
@@ -152,7 +175,7 @@ export function ProfessionalFilterEnhanced({
               className="pl-9 w-full"
             />
           </div>
-          
+
           {activeFiltersCount > 0 && (
             <Button
               variant="outline"
@@ -169,7 +192,7 @@ export function ProfessionalFilterEnhanced({
           )}
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -224,7 +247,9 @@ export function ProfessionalFilterEnhanced({
           {resultCount === 0 ? (
             <span className="text-red-600">ไม่พบข้อมูลที่ตรงตามเงื่อนไข</span>
           ) : (
-            <span>แสดง {resultCount} รายการจากทั้งหมด {totalItems} รายการ</span>
+            <span>
+              แสดง {resultCount} รายการจากทั้งหมด {totalItems} รายการ
+            </span>
           )}
         </div>
       )}
@@ -234,27 +259,33 @@ export function ProfessionalFilterEnhanced({
           {optionsLoading ? (
             <div className="flex items-center justify-center py-8">
               <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-muted-foreground">Loading filter options...</span>
+              <span className="ml-2 text-muted-foreground">
+                Loading filter options...
+              </span>
             </div>
           ) : (
             <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filters.map((filter) => {
-                const options = getFilterOptions(filter)
+                const options = getFilterOptions(filter);
                 return (
                   <div key={filter.key} className="space-y-2">
                     <Label htmlFor={filter.key} className="text-sm font-medium">
                       {filter.label}
                     </Label>
-                    <Select 
-                      value={filter.value} 
+                    <Select
+                      value={filter.value}
                       onValueChange={filter.onChange}
                       disabled={optionsLoading || options.length === 0}
                     >
                       <SelectTrigger id={filter.key} className="w-full">
-                        <SelectValue placeholder={`Select ${filter.label.toLowerCase()}`} />
+                        <SelectValue
+                          placeholder={`Select ${filter.label.toLowerCase()}`}
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All {filter.label.toLowerCase()}</SelectItem>
+                        <SelectItem value="all">
+                          All {filter.label.toLowerCase()}
+                        </SelectItem>
                         {options.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
@@ -263,7 +294,7 @@ export function ProfessionalFilterEnhanced({
                       </SelectContent>
                     </Select>
                   </div>
-                )
+                );
               })}
 
               {showDateFilter && onDateRangeChange && (
@@ -276,7 +307,7 @@ export function ProfessionalFilterEnhanced({
                         variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal h-10",
-                          !dateRange?.from && "text-muted-foreground"
+                          !dateRange?.from && "text-muted-foreground",
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
@@ -309,7 +340,7 @@ export function ProfessionalFilterEnhanced({
                           onDateRangeChange({
                             from: range?.from,
                             to: range?.to,
-                          })
+                          });
                         }}
                         numberOfMonths={1}
                         className="sm:hidden"
@@ -326,7 +357,7 @@ export function ProfessionalFilterEnhanced({
                           onDateRangeChange({
                             from: range?.from,
                             to: range?.to,
-                          })
+                          });
                         }}
                         numberOfMonths={2}
                         className="hidden sm:block"
@@ -356,10 +387,10 @@ export function ProfessionalFilterEnhanced({
             </Badge>
           )}
           {filters
-            .filter(f => f.value && f.value !== "all")
+            .filter((f) => f.value && f.value !== "all")
             .map((filter) => {
-              const options = getFilterOptions(filter)
-              const option = options.find(opt => opt.value === filter.value)
+              const options = getFilterOptions(filter);
+              const option = options.find((opt) => opt.value === filter.value);
               return (
                 <Badge key={filter.key} variant="secondary" className="gap-1">
                   {filter.label}: {option?.label || filter.value}
@@ -372,16 +403,20 @@ export function ProfessionalFilterEnhanced({
                     <X className="h-3 w-3" />
                   </Button>
                 </Badge>
-              )
+              );
             })}
           {(dateRange?.from || dateRange?.to) && (
             <Badge variant="secondary" className="gap-1">
-              Date Range: {dateRange.from ? format(dateRange.from, "MMM dd") : ""} - {dateRange.to ? format(dateRange.to, "MMM dd") : ""}
+              Date Range:{" "}
+              {dateRange.from ? format(dateRange.from, "MMM dd") : ""} -{" "}
+              {dateRange.to ? format(dateRange.to, "MMM dd") : ""}
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-auto p-0 text-muted-foreground hover:text-foreground"
-                onClick={() => onDateRangeChange?.({ from: undefined, to: undefined })}
+                onClick={() =>
+                  onDateRangeChange?.({ from: undefined, to: undefined })
+                }
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -390,5 +425,5 @@ export function ProfessionalFilterEnhanced({
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 
 export interface FilterOption {
   value: string;
@@ -19,16 +19,16 @@ export interface DynamicFilterOptions {
 }
 
 async function fetchFilterOptions(): Promise<DynamicFilterOptions> {
-  const response = await fetch('/api/filters/options');
+  const response = await fetch("/api/filters/options");
   if (!response.ok) {
-    throw new Error('Failed to fetch filter options');
+    throw new Error("Failed to fetch filter options");
   }
   return response.json();
 }
 
 export function useDynamicFilterOptions() {
   return useQuery<DynamicFilterOptions>({
-    queryKey: ['filter-options'],
+    queryKey: ["filter-options"],
     queryFn: fetchFilterOptions,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (replaces cacheTime)

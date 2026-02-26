@@ -1,4 +1,4 @@
-import type { Project } from '@/shared/types';
+import type { Project } from "@/shared/types";
 
 export interface ProjectFormData {
   name: string;
@@ -11,7 +11,7 @@ export interface ProjectFormData {
 }
 
 export interface ProjectFilters {
-  status?: Project['status'];
+  status?: Project["status"];
   managerId?: string;
   dateRange?: {
     start: string;

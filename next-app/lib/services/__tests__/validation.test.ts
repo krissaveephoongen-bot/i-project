@@ -238,7 +238,9 @@ describe("Leave Request Validation", () => {
 
   describe("validateRejectionReason", () => {
     it("should accept valid reason", () => {
-      const result = validateRejectionReason("Schedule conflict with other team members");
+      const result = validateRejectionReason(
+        "Schedule conflict with other team members",
+      );
       expect(result.valid).toBe(true);
     });
 
@@ -292,7 +294,7 @@ describe("General Validation Functions", () => {
     it("should accept valid range", () => {
       const result = validateDateRange(
         new Date(2026, 1, 1),
-        new Date(2026, 1, 10)
+        new Date(2026, 1, 10),
       );
       expect(result.valid).toBe(true);
     });
@@ -300,7 +302,7 @@ describe("General Validation Functions", () => {
     it("should reject reversed range", () => {
       const result = validateDateRange(
         new Date(2026, 1, 10),
-        new Date(2026, 1, 1)
+        new Date(2026, 1, 1),
       );
       expect(result.valid).toBe(false);
     });
@@ -449,7 +451,7 @@ describe("Utility Functions", () => {
 
     it("should remove angle brackets", () => {
       expect(sanitizeInput("<script>alert()</script>")).toBe(
-        "scriptalert()script"
+        "scriptalert()script",
       );
     });
 

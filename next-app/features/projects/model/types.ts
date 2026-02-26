@@ -86,7 +86,7 @@ export interface ProjectStats {
 
 // Enhanced project with computed fields
 export interface EnhancedProject extends Project {
-  riskLevel: 'Low' | 'Medium' | 'High' | 'Critical';
+  riskLevel: "Low" | "Medium" | "High" | "Critical";
   statusColor: string;
   daysRemaining: number;
   isOverdue: boolean;

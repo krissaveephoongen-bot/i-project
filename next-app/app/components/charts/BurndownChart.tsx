@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   LineChart,
@@ -9,13 +9,13 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts';
-import { format, differenceInDays, addDays, isAfter } from 'date-fns';
-import { th } from 'date-fns/locale';
+} from "recharts";
+import { format, differenceInDays, addDays, isAfter } from "date-fns";
+import { th } from "date-fns/locale";
 
 interface Task {
   id: string;
-  weight: number;
+  weight?: number; // Made optional for compatibility
   startDate?: string;
   endDate?: string;
   status: string;
@@ -28,7 +28,11 @@ interface BurndownChartProps {
   endDate?: string;
 }
 
-export default function BurndownChart({ tasks, startDate, endDate }: BurndownChartProps) {
+export default function BurndownChart({
+  tasks,
+  startDate,
+  endDate,
+}: BurndownChartProps) {
   if (!tasks || tasks.length === 0) {
     return (
       <div className="h-64 flex items-center justify-center border border-dashed border-slate-200 rounded-lg text-slate-400">
@@ -39,11 +43,23 @@ export default function BurndownChart({ tasks, startDate, endDate }: BurndownCha
 
   // 1. Determine Project Duration
   // If project start/end dates are not provided, infer from tasks
-  const taskStartDates = tasks.map(t => t.startDate ? new Date(t.startDate).getTime() : Infinity).filter(d => d !== Infinity);
-  const taskEndDates = tasks.map(t => t.endDate ? new Date(t.endDate).getTime() : -Infinity).filter(d => d !== -Infinity);
+  const taskStartDates = tasks
+    .map((t) => (t.startDate ? new Date(t.startDate).getTime() : Infinity))
+    .filter((d) => d !== Infinity);
+  const taskEndDates = tasks
+    .map((t) => (t.endDate ? new Date(t.endDate).getTime() : -Infinity))
+    .filter((d) => d !== -Infinity);
 
-  const pStart = startDate ? new Date(startDate) : (taskStartDates.length > 0 ? new Date(Math.min(...taskStartDates)) : new Date());
-  const pEnd = endDate ? new Date(endDate) : (taskEndDates.length > 0 ? new Date(Math.max(...taskEndDates)) : addDays(new Date(), 30));
+  const pStart = startDate
+    ? new Date(startDate)
+    : taskStartDates.length > 0
+      ? new Date(Math.min(...taskStartDates))
+      : new Date();
+  const pEnd = endDate
+    ? new Date(endDate)
+    : taskEndDates.length > 0
+      ? new Date(Math.max(...taskEndDates))
+      : addDays(new Date(), 30);
 
   const totalDays = differenceInDays(pEnd, pStart) + 1;
   const totalWeight = tasks.reduce((sum, t) => sum + (t.weight || 0), 0);
@@ -61,40 +77,40 @@ export default function BurndownChart({ tasks, startDate, endDate }: BurndownCha
   // - HOWEVER, we can plot "Planned" vs "Actual" if we assume:
   //    - Planned: Cumulative weight of tasks that SHOULD be done by date X.
   //    - Actual: Cumulative weight of tasks that ARE done (but we don't know WHEN they were done).
-  
+
   // Alternative Approach for "Actual" without history:
   // We can only show the "Current" status as a single point or a flat line if we don't have history.
   // BUT, usually Burndown is "Remaining Effort".
-  
+
   // Let's build a "Planned Remaining" vs "Ideal Remaining".
   // "Actual Remaining" requires history. If we don't have history, we can't draw the past line accurately.
   // So we will assume linear ideal.
   // For Actual, we will try to infer from task end dates for "Planned" burn down (Scope).
-  
+
   let remainingIdeal = totalWeight;
   let remainingPlanned = totalWeight;
 
   for (let i = 0; i <= totalDays; i++) {
     const currentDate = addDays(pStart, i);
-    const dateStr = format(currentDate, 'd MMM', { locale: th });
-    
+    const dateStr = format(currentDate, "d MMM", { locale: th });
+
     // Ideal: Linear
-    remainingIdeal = Math.max(0, totalWeight - (idealDailyBurn * i));
+    remainingIdeal = Math.max(0, totalWeight - idealDailyBurn * i);
 
     // Planned: Based on Task End Dates
     // How much weight should have been finished by `currentDate`?
     const plannedCompletedWeight = tasks
-        .filter(t => t.endDate && !isAfter(new Date(t.endDate), currentDate))
-        .reduce((sum, t) => sum + (t.weight || 0), 0);
-    
+      .filter((t) => t.endDate && !isAfter(new Date(t.endDate), currentDate))
+      .reduce((sum, t) => sum + (t.weight || 0), 0);
+
     remainingPlanned = Math.max(0, totalWeight - plannedCompletedWeight);
 
     // Actual: We can't really plot historical actual without logs.
     // So we will plot "Ideal" vs "Planned Scope" for now.
     // If we want "Actual", we'd need to fetch ActivityLogs.
-    
+
     // Let's just plot Ideal vs Planned for now as a "Baseline".
-    
+
     data.push({
       date: dateStr,
       ideal: Number(remainingIdeal.toFixed(1)),
@@ -115,25 +131,37 @@ export default function BurndownChart({ tasks, startDate, endDate }: BurndownCha
             bottom: 5,
           }}
         >
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-          <XAxis 
-            dataKey="date" 
-            tick={{ fontSize: 12, fill: '#64748b' }} 
-            axisLine={{ stroke: '#e2e8f0' }}
+          <CartesianGrid
+            strokeDasharray="3 3"
+            vertical={false}
+            stroke="#e2e8f0"
+          />
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 12, fill: "#64748b" }}
+            axisLine={{ stroke: "#e2e8f0" }}
             tickLine={false}
             interval="preserveStartEnd"
             minTickGap={30}
           />
-          <YAxis 
-            tick={{ fontSize: 12, fill: '#64748b' }} 
+          <YAxis
+            tick={{ fontSize: 12, fill: "#64748b" }}
             axisLine={false}
             tickLine={false}
           />
-          <Tooltip 
-            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-            labelStyle={{ color: '#1e293b', fontWeight: 600, marginBottom: '4px' }}
+          <Tooltip
+            contentStyle={{
+              borderRadius: "8px",
+              border: "none",
+              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+            }}
+            labelStyle={{
+              color: "#1e293b",
+              fontWeight: 600,
+              marginBottom: "4px",
+            }}
           />
-          <Legend wrapperStyle={{ paddingTop: '10px' }} />
+          <Legend wrapperStyle={{ paddingTop: "10px" }} />
           <Line
             type="monotone"
             dataKey="ideal"

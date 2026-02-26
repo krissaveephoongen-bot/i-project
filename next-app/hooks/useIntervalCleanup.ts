@@ -3,17 +3,17 @@
  * Prevents memory leaks from orphaned intervals
  */
 
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 /**
  * Hook for setInterval with automatic cleanup
- * 
+ *
  * @param callback Function to call on each interval
  * @param delay Interval delay in milliseconds (null to disable)
  * @param dependencies useEffect dependencies
- * 
+ *
  * @example
  * useIntervalCleanup(() => {
  *   console.log('Running every second');
@@ -22,7 +22,7 @@ import { useEffect, useRef } from 'react';
 export function useIntervalCleanup(
   callback: () => void,
   delay: number | null,
-  dependencies: any[] = []
+  dependencies: any[] = [],
 ): void {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -44,11 +44,11 @@ export function useIntervalCleanup(
 
 /**
  * Hook for setTimeout with automatic cleanup
- * 
+ *
  * @param callback Function to call after delay
  * @param delay Timeout delay in milliseconds (null to disable)
  * @param dependencies useEffect dependencies
- * 
+ *
  * @example
  * useTimeoutCleanup(() => {
  *   console.log('Running after 2 seconds');
@@ -57,7 +57,7 @@ export function useIntervalCleanup(
 export function useTimeoutCleanup(
   callback: () => void,
   delay: number | null,
-  dependencies: any[] = []
+  dependencies: any[] = [],
 ): void {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -79,12 +79,12 @@ export function useTimeoutCleanup(
 
 /**
  * Hook for managing event listeners with automatic cleanup
- * 
+ *
  * @param target Element to attach listener to (window, document, etc.)
  * @param eventName Event name (e.g., 'click', 'scroll')
  * @param handler Event handler function
  * @param dependencies useEffect dependencies
- * 
+ *
  * @example
  * useEventListenerCleanup(window, 'resize', () => {
  *   console.log('Window resized');
@@ -94,7 +94,7 @@ export function useEventListenerCleanup(
   target: Window | Document | Element | null,
   eventName: string,
   handler: (event: Event) => void,
-  dependencies: any[] = []
+  dependencies: any[] = [],
 ): void {
   useEffect(() => {
     if (!target) return;

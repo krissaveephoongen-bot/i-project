@@ -1,7 +1,7 @@
-import { Search, Filter, FileX } from 'lucide-react';
+import { Search, Filter, FileX } from "lucide-react";
 
 interface EmptyStateProps {
-  type: 'no-results' | 'no-data' | 'error';
+  type: "no-results" | "no-data" | "error";
   title: string;
   description?: string;
   action?: {
@@ -10,11 +10,16 @@ interface EmptyStateProps {
   };
 }
 
-export function EmptyState({ type, title, description, action }: EmptyStateProps) {
+export function EmptyState({
+  type,
+  title,
+  description,
+  action,
+}: EmptyStateProps) {
   const icons = {
-    'no-results': Search,
-    'no-data': FileX,
-    'error': Filter,
+    "no-results": Search,
+    "no-data": FileX,
+    error: Filter,
   };
 
   const Icon = icons[type];

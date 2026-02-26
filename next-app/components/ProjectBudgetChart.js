@@ -5,7 +5,7 @@ function ProjectBudgetChart({ project, projectData }) {
 
     React.useEffect(() => {
       if (chartRef.current && project && projectData) {
-        const ctx = chartRef.current.getContext('2d');
+        const ctx = chartRef.current.getContext("2d");
         if (chartInstance.current) {
           chartInstance.current.destroy();
         }
@@ -15,27 +15,35 @@ function ProjectBudgetChart({ project, projectData }) {
         const remaining = Math.max(0, budget - actualCost);
 
         chartInstance.current = new window.Chart(ctx, {
-          type: 'doughnut',
+          type: "doughnut",
           data: {
-            labels: ['ใช้จ่ายแล้ว', 'คงเหลือ'],
-            datasets: [{
-              data: [actualCost, remaining],
-              backgroundColor: ['#F97316', '#3B82F6'],
-              borderWidth: 0
-            }]
+            labels: ["ใช้จ่ายแล้ว", "คงเหลือ"],
+            datasets: [
+              {
+                data: [actualCost, remaining],
+                backgroundColor: ["#F97316", "#3B82F6"],
+                borderWidth: 0,
+              },
+            ],
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '70%',
+            cutout: "70%",
             plugins: {
-              legend: { display: true, position: 'bottom' },
-              title: { display: true, text: 'งบประมาณโครงการ', font: { size: 14, weight: 'bold' } }
-            }
-          }
+              legend: { display: true, position: "bottom" },
+              title: {
+                display: true,
+                text: "งบประมาณโครงการ",
+                font: { size: 14, weight: "bold" },
+              },
+            },
+          },
         });
       }
-      return () => { if (chartInstance.current) chartInstance.current.destroy(); };
+      return () => {
+        if (chartInstance.current) chartInstance.current.destroy();
+      };
     }, [project, projectData]);
 
     return (
@@ -46,7 +54,7 @@ function ProjectBudgetChart({ project, projectData }) {
             <div className="text-center">
               <div className="text-xs text-gray-500">งบประมาณ</div>
               <div className="text-sm font-bold text-[var(--navy-900)]">
-                ฿{((project?.objectData?.Budget || 0)).toLocaleString()}
+                ฿{(project?.objectData?.Budget || 0).toLocaleString()}
               </div>
             </div>
           </div>
@@ -54,7 +62,7 @@ function ProjectBudgetChart({ project, projectData }) {
       </div>
     );
   } catch (error) {
-    console.error('ProjectBudgetChart error:', error);
+    console.error("ProjectBudgetChart error:", error);
     return null;
   }
 }

@@ -1,121 +1,202 @@
-"use client"
+"use client";
 
-import { useState, useMemo } from 'react'
-import { ProfessionalFilter } from '@/components/ProfessionalFilter'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/Button'
-import { CalendarIcon, Filter, Search, X } from 'lucide-react'
-import { useDynamicFilterOptions } from '@/hooks/useDynamicFilterOptions'
+import { useState, useMemo } from "react";
+import { ProfessionalFilter } from "@/components/ProfessionalFilter";
+import { EmptyState } from "@/components/ui/EmptyState";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/Button";
+import { CalendarIcon, Filter, Search, X } from "lucide-react";
+import { useDynamicFilterOptions } from "@/hooks/useDynamicFilterOptions";
 
 // Sample data for demonstration
 const sampleProjects = [
-  { id: '1', name: 'Website Redesign', status: 'active', category: 'Development', priority: 'high', manager: 'John Doe', budget: 50000 },
-  { id: '2', name: 'Mobile App', status: 'planning', category: 'Development', priority: 'medium', manager: 'Jane Smith', budget: 75000 },
-  { id: '3', name: 'Marketing Campaign', status: 'completed', category: 'Marketing', priority: 'low', manager: 'Bob Johnson', budget: 25000 },
-  { id: '4', name: 'Database Migration', status: 'active', category: 'Infrastructure', priority: 'high', manager: 'Alice Brown', budget: 100000 },
-  { id: '5', name: 'Security Audit', status: 'planning', category: 'Security', priority: 'high', manager: 'Charlie Wilson', budget: 30000 },
-  { id: '6', name: 'UI/UX Research', status: 'completed', category: 'Design', priority: 'medium', manager: 'Diana Prince', budget: 15000 },
-]
+  {
+    id: "1",
+    name: "Website Redesign",
+    status: "active",
+    category: "Development",
+    priority: "high",
+    manager: "John Doe",
+    budget: 50000,
+  },
+  {
+    id: "2",
+    name: "Mobile App",
+    status: "planning",
+    category: "Development",
+    priority: "medium",
+    manager: "Jane Smith",
+    budget: 75000,
+  },
+  {
+    id: "3",
+    name: "Marketing Campaign",
+    status: "completed",
+    category: "Marketing",
+    priority: "low",
+    manager: "Bob Johnson",
+    budget: 25000,
+  },
+  {
+    id: "4",
+    name: "Database Migration",
+    status: "active",
+    category: "Infrastructure",
+    priority: "high",
+    manager: "Alice Brown",
+    budget: 100000,
+  },
+  {
+    id: "5",
+    name: "Security Audit",
+    status: "planning",
+    category: "Security",
+    priority: "high",
+    manager: "Charlie Wilson",
+    budget: 30000,
+  },
+  {
+    id: "6",
+    name: "UI/UX Research",
+    status: "completed",
+    category: "Design",
+    priority: "medium",
+    manager: "Diana Prince",
+    budget: 15000,
+  },
+];
 
 export default function ProfessionalFilterDemo() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [categoryFilter, setCategoryFilter] = useState('all')
-  const [priorityFilter, setPriorityFilter] = useState('all')
-  const [managerFilter, setManagerFilter] = useState('all')
-  
-  const { data: dynamicOptions, isLoading: optionsLoading } = useDynamicFilterOptions()
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [managerFilter, setManagerFilter] = useState("all");
+
+  const { data: dynamicOptions, isLoading: optionsLoading } =
+    useDynamicFilterOptions();
 
   // Filter logic
   const filteredProjects = useMemo(() => {
-    return sampleProjects.filter(project => {
-      const matchesSearch = !searchTerm || 
+    return sampleProjects.filter((project) => {
+      const matchesSearch =
+        !searchTerm ||
         project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         project.manager.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.category.toLowerCase().includes(searchTerm.toLowerCase())
+        project.category.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesStatus = statusFilter === 'all' || project.status === statusFilter
-      const matchesCategory = categoryFilter === 'all' || project.category === categoryFilter
-      const matchesPriority = priorityFilter === 'all' || project.priority === priorityFilter
-      const matchesManager = managerFilter === 'all' || project.manager === managerFilter
+      const matchesStatus =
+        statusFilter === "all" || project.status === statusFilter;
+      const matchesCategory =
+        categoryFilter === "all" || project.category === categoryFilter;
+      const matchesPriority =
+        priorityFilter === "all" || project.priority === priorityFilter;
+      const matchesManager =
+        managerFilter === "all" || project.manager === managerFilter;
 
-      return matchesSearch && matchesStatus && matchesCategory && matchesPriority && matchesManager
-    })
-  }, [sampleProjects, searchTerm, statusFilter, categoryFilter, priorityFilter, managerFilter])
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesCategory &&
+        matchesPriority &&
+        matchesManager
+      );
+    });
+  }, [
+    sampleProjects,
+    searchTerm,
+    statusFilter,
+    categoryFilter,
+    priorityFilter,
+    managerFilter,
+  ]);
 
   // Filter configuration
   const filters = [
     {
-      key: 'status',
-      label: 'สถานะ',
+      key: "status",
+      label: "สถานะ",
       value: statusFilter,
-      type: 'dynamic' as const,
-      dynamicOptions: 'projectStatuses' as const,
+      type: "dynamic" as const,
+      dynamicOptions: "projectStatuses" as const,
       onChange: setStatusFilter,
     },
     {
-      key: 'category',
-      label: 'หมวดหมู่',
+      key: "category",
+      label: "หมวดหมู่",
       value: categoryFilter,
-      type: 'static' as const,
+      type: "static" as const,
       staticOptions: [
-        { value: 'Development', label: 'พัฒนา' },
-        { value: 'Marketing', label: 'การตลาด' },
-        { value: 'Infrastructure', label: 'โครงสร้างพื้นฐาน' },
-        { value: 'Security', label: 'ความปลอดภัย' },
-        { value: 'Design', label: 'การออกแบบ' },
+        { value: "Development", label: "พัฒนา" },
+        { value: "Marketing", label: "การตลาด" },
+        { value: "Infrastructure", label: "โครงสร้างพื้นฐาน" },
+        { value: "Security", label: "ความปลอดภัย" },
+        { value: "Design", label: "การออกแบบ" },
       ],
       onChange: setCategoryFilter,
     },
     {
-      key: 'priority',
-      label: 'ความสำคัญ',
+      key: "priority",
+      label: "ความสำคัญ",
       value: priorityFilter,
-      type: 'static' as const,
+      type: "static" as const,
       staticOptions: [
-        { value: 'high', label: 'สูง' },
-        { value: 'medium', label: 'ปานกลาง' },
-        { value: 'low', label: 'ต่ำ' },
+        { value: "high", label: "สูง" },
+        { value: "medium", label: "ปานกลาง" },
+        { value: "low", label: "ต่ำ" },
       ],
       onChange: setPriorityFilter,
     },
     {
-      key: 'manager',
-      label: 'ผู้จัดการ',
+      key: "manager",
+      label: "ผู้จัดการ",
       value: managerFilter,
-      type: 'dynamic' as const,
-      dynamicOptions: 'users' as const,
+      type: "dynamic" as const,
+      dynamicOptions: "users" as const,
       onChange: setManagerFilter,
     },
-  ]
+  ];
 
   const clearAllFilters = () => {
-    setSearchTerm('')
-    setStatusFilter('all')
-    setCategoryFilter('all')
-    setPriorityFilter('all')
-    setManagerFilter('all')
-  }
+    setSearchTerm("");
+    setStatusFilter("all");
+    setCategoryFilter("all");
+    setPriorityFilter("all");
+    setManagerFilter("all");
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800'
-      case 'planning': return 'bg-blue-100 text-blue-800'
-      case 'completed': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case "active":
+        return "bg-green-100 text-green-800";
+      case "planning":
+        return "bg-blue-100 text-blue-800";
+      case "completed":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800'
-      case 'medium': return 'bg-yellow-100 text-yellow-800'
-      case 'low': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case "high":
+        return "bg-red-100 text-red-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "low":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
   return (
     <div className="container mx-auto py-8 space-y-6">
@@ -191,10 +272,9 @@ export default function ProfessionalFilterDemo() {
         <CardHeader>
           <CardTitle>ผลลัพธ์ ({filteredProjects.length} รายการ)</CardTitle>
           <CardDescription>
-            {filteredProjects.length === 0 
-              ? 'ไม่พบข้อมูลที่ตรงตามเงื่อนไข' 
-              : `แสดง ${filteredProjects.length} รายการจากทั้งหมด ${sampleProjects.length} รายการ`
-            }
+            {filteredProjects.length === 0
+              ? "ไม่พบข้อมูลที่ตรงตามเงื่อนไข"
+              : `แสดง ${filteredProjects.length} รายการจากทั้งหมด ${sampleProjects.length} รายการ`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -204,14 +284,17 @@ export default function ProfessionalFilterDemo() {
               title="ไม่พบข้อมูลที่ตรงตามเงื่อนไข"
               description="ลองปรับเปลี่ยนเงื่อนไขการค้นหาหรือกรองข้อมูลใหม่"
               action={{
-                label: 'ล้างตัวกรอง',
-                onClick: clearAllFilters
+                label: "ล้างตัวกรอง",
+                onClick: clearAllFilters,
               }}
             />
           ) : (
             <div className="space-y-4">
               {filteredProjects.map((project) => (
-                <div key={project.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                <div
+                  key={project.id}
+                  className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                >
                   <div className="flex items-start justify-between">
                     <div className="space-y-2">
                       <h3 className="font-semibold text-lg">{project.name}</h3>
@@ -248,7 +331,8 @@ export default function ProfessionalFilterDemo() {
         <CardContent>
           <div className="space-y-4 text-sm">
             <div>
-              <strong>Dynamic Options Loading:</strong> {optionsLoading ? 'Loading...' : 'Loaded'}
+              <strong>Dynamic Options Loading:</strong>{" "}
+              {optionsLoading ? "Loading..." : "Loaded"}
             </div>
             <div>
               <strong>Current Filters:</strong>
@@ -272,5 +356,5 @@ export default function ProfessionalFilterDemo() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

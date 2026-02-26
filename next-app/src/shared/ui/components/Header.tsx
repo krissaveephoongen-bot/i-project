@@ -1,28 +1,28 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { 
-  Home, 
-  FolderOpen, 
-  Users, 
-  Settings, 
-  Menu, 
+import { useState } from "react";
+import Link from "next/link";
+import {
+  Home,
+  FolderOpen,
+  Users,
+  Settings,
+  Menu,
   X,
-  LogOut
-} from 'lucide-react';
-import { Button } from '@/shared/ui/components/Button';
-import { useAuth } from '@/processes/auth/model/useAuth';
+  LogOut,
+} from "lucide-react";
+import { Button } from "@/shared/ui/components/Button";
+import { useAuth } from "@/processes/auth/model/useAuth";
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Projects', href: '/projects', icon: FolderOpen },
-    { name: 'Users', href: '/users', icon: Users },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: "Dashboard", href: "/", icon: Home },
+    { name: "Projects", href: "/projects", icon: FolderOpen },
+    { name: "Users", href: "/users", icon: Users },
+    { name: "Settings", href: "/settings", icon: Settings },
   ];
 
   return (
@@ -34,7 +34,9 @@ export function Header() {
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">i</span>
               </div>
-              <span className="text-xl font-semibold text-gray-900">i-Project</span>
+              <span className="text-xl font-semibold text-gray-900">
+                i-Project
+              </span>
             </Link>
           </div>
 
@@ -58,10 +60,12 @@ export function Header() {
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                   <span className="text-sm font-medium text-gray-700">
-                    {user?.name?.charAt(0) || 'U'}
+                    {user?.name?.charAt(0) || "U"}
                   </span>
                 </div>
-                <span className="text-sm font-medium text-gray-700">{user?.name}</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {user?.name}
+                </span>
               </div>
             </div>
             <Button
@@ -109,11 +113,13 @@ export function Header() {
                 <div className="flex items-center space-x-3 px-3">
                   <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                     <span className="text-sm font-medium text-gray-700">
-                      {user?.name?.charAt(0) || 'U'}
+                      {user?.name?.charAt(0) || "U"}
                     </span>
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-900">{user?.name}</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {user?.name}
+                    </div>
                     <div className="text-xs text-gray-500">{user?.email}</div>
                   </div>
                 </div>

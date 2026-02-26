@@ -30,7 +30,7 @@ export enum InvolvementLevelEnum {
  */
 export function getStakeholderRoleLabel(
   role: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -61,7 +61,7 @@ export function getStakeholderRoleLabel(
  */
 export function getStakeholderTypeLabel(
   type: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -84,7 +84,7 @@ export function getStakeholderTypeLabel(
  */
 export function getInvolvementLevelLabel(
   level: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -108,7 +108,7 @@ export function getInvolvementLevelLabel(
  * Get stakeholder page labels (with Thai support)
  */
 export function getStakeholderPageLabels(
-  lang: string = "en"
+  lang: string = "en",
 ): Record<string, string> {
   const labels: Record<string, Record<string, string>> = {
     en: {

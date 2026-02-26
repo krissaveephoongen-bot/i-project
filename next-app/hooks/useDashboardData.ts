@@ -3,9 +3,9 @@
  * Prevents race conditions and memory leaks during data fetching
  */
 
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 export interface DashboardData {
   rows: any[];
@@ -28,7 +28,9 @@ export interface UseDashboardDataReturn extends DashboardData {
  * Hook for fetching dashboard data safely
  * Prevents race conditions when dependencies change
  */
-export function useDashboardData(dependencies: any[] = []): UseDashboardDataReturn {
+export function useDashboardData(
+  dependencies: any[] = [],
+): UseDashboardDataReturn {
   const [data, setData] = useState<DashboardData>({
     rows: [],
     cashflow: [],
@@ -58,20 +60,20 @@ export function useDashboardData(dependencies: any[] = []): UseDashboardDataRetu
 
       // Fetch all endpoints in parallel with AbortSignal
       const [pfRes, actRes, erRes, wsRes] = await Promise.all([
-        fetch('/api/dashboard/portfolio', {
-          cache: 'no-store',
+        fetch("/api/dashboard/portfolio", {
+          cache: "no-store",
           signal: controller.signal,
         }).catch(() => ({ ok: false })),
-        fetch('/api/dashboard/activities', {
-          cache: 'no-store',
+        fetch("/api/dashboard/activities", {
+          cache: "no-store",
           signal: controller.signal,
         }).catch(() => ({ ok: false })),
-        fetch('/api/projects/executive-report', {
-          cache: 'no-store',
+        fetch("/api/projects/executive-report", {
+          cache: "no-store",
           signal: controller.signal,
         }).catch(() => ({ ok: false })),
-        fetch('/api/projects/weekly-summary', {
-          cache: 'no-store',
+        fetch("/api/projects/weekly-summary", {
+          cache: "no-store",
           signal: controller.signal,
         }).catch(() => ({ ok: false })),
       ]);
@@ -83,7 +85,9 @@ export function useDashboardData(dependencies: any[] = []): UseDashboardDataRetu
 
       // Parse responses
       const [pfJson, actJson, erJson, wsJson] = await Promise.all([
-        pfRes.ok ? (pfRes as Response).json() : { rows: [], cashflow: [], spiTrend: [], spiSnaps: [] },
+        pfRes.ok
+          ? (pfRes as Response).json()
+          : { rows: [], cashflow: [], spiTrend: [], spiSnaps: [] },
         actRes.ok ? (actRes as Response).json() : [],
         erRes.ok ? (erRes as Response).json() : null,
         wsRes.ok ? (wsRes as Response).json() : { summary: [] },
@@ -106,15 +110,16 @@ export function useDashboardData(dependencies: any[] = []): UseDashboardDataRetu
       });
     } catch (err) {
       // Ignore abort errors
-      if (err instanceof Error && err.name === 'AbortError') {
+      if (err instanceof Error && err.name === "AbortError") {
         return;
       }
 
       // Set error only if not aborted and this is the latest fetch
       if (!controller.signal.aborted && fetchId === fetchCounterRef.current) {
-        const errorMsg = err instanceof Error ? err.message : 'Unable to load dashboard data';
+        const errorMsg =
+          err instanceof Error ? err.message : "Unable to load dashboard data";
         setError(errorMsg);
-        console.error('Dashboard fetch error:', err);
+        console.error("Dashboard fetch error:", err);
       }
     } finally {
       setLoading(false);

@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -12,11 +12,11 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-} from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react"
+} from "@tanstack/react-table";
+import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 
-import { Button } from "./ui/Button"
-import { Checkbox } from "./ui/checkbox"
+import { Button } from "./ui/Button";
+import { Checkbox } from "./ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -25,8 +25,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuContent,
-} from "./ui/dropdown-menu"
-import { Input } from "./ui/Input"
+} from "./ui/dropdown-menu";
+import { Input } from "./ui/Input";
 import {
   Table,
   TableBody,
@@ -34,13 +34,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table"
+} from "./ui/table";
 
 interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-  searchKey?: string
-  searchPlaceholder?: string
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  searchKey?: string;
+  searchPlaceholder?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -49,10 +49,13 @@ export function DataTable<TData, TValue>({
   searchKey,
   searchPlaceholder = "Search...",
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    [],
+  );
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = React.useState({});
 
   // Responsive column visibility - hide less important columns on mobile
   React.useEffect(() => {
@@ -62,10 +65,18 @@ export function DataTable<TData, TValue>({
       if (isMobile) {
         // Hide columns that are not essential on mobile
         const hiddenColumns: Record<string, boolean> = {};
-        table.getAllColumns().forEach(column => {
+        table.getAllColumns().forEach((column) => {
           const columnId = column.id;
           // Hide columns that typically contain lots of data or are less critical
-          if (['budget', 'end_date', 'createdAt', 'updatedAt', 'description'].includes(columnId)) {
+          if (
+            [
+              "budget",
+              "end_date",
+              "createdAt",
+              "updatedAt",
+              "description",
+            ].includes(columnId)
+          ) {
             hiddenColumns[columnId] = false;
           }
         });
@@ -77,8 +88,8 @@ export function DataTable<TData, TValue>({
     };
 
     updateColumnVisibility();
-    window.addEventListener('resize', updateColumnVisibility);
-    return () => window.removeEventListener('resize', updateColumnVisibility);
+    window.addEventListener("resize", updateColumnVisibility);
+    return () => window.removeEventListener("resize", updateColumnVisibility);
   }, []);
 
   const table = useReactTable({
@@ -98,7 +109,7 @@ export function DataTable<TData, TValue>({
       columnVisibility,
       rowSelection,
     },
-  })
+  });
 
   return (
     <div className="w-full">
@@ -108,7 +119,9 @@ export function DataTable<TData, TValue>({
           {searchKey && (
             <Input
               placeholder={searchPlaceholder}
-              value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
+              value={
+                (table.getColumn(searchKey)?.getFilterValue() as string) ?? ""
+              }
               onChange={(event) =>
                 table.getColumn(searchKey)?.setFilterValue(event.target.value)
               }
@@ -140,7 +153,7 @@ export function DataTable<TData, TValue>({
                   >
                     {column.id}
                   </DropdownMenuCheckboxItem>
-                )
+                );
               })}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -163,10 +176,10 @@ export function DataTable<TData, TValue>({
                           ? null
                           : flexRender(
                               header.column.columnDef.header,
-                              header.getContext()
+                              header.getContext(),
                             )}
                       </TableHead>
-                    )
+                    );
                   })}
                 </TableRow>
               ))}
@@ -186,7 +199,7 @@ export function DataTable<TData, TValue>({
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </TableCell>
                     ))}
@@ -217,11 +230,17 @@ export function DataTable<TData, TValue>({
             </span>
           )}
           <span className="sm:inline">
-            Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
+            Showing{" "}
+            {table.getState().pagination.pageIndex *
+              table.getState().pagination.pageSize +
+              1}{" "}
+            to{" "}
             {Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              table.getFilteredRowModel().rows.length
-            )} of {table.getFilteredRowModel().rows.length} results
+              (table.getState().pagination.pageIndex + 1) *
+                table.getState().pagination.pageSize,
+              table.getFilteredRowModel().rows.length,
+            )}{" "}
+            of {table.getFilteredRowModel().rows.length} results
           </span>
         </div>
 
@@ -247,5 +266,5 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
     </div>
-  )
+  );
 }

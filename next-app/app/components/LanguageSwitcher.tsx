@@ -1,26 +1,27 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Languages, Check } from 'lucide-react';
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Languages, Check } from "lucide-react";
 import { Button } from "./ui/Button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 
 const languages = [
-  { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'th', name: 'ไทย', flag: '🇹🇭' },
+  { code: "en", name: "English", flag: "🇺🇸" },
+  { code: "th", name: "ไทย", flag: "🇹🇭" },
 ];
 
 export default function LanguageSwitcher() {
   const { i18n, t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
-  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
+  const currentLanguage =
+    languages.find((lang) => lang.code === i18n.language) || languages[0];
 
   const handleLanguageChange = async (languageCode: string) => {
     await i18n.changeLanguage(languageCode);
@@ -47,9 +48,7 @@ export default function LanguageSwitcher() {
               <span>{language.flag}</span>
               <span>{language.name}</span>
             </div>
-            {i18n.language === language.code && (
-              <Check className="h-4 w-4" />
-            )}
+            {i18n.language === language.code && <Check className="h-4 w-4" />}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

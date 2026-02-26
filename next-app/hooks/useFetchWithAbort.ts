@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 export interface UseFetchOptions extends RequestInit {
   timeout?: number; // milliseconds
@@ -30,7 +30,7 @@ export interface UseFetchState<T> {
 export function useFetchWithAbort<T = any>(
   url: string,
   options?: UseFetchOptions,
-  dependencies: any[] = []
+  dependencies: any[] = [],
 ): UseFetchState<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
@@ -76,7 +76,7 @@ export function useFetchWithAbort<T = any>(
         }
       } catch (err) {
         // Ignore abort errors (component unmounted or dependency changed)
-        if (err instanceof Error && err.name === 'AbortError') {
+        if (err instanceof Error && err.name === "AbortError") {
           return;
         }
 
@@ -84,7 +84,7 @@ export function useFetchWithAbort<T = any>(
         if (!controller.signal.aborted) {
           const error = err instanceof Error ? err : new Error(String(err));
           setError(error);
-          console.error('Fetch error:', error);
+          console.error("Fetch error:", error);
         }
       } finally {
         // Clear timeout on cleanup
@@ -114,7 +114,7 @@ export function useFetchWithAbort<T = any>(
 export function useFetchWithAbortPost<T = any, R = any>(
   url: string,
   options?: UseFetchOptions,
-  dependencies: any[] = []
+  dependencies: any[] = [],
 ): UseFetchState<T> & { execute: (body: R) => Promise<T | null> } {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
@@ -136,10 +136,10 @@ export function useFetchWithAbortPost<T = any, R = any>(
       }, timeout);
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         ...options,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...options?.headers,
         },
         body: JSON.stringify(body),
@@ -160,14 +160,14 @@ export function useFetchWithAbortPost<T = any, R = any>(
       }
       return result;
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
+      if (err instanceof Error && err.name === "AbortError") {
         return null;
       }
 
       if (!controller.signal.aborted) {
         const error = err instanceof Error ? err : new Error(String(err));
         setError(error);
-        console.error('POST request error:', error);
+        console.error("POST request error:", error);
       }
       return null;
     } finally {

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/app/lib/supabaseClient';
-import bcrypt from 'bcryptjs';
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/app/lib/supabaseClient";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,32 +9,32 @@ export async function POST(request: NextRequest) {
 
     if (!token || !email || !newPassword) {
       return NextResponse.json(
-        { error: 'Token, email, and new password are required' },
-        { status: 400 }
+        { error: "Token, email, and new password are required" },
+        { status: 400 },
       );
     }
 
     // Find user by email and reset token
     const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .eq('resetToken', token)
-      .eq('isDeleted', false)
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .eq("resetToken", token)
+      .eq("isDeleted", false)
       .single();
 
     if (error || !user) {
       return NextResponse.json(
-        { error: 'Invalid or expired reset token' },
-        { status: 400 }
+        { error: "Invalid or expired reset token" },
+        { status: 400 },
       );
     }
 
     // Check if token is expired
     if (user.resetTokenExpiry && new Date(user.resetTokenExpiry) < new Date()) {
       return NextResponse.json(
-        { error: 'Reset token has expired' },
-        { status: 400 }
+        { error: "Reset token has expired" },
+        { status: 400 },
       );
     }
 
@@ -43,24 +43,23 @@ export async function POST(request: NextRequest) {
 
     // Update user password and clear reset token
     await supabase
-      .from('users')
+      .from("users")
       .update({
         password: hashedPassword,
         resetToken: null,
         resetTokenExpiry: null,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       })
-      .eq('id', user.id);
+      .eq("id", user.id);
 
     return NextResponse.json({
-      message: 'Password reset successfully'
+      message: "Password reset successfully",
     });
-
   } catch (error) {
-    console.error('Reset password error:', error);
+    console.error("Reset password error:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }

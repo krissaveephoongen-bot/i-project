@@ -31,11 +31,14 @@ const DEFAULT_OPTIONS: Required<RetryOptions> = {
 /**
  * Calculate delay with exponential backoff and jitter
  */
-function calculateDelay(attempt: number, options: Required<RetryOptions>): number {
+function calculateDelay(
+  attempt: number,
+  options: Required<RetryOptions>,
+): number {
   // Exponential backoff: initialDelay * (backoffFactor ^ attempt)
   const exponentialDelay = Math.min(
     options.initialDelayMs * Math.pow(options.backoffFactor, attempt),
-    options.maxDelayMs
+    options.maxDelayMs,
   );
 
   // Add jitter to prevent thundering herd
@@ -45,11 +48,11 @@ function calculateDelay(attempt: number, options: Required<RetryOptions>): numbe
 
 /**
  * Retry a function with exponential backoff
- * 
+ *
  * @param fn - Async function to retry
  * @param options - Retry options
  * @returns - Result from the function
- * 
+ *
  * @example
  * const data = await retryAsync(
  *   () => fetch('/api/data'),
@@ -58,7 +61,7 @@ function calculateDelay(attempt: number, options: Required<RetryOptions>): numbe
  */
 export async function retryAsync<T>(
   fn: () => Promise<T>,
-  options?: RetryOptions
+  options?: RetryOptions,
 ): Promise<T> {
   const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
   let lastError: any;
@@ -77,7 +80,7 @@ export async function retryAsync<T>(
       // Don't sleep on the last attempt
       if (attempt < mergedOptions.maxAttempts - 1) {
         const delay = calculateDelay(attempt, mergedOptions);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
   }
@@ -87,22 +90,30 @@ export async function retryAsync<T>(
 
 /**
  * Retry fetch requests with exponential backoff
- * 
+ *
  * @param url - URL to fetch
  * @param options - Fetch options + retry options
  * @returns - Fetch response
- * 
+ *
  * @example
- * const response = await fetchWithRetry('/api/data', { 
+ * const response = await fetchWithRetry('/api/data', {
  *   method: 'GET',
  *   maxAttempts: 5
  * });
  */
 export async function fetchWithRetry(
   url: string,
-  options?: (RequestInit & RetryOptions) | undefined
+  options?: (RequestInit & RetryOptions) | undefined,
 ): Promise<Response> {
-  const { maxAttempts, initialDelayMs, maxDelayMs, backoffFactor, jitterFactor, shouldRetry, ...fetchOptions } = {
+  const {
+    maxAttempts,
+    initialDelayMs,
+    maxDelayMs,
+    backoffFactor,
+    jitterFactor,
+    shouldRetry,
+    ...fetchOptions
+  } = {
     ...DEFAULT_OPTIONS,
     ...options,
   };
@@ -116,22 +127,19 @@ export async function fetchWithRetry(
     shouldRetry,
   };
 
-  return retryAsync(
-    () => fetch(url, fetchOptions),
-    retryOptions
-  );
+  return retryAsync(() => fetch(url, fetchOptions), retryOptions);
 }
 
 /**
  * Wrap any async function with retry logic
- * 
+ *
  * @example
  * const withRetry = withRetryLogic(myAsyncFunction);
  * const result = await withRetry();
  */
 export function withRetryLogic<T extends any[], R>(
   fn: (...args: T) => Promise<R>,
-  options?: RetryOptions
+  options?: RetryOptions,
 ): (...args: T) => Promise<R> {
   return (...args: T) => retryAsync(() => fn(...args), options);
 }

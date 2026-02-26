@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../../lib/supabaseClient';
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "../../../../lib/supabaseClient";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const taskId = searchParams.get('taskId');
+    const taskId = searchParams.get("taskId");
     if (!taskId) return NextResponse.json([], { status: 200 });
     const { data } = await supabase
-      .from('task_actual_logs')
-      .select('*')
-      .eq('task_id', taskId)
-      .order('date', { ascending: true });
+      .from("task_actual_logs")
+      .select("*")
+      .eq("task_id", taskId)
+      .order("date", { ascending: true });
     return NextResponse.json(data || [], { status: 200 });
   } catch {
     return NextResponse.json([], { status: 200 });
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (!task_id || !date) return NextResponse.json({}, { status: 200 });
     const id = crypto.randomUUID();
     const { data } = await supabase
-      .from('task_actual_logs')
+      .from("task_actual_logs")
       .insert({ id, task_id, date, progress_percent })
       .select()
       .single();

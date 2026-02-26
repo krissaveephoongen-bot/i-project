@@ -1,7 +1,6 @@
-
-import { ok, err } from '../../_lib/db';
-import { NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
+import { ok, err } from "../../_lib/db";
+import { NextRequest } from "next/server";
+import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 function mapDbClientToApiClient(row: any) {
   return {
@@ -18,7 +17,13 @@ function mapDbClientToApiClient(row: any) {
 
 async function updateClient(
   id: string,
-  body: { name?: string; email?: string; phone?: string; address?: string; taxId?: string }
+  body: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    taxId?: string;
+  },
 ) {
   const base = {
     ...(body.name !== undefined ? { name: body.name } : {}),
@@ -36,54 +41,75 @@ async function updateClient(
   let lastError: any = null;
   for (const payload of attempts) {
     if (Object.keys(payload).length === 0) return null;
-    const { data, error } = await supabaseAdmin.from('clients').update(payload).eq('id', id).select().single();
+    const { data, error } = await supabaseAdmin
+      .from("clients")
+      .update(payload)
+      .eq("id", id)
+      .select()
+      .single();
     if (!error) return data;
     lastError = error;
-    const message = `${error.message || ''}`;
-    if (message.includes("Could not find the 'taxId' column") || message.includes("Could not find the 'tax_id' column")) {
+    const message = `${error.message || ""}`;
+    if (
+      message.includes("Could not find the 'taxId' column") ||
+      message.includes("Could not find the 'tax_id' column")
+    ) {
       continue;
     }
     break;
   }
-  throw lastError ?? new Error('Failed to update client');
+  throw lastError ?? new Error("Failed to update client");
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
     const { id } = params;
-    if (!supabaseAdmin) return err('Supabase is not configured', 500);
+    if (!supabaseAdmin) return err("Supabase is not configured", 500);
 
-    const { data, error } = await supabaseAdmin.from('clients').select('*').eq('id', id).single();
+    const { data, error } = await supabaseAdmin
+      .from("clients")
+      .select("*")
+      .eq("id", id)
+      .single();
     if (error) throw error;
     return ok(mapDbClientToApiClient(data), 200);
   } catch (e: any) {
-    return err(e?.message || 'error', 500);
+    return err(e?.message || "error", 500);
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
     const { id } = params;
     const body = await req.json();
-    if (!supabaseAdmin) return err('Supabase is not configured', 500);
+    if (!supabaseAdmin) return err("Supabase is not configured", 500);
 
     const data = await updateClient(id, body);
-    if (!data) return err('No valid fields to update', 400);
+    if (!data) return err("No valid fields to update", 400);
     return ok(mapDbClientToApiClient(data), 200);
   } catch (e: any) {
-    return err(e?.message || 'error', 500);
+    return err(e?.message || "error", 500);
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
     const { id } = params;
-    if (!supabaseAdmin) return err('Supabase is not configured', 500);
+    if (!supabaseAdmin) return err("Supabase is not configured", 500);
 
-    const { error } = await supabaseAdmin.from('clients').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from("clients").delete().eq("id", id);
     if (error) throw error;
     return ok({ success: true }, 200);
   } catch (e: any) {
-    return err(e?.message || 'error', 500);
+    return err(e?.message || "error", 500);
   }
 }

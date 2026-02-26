@@ -1,113 +1,124 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../../lib/supabaseClient';
-import { firstOk, PROJECT_ID_COLUMNS } from '../../../_lib/supabaseCompat';
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { id: string } },
+) {
   const projectId = params.id;
   try {
-    // Project base
-    const { data: project } = await supabase.from('projects').select('*').eq('id', projectId).single();
-    if (!project) return NextResponse.json({ error: 'project not found' }, { status: 404 });
+    // Use the backend API instead of direct database access
+    const backendUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-    // Tasks
-    const tRes = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('tasks').select('*').eq(col, projectId));
-    const tasks = (tRes as any).data || [];
-    const totalWeight = (tasks || []).reduce((s: number, t: any) => s + Number(t.weight || 0), 0) || 1;
-    const actualWeighted = (tasks || []).reduce((s: number, t: any) => s + (Number(t.weight || 0) * Number(t.progressActual ?? t.progress_actual ?? 0)), 0);
-    const progressOverall = Number((actualWeighted / totalWeight).toFixed(2));
-    const planningWeighted = (tasks || []).reduce((s: number, t: any) => s + (Number(t.weight || 0) * Number(t.progressPlan ?? t.progress_plan ?? 0)), 0);
-    const progressPlanning = Number((planningWeighted / totalWeight).toFixed(2));
+    // Get project details
+    const projectResponse = await fetch(
+      `${backendUrl}/api/projects/${projectId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
 
-    // Milestones
-    const mRes = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('milestones').select('*').eq(col, projectId));
-    const milestonesRaw = (mRes as any).data || [];
-    const milestones = (milestonesRaw || []).map((m: any) => ({
-      id: m.id,
-      title: m.title ?? m.name ?? '',
-      description: m.description ?? null,
-      progress: Number(m.progress ?? 0),
-      amount: Number(m.amount ?? 0),
-      percentage: Number(m.percentage ?? 0),
-      status: m.status ?? 'Pending',
-      dueDate: m.dueDate ?? m.due_date ?? null,
-      actualDate: m.actualDate ?? m.actual_date ?? null,
-      invoiceDate: m.invoiceDate ?? m.invoice_date ?? null,
-      planReceivedDate: m.planReceivedDate ?? m.plan_received_date ?? null,
-      receiptDate: m.receiptDate ?? m.receipt_date ?? null,
-    }));
-
-    // Risks
-    const rRes = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('risks').select('*').eq(col, projectId));
-    const risks = (rRes as any).data || [];
-    const riskCounts = {
-      high: (risks || []).filter((r: any) => (r.severity || '').toLowerCase() === 'high').length,
-      medium: (risks || []).filter((r: any) => (r.severity || '').toLowerCase() === 'medium').length,
-      low: (risks || []).filter((r: any) => (r.severity || '').toLowerCase() === 'low').length,
-    };
-
-    // Documents
-    const dRes = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('documents').select('*').eq(col, projectId));
-    const documents = (dRes as any).data || [];
-
-    // Team
-    const pmRes = await firstOk(PROJECT_ID_COLUMNS, (col) => supabase.from('project_members').select('*').eq(col, projectId));
-    const team = (pmRes as any).data || [];
-    let teamWithNames = team || [];
-    if ((team || []).length > 0) {
-      const userIds = (team || []).map((t: any) => t.userId ?? t.user_id).filter(Boolean);
-      if (userIds.length > 0) {
-        const { data: users } = await supabase
-          .from('users')
-          .select('id,name')
-          .in('id', userIds);
-        const nameMap = new Map((users || []).map((u: any) => [u.id, u.name]));
-        teamWithNames = (team || []).map((t: any) => ({ ...t, name: nameMap.get(t.userId ?? t.user_id) || null }));
+    if (!projectResponse.ok) {
+      if (projectResponse.status === 404) {
+        return NextResponse.json(
+          { error: "project not found" },
+          { status: 404 },
+        );
       }
+      throw new Error(
+        `Backend project API error: ${projectResponse.status} ${projectResponse.statusText}`,
+      );
     }
 
-    // Budget summary (basic)
-    const budget = Number(project.budget ?? 0);
-    const paidAmount = (milestones || [])
-      .filter((m: any) => (m.status || '').toLowerCase() === 'paid')
-      .reduce((s: number, m: any) => s + (Number(m.amount || ((Number(m.progress || 0) / 100) * budget)) || 0), 0);
-    const approvedAmount = (milestones || [])
-      .filter((m: any) => (m.status || '').toLowerCase() === 'approved')
-      .reduce((s: number, m: any) => s + (Number(m.amount || ((Number(m.progress || 0) / 100) * budget)) || 0), 0);
-    const actualCost = Number(project.spent ?? 0);
-    const committedCost = approvedAmount;
-    const remainingBudget = Math.max(budget - actualCost - committedCost, 0);
+    const project = await projectResponse.json();
 
+    // Get tasks for this project
+    const tasksResponse = await fetch(
+      `${backendUrl}/api/tasks?projectId=${projectId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    const tasks = tasksResponse.ok ? await tasksResponse.json() : [];
+
+    // Calculate progress from tasks
+    const totalWeight =
+      (tasks || []).reduce(
+        (s: number, t: any) => s + Number(t.weight || 0),
+        0,
+      ) || 1;
+    const actualWeighted = (tasks || []).reduce(
+      (s: number, t: any) =>
+        s + Number(t.weight || 0) * Number(t.progressActual || 0),
+      0,
+    );
+    const progressOverall = Number((actualWeighted / totalWeight).toFixed(2));
+    const planningWeighted = (tasks || []).reduce(
+      (s: number, t: any) =>
+        s + Number(t.weight || 0) * Number(t.progressPlan || 0),
+      0,
+    );
+    const progressPlanning = Number(
+      (planningWeighted / totalWeight).toFixed(2),
+    );
+
+    // For now, return empty arrays for other data (milestones, risks, etc.)
     const overview = {
       project: {
         id: project.id,
         name: project.name,
         status: project.status,
-        startDate: project.start_date ?? project.startDate ?? null,
-        endDate: project.end_date ?? project.endDate ?? null,
-        warrantyStartDate: project.warranty_start_date ?? null,
-        warrantyEndDate: project.warranty_end_date ?? null,
-        closureChecklist: project.closure_checklist ?? [],
-        budget,
+        startDate: project.startDate,
+        endDate: project.endDate,
+        warrantyStartDate: project.warrantyStartDate,
+        warrantyEndDate: project.warrantyEndDate,
+        closureChecklist: project.closureChecklist || [],
+        budget: project.budget,
         progress: progressOverall,
         planning: progressPlanning,
+        // Include other important fields for consistency
+        managerId: project.managerId,
+        clientId: project.clientId,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+        hourlyRate: project.hourlyRate,
+        isArchived: project.isArchived,
+        priority: project.priority,
+        category: project.category,
+        spent: project.spent,
+        remaining: project.remaining,
+        spi: project.spi,
+        riskLevel: project.riskLevel,
+        progressPlan: project.progressPlan,
       },
       tasks: tasks || [],
-      milestones: milestones || [],
-      risks: risks || [],
-      documents: documents || [],
-      team: teamWithNames || [],
+      milestones: [],
+      risks: [],
+      documents: [],
+      team: [],
       summary: {
-        approvedBudget: approvedAmount,
-        actualCost,
-        committedCost,
-        remainingBudget,
-        paidAmount,
-        pendingAmount: Math.max(budget - paidAmount, 0),
-        totalBudget: budget,
-      }
+        approvedBudget: 0,
+        actualCost: Number(project.spent || 0),
+        committedCost: 0,
+        remainingBudget: Number(project.remaining || 0),
+        paidAmount: 0,
+        pendingAmount: Number(project.budget || 0),
+        totalBudget: Number(project.budget || 0),
+      },
     };
     return NextResponse.json(overview, { status: 200 });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'overview error' }, { status: 500 });
+    console.error("Overview API error:", error);
+    return NextResponse.json(
+      { error: error?.message || "overview error" },
+      { status: 500 },
+    );
   }
 }

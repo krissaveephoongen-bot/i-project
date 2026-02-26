@@ -1,2 +1,2 @@
-export { useLanguage } from './useLanguage';
-export { useThaiLocale } from './useThaiLocale';
+export { useLanguage } from "./useLanguage";
+export { useThaiLocale } from "./useThaiLocale";

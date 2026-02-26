@@ -24,7 +24,7 @@ const TIMESHEET_ENDPOINT = `${API_BASE_URL}/api/timesheet`;
 export async function getTimeEntries(
   userId: string,
   year: number,
-  month: number
+  month: number,
 ): Promise<TimeEntryDTO[]> {
   const response = await fetch(
     `${TIMESHEET_ENDPOINT}/user/${userId}/month/${year}/${month}`,
@@ -34,7 +34,7 @@ export async function getTimeEntries(
         "Content-Type": "application/json",
       },
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -49,7 +49,7 @@ export async function getTimeEntries(
  */
 export async function getTimeEntriesByDate(
   userId: string,
-  date: string
+  date: string,
 ): Promise<TimeEntryDTO[]> {
   const response = await fetch(
     `${TIMESHEET_ENDPOINT}/user/${userId}/date/${date}`,
@@ -59,7 +59,7 @@ export async function getTimeEntriesByDate(
         "Content-Type": "application/json",
       },
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -92,7 +92,7 @@ export async function getTimeEntry(entryId: string): Promise<TimeEntryDTO> {
  * Create a new time entry
  */
 export async function createTimeEntry(
-  data: CreateTimeEntryDTO
+  data: CreateTimeEntryDTO,
 ): Promise<TimeEntryDTO> {
   const response = await fetch(TIMESHEET_ENDPOINT, {
     method: "POST",
@@ -116,7 +116,7 @@ export async function createTimeEntry(
  */
 export async function updateTimeEntry(
   entryId: string,
-  data: UpdateTimeEntryDTO
+  data: UpdateTimeEntryDTO,
 ): Promise<TimeEntryDTO> {
   const response = await fetch(`${TIMESHEET_ENDPOINT}/${entryId}`, {
     method: "PUT",
@@ -158,7 +158,7 @@ export async function deleteTimeEntry(entryId: string): Promise<void> {
 export async function getMonthlyTimesheet(
   userId: string,
   year: number,
-  month: number
+  month: number,
 ): Promise<TimeSheetSummaryDTO> {
   const response = await fetch(
     `${TIMESHEET_ENDPOINT}/user/${userId}/summary/${year}/${month}`,
@@ -168,11 +168,13 @@ export async function getMonthlyTimesheet(
         "Content-Type": "application/json",
       },
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch timesheet summary: ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch timesheet summary: ${response.statusText}`,
+    );
   }
 
   return response.json();
@@ -185,7 +187,7 @@ export async function getProjectHours(
   userId: string,
   projectId: string,
   year: number,
-  month: number
+  month: number,
 ): Promise<{ totalHours: number; entriesCount: number }> {
   const response = await fetch(
     `${TIMESHEET_ENDPOINT}/user/${userId}/project/${projectId}/${year}/${month}`,
@@ -195,7 +197,7 @@ export async function getProjectHours(
         "Content-Type": "application/json",
       },
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -210,19 +212,16 @@ export async function getProjectHours(
  */
 export async function addTimeEntryComment(
   entryId: string,
-  comment: string
+  comment: string,
 ): Promise<TimeEntryComment> {
-  const response = await fetch(
-    `${TIMESHEET_ENDPOINT}/${entryId}/comments`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ comment }),
-      credentials: "include",
-    }
-  );
+  const response = await fetch(`${TIMESHEET_ENDPOINT}/${entryId}/comments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ comment }),
+    credentials: "include",
+  });
 
   if (!response.ok) {
     throw new Error(`Failed to add comment: ${response.statusText}`);
@@ -235,18 +234,15 @@ export async function addTimeEntryComment(
  * Get comments for a time entry
  */
 export async function getTimeEntryComments(
-  entryId: string
+  entryId: string,
 ): Promise<TimeEntryComment[]> {
-  const response = await fetch(
-    `${TIMESHEET_ENDPOINT}/${entryId}/comments`,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-    }
-  );
+  const response = await fetch(`${TIMESHEET_ENDPOINT}/${entryId}/comments`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  });
 
   if (!response.ok) {
     throw new Error(`Failed to fetch comments: ${response.statusText}`);
@@ -259,7 +255,7 @@ export async function getTimeEntryComments(
  * Submit time entries for approval
  */
 export async function submitForApproval(
-  entryIds: string[]
+  entryIds: string[],
 ): Promise<ApprovalStatusDTO> {
   const response = await fetch(`${TIMESHEET_ENDPOINT}/submit-approval`, {
     method: "POST",
@@ -281,7 +277,7 @@ export async function submitForApproval(
  * Approve time entries (manager only)
  */
 export async function approveTimeEntries(
-  data: BulkApproveDTO
+  data: BulkApproveDTO,
 ): Promise<ApprovalStatusDTO> {
   const response = await fetch(`${TIMESHEET_ENDPOINT}/approve`, {
     method: "POST",
@@ -304,7 +300,7 @@ export async function approveTimeEntries(
  */
 export async function rejectTimeEntries(
   entryIds: string[],
-  reason: string
+  reason: string,
 ): Promise<ApprovalStatusDTO> {
   const response = await fetch(`${TIMESHEET_ENDPOINT}/reject`, {
     method: "POST",
@@ -326,7 +322,7 @@ export async function rejectTimeEntries(
  * Get pending approvals for a manager
  */
 export async function getPendingApprovals(
-  managerId: string
+  managerId: string,
 ): Promise<TimeEntryDTO[]> {
   const response = await fetch(
     `${TIMESHEET_ENDPOINT}/pending-approvals/${managerId}`,
@@ -336,12 +332,12 @@ export async function getPendingApprovals(
         "Content-Type": "application/json",
       },
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch pending approvals: ${response.statusText}`
+      `Failed to fetch pending approvals: ${response.statusText}`,
     );
   }
 
@@ -352,7 +348,7 @@ export async function getPendingApprovals(
  * Export timesheet data (PDF/Excel)
  */
 export async function exportTimesheet(
-  data: ExportRequestDTO
+  data: ExportRequestDTO,
 ): Promise<ExportResponseDTO> {
   const response = await fetch(`${TIMESHEET_ENDPOINT}/export`, {
     method: "POST",
@@ -374,7 +370,7 @@ export async function exportTimesheet(
  * Get timesheet by ID
  */
 export async function getTimesheetById(
-  timesheetId: string
+  timesheetId: string,
 ): Promise<TimeSheetSummaryDTO> {
   const response = await fetch(`${TIMESHEET_ENDPOINT}/summary/${timesheetId}`, {
     method: "GET",

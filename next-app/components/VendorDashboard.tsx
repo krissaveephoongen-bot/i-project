@@ -1,22 +1,28 @@
 // next-app/components/VendorDashboard.tsx
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Progress } from './ui/progress';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  DollarSign, 
-  AlertTriangle, 
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Progress } from "./ui/progress";
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  DollarSign,
+  AlertTriangle,
   CheckCircle,
   Clock,
   Star,
   BarChart3,
-  PieChart
-} from 'lucide-react';
+  PieChart,
+} from "lucide-react";
 
 interface VendorStats {
   vendorsByStatus: Array<{
@@ -117,51 +123,53 @@ interface VendorDashboardProps {
 }
 
 const VendorDashboard: React.FC<VendorDashboardProps> = ({
-  timeRange = '30d',
-  onTimeRangeChange
+  timeRange = "30d",
+  onTimeRangeChange,
 }) => {
   const [loading, setLoading] = useState(true);
   const [vendorStats, setVendorStats] = useState<VendorStats | null>(null);
-  const [contractStats, setContractStats] = useState<ContractStats | null>(null);
+  const [contractStats, setContractStats] = useState<ContractStats | null>(
+    null,
+  );
   const [paymentStats, setPaymentStats] = useState<PaymentStats | null>(null);
   const [kpiStats, setKpiStats] = useState<KpiStats | null>(null);
 
   const statusColors = {
-    active: 'bg-green-100 text-green-800',
-    inactive: 'bg-gray-100 text-gray-800',
-    suspended: 'bg-yellow-100 text-yellow-800',
-    blacklisted: 'bg-red-100 text-red-800'
+    active: "bg-green-100 text-green-800",
+    inactive: "bg-gray-100 text-gray-800",
+    suspended: "bg-yellow-100 text-yellow-800",
+    blacklisted: "bg-red-100 text-red-800",
   };
 
   const statusLabels = {
-    active: 'ใช้งาน',
-    inactive: 'ไม่ใช้งาน',
-    suspended: 'ระงับ',
-    blacklisted: 'บัญชีดำ'
+    active: "ใช้งาน",
+    inactive: "ไม่ใช้งาน",
+    suspended: "ระงับ",
+    blacklisted: "บัญชีดำ",
   };
 
   const ratingColors = {
-    excellent: 'bg-green-100 text-green-800',
-    good: 'bg-blue-100 text-blue-800',
-    satisfactory: 'bg-yellow-100 text-yellow-800',
-    needs_improvement: 'bg-orange-100 text-orange-800',
-    poor: 'bg-red-100 text-red-800'
+    excellent: "bg-green-100 text-green-800",
+    good: "bg-blue-100 text-blue-800",
+    satisfactory: "bg-yellow-100 text-yellow-800",
+    needs_improvement: "bg-orange-100 text-orange-800",
+    poor: "bg-red-100 text-red-800",
   };
 
   const ratingLabels = {
-    excellent: 'ดีเยี่ยม',
-    good: 'ดี',
-    satisfactory: 'พอใช้',
-    needs_improvement: 'ต้องปรับปรุง',
-    poor: 'แย่'
+    excellent: "ดีเยี่ยม",
+    good: "ดี",
+    satisfactory: "พอใช้",
+    needs_improvement: "ต้องปรับปรุง",
+    poor: "แย่",
   };
 
   const timeRanges = [
-    { value: '7d', label: '7 วัน' },
-    { value: '30d', label: '30 วัน' },
-    { value: '90d', label: '90 วัน' },
-    { value: '1y', label: '1 ปี' },
-    { value: 'all', label: 'ทั้งหมด' }
+    { value: "7d", label: "7 วัน" },
+    { value: "30d", label: "30 วัน" },
+    { value: "90d", label: "90 วัน" },
+    { value: "1y", label: "1 ปี" },
+    { value: "all", label: "ทั้งหมด" },
   ];
 
   useEffect(() => {
@@ -171,41 +179,42 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch all stats in parallel
       const [vendorRes, contractRes, paymentRes, kpiRes] = await Promise.all([
-        fetch('/api/vendors-management/stats/overview'),
-        fetch('/api/vendor-contracts/stats/overview'),
-        fetch('/api/vendor-payments/stats/overview'),
-        fetch('/api/vendor-kpi/stats/overview')
+        fetch("/api/vendors-management/stats/overview"),
+        fetch("/api/vendor-contracts/stats/overview"),
+        fetch("/api/vendor-payments/stats/overview"),
+        fetch("/api/vendor-kpi/stats/overview"),
       ]);
 
-      const [vendorData, contractData, paymentData, kpiData] = await Promise.all([
-        vendorRes.json(),
-        contractRes.json(),
-        paymentRes.json(),
-        kpiRes.json()
-      ]);
+      const [vendorData, contractData, paymentData, kpiData] =
+        await Promise.all([
+          vendorRes.json(),
+          contractRes.json(),
+          paymentRes.json(),
+          kpiRes.json(),
+        ]);
 
       setVendorStats(vendorData);
       setContractStats(contractData);
       setPaymentStats(paymentData);
       setKpiStats(kpiData);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('th-TH');
+    return new Date(dateString).toLocaleDateString("th-TH");
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('th-TH', {
-      style: 'currency',
-      currency: 'THB'
+    return new Intl.NumberFormat("th-TH", {
+      style: "currency",
+      currency: "THB",
     }).format(amount);
   };
 
@@ -217,7 +226,7 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
           <div className="text-gray-500">กำลังโหลดข้อมูล...</div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map(i => (
+          {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
                 <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
@@ -240,7 +249,7 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {timeRanges.map(range => (
+            {timeRanges.map((range) => (
               <SelectItem key={range.value} value={range.value}>
                 {range.label}
               </SelectItem>
@@ -255,9 +264,14 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Vendor ทั้งหมด</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Vendor ทั้งหมด
+                </p>
                 <p className="text-2xl font-bold">
-                  {vendorStats?.vendorsByStatus?.reduce((sum, item) => sum + item.count, 0) || 0}
+                  {vendorStats?.vendorsByStatus?.reduce(
+                    (sum, item) => sum + item.count,
+                    0,
+                  ) || 0}
                 </p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
@@ -276,9 +290,13 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">สัญญาที่ใช้งาน</p>
+                <p className="text-sm font-medium text-gray-600">
+                  สัญญาที่ใช้งาน
+                </p>
                 <p className="text-2xl font-bold">
-                  {contractStats?.contractsByStatus?.find(c => c.status === 'active')?.count || 0}
+                  {contractStats?.contractsByStatus?.find(
+                    (c) => c.status === "active",
+                  )?.count || 0}
                 </p>
               </div>
               <BarChart3 className="h-8 w-8 text-green-600" />
@@ -297,7 +315,9 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">การชำระเงินที่ค้าง</p>
+                <p className="text-sm font-medium text-gray-600">
+                  การชำระเงินที่ค้าง
+                </p>
                 <p className="text-2xl font-bold">
                   {paymentStats?.overduePayments?.length || 0}
                 </p>
@@ -318,10 +338,15 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">มูลค่าสัญญารวม</p>
+                <p className="text-sm font-medium text-gray-600">
+                  มูลค่าสัญญารวม
+                </p>
                 <p className="text-2xl font-bold">
                   {formatCurrency(
-                    contractStats?.contractsByStatus?.reduce((sum, item) => sum + (item.totalValue || 0), 0) || 0
+                    contractStats?.contractsByStatus?.reduce(
+                      (sum, item) => sum + (item.totalValue || 0),
+                      0,
+                    ) || 0,
                   )}
                 </p>
               </div>
@@ -350,16 +375,34 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
           <CardContent>
             <div className="space-y-4">
               {vendorStats?.vendorsByStatus?.map((status) => {
-                const total = vendorStats.vendorsByStatus.reduce((sum, item) => sum + item.count, 0);
+                const total = vendorStats.vendorsByStatus.reduce(
+                  (sum, item) => sum + item.count,
+                  0,
+                );
                 const percentage = total > 0 ? (status.count / total) * 100 : 0;
-                
+
                 return (
-                  <div key={status.status} className="flex items-center justify-between">
+                  <div
+                    key={status.status}
+                    className="flex items-center justify-between"
+                  >
                     <div className="flex items-center space-x-3">
-                      <Badge className={statusColors[status.status as keyof typeof statusColors]}>
-                        {statusLabels[status.status as keyof typeof statusLabels]}
+                      <Badge
+                        className={
+                          statusColors[
+                            status.status as keyof typeof statusColors
+                          ]
+                        }
+                      >
+                        {
+                          statusLabels[
+                            status.status as keyof typeof statusLabels
+                          ]
+                        }
                       </Badge>
-                      <span className="text-sm text-gray-600">{status.count} vendor</span>
+                      <span className="text-sm text-gray-600">
+                        {status.count} vendor
+                      </span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <div className="w-24">
@@ -387,24 +430,40 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
           <CardContent>
             <div className="space-y-4">
               {vendorStats?.topVendors?.slice(0, 5).map((vendor, index) => {
-                const successRate = vendor.totalProjects > 0 
-                  ? (vendor.successfulProjects / vendor.totalProjects) * 100 
-                  : 0;
-                
+                const successRate =
+                  vendor.totalProjects > 0
+                    ? (vendor.successfulProjects / vendor.totalProjects) * 100
+                    : 0;
+
                 return (
-                  <div key={vendor.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div
+                    key={vendor.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-semibold">
                         {index + 1}
                       </div>
                       <div>
                         <p className="font-medium">{vendor.name}</p>
-                        <p className="text-sm text-gray-500">{vendor.totalProjects} โครงการ</p>
+                        <p className="text-sm text-gray-500">
+                          {vendor.totalProjects} โครงการ
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <Badge className={ratingColors[vendor.overallRating as keyof typeof ratingColors]}>
-                        {ratingLabels[vendor.overallRating as keyof typeof ratingLabels]}
+                      <Badge
+                        className={
+                          ratingColors[
+                            vendor.overallRating as keyof typeof ratingColors
+                          ]
+                        }
+                      >
+                        {
+                          ratingLabels[
+                            vendor.overallRating as keyof typeof ratingLabels
+                          ]
+                        }
                       </Badge>
                       <p className="text-sm text-gray-500 mt-1">
                         สำเร็จ {successRate.toFixed(1)}%
@@ -429,29 +488,42 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
             <div className="space-y-3">
               {contractStats?.expiringContracts?.slice(0, 5).map((contract) => {
                 const daysUntilExpiry = Math.ceil(
-                  (new Date(contract.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                  (new Date(contract.endDate).getTime() -
+                    new Date().getTime()) /
+                    (1000 * 60 * 60 * 24),
                 );
                 const isUrgent = daysUntilExpiry <= 7;
-                
+
                 return (
-                  <div key={contract.id} className={`p-3 border rounded-lg ${isUrgent ? 'border-red-200 bg-red-50' : ''}`}>
+                  <div
+                    key={contract.id}
+                    className={`p-3 border rounded-lg ${isUrgent ? "border-red-200 bg-red-50" : ""}`}
+                  >
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{contract.title}</p>
-                        <p className="text-sm text-gray-500">{contract.vendorName}</p>
+                        <p className="text-sm text-gray-500">
+                          {contract.vendorName}
+                        </p>
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm font-medium ${isUrgent ? 'text-red-600' : 'text-gray-600'}`}>
+                        <p
+                          className={`text-sm font-medium ${isUrgent ? "text-red-600" : "text-gray-600"}`}
+                        >
                           {daysUntilExpiry} วัน
                         </p>
-                        <p className="text-sm text-gray-500">{formatDate(contract.endDate)}</p>
+                        <p className="text-sm text-gray-500">
+                          {formatDate(contract.endDate)}
+                        </p>
                       </div>
                     </div>
                   </div>
                 );
               })}
               {contractStats?.expiringContracts?.length === 0 && (
-                <p className="text-center text-gray-500 py-4">ไม่มีสัญญาที่จะหมดอายุใน 30 วันข้างหน้า</p>
+                <p className="text-center text-gray-500 py-4">
+                  ไม่มีสัญญาที่จะหมดอายุใน 30 วันข้างหน้า
+                </p>
               )}
             </div>
           </CardContent>
@@ -468,14 +540,21 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
           <CardContent>
             <div className="space-y-3">
               {paymentStats?.overduePayments?.slice(0, 5).map((payment) => (
-                <div key={payment.id} className="p-3 border border-red-200 rounded-lg bg-red-50">
+                <div
+                  key={payment.id}
+                  className="p-3 border border-red-200 rounded-lg bg-red-50"
+                >
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">{payment.description}</p>
-                      <p className="text-sm text-gray-500">{payment.vendorName}</p>
+                      <p className="text-sm text-gray-500">
+                        {payment.vendorName}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-red-600">{formatCurrency(payment.amount)}</p>
+                      <p className="font-semibold text-red-600">
+                        {formatCurrency(payment.amount)}
+                      </p>
                       <p className="text-sm text-gray-500">
                         ครบกำหนด {formatDate(payment.dueDate)}
                       </p>
@@ -506,32 +585,46 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {kpiStats?.avgScoresByCategory?.map((category) => (
               <div key={category.category} className="p-4 border rounded-lg">
-                <h4 className="font-medium mb-3 capitalize">{category.category}</h4>
+                <h4 className="font-medium mb-3 capitalize">
+                  {category.category}
+                </h4>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>คุณภาพ</span>
-                    <span className="font-medium">{category.avgQuality?.toFixed(1) || '-'}/10</span>
+                    <span className="font-medium">
+                      {category.avgQuality?.toFixed(1) || "-"}/10
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>ตรงเวลา</span>
-                    <span className="font-medium">{category.avgTimeliness?.toFixed(1) || '-'}/10</span>
+                    <span className="font-medium">
+                      {category.avgTimeliness?.toFixed(1) || "-"}/10
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>ต้นทุน</span>
-                    <span className="font-medium">{category.avgCost?.toFixed(1) || '-'}/10</span>
+                    <span className="font-medium">
+                      {category.avgCost?.toFixed(1) || "-"}/10
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>การสื่อสาร</span>
-                    <span className="font-medium">{category.avgCommunication?.toFixed(1) || '-'}/10</span>
+                    <span className="font-medium">
+                      {category.avgCommunication?.toFixed(1) || "-"}/10
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>เทคนิค</span>
-                    <span className="font-medium">{category.avgTechnical?.toFixed(1) || '-'}/10</span>
+                    <span className="font-medium">
+                      {category.avgTechnical?.toFixed(1) || "-"}/10
+                    </span>
                   </div>
                   <div className="pt-2 mt-2 border-t">
                     <div className="flex justify-between">
                       <span className="font-medium">คะแนนรวม</span>
-                      <span className="font-semibold">{category.avgOverall?.toFixed(1) || '-'}/10</span>
+                      <span className="font-semibold">
+                        {category.avgOverall?.toFixed(1) || "-"}/10
+                      </span>
                     </div>
                   </div>
                 </div>

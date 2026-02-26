@@ -1,4 +1,8 @@
-export type CostSheetStatus = 'Draft' | 'Submitted' | 'ManagerApproved' | 'FinalApproved';
+export type CostSheetStatus =
+  | "Draft"
+  | "Submitted"
+  | "ManagerApproved"
+  | "FinalApproved";
 
 export interface CostSheet {
   id: string;
@@ -10,12 +14,12 @@ export interface CostSheet {
   updatedAt?: string;
 }
 
-export type CostItemType = 'labor' | 'expense';
+export type CostItemType = "labor" | "expense";
 
 export interface LaborItem {
   id: string;
   costSheetId: string;
-  type: 'labor';
+  type: "labor";
   level: string; // เช่น Level 5 : Manager
   position: string; // เช่น Manager
   projectRole: string; // เช่น Project Manager
@@ -36,7 +40,7 @@ export interface LaborItem {
 export interface ExpenseItem {
   id: string;
   costSheetId: string;
-  type: 'expense';
+  type: "expense";
   costCode: string; // เช่น G100010
   description: string; // เช่น เงินเดือน (Manday PM)
   amount?: number; // ให้ PM กรอกเอง (ค่าเริ่มต้นไม่ตั้ง)
@@ -55,4 +59,3 @@ export interface CostCodeCatalog {
   createdAt?: string;
   updatedAt?: string;
 }
-

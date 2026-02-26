@@ -27,7 +27,7 @@ export enum SalesStageEnum {
  */
 export function getSalesStatusLabel(
   status: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -54,10 +54,7 @@ export function getSalesStatusLabel(
 /**
  * Get sales stage label (with Thai support)
  */
-export function getSalesStageLabel(
-  stage: string,
-  lang: string = "en"
-): string {
+export function getSalesStageLabel(stage: string, lang: string = "en"): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
       [SalesStageEnum.LEAD]: "Lead",
@@ -87,7 +84,9 @@ export function getSalesStageLabel(
 /**
  * Get sales page labels (with Thai support)
  */
-export function getSalesPageLabels(lang: string = "en"): Record<string, string> {
+export function getSalesPageLabels(
+  lang: string = "en",
+): Record<string, string> {
   const labels: Record<string, Record<string, string>> = {
     en: {
       title: "Sales",

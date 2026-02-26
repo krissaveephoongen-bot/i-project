@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import Sidebar from './Sidebar';
-import Header from './Header';
+import Sidebar from "./Sidebar";
+import Header from "./Header";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -9,7 +9,11 @@ interface MainLayoutProps {
   breadcrumbs?: { label: string; href?: string }[];
 }
 
-export default function MainLayout({ children, title, breadcrumbs }: MainLayoutProps) {
+export default function MainLayout({
+  children,
+  title,
+  breadcrumbs,
+}: MainLayoutProps) {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -21,9 +25,7 @@ export default function MainLayout({ children, title, breadcrumbs }: MainLayoutP
         <Header title={title} breadcrumbs={breadcrumbs} />
 
         {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
   );

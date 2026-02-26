@@ -1,9 +1,21 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
-import { Input } from '@/app/components/ui/Input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/Select';
-import { Button } from '@/app/components/ui/Button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/Input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/Select";
+import { Button } from "@/app/components/ui/Button";
 import {
   Table,
   TableBody,
@@ -12,8 +24,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/ui/table";
-import { Project, WeeklyData } from '../types';
-import { useThaiLocale } from '@/lib/hooks/useThaiLocale';
+import { Project, WeeklyData } from "../types";
+import { useThaiLocale } from "@/lib/hooks/useThaiLocale";
 
 interface WeeklyViewProps {
   weekly: WeeklyData | null;
@@ -32,7 +44,7 @@ export default function WeeklyView({
   weeklyProject,
   setWeeklyProject,
   projects,
-  onSearch
+  onSearch,
 }: WeeklyViewProps) {
   const { formatThaiDate, formatNumber, isThaiLanguage } = useThaiLocale();
 
@@ -44,11 +56,11 @@ export default function WeeklyView({
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-4 mb-6">
-          <Input 
-            type="date" 
-            className="w-auto rounded-xl" 
-            value={weeklyStart} 
-            onChange={e => setWeeklyStart(e.target.value)} 
+          <Input
+            type="date"
+            className="w-auto rounded-xl"
+            value={weeklyStart}
+            onChange={(e) => setWeeklyStart(e.target.value)}
           />
           <Select value={weeklyProject} onValueChange={setWeeklyProject}>
             <SelectTrigger className="w-[200px] rounded-xl">
@@ -56,10 +68,16 @@ export default function WeeklyView({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">ทุกโครงการ</SelectItem>
-              {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Button onClick={onSearch} className="rounded-xl">ค้นหา</Button>
+          <Button onClick={onSearch} className="rounded-xl">
+            ค้นหา
+          </Button>
         </div>
 
         <div className="rounded-xl border border-slate-200 overflow-hidden">
@@ -67,21 +85,32 @@ export default function WeeklyView({
             <TableHeader className="bg-slate-50">
               <TableRow>
                 <TableHead>พนักงาน</TableHead>
-                {(weekly?.days || []).map(d => (
+                {(weekly?.days || []).map((d) => (
                   <TableHead key={d} className="text-center">
-                    {new Date(d).toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric' })}
+                    {new Date(d).toLocaleDateString("th-TH", {
+                      weekday: "short",
+                      day: "numeric",
+                    })}
                   </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(weekly?.data || []).map(row => (
+              {(weekly?.data || []).map((row) => (
                 <TableRow key={row.userId}>
                   <TableCell className="font-medium">{row.name}</TableCell>
-                  {(weekly?.days || []).map(d => (
+                  {(weekly?.days || []).map((d) => (
                     <TableCell key={d} className="text-center">
-                      <span className={Number(row.dailyHours[d] || 0) > 0 ? 'text-blue-600 font-bold' : 'text-slate-300'}>
-                        {row.dailyHours[d] ? Number(row.dailyHours[d]).toFixed(1) : '-'}
+                      <span
+                        className={
+                          Number(row.dailyHours[d] || 0) > 0
+                            ? "text-blue-600 font-bold"
+                            : "text-slate-300"
+                        }
+                      >
+                        {row.dailyHours[d]
+                          ? Number(row.dailyHours[d]).toFixed(1)
+                          : "-"}
                       </span>
                     </TableCell>
                   ))}
@@ -89,7 +118,10 @@ export default function WeeklyView({
               ))}
               {(!weekly?.data || weekly.data.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={(weekly?.days?.length || 0) + 1} className="h-24 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={(weekly?.days?.length || 0) + 1}
+                    className="h-24 text-center text-muted-foreground"
+                  >
                     ไม่พบข้อมูลสำหรับสัปดาห์นี้
                   </TableCell>
                 </TableRow>

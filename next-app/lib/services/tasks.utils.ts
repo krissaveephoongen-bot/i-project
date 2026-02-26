@@ -31,7 +31,7 @@ export enum TaskCategoryEnum {
  */
 export function getTaskStatusLabel(
   status: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -58,7 +58,7 @@ export function getTaskStatusLabel(
  */
 export function getTaskPriorityLabel(
   priority: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -83,7 +83,7 @@ export function getTaskPriorityLabel(
  */
 export function getTaskCategoryLabel(
   category: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {

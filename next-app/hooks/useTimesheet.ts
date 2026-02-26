@@ -37,7 +37,7 @@ export function useMonthlyTimesheet(
   userId: string,
   year: number,
   month: number,
-  enabled: boolean = true
+  enabled: boolean = true,
 ) {
   return useQuery({
     queryKey: ["timesheet", userId, year, month],
@@ -53,7 +53,7 @@ export function useMonthlyTimesheet(
 export function useTimesheetByDate(
   userId: string,
   date: string,
-  enabled: boolean = true
+  enabled: boolean = true,
 ) {
   return useQuery({
     queryKey: ["timesheet", userId, "date", date],
@@ -82,7 +82,7 @@ export function useMonthlyTimeSheetSummary(
   userId: string,
   year: number,
   month: number,
-  enabled: boolean = true
+  enabled: boolean = true,
 ) {
   return useQuery({
     queryKey: ["timesheet-summary", userId, year, month],
@@ -100,7 +100,7 @@ export function useProjectHours(
   projectId: string,
   year: number,
   month: number,
-  enabled: boolean = true
+  enabled: boolean = true,
 ) {
   return useQuery({
     queryKey: ["project-hours", userId, projectId, year, month],
@@ -191,13 +191,8 @@ export function useAddTimeEntryComment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      entryId,
-      comment,
-    }: {
-      entryId: string;
-      comment: string;
-    }) => addTimeEntryComment(entryId, comment),
+    mutationFn: ({ entryId, comment }: { entryId: string; comment: string }) =>
+      addTimeEntryComment(entryId, comment),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["timesheet-comments", variables.entryId],
@@ -209,10 +204,7 @@ export function useAddTimeEntryComment() {
 /**
  * Fetch comments for a time entry
  */
-export function useTimeEntryComments(
-  entryId: string,
-  enabled: boolean = true
-) {
+export function useTimeEntryComments(entryId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: ["timesheet-comments", entryId],
     queryFn: () => getTimeEntryComments(entryId),
@@ -287,7 +279,10 @@ export function useRejectTimeEntries() {
 /**
  * Fetch pending approvals for manager
  */
-export function usePendingApprovals(managerId: string, enabled: boolean = true) {
+export function usePendingApprovals(
+  managerId: string,
+  enabled: boolean = true,
+) {
   return useQuery({
     queryKey: ["pending-approvals", managerId],
     queryFn: () => getPendingApprovals(managerId),

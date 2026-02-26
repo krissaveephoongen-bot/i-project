@@ -42,7 +42,7 @@ export function timeToDecimalHours(time: string): number {
  */
 export function calculateHoursBetween(
   startTime: string,
-  endTime: string
+  endTime: string,
 ): number {
   const startMinutes = timeToMinutes(startTime);
   const endMinutes = timeToMinutes(endTime);
@@ -62,7 +62,7 @@ export function calculateHoursBetween(
  */
 export function calculateMinutesBetween(
   startTime: string,
-  endTime: string
+  endTime: string,
 ): number {
   const startMinutes = timeToMinutes(startTime);
   const endMinutes = timeToMinutes(endTime);
@@ -82,7 +82,7 @@ export function calculateMinutesBetween(
 export function calculateBusinessDays(
   startDate: Date,
   endDate: Date,
-  weekends: number[] = [0, 6]
+  weekends: number[] = [0, 6],
 ): number {
   let count = 0;
   const current = new Date(startDate);
@@ -110,7 +110,7 @@ export function isWeekend(date: Date, weekends: number[] = [0, 6]): boolean {
 export function getBusinessDaysInMonth(
   year: number,
   month: number,
-  weekends: number[] = [0, 6]
+  weekends: number[] = [0, 6],
 ): number {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0);
@@ -182,7 +182,7 @@ export function calculateTotalHours(entries: Array<{ hours: number }>): number {
  * Calculate total hours by work type
  */
 export function calculateHoursByType(
-  entries: Array<{ workType: string; hours: number }>
+  entries: Array<{ workType: string; hours: number }>,
 ): Record<string, number> {
   const result: Record<string, number> = {};
 
@@ -201,7 +201,7 @@ export function calculateHoursByType(
  */
 export function exceedsDailyLimit(
   hours: number,
-  dailyLimit: number = 8
+  dailyLimit: number = 8,
 ): boolean {
   return hours > dailyLimit;
 }
@@ -209,10 +209,7 @@ export function exceedsDailyLimit(
 /**
  * Check if hours meet minimum requirement
  */
-export function meetsMinimum(
-  hours: number,
-  minimumHours: number = 4
-): boolean {
+export function meetsMinimum(hours: number, minimumHours: number = 4): boolean {
   return hours >= minimumHours;
 }
 
@@ -287,11 +284,13 @@ export function getEndOfWeek(date: Date, startDay: number = 0): Date {
  * Get week number for a date
  */
 export function getWeekNumber(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
 /**
@@ -309,7 +308,7 @@ export function compareTime(time1: string, time2: string): number {
 export function clampTime(
   time: string,
   minTime: string,
-  maxTime: string
+  maxTime: string,
 ): string {
   const minutes = timeToMinutes(time);
   const minMinutes = timeToMinutes(minTime);
@@ -341,14 +340,19 @@ export function addMinutesToTime(time: string, minutesToAdd: number): string {
 /**
  * Calculate break duration
  */
-export function calculateBreakDuration(entries: Array<{ breakDuration?: number }>): number {
+export function calculateBreakDuration(
+  entries: Array<{ breakDuration?: number }>,
+): number {
   return entries.reduce((sum, entry) => sum + (entry.breakDuration || 0), 0);
 }
 
 /**
  * Calculate net hours (total - break)
  */
-export function calculateNetHours(totalMinutes: number, breakMinutes: number = 0): number {
+export function calculateNetHours(
+  totalMinutes: number,
+  breakMinutes: number = 0,
+): number {
   return (totalMinutes - breakMinutes) / 60;
 }
 

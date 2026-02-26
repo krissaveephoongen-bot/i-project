@@ -1,7 +1,7 @@
 /**
  * EXAMPLE: Complete Authentication Flow
  * This file demonstrates the proper auth implementation
- * 
+ *
  * DO NOT use this in production - it's for documentation
  */
 
@@ -9,9 +9,9 @@
 // BACKEND: Protected API Route Example
 // ============================================================================
 
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, isManagerOrAdmin } from '@/lib/auth-middleware';
-import { supabase } from '@/app/lib/supabaseClient';
+import { NextRequest, NextResponse } from "next/server";
+import { verifyAuth, isManagerOrAdmin } from "@/lib/auth-middleware";
+import { supabase } from "@/app/lib/supabaseClient";
 
 /**
  * Example: Get user's projects (requires authentication)
@@ -24,22 +24,22 @@ export async function GET_PROTECTED_EXAMPLE(request: NextRequest) {
   // Step 2: Optional - Check role
   if (!isManagerOrAdmin(user.role)) {
     return NextResponse.json(
-      { error: 'Only managers and admins can access this' },
-      { status: 403 }
+      { error: "Only managers and admins can access this" },
+      { status: 403 },
     );
   }
 
   // Step 3: Fetch data
   const { data: projects } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('manager_id', user.id);
+    .from("projects")
+    .select("*")
+    .eq("manager_id", user.id);
 
   // Step 4: Return response
   return NextResponse.json({
     user: user.id,
     projects: projects || [],
-    message: 'Projects retrieved successfully'
+    message: "Projects retrieved successfully",
   });
 }
 
@@ -49,7 +49,7 @@ export async function GET_PROTECTED_EXAMPLE(request: NextRequest) {
 
 /**
  * 'use client';
- * 
+ *
  * import { useState } from 'react';
  * import { useRouter } from 'next/navigation';
  * import { useAuthToken } from '@/hooks/useAuthToken';
@@ -125,7 +125,7 @@ export async function GET_PROTECTED_EXAMPLE(request: NextRequest) {
 
 /**
  * 'use client';
- * 
+ *
  * import { useEffect, useState } from 'react';
  * import { api } from '@/lib/api-client';
  *
@@ -175,7 +175,7 @@ export async function GET_PROTECTED_EXAMPLE(request: NextRequest) {
 
 /**
  * 'use client';
- * 
+ *
  * import { useEffect } from 'react';
  * import { useAuthToken } from '@/hooks/useAuthToken';
  * import { initializeApiClient } from '@/lib/api-client';
@@ -278,12 +278,12 @@ export async function GET_PROTECTED_EXAMPLE(request: NextRequest) {
 
 /**
  * AUTH_TOKENS Table Structure:
- * 
+ *
  * | id | user_id | token | token_type | expires_at | revoked_at | created_at |
  * |----|---------|-------|------------|-----------|-----------|-----------|
  * | UUID | UUID | JWT string | 'access' | 2024-02-12 10:00 | NULL | 2024-02-11 10:00 |
  * | UUID | UUID | JWT string | 'refresh' | 2024-02-18 10:00 | NULL | 2024-02-11 10:00 |
- * 
+ *
  * -----------------------------------------------------------------------
  *
  * SESSIONS Table Structure:
@@ -299,11 +299,11 @@ export async function GET_PROTECTED_EXAMPLE(request: NextRequest) {
 
 /**
  * Error Codes & Status Codes:
- * 
+ *
  * 400 Bad Request
  * - Missing email/password in login
  * - Invalid request format
- * 
+ *
  * 401 Unauthorized
  * - MISSING_AUTH_HEADER: No Authorization header provided
  * - INVALID_AUTH_FORMAT: Wrong header format (not "Bearer <token>")
@@ -312,13 +312,13 @@ export async function GET_PROTECTED_EXAMPLE(request: NextRequest) {
  * - USER_NOT_FOUND: User associated with token doesn't exist
  * - USER_INACTIVE: User account is deactivated or deleted
  * - Invalid email or password: Login failed
- * 
+ *
  * 403 Forbidden
  * - User doesn't have required role/permissions
- * 
+ *
  * 423 Locked
  * - Account is temporarily locked (5 failed login attempts)
- * 
+ *
  * 500 Internal Server Error
  * - Unexpected server error
  */

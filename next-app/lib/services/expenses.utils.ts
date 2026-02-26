@@ -36,7 +36,7 @@ export enum PaymentMethodEnum {
  */
 export function getExpenseStatusLabel(
   status: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -65,7 +65,7 @@ export function getExpenseStatusLabel(
  */
 export function getExpenseCategoryLabel(
   category: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -100,7 +100,7 @@ export function getExpenseCategoryLabel(
  */
 export function getPaymentMethodLabel(
   method: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -126,7 +126,7 @@ export function getPaymentMethodLabel(
  * Get expense page labels (with Thai support)
  */
 export function getExpensePageLabels(
-  lang: string = "en"
+  lang: string = "en",
 ): Record<string, string> {
   const labels: Record<string, Record<string, string>> = {
     en: {

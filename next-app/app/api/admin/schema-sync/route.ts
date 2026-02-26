@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { runSchemaSync } from '../../_lib/schema';
+import { NextResponse } from "next/server";
+import { runSchemaSync } from "../../_lib/schema";
 
 export async function GET() {
   try {

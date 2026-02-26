@@ -1,7 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState, useEffect } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface FinancialData {
   month: string;
@@ -16,13 +24,15 @@ export function FinancialChart() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/dashboard/financial', { cache: 'no-store' });
+        const res = await fetch("/api/dashboard/financial", {
+          cache: "no-store",
+        });
         const rows = await res.json();
         const mapped: FinancialData[] = (rows || []).map((r: any) => ({
           month: r.month,
           revenue: Number(r.revenue || 0),
           expenses: Number(r.cost || 0),
-          profit: Number(r.revenue || 0) - Number(r.cost || 0)
+          profit: Number(r.revenue || 0) - Number(r.cost || 0),
         }));
         setData(mapped);
       } catch {
@@ -41,9 +51,24 @@ export function FinancialChart() {
           <XAxis dataKey="month" />
           <YAxis />
           <Tooltip />
-          <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} />
-          <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} />
-          <Line type="monotone" dataKey="profit" stroke="#3b82f6" strokeWidth={2} />
+          <Line
+            type="monotone"
+            dataKey="revenue"
+            stroke="#10b981"
+            strokeWidth={2}
+          />
+          <Line
+            type="monotone"
+            dataKey="expenses"
+            stroke="#ef4444"
+            strokeWidth={2}
+          />
+          <Line
+            type="monotone"
+            dataKey="profit"
+            stroke="#3b82f6"
+            strokeWidth={2}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>

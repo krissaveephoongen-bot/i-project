@@ -1,6 +1,6 @@
-import WeeklyActivities from '@/app/components/WeeklyActivities';
+import WeeklyActivities from "@/app/components/WeeklyActivities";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default function WeeklyActivitiesPage() {
   return (
@@ -14,7 +14,7 @@ export default function WeeklyActivitiesPage() {
             ติดตามและดูรายละเอียดกิจกรรมของพนักงานในแต่ละสัปดาห์
           </p>
         </div>
-        
+
         <WeeklyActivities />
       </div>
     </div>

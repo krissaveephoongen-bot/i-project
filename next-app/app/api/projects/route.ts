@@ -1,69 +1,48 @@
-
-import { ok, err } from '../_lib/db';
-import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
-import redis from '@/lib/redis';
+import { ok, err } from "../_lib/db";
 
 export const revalidate = 60;
 
 export async function GET() {
   try {
-    if (!supabaseAdmin) return err('admin client missing', 500);
+    // Use the backend API instead of direct database access
+    const backendUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-    // Try to get from Redis cache first
-    const cacheKey = 'projects:all';
-    const cachedProjects = await redis.get(cacheKey);
-    
-    if (cachedProjects) {
-      console.log('Cache hit for projects');
-      return ok(JSON.parse(cachedProjects), 200);
+    const response = await fetch(`${backendUrl}/api/projects`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Backend API error: ${response.status} ${response.statusText}`,
+      );
     }
 
-    console.log('Cache miss for projects, fetching from database');
+    const projects = await response.json();
 
-    // Fetch projects first
-    const { data: projects, error } = await supabaseAdmin
-      .from('projects')
-      .select('*')
-      .order('updated_at', { ascending: false })
-      .order('name', { ascending: true });
-      
-    if (error) throw error;
-
-    if (!projects || projects.length === 0) {
-      await redis.set(cacheKey, '[]', { EX: 300 }); // Cache for 5 minutes
-      return ok([], 200);
-    }
-
-    // Manually fetch managers and clients to avoid "ambiguous relationship" errors
-    const manager_ids = Array.from(new Set(projects.map((p: any) => p.manager_id).filter(Boolean)));
-    const client_ids = Array.from(new Set(projects.map((p: any) => p.client_id).filter(Boolean)));
-
-    let managersMap: Record<string, any> = {};
-    let clientsMap: Record<string, any> = {};
-
-    if (manager_ids.length > 0) {
-      const { data: managers } = await supabaseAdmin.from('users').select('id,name').in('id', manager_ids);
-      managers?.forEach((m: any) => managersMap[m.id] = m);
-    }
-
-    if (client_ids.length > 0) {
-      const { data: clients } = await supabaseAdmin.from('clients').select('id,name').in('id', client_ids);
-      clients?.forEach((c: any) => clientsMap[c.id] = c);
-    }
-
-    // Attach details
+    // Transform field names to camelCase for consistency
     const enrichedProjects = projects.map((p: any) => ({
       ...p,
-      manager: managersMap[p.manager_id] || null,
-      client: clientsMap[p.client_id] || null
+      // Transform snake_case to camelCase for consistency
+      managerId: p.manager_id,
+      clientId: p.client_id,
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
+      startDate: p.start_date,
+      endDate: p.end_date,
+      hourlyRate: p.hourly_rate,
+      isArchived: p.is_archived,
+      warrantyStartDate: p.warranty_start_date,
+      warrantyEndDate: p.warranty_end_date,
+      closureChecklist: p.closure_checklist,
     }));
 
-    // Cache the enriched projects for 5 minutes
-    await redis.set(cacheKey, JSON.stringify(enrichedProjects), { EX: 300 });
-    console.log('Cached enriched projects for 5 minutes');
-    
     return ok(enrichedProjects, 200);
   } catch (e: any) {
-    return err(e?.message || 'error', 500);
+    console.error("Projects API error:", e);
+    return err(e?.message || "error", 500);
   }
 }

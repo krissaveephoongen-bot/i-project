@@ -19,7 +19,7 @@ export enum ClientTypeEnum {
  */
 export function getClientStatusLabel(
   status: string,
-  lang: string = "en"
+  lang: string = "en",
 ): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
@@ -40,10 +40,7 @@ export function getClientStatusLabel(
 /**
  * Get client type label (with Thai support)
  */
-export function getClientTypeLabel(
-  type: string,
-  lang: string = "en"
-): string {
+export function getClientTypeLabel(type: string, lang: string = "en"): string {
   const labels: Record<string, Record<string, string>> = {
     en: {
       [ClientTypeEnum.INDIVIDUAL]: "Individual",
@@ -63,7 +60,9 @@ export function getClientTypeLabel(
 /**
  * Get client page labels (with Thai support)
  */
-export function getClientPageLabels(lang: string = "en"): Record<string, string> {
+export function getClientPageLabels(
+  lang: string = "en",
+): Record<string, string> {
   const labels: Record<string, Record<string, string>> = {
     en: {
       title: "Clients",

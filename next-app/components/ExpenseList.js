@@ -9,19 +9,21 @@ function ExpenseList() {
 
     const loadExpenses = async () => {
       try {
-        if (typeof trickleListObjects !== 'function') {
-          console.log('Database not available');
+        if (typeof trickleListObjects !== "function") {
+          console.log("Database not available");
           setExpenses([]);
           setLoading(false);
           return;
         }
-        const result = await trickleListObjects('expense', 20, true).catch(err => {
-          console.log('Expense fetch failed:', err.message);
-          return { items: [] };
-        });
+        const result = await trickleListObjects("expense", 20, true).catch(
+          (err) => {
+            console.log("Expense fetch failed:", err.message);
+            return { items: [] };
+          },
+        );
         setExpenses(result?.items || []);
       } catch (error) {
-        console.log('Error loading expenses:', error.message);
+        console.log("Error loading expenses:", error.message);
         setExpenses([]);
       } finally {
         setLoading(false);
@@ -30,21 +32,31 @@ function ExpenseList() {
 
     const getStatusColor = (status) => {
       switch (status) {
-        case 'approved': return 'status-completed';
-        case 'pending': return 'status-review';
-        case 'rejected': return 'bg-red-100 text-red-800';
-        case 'draft': return 'status-todo';
-        default: return 'status-todo';
+        case "approved":
+          return "status-completed";
+        case "pending":
+          return "status-review";
+        case "rejected":
+          return "bg-red-100 text-red-800";
+        case "draft":
+          return "status-todo";
+        default:
+          return "status-todo";
       }
     };
 
     const getStatusText = (status) => {
       switch (status) {
-        case 'approved': return 'อนุมัติแล้ว';
-        case 'pending': return 'รออนุมัติ';
-        case 'rejected': return 'ถูกปฏิเสธ';
-        case 'draft': return 'ร่าง';
-        default: return 'ไม่ทราบสถานะ';
+        case "approved":
+          return "อนุมัติแล้ว";
+        case "pending":
+          return "รออนุมัติ";
+        case "rejected":
+          return "ถูกปฏิเสธ";
+        case "draft":
+          return "ร่าง";
+        default:
+          return "ไม่ทราบสถานะ";
       }
     };
 
@@ -53,7 +65,11 @@ function ExpenseList() {
     }
 
     return (
-      <div className="space-y-4" data-name="expense-list" data-file="components/ExpenseList.js">
+      <div
+        className="space-y-4"
+        data-name="expense-list"
+        data-file="components/ExpenseList.js"
+      >
         <div className="card">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -61,17 +77,26 @@ function ExpenseList() {
                 <tr className="border-b border-[var(--border-color)]">
                   <th className="text-left py-3 px-4 font-medium">วันที่</th>
                   <th className="text-left py-3 px-4 font-medium">หมวดหมู่</th>
-                  <th className="text-left py-3 px-4 font-medium">รายละเอียด</th>
+                  <th className="text-left py-3 px-4 font-medium">
+                    รายละเอียด
+                  </th>
                   <th className="text-left py-3 px-4 font-medium">จำนวนเงิน</th>
                   <th className="text-left py-3 px-4 font-medium">สถานะ</th>
-                  <th className="text-left py-3 px-4 font-medium">การดำเนินการ</th>
+                  <th className="text-left py-3 px-4 font-medium">
+                    การดำเนินการ
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {expenses.map((expense) => (
-                  <tr key={expense.objectId} className="border-b border-[var(--border-color)] hover:bg-[var(--secondary-color)]">
+                  <tr
+                    key={expense.objectId}
+                    className="border-b border-[var(--border-color)] hover:bg-[var(--secondary-color)]"
+                  >
                     <td className="py-3 px-4">
-                      {new Date(expense.objectData.Date).toLocaleDateString('th-TH')}
+                      {new Date(expense.objectData.Date).toLocaleDateString(
+                        "th-TH",
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -79,13 +104,17 @@ function ExpenseList() {
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="max-w-xs truncate">{expense.objectData.Description}</div>
+                      <div className="max-w-xs truncate">
+                        {expense.objectData.Description}
+                      </div>
                     </td>
                     <td className="py-3 px-4 font-medium">
-                      ฿{expense.objectData.Amount?.toLocaleString() || '0'}
+                      ฿{expense.objectData.Amount?.toLocaleString() || "0"}
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`status-badge ${getStatusColor(expense.objectData.Status)}`}>
+                      <span
+                        className={`status-badge ${getStatusColor(expense.objectData.Status)}`}
+                      >
                         {getStatusText(expense.objectData.Status)}
                       </span>
                     </td>
@@ -94,7 +123,7 @@ function ExpenseList() {
                         <button className="p-1 hover:bg-gray-200 rounded">
                           <div className="icon-eye text-sm text-[var(--text-secondary)]"></div>
                         </button>
-                        {expense.objectData.Status === 'draft' && (
+                        {expense.objectData.Status === "draft" && (
                           <button className="p-1 hover:bg-gray-200 rounded">
                             <div className="icon-edit text-sm text-[var(--text-secondary)]"></div>
                           </button>
@@ -116,7 +145,7 @@ function ExpenseList() {
       </div>
     );
   } catch (error) {
-    console.error('ExpenseList component error:', error);
+    console.error("ExpenseList component error:", error);
     return null;
   }
 }

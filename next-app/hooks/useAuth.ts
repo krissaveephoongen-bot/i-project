@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 export function useAuth() {
   const [user, setUser] = useState<any>(null);
@@ -38,7 +38,7 @@ export function useAuth() {
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
-    
+
     if (error) {
       throw new Error(error.message);
     }
@@ -59,27 +59,27 @@ export function useStaffAuth() {
 
   useEffect(() => {
     // Only access localStorage on client side
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
-        const token = localStorage.getItem('staffToken');
-        const userData = localStorage.getItem('staffUser');
-        
+        const token = localStorage.getItem("staffToken");
+        const userData = localStorage.getItem("staffUser");
+
         if (token && userData) {
           setUser(JSON.parse(userData));
         }
       } catch (error) {
-        console.error('Error accessing localStorage:', error);
+        console.error("Error accessing localStorage:", error);
       }
     }
-    
+
     setLoading(false);
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const response = await fetch('/api/staff/login', {
-      method: 'POST',
+    const response = await fetch("/api/staff/login", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ email, password }),
     });
@@ -87,16 +87,16 @@ export function useStaffAuth() {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
+      throw new Error(data.error || "Login failed");
     }
 
     // Store token and user data (only on client side)
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
-        localStorage.setItem('staffToken', data.token);
-        localStorage.setItem('staffUser', JSON.stringify(data.user));
+        localStorage.setItem("staffToken", data.token);
+        localStorage.setItem("staffUser", JSON.stringify(data.user));
       } catch (error) {
-        console.error('Error storing in localStorage:', error);
+        console.error("Error storing in localStorage:", error);
       }
     }
     setUser(data.user);
@@ -106,12 +106,12 @@ export function useStaffAuth() {
 
   const signOut = () => {
     // Remove token and user data (only on client side)
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
-        localStorage.removeItem('staffToken');
-        localStorage.removeItem('staffUser');
+        localStorage.removeItem("staffToken");
+        localStorage.removeItem("staffUser");
       } catch (error) {
-        console.error('Error removing from localStorage:', error);
+        console.error("Error removing from localStorage:", error);
       }
     }
     setUser(null);
@@ -132,27 +132,27 @@ export function useVendorAuth() {
 
   useEffect(() => {
     // Only access localStorage on client side
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
-        const token = localStorage.getItem('vendorToken');
-        const userData = localStorage.getItem('vendorUser');
-        
+        const token = localStorage.getItem("vendorToken");
+        const userData = localStorage.getItem("vendorUser");
+
         if (token && userData) {
           setUser(JSON.parse(userData));
         }
       } catch (error) {
-        console.error('Error accessing localStorage:', error);
+        console.error("Error accessing localStorage:", error);
       }
     }
-    
+
     setLoading(false);
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const response = await fetch('/api/vendor/login', {
-      method: 'POST',
+    const response = await fetch("/api/vendor/login", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ email, password }),
     });
@@ -160,16 +160,16 @@ export function useVendorAuth() {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
+      throw new Error(data.error || "Login failed");
     }
 
     // Store token and user data (only on client side)
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
-        localStorage.setItem('vendorToken', data.token);
-        localStorage.setItem('vendorUser', JSON.stringify(data.user));
+        localStorage.setItem("vendorToken", data.token);
+        localStorage.setItem("vendorUser", JSON.stringify(data.user));
       } catch (error) {
-        console.error('Error storing in localStorage:', error);
+        console.error("Error storing in localStorage:", error);
       }
     }
     setUser(data.user);
@@ -179,12 +179,12 @@ export function useVendorAuth() {
 
   const signOut = () => {
     // Remove token and user data (only on client side)
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
-        localStorage.removeItem('vendorToken');
-        localStorage.removeItem('vendorUser');
+        localStorage.removeItem("vendorToken");
+        localStorage.removeItem("vendorUser");
       } catch (error) {
-        console.error('Error removing from localStorage:', error);
+        console.error("Error removing from localStorage:", error);
       }
     }
     setUser(null);

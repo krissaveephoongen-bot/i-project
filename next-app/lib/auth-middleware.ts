@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { extractTokenFromHeader, verifyToken } from './auth-utils';
-import { supabase } from '@/app/lib/supabaseClient';
+import { NextRequest, NextResponse } from "next/server";
+import { extractTokenFromHeader, verifyToken } from "./auth-utils";
+import { supabase } from "@/app/lib/supabaseClient";
 
 /**
  * Middleware to verify JWT token and attach user info to request
@@ -11,15 +11,15 @@ import { supabase } from '@/app/lib/supabaseClient';
  */
 export async function verifyAuth(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
+    const authHeader = request.headers.get("authorization");
 
     if (!authHeader) {
       return {
         user: null,
         response: NextResponse.json(
-          { error: 'Unauthorized', code: 'MISSING_AUTH_HEADER' },
-          { status: 401 }
-        )
+          { error: "Unauthorized", code: "MISSING_AUTH_HEADER" },
+          { status: 401 },
+        ),
       };
     }
 
@@ -29,31 +29,34 @@ export async function verifyAuth(request: NextRequest) {
       return {
         user: null,
         response: NextResponse.json(
-          { error: 'Invalid authorization header format', code: 'INVALID_AUTH_FORMAT' },
-          { status: 401 }
-        )
+          {
+            error: "Invalid authorization header format",
+            code: "INVALID_AUTH_FORMAT",
+          },
+          { status: 401 },
+        ),
       };
     }
 
     // Verify JWT
     const payload = verifyToken(token);
 
-    if (!payload || payload.type !== 'access') {
+    if (!payload || payload.type !== "access") {
       return {
         user: null,
         response: NextResponse.json(
-          { error: 'Invalid or expired token', code: 'INVALID_TOKEN' },
-          { status: 401 }
-        )
+          { error: "Invalid or expired token", code: "INVALID_TOKEN" },
+          { status: 401 },
+        ),
       };
     }
 
     // Check if token is revoked in database
     const { data: authTokens } = await supabase
-      .from('auth_tokens')
-      .select('revoked_at')
-      .eq('token', token)
-      .eq('token_type', 'access')
+      .from("auth_tokens")
+      .select("revoked_at")
+      .eq("token", token)
+      .eq("token_type", "access")
       .limit(1);
 
     const authToken = authTokens?.[0];
@@ -62,17 +65,17 @@ export async function verifyAuth(request: NextRequest) {
       return {
         user: null,
         response: NextResponse.json(
-          { error: 'Token has been revoked', code: 'TOKEN_REVOKED' },
-          { status: 401 }
-        )
+          { error: "Token has been revoked", code: "TOKEN_REVOKED" },
+          { status: 401 },
+        ),
       };
     }
 
     // Get user
     const { data: users } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', payload.userId)
+      .from("users")
+      .select("*")
+      .eq("id", payload.userId)
       .limit(1);
 
     const user = users?.[0];
@@ -81,9 +84,9 @@ export async function verifyAuth(request: NextRequest) {
       return {
         user: null,
         response: NextResponse.json(
-          { error: 'User not found', code: 'USER_NOT_FOUND' },
-          { status: 401 }
-        )
+          { error: "User not found", code: "USER_NOT_FOUND" },
+          { status: 401 },
+        ),
       };
     }
 
@@ -91,9 +94,12 @@ export async function verifyAuth(request: NextRequest) {
       return {
         user: null,
         response: NextResponse.json(
-          { error: 'User account is inactive or deleted', code: 'USER_INACTIVE' },
-          { status: 401 }
-        )
+          {
+            error: "User account is inactive or deleted",
+            code: "USER_INACTIVE",
+          },
+          { status: 401 },
+        ),
       };
     }
 
@@ -106,18 +112,18 @@ export async function verifyAuth(request: NextRequest) {
         position: user.position,
         department: user.department,
         avatar: user.avatar,
-        isActive: user.is_active
+        isActive: user.is_active,
       },
-      response: null
+      response: null,
     };
   } catch (error) {
-    console.error('Auth verification error:', error);
+    console.error("Auth verification error:", error);
     return {
       user: null,
       response: NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      )
+        { error: "Internal server error" },
+        { status: 500 },
+      ),
     };
   }
 }
@@ -133,12 +139,12 @@ export function requireRole(userRole: string, allowedRoles: string[]): boolean {
  * Verify user is admin
  */
 export function isAdmin(userRole: string): boolean {
-  return userRole === 'admin';
+  return userRole === "admin";
 }
 
 /**
  * Verify user is manager or admin
  */
 export function isManagerOrAdmin(userRole: string): boolean {
-  return ['admin', 'manager'].includes(userRole);
+  return ["admin", "manager"].includes(userRole);
 }

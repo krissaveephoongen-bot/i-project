@@ -1,12 +1,25 @@
 // next-app/components/VendorList.tsx
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Search, Filter, Plus, Edit, Trash2, Eye } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+import { Search, Filter, Plus, Edit, Trash2, Eye } from "lucide-react";
 
 interface Vendor {
   id: string;
@@ -38,71 +51,71 @@ const VendorList: React.FC<VendorListProps> = ({
   onEdit,
   onView,
   onDelete,
-  onCreateNew
+  onCreateNew,
 }) => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<string>('all');
-  const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   const vendorTypes = [
-    { value: 'company', label: 'บริษัท' },
-    { value: 'individual', label: 'บุคคลธรรมดา' },
-    { value: 'partnership', label: 'ห้างหุ้นส่วน' },
-    { value: 'government', label: 'หน่วยงานราชการ' }
+    { value: "company", label: "บริษัท" },
+    { value: "individual", label: "บุคคลธรรมดา" },
+    { value: "partnership", label: "ห้างหุ้นส่วน" },
+    { value: "government", label: "หน่วยงานราชการ" },
   ];
 
   const vendorCategories = [
-    { value: 'hardware', label: 'อุปกรณ์คอมพิวเตอร์' },
-    { value: 'software', label: 'ซอฟต์แวร์' },
-    { value: 'custom_software', label: 'ซอฟต์แวร์ตามสั่ง' },
-    { value: 'materials', label: 'วัสดุอุปกรณ์' },
-    { value: 'services', label: 'บริการ' },
-    { value: 'consulting', label: 'ที่ปรึกษา' },
-    { value: 'maintenance', label: 'บำรุงรักษา' },
-    { value: 'licensing', label: 'ลิขสิทธิ์' }
+    { value: "hardware", label: "อุปกรณ์คอมพิวเตอร์" },
+    { value: "software", label: "ซอฟต์แวร์" },
+    { value: "custom_software", label: "ซอฟต์แวร์ตามสั่ง" },
+    { value: "materials", label: "วัสดุอุปกรณ์" },
+    { value: "services", label: "บริการ" },
+    { value: "consulting", label: "ที่ปรึกษา" },
+    { value: "maintenance", label: "บำรุงรักษา" },
+    { value: "licensing", label: "ลิขสิทธิ์" },
   ];
 
   const statusOptions = [
-    { value: 'active', label: 'ใช้งาน' },
-    { value: 'inactive', label: 'ไม่ใช้งาน' },
-    { value: 'suspended', label: 'ระงับ' },
-    { value: 'blacklisted', label: 'บัญชีดำ' }
+    { value: "active", label: "ใช้งาน" },
+    { value: "inactive", label: "ไม่ใช้งาน" },
+    { value: "suspended", label: "ระงับ" },
+    { value: "blacklisted", label: "บัญชีดำ" },
   ];
 
   const ratingColors = {
-    excellent: 'bg-green-100 text-green-800',
-    good: 'bg-blue-100 text-blue-800',
-    satisfactory: 'bg-yellow-100 text-yellow-800',
-    needs_improvement: 'bg-orange-100 text-orange-800',
-    poor: 'bg-red-100 text-red-800'
+    excellent: "bg-green-100 text-green-800",
+    good: "bg-blue-100 text-blue-800",
+    satisfactory: "bg-yellow-100 text-yellow-800",
+    needs_improvement: "bg-orange-100 text-orange-800",
+    poor: "bg-red-100 text-red-800",
   };
 
   const ratingLabels = {
-    excellent: 'ดีเยี่ยม',
-    good: 'ดี',
-    satisfactory: 'พอใช้',
-    needs_improvement: 'ต้องปรับปรุง',
-    poor: 'แย่'
+    excellent: "ดีเยี่ยม",
+    good: "ดี",
+    satisfactory: "พอใช้",
+    needs_improvement: "ต้องปรับปรุง",
+    poor: "แย่",
   };
 
   const statusColors = {
-    active: 'bg-green-100 text-green-800',
-    inactive: 'bg-gray-100 text-gray-800',
-    suspended: 'bg-yellow-100 text-yellow-800',
-    blacklisted: 'bg-red-100 text-red-800'
+    active: "bg-green-100 text-green-800",
+    inactive: "bg-gray-100 text-gray-800",
+    suspended: "bg-yellow-100 text-yellow-800",
+    blacklisted: "bg-red-100 text-red-800",
   };
 
   const statusLabels = {
-    active: 'ใช้งาน',
-    inactive: 'ไม่ใช้งาน',
-    suspended: 'ระงับ',
-    blacklisted: 'บัญชีดำ'
+    active: "ใช้งาน",
+    inactive: "ไม่ใช้งาน",
+    suspended: "ระงับ",
+    blacklisted: "บัญชีดำ",
   };
 
   useEffect(() => {
@@ -115,11 +128,11 @@ const VendorList: React.FC<VendorListProps> = ({
       setError(null);
       const params = new URLSearchParams({
         page: currentPage.toString(),
-        limit: '20',
+        limit: "20",
         search,
-        ...(filterType !== 'all' && { type: filterType }),
-        ...(filterCategory !== 'all' && { category: filterCategory }),
-        ...(filterStatus !== 'all' && { status: filterStatus })
+        ...(filterType !== "all" && { type: filterType }),
+        ...(filterCategory !== "all" && { category: filterCategory }),
+        ...(filterStatus !== "all" && { status: filterStatus }),
       });
 
       const response = await fetch(`/api/vendors-management?${params}`);
@@ -129,10 +142,10 @@ const VendorList: React.FC<VendorListProps> = ({
         setVendors(data.vendors || []);
         setTotalPages(data.pagination?.pages || 1);
       } else {
-        setError(data?.error || 'ไม่สามารถโหลดรายชื่อ vendor');
+        setError(data?.error || "ไม่สามารถโหลดรายชื่อ vendor");
       }
     } catch (error) {
-      setError(error?.message || 'เกิดข้อผิดพลาดขณะโหลดข้อมูล');
+      setError(error?.message || "เกิดข้อผิดพลาดขณะโหลดข้อมูล");
     } finally {
       setLoading(false);
     }
@@ -140,7 +153,7 @@ const VendorList: React.FC<VendorListProps> = ({
 
   const handleDelete = async (vendor: Vendor) => {
     if (!onDelete) return;
-    
+
     if (window.confirm(`คุณต้องการลบ vendor "${vendor.name}" ใช่หรือไม่?`)) {
       onDelete(vendor);
     }
@@ -204,7 +217,7 @@ const VendorList: React.FC<VendorListProps> = ({
               กรอง
             </Button>
           </div>
-          
+
           <div className="flex gap-4">
             <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger className="w-48">
@@ -212,7 +225,7 @@ const VendorList: React.FC<VendorListProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกประเภท</SelectItem>
-                {vendorTypes.map(type => (
+                {vendorTypes.map((type) => (
                   <SelectItem key={type.value} value={type.value}>
                     {type.label}
                   </SelectItem>
@@ -226,7 +239,7 @@ const VendorList: React.FC<VendorListProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
-                {vendorCategories.map(category => (
+                {vendorCategories.map((category) => (
                   <SelectItem key={category.value} value={category.value}>
                     {category.label}
                   </SelectItem>
@@ -240,7 +253,7 @@ const VendorList: React.FC<VendorListProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกสถานะ</SelectItem>
-                {statusOptions.map(status => (
+                {statusOptions.map((status) => (
                   <SelectItem key={status.value} value={status.value}>
                     {status.label}
                   </SelectItem>
@@ -272,9 +285,12 @@ const VendorList: React.FC<VendorListProps> = ({
                 <TableRow>
                   <TableCell colSpan={10} className="text-center py-8">
                     <div className="text-gray-500">
-                      {search || filterType !== 'all' || filterCategory !== 'all' || filterStatus !== 'all'
-                        ? 'ไม่พบ vendor ที่ตรงเงื่อนไข'
-                        : 'ยังไม่มี vendor ในระบบ'}
+                      {search ||
+                      filterType !== "all" ||
+                      filterCategory !== "all" ||
+                      filterStatus !== "all"
+                        ? "ไม่พบ vendor ที่ตรงเงื่อนไข"
+                        : "ยังไม่มี vendor ในระบบ"}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -285,33 +301,59 @@ const VendorList: React.FC<VendorListProps> = ({
                       <div>
                         <div>{vendor.name}</div>
                         {vendor.contactPerson && (
-                          <div className="text-sm text-gray-500">{vendor.contactPerson}</div>
+                          <div className="text-sm text-gray-500">
+                            {vendor.contactPerson}
+                          </div>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{vendor.code || '-'}</Badge>
+                      <Badge variant="outline">{vendor.code || "-"}</Badge>
                     </TableCell>
                     <TableCell>
-                      {vendorTypes.find(t => t.value === vendor.type)?.label || vendor.type}
+                      {vendorTypes.find((t) => t.value === vendor.type)
+                        ?.label || vendor.type}
                     </TableCell>
                     <TableCell>
-                      {vendorCategories.find(c => c.value === vendor.category)?.label || vendor.category}
+                      {vendorCategories.find((c) => c.value === vendor.category)
+                        ?.label || vendor.category}
                     </TableCell>
                     <TableCell>
-                      <Badge className={statusColors[vendor.status as keyof typeof statusColors]}>
-                        {statusLabels[vendor.status as keyof typeof statusLabels]}
+                      <Badge
+                        className={
+                          statusColors[
+                            vendor.status as keyof typeof statusColors
+                          ]
+                        }
+                      >
+                        {
+                          statusLabels[
+                            vendor.status as keyof typeof statusLabels
+                          ]
+                        }
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={ratingColors[vendor.overallRating as keyof typeof ratingColors]}>
-                        {ratingLabels[vendor.overallRating as keyof typeof ratingLabels]}
+                      <Badge
+                        className={
+                          ratingColors[
+                            vendor.overallRating as keyof typeof ratingColors
+                          ]
+                        }
+                      >
+                        {
+                          ratingLabels[
+                            vendor.overallRating as keyof typeof ratingLabels
+                          ]
+                        }
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
                         <div>{vendor.totalProjects} โครงการ</div>
-                        <div className="text-gray-500">สำเร็จ {vendor.successfulProjects}</div>
+                        <div className="text-gray-500">
+                          สำเร็จ {vendor.successfulProjects}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -322,7 +364,9 @@ const VendorList: React.FC<VendorListProps> = ({
                     <TableCell>
                       <div className="text-sm">
                         {vendor.email && <div>{vendor.email}</div>}
-                        {vendor.phone && <div className="text-gray-500">{vendor.phone}</div>}
+                        {vendor.phone && (
+                          <div className="text-gray-500">{vendor.phone}</div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -381,7 +425,9 @@ const VendorList: React.FC<VendorListProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                onClick={() =>
+                  setCurrentPage(Math.min(totalPages, currentPage + 1))
+                }
                 disabled={currentPage === totalPages}
               >
                 ถัดไป

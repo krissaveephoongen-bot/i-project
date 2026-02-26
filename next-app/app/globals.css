@@ -31,15 +31,15 @@
   .text-primary-navy {
     color: var(--primary-navy);
   }
-  
+
   .bg-primary-navy {
     background-color: var(--primary-navy);
   }
-  
+
   .bg-accent-blue {
     background-color: var(--accent-blue);
   }
-  
+
   .bg-background-slate {
     background-color: var(--background-slate);
   }

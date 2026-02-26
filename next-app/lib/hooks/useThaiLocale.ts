@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useLanguage } from './useLanguage';
-import { useMemo } from 'react';
+import { useLanguage } from "./useLanguage";
+import { useMemo } from "react";
 
 /**
  * Hook for Thai-specific localization
@@ -12,57 +12,100 @@ export function useThaiLocale() {
   const { language, isThaiLanguage, formatDate, formatNumber } = useLanguage();
 
   // Thai month names in Buddhist calendar
-  const thaiMonths = useMemo(() => ({
-    names: [
-      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
-    ],
-    short: [
-      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
-      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
-    ]
-  }), []);
+  const thaiMonths = useMemo(
+    () => ({
+      names: [
+        "มกราคม",
+        "กุมภาพันธ์",
+        "มีนาคม",
+        "เมษายน",
+        "พฤษภาคม",
+        "มิถุนายน",
+        "กรกฎาคม",
+        "สิงหาคม",
+        "กันยายน",
+        "ตุลาคม",
+        "พฤศจิกายน",
+        "ธันวาคม",
+      ],
+      short: [
+        "ม.ค.",
+        "ก.พ.",
+        "มี.ค.",
+        "เม.ย.",
+        "พ.ค.",
+        "มิ.ย.",
+        "ก.ค.",
+        "ส.ค.",
+        "ก.ย.",
+        "ต.ค.",
+        "พ.ย.",
+        "ธ.ค.",
+      ],
+    }),
+    [],
+  );
 
   // Thai day names
-  const thaiDays = useMemo(() => ({
-    names: ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'],
-    short: ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'],
-  }), []);
+  const thaiDays = useMemo(
+    () => ({
+      names: [
+        "อาทิตย์",
+        "จันทร์",
+        "อังคาร",
+        "พุธ",
+        "พฤหัสบดี",
+        "ศุกร์",
+        "เสาร์",
+      ],
+      short: ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."],
+    }),
+    [],
+  );
 
   // Thai work type labels
-  const thaiWorkTypes = useMemo(() => ({
-    general: 'งานทั่วไป',
-    project: 'โครงการ',
-    training: 'การฝึกอบรม',
-    leave: 'วันลา',
-    overtime: 'ชั่วโมงพิเศษ',
-  }), []);
+  const thaiWorkTypes = useMemo(
+    () => ({
+      general: "งานทั่วไป",
+      project: "โครงการ",
+      training: "การฝึกอบรม",
+      leave: "วันลา",
+      overtime: "ชั่วโมงพิเศษ",
+    }),
+    [],
+  );
 
   // Thai leave type labels
-  const thaiLeaveTypes = useMemo(() => ({
-    annual: 'วันลาประจำปี',
-    sick: 'วันลาป่วย',
-    personal: 'วันลาส่วนบุคคล',
-    maternity: 'วันลาคลอด',
-    unpaid: 'วันลาไม่จ่ายเงิน',
-  }), []);
+  const thaiLeaveTypes = useMemo(
+    () => ({
+      annual: "วันลาประจำปี",
+      sick: "วันลาป่วย",
+      personal: "วันลาส่วนบุคคล",
+      maternity: "วันลาคลอด",
+      unpaid: "วันลาไม่จ่ายเงิน",
+    }),
+    [],
+  );
 
   // Thai status labels
-  const thaiStatuses = useMemo(() => ({
-    draft: 'ร่าง',
-    submitted: 'ส่งแล้ว',
-    approved: 'อนุมัติแล้ว',
-    rejected: 'ปฏิเสธ',
-    pending: 'รอดำเนินการ',
-  }), []);
+  const thaiStatuses = useMemo(
+    () => ({
+      draft: "ร่าง",
+      submitted: "ส่งแล้ว",
+      approved: "อนุมัติแล้ว",
+      rejected: "ปฏิเสธ",
+      pending: "รอดำเนินการ",
+    }),
+    [],
+  );
 
   // Format date in Thai style (dd MMM yyyy)
   const formatThaiDate = (date: Date): string => {
     if (!isThaiLanguage) {
       return formatDate(date, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       });
     }
 
@@ -78,10 +121,10 @@ export function useThaiLocale() {
   const formatThaiDateWithDay = (date: Date): string => {
     if (!isThaiLanguage) {
       return formatDate(date, {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
     }
 
@@ -111,34 +154,36 @@ export function useThaiLocale() {
     if (cost === 0) return durationStr;
 
     const costFormatted = formatNumber(cost, {
-      style: 'currency',
-      currency: 'THB',
+      style: "currency",
+      currency: "THB",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });
 
-    return isThaiLanguage ? `${durationStr} (${costFormatted})` : `${durationStr} (${costFormatted})`;
+    return isThaiLanguage
+      ? `${durationStr} (${costFormatted})`
+      : `${durationStr} (${costFormatted})`;
   };
 
   // Get work type label
   const getWorkTypeLabel = (type: string): string => {
-    return isThaiLanguage ? 
-      thaiWorkTypes[type as keyof typeof thaiWorkTypes] || type :
-      type;
+    return isThaiLanguage
+      ? thaiWorkTypes[type as keyof typeof thaiWorkTypes] || type
+      : type;
   };
 
   // Get leave type label
   const getLeaveTypeLabel = (type: string): string => {
-    return isThaiLanguage ?
-      thaiLeaveTypes[type as keyof typeof thaiLeaveTypes] || type :
-      type;
+    return isThaiLanguage
+      ? thaiLeaveTypes[type as keyof typeof thaiLeaveTypes] || type
+      : type;
   };
 
   // Get status label
   const getStatusLabel = (status: string): string => {
-    return isThaiLanguage ?
-      thaiStatuses[status as keyof typeof thaiStatuses] || status :
-      status;
+    return isThaiLanguage
+      ? thaiStatuses[status as keyof typeof thaiStatuses] || status
+      : status;
   };
 
   return {

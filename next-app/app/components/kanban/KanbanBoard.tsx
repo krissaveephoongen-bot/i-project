@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -14,11 +14,11 @@ import {
   DragEndEvent,
   defaultDropAnimationSideEffects,
   DropAnimation,
-} from '@dnd-kit/core';
-import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { KanbanColumn } from './KanbanColumn';
-import { KanbanCard, TaskCard } from './KanbanCard';
-import { Task } from '@/lib/tasks';
+} from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { KanbanColumn } from "./KanbanColumn";
+import { TaskCard } from "./KanbanCard";
+import { Task } from "@/lib/tasks";
 
 interface KanbanBoardProps {
   tasks: Task[];
@@ -26,7 +26,11 @@ interface KanbanBoardProps {
   onTaskClick?: (task: Task) => void;
 }
 
-export default function KanbanBoard({ tasks: initialTasks, onTaskUpdate, onTaskClick }: KanbanBoardProps) {
+export default function KanbanBoard({
+  tasks: initialTasks,
+  onTaskUpdate,
+  onTaskClick,
+}: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
@@ -36,31 +40,32 @@ export default function KanbanBoard({ tasks: initialTasks, onTaskUpdate, onTaskC
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-        activationConstraint: {
-            distance: 5, // Prevent accidental drags
-        },
+      activationConstraint: {
+        distance: 5, // Prevent accidental drags
+      },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
-  // Group tasks by status
+  // Group tasks by status (lowercase keys matching DB)
   const columns = {
-    'Pending': tasks.filter(t => t.status === 'Pending'),
-    'In Progress': tasks.filter(t => t.status === 'In Progress'),
-    'Completed': tasks.filter(t => t.status === 'Completed'),
+    todo: tasks.filter((t) => t.status === "todo"),
+    pending: tasks.filter((t) => t.status === "pending"),
+    in_progress: tasks.filter((t) => t.status === "in_progress"),
+    completed: tasks.filter((t) => t.status === "completed"),
   };
 
   const findContainer = (id: string) => {
     if (id in columns) return id;
-    const task = tasks.find(t => t.id === id);
+    const task = tasks.find((t) => t.id === id);
     return task ? task.status : null;
   };
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const task = tasks.find(t => t.id === active.id);
+    const task = tasks.find((t) => t.id === active.id);
     if (task) setActiveTask(task);
   };
 
@@ -74,11 +79,13 @@ export default function KanbanBoard({ tasks: initialTasks, onTaskUpdate, onTaskC
     const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
 
-    if (!activeContainer || !overContainer || activeContainer === overContainer) {
+    if (
+      !activeContainer ||
+      !overContainer ||
+      activeContainer === overContainer
+    ) {
       return;
     }
-
-    // Moving between columns logic could be here for "live" preview
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -96,24 +103,26 @@ export default function KanbanBoard({ tasks: initialTasks, onTaskUpdate, onTaskC
     const overContainer = findContainer(overId);
 
     if (activeContainer && overContainer && activeContainer !== overContainer) {
-        // Moved to a different column
-        const newStatus = overContainer as string;
-        
-        // Optimistic update
-        setTasks((prev) => 
-            prev.map(t => t.id === activeId ? { ...t, status: newStatus } : t)
-        );
+      // Moved to a different column
+      const newStatus = overContainer as string;
 
-        // API Call
-        try {
-            await onTaskUpdate(activeId, newStatus);
-        } catch (error) {
-            // Revert on error
-            console.error("Failed to update task status", error);
-            setTasks((prev) => 
-                prev.map(t => t.id === activeId ? { ...t, status: activeContainer as string } : t)
-            );
-        }
+      // Optimistic update
+      setTasks((prev) =>
+        prev.map((t) => (t.id === activeId ? { ...t, status: newStatus } : t))
+      );
+
+      // API Call
+      try {
+        await onTaskUpdate(activeId, newStatus);
+      } catch (error) {
+        // Revert on error
+        console.error("Failed to update task status", error);
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === activeId ? { ...t, status: activeContainer as string } : t
+          )
+        );
+      }
     }
 
     setActiveTask(null);
@@ -123,7 +132,7 @@ export default function KanbanBoard({ tasks: initialTasks, onTaskUpdate, onTaskC
     sideEffects: defaultDropAnimationSideEffects({
       styles: {
         active: {
-          opacity: '0.5',
+          opacity: "0.5",
         },
       },
     }),
@@ -137,30 +146,38 @@ export default function KanbanBoard({ tasks: initialTasks, onTaskUpdate, onTaskC
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-full gap-6 overflow-x-auto pb-4">
-        <KanbanColumn 
-            id="Pending" 
-            title="รอดำเนินการ" 
-            tasks={columns['Pending']} 
-            count={columns['Pending'].length}
-            color="bg-slate-400"
-            onTaskClick={onTaskClick}
+      <div className="flex h-full gap-4 overflow-x-auto pb-4 min-w-full">
+        <KanbanColumn
+          id="todo"
+          title="To Do"
+          tasks={columns.todo}
+          count={columns.todo.length}
+          color="bg-slate-300"
+          onTaskClick={onTaskClick}
         />
-        <KanbanColumn 
-            id="In Progress" 
-            title="กำลังดำเนินการ" 
-            tasks={columns['In Progress']} 
-            count={columns['In Progress'].length}
-            color="bg-blue-500"
-            onTaskClick={onTaskClick}
+        <KanbanColumn
+          id="pending"
+          title="Pending"
+          tasks={columns.pending}
+          count={columns.pending.length}
+          color="bg-yellow-400"
+          onTaskClick={onTaskClick}
         />
-        <KanbanColumn 
-            id="Completed" 
-            title="เสร็จสิ้น" 
-            tasks={columns['Completed']} 
-            count={columns['Completed'].length}
-            color="bg-green-500"
-            onTaskClick={onTaskClick}
+        <KanbanColumn
+          id="in_progress"
+          title="In Progress"
+          tasks={columns.in_progress}
+          count={columns.in_progress.length}
+          color="bg-blue-500"
+          onTaskClick={onTaskClick}
+        />
+        <KanbanColumn
+          id="completed"
+          title="Completed"
+          tasks={columns.completed}
+          count={columns.completed.length}
+          color="bg-green-500"
+          onTaskClick={onTaskClick}
         />
       </div>
 

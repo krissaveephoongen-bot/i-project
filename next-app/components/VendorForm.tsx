@@ -1,12 +1,18 @@
 // next-app/components/VendorForm.tsx
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Textarea } from './ui/textarea';
-import { Save, X } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Textarea } from "./ui/textarea";
+import { Save, X } from "lucide-react";
 
 interface Vendor {
   id?: string;
@@ -44,58 +50,58 @@ const VendorForm: React.FC<VendorFormProps> = ({
   vendor,
   isOpen,
   onClose,
-  onSave
+  onSave,
 }) => {
   const [formData, setFormData] = useState<Vendor>({
-    name: '',
-    code: '',
-    type: '',
-    category: '',
-    status: 'active',
-    contactPerson: '',
-    email: '',
-    phone: '',
-    website: '',
-    taxId: '',
-    registrationNumber: '',
-    address: '',
-    city: '',
-    province: '',
-    postalCode: '',
-    country: 'Thailand',
-    bankAccount: '',
-    bankName: '',
-    paymentTerms: '',
-    creditLimit: '',
-    notes: ''
+    name: "",
+    code: "",
+    type: "",
+    category: "",
+    status: "active",
+    contactPerson: "",
+    email: "",
+    phone: "",
+    website: "",
+    taxId: "",
+    registrationNumber: "",
+    address: "",
+    city: "",
+    province: "",
+    postalCode: "",
+    country: "Thailand",
+    bankAccount: "",
+    bankName: "",
+    paymentTerms: "",
+    creditLimit: "",
+    notes: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const vendorTypes = [
-    { value: 'company', label: 'บริษัท' },
-    { value: 'individual', label: 'บุคคลธรรมดา' },
-    { value: 'partnership', label: 'ห้างหุ้นส่วน' },
-    { value: 'government', label: 'หน่วยงานราชการ' }
+    { value: "company", label: "บริษัท" },
+    { value: "individual", label: "บุคคลธรรมดา" },
+    { value: "partnership", label: "ห้างหุ้นส่วน" },
+    { value: "government", label: "หน่วยงานราชการ" },
   ];
 
   const vendorCategories = [
-    { value: 'hardware', label: 'อุปกรณ์คอมพิวเตอร์' },
-    { value: 'software', label: 'ซอฟต์แวร์' },
-    { value: 'custom_software', label: 'ซอฟต์แวร์ตามสั่ง' },
-    { value: 'materials', label: 'วัสดุอุปกรณ์' },
-    { value: 'services', label: 'บริการ' },
-    { value: 'consulting', label: 'ที่ปรึกษา' },
-    { value: 'maintenance', label: 'บำรุงรักษา' },
-    { value: 'licensing', label: 'ลิขสิทธิ์' }
+    { value: "hardware", label: "อุปกรณ์คอมพิวเตอร์" },
+    { value: "software", label: "ซอฟต์แวร์" },
+    { value: "custom_software", label: "ซอฟต์แวร์ตามสั่ง" },
+    { value: "materials", label: "วัสดุอุปกรณ์" },
+    { value: "services", label: "บริการ" },
+    { value: "consulting", label: "ที่ปรึกษา" },
+    { value: "maintenance", label: "บำรุงรักษา" },
+    { value: "licensing", label: "ลิขสิทธิ์" },
   ];
 
   const statusOptions = [
-    { value: 'active', label: 'ใช้งาน' },
-    { value: 'inactive', label: 'ไม่ใช้งาน' },
-    { value: 'suspended', label: 'ระงับ' },
-    { value: 'blacklisted', label: 'บัญชีดำ' }
+    { value: "active", label: "ใช้งาน" },
+    { value: "inactive", label: "ไม่ใช้งาน" },
+    { value: "suspended", label: "ระงับ" },
+    { value: "blacklisted", label: "บัญชีดำ" },
   ];
 
   useEffect(() => {
@@ -107,27 +113,27 @@ const VendorForm: React.FC<VendorFormProps> = ({
   useEffect(() => {
     if (!isOpen) {
       setFormData({
-        name: '',
-        code: '',
-        type: '',
-        category: '',
-        status: 'active',
-        contactPerson: '',
-        email: '',
-        phone: '',
-        website: '',
-        taxId: '',
-        registrationNumber: '',
-        address: '',
-        city: '',
-        province: '',
-        postalCode: '',
-        country: 'Thailand',
-        bankAccount: '',
-        bankName: '',
-        paymentTerms: '',
-        creditLimit: '',
-        notes: ''
+        name: "",
+        code: "",
+        type: "",
+        category: "",
+        status: "active",
+        contactPerson: "",
+        email: "",
+        phone: "",
+        website: "",
+        taxId: "",
+        registrationNumber: "",
+        address: "",
+        city: "",
+        province: "",
+        postalCode: "",
+        country: "Thailand",
+        bankAccount: "",
+        bankName: "",
+        paymentTerms: "",
+        creditLimit: "",
+        notes: "",
       });
       setErrors({});
     }
@@ -137,31 +143,34 @@ const VendorForm: React.FC<VendorFormProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'กรุณากรอกชื่อ Vendor';
+      newErrors.name = "กรุณากรอกชื่อ Vendor";
     }
 
     if (!formData.type) {
-      newErrors.type = 'กรุณาเลือกประเภท Vendor';
+      newErrors.type = "กรุณาเลือกประเภท Vendor";
     }
 
     if (!formData.category) {
-      newErrors.category = 'กรุณาเลือกหมวดหมู่ Vendor';
+      newErrors.category = "กรุณาเลือกหมวดหมู่ Vendor";
     }
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'รูปแบบอีเมลไม่ถูกต้อง';
+      newErrors.email = "รูปแบบอีเมลไม่ถูกต้อง";
     }
 
     if (formData.phone && !/^[0-9\-\s\(\)]+$/.test(formData.phone)) {
-      newErrors.phone = 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง';
+      newErrors.phone = "รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง";
     }
 
-    if (formData.paymentTerms && (formData.paymentTerms < 0 || formData.paymentTerms > 365)) {
-      newErrors.paymentTerms = 'เงื่อนไขการชำระเงินต้องอยู่ระหว่าง 0-365 วัน';
+    if (
+      formData.paymentTerms &&
+      (formData.paymentTerms < 0 || formData.paymentTerms > 365)
+    ) {
+      newErrors.paymentTerms = "เงื่อนไขการชำระเงินต้องอยู่ระหว่าง 0-365 วัน";
     }
 
     if (formData.creditLimit && formData.creditLimit < 0) {
-      newErrors.creditLimit = 'วงเงินเครดิตต้องมากกว่าหรือเท่ากับ 0';
+      newErrors.creditLimit = "วงเงินเครดิตต้องมากกว่าหรือเท่ากับ 0";
     }
 
     setErrors(newErrors);
@@ -170,22 +179,22 @@ const VendorForm: React.FC<VendorFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setLoading(true);
     try {
-      const url = formData.id 
+      const url = formData.id
         ? `/api/vendors-management/${formData.id}`
-        : '/api/vendors-management';
-      
-      const method = formData.id ? 'PUT' : 'POST';
+        : "/api/vendors-management";
+
+      const method = formData.id ? "PUT" : "POST";
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
@@ -196,20 +205,20 @@ const VendorForm: React.FC<VendorFormProps> = ({
         onSave(data.vendor);
         onClose();
       } else {
-        setErrors({ general: data.error || 'เกิดข้อผิดพลาด' });
+        setErrors({ general: data.error || "เกิดข้อผิดพลาด" });
       }
     } catch (error) {
-      console.error('Error saving vendor:', error);
-      setErrors({ general: 'เกิดข้อผิดพลาด กรุณาลองใหม่' });
+      console.error("Error saving vendor:", error);
+      setErrors({ general: "เกิดข้อผิดพลาด กรุณาลองใหม่" });
     } finally {
       setLoading(false);
     }
   };
 
   const handleInputChange = (field: string, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
@@ -221,7 +230,7 @@ const VendorForm: React.FC<VendorFormProps> = ({
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>
-              {formData.id ? 'แก้ไข Vendor' : 'เพิ่ม Vendor ใหม่'}
+              {formData.id ? "แก้ไข Vendor" : "เพิ่ม Vendor ใหม่"}
             </CardTitle>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="w-4 h-4" />
@@ -240,14 +249,14 @@ const VendorForm: React.FC<VendorFormProps> = ({
               {/* Basic Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">ข้อมูลพื้นฐาน</h3>
-                
+
                 <div>
                   <Label htmlFor="name">ชื่อ Vendor *</Label>
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className={errors.name ? 'border-red-500' : ''}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
+                    className={errors.name ? "border-red-500" : ""}
                   />
                   {errors.name && (
                     <p className="text-red-500 text-sm mt-1">{errors.name}</p>
@@ -258,20 +267,25 @@ const VendorForm: React.FC<VendorFormProps> = ({
                   <Label htmlFor="code">รหัส Vendor</Label>
                   <Input
                     id="code"
-                    value={formData.code || ''}
-                    onChange={(e) => handleInputChange('code', e.target.value)}
+                    value={formData.code || ""}
+                    onChange={(e) => handleInputChange("code", e.target.value)}
                     placeholder="เช่น V001, V002"
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="type">ประเภท *</Label>
-                  <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
-                    <SelectTrigger className={errors.type ? 'border-red-500' : ''}>
+                  <Select
+                    value={formData.type}
+                    onValueChange={(value) => handleInputChange("type", value)}
+                  >
+                    <SelectTrigger
+                      className={errors.type ? "border-red-500" : ""}
+                    >
                       <SelectValue placeholder="เลือกประเภท" />
                     </SelectTrigger>
                     <SelectContent>
-                      {vendorTypes.map(type => (
+                      {vendorTypes.map((type) => (
                         <SelectItem key={type.value} value={type.value}>
                           {type.label}
                         </SelectItem>
@@ -285,12 +299,19 @@ const VendorForm: React.FC<VendorFormProps> = ({
 
                 <div>
                   <Label htmlFor="category">หมวดหมู่ *</Label>
-                  <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
-                    <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) =>
+                      handleInputChange("category", value)
+                    }
+                  >
+                    <SelectTrigger
+                      className={errors.category ? "border-red-500" : ""}
+                    >
                       <SelectValue placeholder="เลือกหมวดหมู่" />
                     </SelectTrigger>
                     <SelectContent>
-                      {vendorCategories.map(category => (
+                      {vendorCategories.map((category) => (
                         <SelectItem key={category.value} value={category.value}>
                           {category.label}
                         </SelectItem>
@@ -298,18 +319,25 @@ const VendorForm: React.FC<VendorFormProps> = ({
                     </SelectContent>
                   </Select>
                   {errors.category && (
-                    <p className="text-red-500 text-sm mt-1">{errors.category}</p>
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.category}
+                    </p>
                   )}
                 </div>
 
                 <div>
                   <Label htmlFor="status">สถานะ</Label>
-                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) =>
+                      handleInputChange("status", value)
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="เลือกสถานะ" />
                     </SelectTrigger>
                     <SelectContent>
-                      {statusOptions.map(status => (
+                      {statusOptions.map((status) => (
                         <SelectItem key={status.value} value={status.value}>
                           {status.label}
                         </SelectItem>
@@ -322,13 +350,15 @@ const VendorForm: React.FC<VendorFormProps> = ({
               {/* Contact Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">ข้อมูลติดต่อ</h3>
-                
+
                 <div>
                   <Label htmlFor="contactPerson">ผู้ติดต่อ</Label>
                   <Input
                     id="contactPerson"
-                    value={formData.contactPerson || ''}
-                    onChange={(e) => handleInputChange('contactPerson', e.target.value)}
+                    value={formData.contactPerson || ""}
+                    onChange={(e) =>
+                      handleInputChange("contactPerson", e.target.value)
+                    }
                     placeholder="ชื่อผู้ติดต่อ"
                   />
                 </div>
@@ -338,9 +368,9 @@ const VendorForm: React.FC<VendorFormProps> = ({
                   <Input
                     id="email"
                     type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={errors.email ? 'border-red-500' : ''}
+                    value={formData.email || ""}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className={errors.email ? "border-red-500" : ""}
                   />
                   {errors.email && (
                     <p className="text-red-500 text-sm mt-1">{errors.email}</p>
@@ -351,10 +381,10 @@ const VendorForm: React.FC<VendorFormProps> = ({
                   <Label htmlFor="phone">โทรศัพท์</Label>
                   <Input
                     id="phone"
-                    value={formData.phone || ''}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    value={formData.phone || ""}
+                    onChange={(e) => handleInputChange("phone", e.target.value)}
                     placeholder="เช่น 02-123-4567"
-                    className={errors.phone ? 'border-red-500' : ''}
+                    className={errors.phone ? "border-red-500" : ""}
                   />
                   {errors.phone && (
                     <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
@@ -365,8 +395,10 @@ const VendorForm: React.FC<VendorFormProps> = ({
                   <Label htmlFor="website">เว็บไซต์</Label>
                   <Input
                     id="website"
-                    value={formData.website || ''}
-                    onChange={(e) => handleInputChange('website', e.target.value)}
+                    value={formData.website || ""}
+                    onChange={(e) =>
+                      handleInputChange("website", e.target.value)
+                    }
                     placeholder="https://example.com"
                   />
                 </div>
@@ -377,13 +409,13 @@ const VendorForm: React.FC<VendorFormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">ข้อมูลธุรกิจ</h3>
-                
+
                 <div>
                   <Label htmlFor="taxId">เลขประจานภาษี</Label>
                   <Input
                     id="taxId"
-                    value={formData.taxId || ''}
-                    onChange={(e) => handleInputChange('taxId', e.target.value)}
+                    value={formData.taxId || ""}
+                    onChange={(e) => handleInputChange("taxId", e.target.value)}
                     placeholder="เลขประจานภาษี 13 หลัก"
                   />
                 </div>
@@ -392,8 +424,10 @@ const VendorForm: React.FC<VendorFormProps> = ({
                   <Label htmlFor="registrationNumber">เลขทะเบียน</Label>
                   <Input
                     id="registrationNumber"
-                    value={formData.registrationNumber || ''}
-                    onChange={(e) => handleInputChange('registrationNumber', e.target.value)}
+                    value={formData.registrationNumber || ""}
+                    onChange={(e) =>
+                      handleInputChange("registrationNumber", e.target.value)
+                    }
                     placeholder="เลขทะเบียนพาณิชยการ"
                   />
                 </div>
@@ -402,8 +436,10 @@ const VendorForm: React.FC<VendorFormProps> = ({
                   <Label htmlFor="address">ที่อยู่</Label>
                   <Textarea
                     id="address"
-                    value={formData.address || ''}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    value={formData.address || ""}
+                    onChange={(e) =>
+                      handleInputChange("address", e.target.value)
+                    }
                     placeholder="เลขที่ ถนน ซอย แขวง เขต จังหวัด"
                     rows={3}
                   />
@@ -414,8 +450,10 @@ const VendorForm: React.FC<VendorFormProps> = ({
                     <Label htmlFor="city">จังหวัด</Label>
                     <Input
                       id="city"
-                      value={formData.city || ''}
-                      onChange={(e) => handleInputChange('city', e.target.value)}
+                      value={formData.city || ""}
+                      onChange={(e) =>
+                        handleInputChange("city", e.target.value)
+                      }
                       placeholder="เช่น กรุงเทพมหานคร"
                     />
                   </div>
@@ -424,8 +462,10 @@ const VendorForm: React.FC<VendorFormProps> = ({
                     <Label htmlFor="province">จังหวัด</Label>
                     <Input
                       id="province"
-                      value={formData.province || ''}
-                      onChange={(e) => handleInputChange('province', e.target.value)}
+                      value={formData.province || ""}
+                      onChange={(e) =>
+                        handleInputChange("province", e.target.value)
+                      }
                       placeholder="เช่น กรุงเทพมหานคร"
                     />
                   </div>
@@ -436,8 +476,10 @@ const VendorForm: React.FC<VendorFormProps> = ({
                     <Label htmlFor="postalCode">รหัสไปรษณีย์</Label>
                     <Input
                       id="postalCode"
-                      value={formData.postalCode || ''}
-                      onChange={(e) => handleInputChange('postalCode', e.target.value)}
+                      value={formData.postalCode || ""}
+                      onChange={(e) =>
+                        handleInputChange("postalCode", e.target.value)
+                      }
                       placeholder="เช่น 10110"
                     />
                   </div>
@@ -446,8 +488,10 @@ const VendorForm: React.FC<VendorFormProps> = ({
                     <Label htmlFor="country">ประเทศ</Label>
                     <Input
                       id="country"
-                      value={formData.country || ''}
-                      onChange={(e) => handleInputChange('country', e.target.value)}
+                      value={formData.country || ""}
+                      onChange={(e) =>
+                        handleInputChange("country", e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -456,13 +500,15 @@ const VendorForm: React.FC<VendorFormProps> = ({
               {/* Financial Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">ข้อมูลการเงิน</h3>
-                
+
                 <div>
                   <Label htmlFor="bankAccount">บัญชีบัญชีธนาคาร</Label>
                   <Input
                     id="bankAccount"
-                    value={formData.bankAccount || ''}
-                    onChange={(e) => handleInputChange('bankAccount', e.target.value)}
+                    value={formData.bankAccount || ""}
+                    onChange={(e) =>
+                      handleInputChange("bankAccount", e.target.value)
+                    }
                     placeholder="เลขบัญชี 10 หลัก"
                   />
                 </div>
@@ -471,25 +517,36 @@ const VendorForm: React.FC<VendorFormProps> = ({
                   <Label htmlFor="bankName">ชื่อธนาคาร</Label>
                   <Input
                     id="bankName"
-                    value={formData.bankName || ''}
-                    onChange={(e) => handleInputChange('bankName', e.target.value)}
+                    value={formData.bankName || ""}
+                    onChange={(e) =>
+                      handleInputChange("bankName", e.target.value)
+                    }
                     placeholder="เช่น ธนาคารไทย"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="paymentTerms">เงื่อนไขการชำระเงิน (วัน)</Label>
+                    <Label htmlFor="paymentTerms">
+                      เงื่อนไขการชำระเงิน (วัน)
+                    </Label>
                     <Input
                       id="paymentTerms"
                       type="number"
-                      value={formData.paymentTerms || ''}
-                      onChange={(e) => handleInputChange('paymentTerms', parseInt(e.target.value) || '')}
+                      value={formData.paymentTerms || ""}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "paymentTerms",
+                          parseInt(e.target.value) || "",
+                        )
+                      }
                       placeholder="เช่น 30"
-                      className={errors.paymentTerms ? 'border-red-500' : ''}
+                      className={errors.paymentTerms ? "border-red-500" : ""}
                     />
                     {errors.paymentTerms && (
-                      <p className="text-red-500 text-sm mt-1">{errors.paymentTerms}</p>
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.paymentTerms}
+                      </p>
                     )}
                   </div>
 
@@ -498,13 +555,20 @@ const VendorForm: React.FC<VendorFormProps> = ({
                     <Input
                       id="creditLimit"
                       type="number"
-                      value={formData.creditLimit || ''}
-                      onChange={(e) => handleInputChange('creditLimit', parseFloat(e.target.value) || '')}
+                      value={formData.creditLimit || ""}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "creditLimit",
+                          parseFloat(e.target.value) || "",
+                        )
+                      }
                       placeholder="เช่น 100000"
-                      className={errors.creditLimit ? 'border-red-500' : ''}
+                      className={errors.creditLimit ? "border-red-500" : ""}
                     />
                     {errors.creditLimit && (
-                      <p className="text-red-500 text-sm mt-1">{errors.creditLimit}</p>
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.creditLimit}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -516,8 +580,8 @@ const VendorForm: React.FC<VendorFormProps> = ({
               <Label htmlFor="notes">หมายเหตุ</Label>
               <Textarea
                 id="notes"
-                value={formData.notes || ''}
-                onChange={(e) => handleInputChange('notes', e.target.value)}
+                value={formData.notes || ""}
+                onChange={(e) => handleInputChange("notes", e.target.value)}
                 placeholder="ข้อมูลเพิ่มเติมเกี่ยวกับ vendor..."
                 rows={4}
               />
@@ -530,7 +594,7 @@ const VendorForm: React.FC<VendorFormProps> = ({
               </Button>
               <Button type="submit" disabled={loading}>
                 <Save className="w-4 h-4 mr-2" />
-                {loading ? 'กำลังบันทึก...' : 'บันทึก'}
+                {loading ? "กำลังบันทึก..." : "บันทึก"}
               </Button>
             </div>
           </form>

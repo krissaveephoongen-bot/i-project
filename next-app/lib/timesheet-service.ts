@@ -23,7 +23,7 @@ export interface TimesheetEntry {
 }
 
 export interface SubmissionStatus {
-  status: 'Draft' | 'Submitted' | 'Approved' | 'Rejected';
+  status: "Draft" | "Submitted" | "Approved" | "Rejected";
   submittedAt?: string;
 }
 
@@ -38,12 +38,12 @@ export interface WeeklyData {
 export async function fetchSubmissionStatus(
   userId: string,
   month: Date,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<SubmissionStatus> {
   const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
-  const url = `${API_BASE}/api/timesheet/submission?userId=${userId}&start=${startOfMonth
-    .toISOString()
-    .split('T')[0]}`;
+  const url = `${API_BASE}/api/timesheet/submission?userId=${userId}&start=${
+    startOfMonth.toISOString().split("T")[0]
+  }`;
 
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -55,7 +55,7 @@ export async function fetchSubmissionStatus(
  */
 export async function fetchProjects(
   userId: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<Project[]> {
   const url = `${API_BASE}/api/timesheet/projects?userId=${userId}`;
   const response = await fetch(url, { signal });
@@ -78,16 +78,16 @@ export async function fetchTimesheetEntries(
   userId: string,
   month: Date,
   projectIds: string[] = [],
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<TimesheetEntry[]> {
   const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
   const endOfMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0);
 
   const params = new URLSearchParams({
     userId,
-    start: startOfMonth.toISOString().split('T')[0],
-    end: endOfMonth.toISOString().split('T')[0],
-    projects: projectIds.join(','),
+    start: startOfMonth.toISOString().split("T")[0],
+    end: endOfMonth.toISOString().split("T")[0],
+    projects: projectIds.join(","),
   }).toString();
 
   const url = `${API_BASE}/api/timesheet/entries?${params}`;
@@ -110,11 +110,11 @@ export async function fetchTimesheetEntries(
  */
 export async function fetchWeeklyData(
   weekStart: Date,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<WeeklyData> {
-  const url = `${API_BASE}/api/timesheet/weekly?start=${weekStart
-    .toISOString()
-    .split('T')[0]}`;
+  const url = `${API_BASE}/api/timesheet/weekly?start=${
+    weekStart.toISOString().split("T")[0]
+  }`;
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.json();
@@ -126,7 +126,7 @@ export async function fetchWeeklyData(
 export async function fetchActivities(
   userId: string,
   teamId: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<any> {
   const params = new URLSearchParams({
     ...(userId && { userId }),
@@ -146,17 +146,17 @@ export async function submitTimesheet(
   userId: string,
   month: Date,
   entries: TimesheetEntry[],
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<any> {
   const url = `${API_BASE}/api/timesheet/submit`;
   const response = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       userId,
-      month: month.toISOString().split('T')[0],
+      month: month.toISOString().split("T")[0],
       entries,
     }),
     signal,

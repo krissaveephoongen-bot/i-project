@@ -21,11 +21,15 @@
     "baseUrl": ".",
     "paths": {
       "@/app/*": ["./app/*", "./src/app/*"],
-      "@/components/*": ["./app/components/*", "./components/*", "./src/shared/ui/components/*"],
+      "@/components/*": [
+        "./app/components/*",
+        "./components/*",
+        "./src/shared/ui/components/*"
+      ],
       "@/lib/*": ["./app/lib/*", "./lib/*", "./src/lib/*"],
       "@/hooks/*": ["./hooks/*", "./src/hooks/*"],
       "@/types/*": ["./types/*", "./src/types/*"],
-      "@/*": ["./src/*"],
+      "@/*": ["./*", "./src/*"],
       "@/shared/*": ["./src/shared/*"],
       "@/features/*": ["./src/features/*"],
       "@/entities/*": ["./src/entities/*"],

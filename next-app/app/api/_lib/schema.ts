@@ -1,14 +1,14 @@
- import { poolDirect } from './db';
- 
+import { poolDirect } from "./db";
+
 export async function runSchemaSync() {
   const queries: Array<string | undefined> = [
-     `DO $$
+    `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
           CREATE TYPE user_role AS ENUM ('admin','manager','employee');
         END IF;
       END $$;`,
-     `CREATE TABLE IF NOT EXISTS users (
+    `CREATE TABLE IF NOT EXISTS users (
         id text PRIMARY KEY,
         object_id text,
         name text NOT NULL,
@@ -36,8 +36,8 @@ export async function runSchemaSync() {
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp without time zone NOT NULL
       );`,
-     `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);`,
-     `CREATE TABLE IF NOT EXISTS clients (
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);`,
+    `CREATE TABLE IF NOT EXISTS clients (
         id text PRIMARY KEY,
         name text NOT NULL,
         email text,
@@ -48,7 +48,7 @@ export async function runSchemaSync() {
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp without time zone NOT NULL
       );`,
-     `CREATE TABLE IF NOT EXISTS projects (
+    `CREATE TABLE IF NOT EXISTS projects (
         id text PRIMARY KEY,
         name text NOT NULL,
         code text,
@@ -72,7 +72,7 @@ export async function runSchemaSync() {
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp without time zone NOT NULL
       );`,
-     `DO $$
+    `DO $$
       BEGIN
         IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='manager_id') THEN
           IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'projects_manager_id_fkey') THEN
@@ -97,7 +97,7 @@ export async function runSchemaSync() {
           ALTER TABLE projects ADD COLUMN warranty_end_date timestamp without time zone;
         END IF;
       END $$;`,
-     `DO $$
+    `DO $$
       BEGIN
         IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='client_id') THEN
           IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'projects_client_id_fkey') THEN
@@ -113,7 +113,7 @@ export async function runSchemaSync() {
           END IF;
         END IF;
       END $$;`,
-     `CREATE TABLE IF NOT EXISTS tasks (
+    `CREATE TABLE IF NOT EXISTS tasks (
         id text PRIMARY KEY,
         title text NOT NULL,
         description text,
@@ -136,7 +136,7 @@ export async function runSchemaSync() {
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp without time zone NOT NULL
       );`,
-     `DO $$
+    `DO $$
       BEGIN
         IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='project_id') THEN
           IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tasks_project_id_fkey') THEN
@@ -152,7 +152,7 @@ export async function runSchemaSync() {
           END IF;
         END IF;
       END $$;`,
-     `CREATE TABLE IF NOT EXISTS risks (
+    `CREATE TABLE IF NOT EXISTS risks (
         id text PRIMARY KEY,
         title text NOT NULL,
         description text,
@@ -166,7 +166,7 @@ export async function runSchemaSync() {
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp without time zone NOT NULL
       );`,
-     `DO $$
+    `DO $$
       BEGIN
         IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='risks' AND column_name='project_id') THEN
           IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'risks_project_id_fkey') THEN
@@ -182,7 +182,7 @@ export async function runSchemaSync() {
           END IF;
         END IF;
       END $$;`,
-     `CREATE TABLE IF NOT EXISTS documents (
+    `CREATE TABLE IF NOT EXISTS documents (
         id text PRIMARY KEY,
         name text NOT NULL,
         type text,
@@ -195,7 +195,7 @@ export async function runSchemaSync() {
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp without time zone NOT NULL
       );`,
-     `DO $$
+    `DO $$
       BEGIN
         IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='documents' AND column_name='project_id') THEN
           IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'documents_project_id_fkey') THEN
@@ -211,7 +211,7 @@ export async function runSchemaSync() {
           END IF;
         END IF;
       END $$;`,
-     `CREATE TABLE IF NOT EXISTS contacts (
+    `CREATE TABLE IF NOT EXISTS contacts (
         id text PRIMARY KEY,
         project_id text NOT NULL,
         name text,
@@ -221,13 +221,13 @@ export async function runSchemaSync() {
         type text,
         is_key_person boolean DEFAULT false
       );`,
-     `DO $$
+    `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'contacts_project_id_fkey') THEN
           ALTER TABLE contacts ADD CONSTRAINT contacts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
         END IF;
       END $$;`,
-     `CREATE TABLE IF NOT EXISTS timesheets (
+    `CREATE TABLE IF NOT EXISTS timesheets (
         id text PRIMARY KEY,
         user_id text NOT NULL,
         project_id text NOT NULL,
@@ -237,7 +237,7 @@ export async function runSchemaSync() {
         start_time timestamp without time zone,
         end_time timestamp without time zone
       );`,
-     `CREATE TABLE IF NOT EXISTS timesheet_submissions (
+    `CREATE TABLE IF NOT EXISTS timesheet_submissions (
         id text PRIMARY KEY,
         user_id text NOT NULL,
         period_start_date date NOT NULL,
@@ -246,21 +246,19 @@ export async function runSchemaSync() {
         status text DEFAULT 'Draft',
         submitted_at timestamp without time zone
       );`,
-     `CREATE UNIQUE INDEX IF NOT EXISTS idx_timesheet_submissions_user_period ON timesheet_submissions (user_id, period_start_date);`
-    ,
-     `CREATE TABLE IF NOT EXISTS financial_data (
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_timesheet_submissions_user_period ON timesheet_submissions (user_id, period_start_date);`,
+    `CREATE TABLE IF NOT EXISTS financial_data (
         month date PRIMARY KEY,
         revenue numeric NOT NULL DEFAULT 0,
         cost numeric NOT NULL DEFAULT 0
-      );`
-    ,
-     `CREATE TABLE IF NOT EXISTS system_settings (
+      );`,
+    `CREATE TABLE IF NOT EXISTS system_settings (
         key text PRIMARY KEY,
         value text NOT NULL,
         description text,
         updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
       );`,
-     `INSERT INTO system_settings (key, value, description) 
+    `INSERT INTO system_settings (key, value, description) 
       VALUES 
         ('maintenance_mode', 'false', 'Enable maintenance mode to block non-admin access'),
         ('allow_registration', 'true', 'Allow new users to sign up'),
@@ -278,26 +276,26 @@ export async function runSchemaSync() {
         user_agent text,
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
       );`,
-     `DO $$
+    `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_logs_project_id_fkey') THEN
           ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
         END IF;
       END $$;`,
-     `DO $$
+    `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_logs_user_id_fkey') THEN
           ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
         END IF;
       END $$;`,
     ,
-     `CREATE TABLE IF NOT EXISTS sales_pipelines (
+    `CREATE TABLE IF NOT EXISTS sales_pipelines (
         id text PRIMARY KEY,
         name text NOT NULL,
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp without time zone NOT NULL
       );`,
-     `CREATE TABLE IF NOT EXISTS sales_stages (
+    `CREATE TABLE IF NOT EXISTS sales_stages (
         id text PRIMARY KEY,
         pipeline_id text NOT NULL,
         name text NOT NULL,
@@ -306,7 +304,7 @@ export async function runSchemaSync() {
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp without time zone NOT NULL
       );`,
-     `CREATE TABLE IF NOT EXISTS sales_deals (
+    `CREATE TABLE IF NOT EXISTS sales_deals (
         id text PRIMARY KEY,
         pipeline_id text NOT NULL,
         stage_id text,
@@ -322,7 +320,7 @@ export async function runSchemaSync() {
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp without time zone NOT NULL
       );`,
-     `CREATE TABLE IF NOT EXISTS sales_activities (
+    `CREATE TABLE IF NOT EXISTS sales_activities (
         id text PRIMARY KEY,
         deal_id text NOT NULL,
         type text NOT NULL,
@@ -330,25 +328,25 @@ export async function runSchemaSync() {
         user_id text,
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
       );`,
-     `DO $$
+    `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sales_stages_pipeline_id_fkey') THEN
           ALTER TABLE sales_stages ADD CONSTRAINT sales_stages_pipeline_id_fkey FOREIGN KEY (pipeline_id) REFERENCES sales_pipelines(id);
         END IF;
       END $$;`,
-     `DO $$
+    `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sales_deals_pipeline_id_fkey') THEN
           ALTER TABLE sales_deals ADD CONSTRAINT sales_deals_pipeline_id_fkey FOREIGN KEY (pipeline_id) REFERENCES sales_pipelines(id);
         END IF;
       END $$;`,
-     `DO $$
+    `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sales_deals_stage_id_fkey') THEN
           ALTER TABLE sales_deals ADD CONSTRAINT sales_deals_stage_id_fkey FOREIGN KEY (stage_id) REFERENCES sales_stages(id);
         END IF;
       END $$;`,
-     `DO $$
+    `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sales_deals_owner_id_fkey') THEN
           ALTER TABLE sales_deals ADD CONSTRAINT sales_deals_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES users(id);
@@ -363,7 +361,7 @@ export async function runSchemaSync() {
           ALTER TABLE sales_deals ADD CONSTRAINT sales_deals_client_id_fkey FOREIGN KEY (client_id) REFERENCES contacts(id);
         END IF;
       END $$;`,
-     `DO $$
+    `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sales_activities_deal_id_fkey') THEN
           ALTER TABLE sales_activities ADD CONSTRAINT sales_activities_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES sales_deals(id);
@@ -380,7 +378,7 @@ export async function runSchemaSync() {
     `CREATE INDEX IF NOT EXISTS idx_sales_deals_client ON sales_deals(client_id);`,
     `CREATE INDEX IF NOT EXISTS idx_sales_deals_stage ON sales_deals(stage_id);`,
     `CREATE INDEX IF NOT EXISTS idx_sales_deals_pipeline ON sales_deals(pipeline_id);`,
-        `CREATE TABLE IF NOT EXISTS milestones (
+    `CREATE TABLE IF NOT EXISTS milestones (
         id text PRIMARY KEY,
         projectId text NOT NULL,
         name text NOT NULL,
@@ -392,7 +390,7 @@ export async function runSchemaSync() {
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp without time zone NOT NULL
       );`,
-     `DO $$
+    `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'milestones_projectId_fkey') THEN
           ALTER TABLE milestones ADD CONSTRAINT milestones_projectId_fkey FOREIGN KEY ("projectId") REFERENCES projects(id);
@@ -566,8 +564,7 @@ export async function runSchemaSync() {
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'timesheets_task_id_fkey') THEN
           ALTER TABLE timesheets ADD CONSTRAINT timesheets_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id);
         END IF;
-      END $$;`
-    ,
+      END $$;`,
     `CREATE TABLE IF NOT EXISTS time_entries (
         id text PRIMARY KEY,
         userId text NOT NULL,
@@ -580,8 +577,7 @@ export async function runSchemaSync() {
         rejectedReason text,
         approvedBy text,
         approvedAt timestamp without time zone
-      );`
-    ,
+      );`,
     `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'time_entries_userId_fkey') THEN
@@ -596,8 +592,7 @@ export async function runSchemaSync() {
         CREATE INDEX IF NOT EXISTS idx_time_entries_user ON time_entries("userId");
         CREATE INDEX IF NOT EXISTS idx_time_entries_project ON time_entries("projectId");
         CREATE INDEX IF NOT EXISTS idx_time_entries_date ON time_entries(date);
-      END $$;`
-    ,
+      END $$;`,
     `CREATE TABLE IF NOT EXISTS notifications (
         id text PRIMARY KEY,
         user_id text NOT NULL,
@@ -607,8 +602,7 @@ export async function runSchemaSync() {
         is_read boolean NOT NULL DEFAULT false,
         link text,
         created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );`
-    ,
+      );`,
     `DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notifications_user_id_fkey') THEN
@@ -616,16 +610,16 @@ export async function runSchemaSync() {
         END IF;
         CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
         CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
-      END $$;`
-   ];
-   const errors: Array<{ sql: string; error: string }> = [];
+      END $$;`,
+  ];
+  const errors: Array<{ sql: string; error: string }> = [];
   for (const sql of queries) {
     if (!sql) continue;
-     try {
-       await poolDirect.query(sql);
-     } catch (e: any) {
-       errors.push({ sql, error: e?.message || String(e) });
-     }
-   }
-   return { ok: errors.length === 0, errors };
- }
+    try {
+      await poolDirect.query(sql);
+    } catch (e: any) {
+      errors.push({ sql, error: e?.message || String(e) });
+    }
+  }
+  return { ok: errors.length === 0, errors };
+}

@@ -1,15 +1,41 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import Header from '../../../components/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
-import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/Select';
-import { useParams } from 'next/navigation';
-import { toast } from 'react-hot-toast';
-import type { LaborItem, ExpenseItem, CostCodeCatalog } from '@/app/projects/cost-sheet/types';
+import { useEffect, useMemo, useState } from "react";
+import Header from "../../../components/Header";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../../components/ui/table";
+import { Button } from "../../../components/ui/Button";
+import { Input } from "../../../components/ui/Input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../components/ui/Select";
+import { useParams } from "next/navigation";
+import { toast } from "react-hot-toast";
+import {
+  getCostSheetAction,
+  saveCostSheetAction,
+} from "../../costSheetActions";
+import type {
+  LaborItem,
+  ExpenseItem,
+  CostCodeCatalog,
+} from "@/app/projects/cost-sheet/types";
 
 export default function ProjectCostSheetPage() {
   const params = useParams();
@@ -19,7 +45,9 @@ export default function ProjectCostSheetPage() {
   const [catalog, setCatalog] = useState<CostCodeCatalog[]>([]);
   const [labor, setLabor] = useState<LaborItem[]>([]);
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
-  const [status, setStatus] = useState<'Draft'|'Submitted'|'ManagerApproved'|'FinalApproved'>('Draft');
+  const [status, setStatus] = useState<
+    "Draft" | "Submitted" | "ManagerApproved" | "FinalApproved"
+  >("Draft");
   const [roleRates, setRoleRates] = useState<any[]>([]);
 
   const totals = useMemo(() => {
@@ -40,45 +68,51 @@ export default function ProjectCostSheetPage() {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/projects/${projectId}/cost-sheet`, { cache: 'no-store' });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json?.message || 'Load failed');
+        const json = await getCostSheetAction(projectId);
+        // ... (rest of mapping logic)
         const items: any[] = json?.items || [];
-        const lab: LaborItem[] = items.filter(i => i.type === 'labor').map((i: any) => ({
-          id: i.id,
-          costSheetId: i.cost_sheet_id,
-          type: 'labor',
-          level: i.level || '',
-          position: i.position || '',
-          projectRole: i.project_role || '',
-          dailyRate: Number(i.daily_rate || 0),
-          hourlyRate: Number(i.hourly_rate || 0),
-          plannedProjectMandays: i.planned_project_mandays || 0,
-          plannedProjectManhours: i.planned_project_manhours || 0,
-          plannedWarrantyMandays: i.planned_warranty_mandays || 0,
-          plannedWarrantyManhours: i.planned_warranty_manhours || 0,
-          remark: i.remark || ''
-        }));
-        const exp: ExpenseItem[] = items.filter(i => i.type === 'expense').map((i: any) => ({
-          id: i.id,
-          costSheetId: i.cost_sheet_id,
-          type: 'expense',
-          costCode: i.cost_code || '',
-          description: i.description || '',
-          amount: i.amount || 0,
-          remark: i.remark || ''
-        }));
+        const lab: LaborItem[] = items
+          .filter((i) => i.type === "labor")
+          .map((i: any) => ({
+            id: i.id,
+            costSheetId: i.cost_sheet_id,
+            type: "labor",
+            level: i.level || "",
+            position: i.position || "",
+            projectRole: i.project_role || "",
+            dailyRate: Number(i.daily_rate || 0),
+            hourlyRate: Number(i.hourly_rate || 0),
+            plannedProjectMandays: i.planned_project_mandays || 0,
+            plannedProjectManhours: i.planned_project_manhours || 0,
+            plannedWarrantyMandays: i.planned_warranty_mandays || 0,
+            plannedWarrantyManhours: i.planned_warranty_manhours || 0,
+            remark: i.remark || "",
+          }));
+        const exp: ExpenseItem[] = items
+          .filter((i) => i.type === "expense")
+          .map((i: any) => ({
+            id: i.id,
+            costSheetId: i.cost_sheet_id,
+            type: "expense",
+            costCode: i.cost_code || "",
+            description: i.description || "",
+            amount: i.amount || 0,
+            remark: i.remark || "",
+          }));
         setLabor(lab);
         setExpenses(exp);
-        setCatalog((json?.catalog || []).map((c: any) => ({ code: c.code, description: c.description, category: c.category, isActive: !!c.is_active })));
-        setStatus(json?.sheet?.status || 'Draft');
-        const r = await fetch('/api/admin/role-rates', { cache: 'no-store' });
-        if (r.ok) {
-          const jr = await r.json();
-          setRoleRates(jr?.roles || []);
-        }
+        setCatalog(
+          (json?.catalog || []).map((c: any) => ({
+            code: c.code,
+            description: c.description,
+            category: c.category,
+            isActive: !!c.is_active,
+          })),
+        );
+        setStatus(json?.sheet?.status || "Draft");
+        // Role rates fetch kept separate or move to action if needed
       } catch (e: any) {
-        toast.error(e?.message || 'โหลดข้อมูลไม่สำเร็จ');
+        toast.error(e?.message || "โหลดข้อมูลไม่สำเร็จ");
       } finally {
         setLoading(false);
       }
@@ -87,48 +121,50 @@ export default function ProjectCostSheetPage() {
   }, [projectId]);
 
   const addLabor = () => {
-    setLabor(prev => [
+    setLabor((prev) => [
       ...prev,
       {
         id: Math.random().toString(36).slice(2),
-        costSheetId: '',
-        type: 'labor',
-        level: '',
-        position: '',
-        projectRole: '',
+        costSheetId: "",
+        type: "labor",
+        level: "",
+        position: "",
+        projectRole: "",
         dailyRate: 0,
         hourlyRate: 0,
         plannedProjectMandays: 0,
         plannedProjectManhours: 0,
         plannedWarrantyMandays: 0,
-        plannedWarrantyManhours: 0
-      }
+        plannedWarrantyManhours: 0,
+      },
     ]);
   };
 
   const addExpense = () => {
-    setExpenses(prev => [
+    setExpenses((prev) => [
       ...prev,
       {
         id: Math.random().toString(36).slice(2),
-        costSheetId: '',
-        type: 'expense',
-        costCode: '',
-        description: '',
+        costSheetId: "",
+        type: "expense",
+        costCode: "",
+        description: "",
         amount: undefined,
-        remark: ''
-      }
+        remark: "",
+      },
     ]);
   };
 
   const save = async () => {
     try {
       const body = {
+        projectId,
         status,
-        createdBy: 'system', // replace with real user id from auth if needed
+        createdBy: "system",
         items: [
-          ...labor.map(l => ({
-            type: 'labor',
+          ...labor.map((l) => ({
+            type: "labor" as const,
+            // ... map fields
             level: l.level,
             position: l.position,
             projectRole: l.projectRole,
@@ -138,27 +174,22 @@ export default function ProjectCostSheetPage() {
             plannedProjectManhours: Number(l.plannedProjectManhours || 0),
             plannedWarrantyMandays: Number(l.plannedWarrantyMandays || 0),
             plannedWarrantyManhours: Number(l.plannedWarrantyManhours || 0),
-            remark: l.remark || ''
+            remark: l.remark || "",
           })),
-          ...expenses.map(e => ({
-            type: 'expense',
+          ...expenses.map((e) => ({
+            type: "expense" as const,
             costCode: e.costCode,
             description: e.description,
             amount: e.amount ?? null,
-            remark: e.remark || ''
-          }))
-        ]
+            remark: e.remark || "",
+          })),
+        ],
       };
-      const res = await fetch(`/api/projects/${projectId}/cost-sheet`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.message || 'Save failed');
-      toast.success(`บันทึก Cost Sheet เวอร์ชัน ${json?.version} แล้ว`);
+      const result = await saveCostSheetAction(body);
+      if (result.error) throw new Error(result.error);
+      toast.success(`บันทึก Cost Sheet เวอร์ชัน ${result.version} แล้ว`);
     } catch (e: any) {
-      toast.error(e?.message || 'บันทึกไม่สำเร็จ');
+      toast.error(e?.message || "บันทึกไม่สำเร็จ");
     }
   };
 
@@ -166,15 +197,20 @@ export default function ProjectCostSheetPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header title="Cost Sheet" breadcrumbs={[
-        { label: 'Projects', href: '/projects' }, 
-        { label: 'Details', href: `/projects/${projectId}` },
-        { label: 'Cost Sheet' }
-      ]} />
-      
+      <Header
+        title="Cost Sheet"
+        breadcrumbs={[
+          { label: "Projects", href: "/projects" },
+          { label: "Details", href: `/projects/${projectId}` },
+          { label: "Cost Sheet" },
+        ]}
+      />
+
       <div className="pt-24 px-6 pb-12 max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-slate-600">สถานะ: <span className="font-medium">{status}</span></div>
+          <div className="text-sm text-slate-600">
+            สถานะ: <span className="font-medium">{status}</span>
+          </div>
           <div className="flex items-center gap-2">
             <Select value={status} onValueChange={(v: any) => setStatus(v)}>
               <SelectTrigger className="w-48 h-9">
@@ -187,15 +223,19 @@ export default function ProjectCostSheetPage() {
                 <SelectItem value="FinalApproved">FinalApproved</SelectItem>
               </SelectContent>
             </Select>
-            <Button onClick={save} className="min-w-[140px]">บันทึกเวอร์ชันใหม่</Button>
+            <Button onClick={save} className="min-w-[140px]">
+              บันทึกเวอร์ชันใหม่
+            </Button>
           </div>
         </div>
-        
+
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-500">Total Project Cost</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-500">
+                Total Project Cost
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-slate-900">
@@ -209,7 +249,9 @@ export default function ProjectCostSheetPage() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-500">Labor Subtotal</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-500">
+                Labor Subtotal
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-slate-900">
@@ -223,7 +265,9 @@ export default function ProjectCostSheetPage() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-500">Expenses Subtotal</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-500">
+                Expenses Subtotal
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-slate-900">
@@ -257,65 +301,193 @@ export default function ProjectCostSheetPage() {
                   <TableHead className="text-right">Proj Mandays</TableHead>
                   <TableHead className="text-right">Proj Manhours</TableHead>
                   <TableHead className="text-right">Warranty Mandays</TableHead>
-                  <TableHead className="text-right">Warranty Manhours</TableHead>
+                  <TableHead className="text-right">
+                    Warranty Manhours
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {labor.map((l, idx) => (
                   <TableRow key={l.id}>
-                    <TableCell><Input value={l.level} onChange={e => {
-                      const v = e.target.value; setLabor(prev => prev.map((r,i)=> i===idx ? {...r, level: v} : r));
-                    }} placeholder="เช่น Level 5 : Manager" /></TableCell>
-                    <TableCell><Input value={l.position} onChange={e => {
-                      const v = e.target.value; setLabor(prev => prev.map((r,i)=> i===idx ? {...r, position: v} : r));
-                    }} placeholder="ตำแหน่ง" /></TableCell>
-                    <TableCell><Input value={l.projectRole} onChange={e => {
-                      const v = e.target.value; setLabor(prev => prev.map((r,i)=> i===idx ? {...r, projectRole: v} : r));
-                    }} placeholder="เช่น Project Manager" /></TableCell>
                     <TableCell>
-                      <Select value="" onValueChange={(val) => {
-                        const rr = roleRates.find((x: any) => String(x.id) === String(val));
-                        if (rr) {
-                          setLabor(prev => prev.map((r,i)=> i===idx ? {
-                            ...r,
-                            level: r.level || rr.level || '',
-                            position: r.position || rr.position || '',
-                            projectRole: r.projectRole || rr.project_role || '',
-                            dailyRate: Number(rr.daily_rate || r.dailyRate || 0),
-                            hourlyRate: Number(rr.hourly_rate || r.hourlyRate || 0)
-                          } : r));
-                        }
-                      }}>
+                      <Input
+                        value={l.level}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setLabor((prev) =>
+                            prev.map((r, i) =>
+                              i === idx ? { ...r, level: v } : r,
+                            ),
+                          );
+                        }}
+                        placeholder="เช่น Level 5 : Manager"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={l.position}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setLabor((prev) =>
+                            prev.map((r, i) =>
+                              i === idx ? { ...r, position: v } : r,
+                            ),
+                          );
+                        }}
+                        placeholder="ตำแหน่ง"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={l.projectRole}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setLabor((prev) =>
+                            prev.map((r, i) =>
+                              i === idx ? { ...r, projectRole: v } : r,
+                            ),
+                          );
+                        }}
+                        placeholder="เช่น Project Manager"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value=""
+                        onValueChange={(val) => {
+                          const rr = roleRates.find(
+                            (x: any) => String(x.id) === String(val),
+                          );
+                          if (rr) {
+                            setLabor((prev) =>
+                              prev.map((r, i) =>
+                                i === idx
+                                  ? {
+                                      ...r,
+                                      level: r.level || rr.level || "",
+                                      position: r.position || rr.position || "",
+                                      projectRole:
+                                        r.projectRole || rr.project_role || "",
+                                      dailyRate: Number(
+                                        rr.daily_rate || r.dailyRate || 0,
+                                      ),
+                                      hourlyRate: Number(
+                                        rr.hourly_rate || r.hourlyRate || 0,
+                                      ),
+                                    }
+                                  : r,
+                              ),
+                            );
+                          }
+                        }}
+                      >
                         <SelectTrigger className="w-[180px]">
                           <SelectValue placeholder="เลือก Role Rate" />
                         </SelectTrigger>
                         <SelectContent>
                           {roleRates.map((x: any) => (
                             <SelectItem key={x.id} value={String(x.id)}>
-                              {x.level || ''}{x.position ? ` • ${x.position}` : ''} {x.daily_rate ? `• ${x.daily_rate}/day` : ''} {x.hourly_rate ? `• ${x.hourly_rate}/hr` : ''}
+                              {x.level || ""}
+                              {x.position ? ` • ${x.position}` : ""}{" "}
+                              {x.daily_rate ? `• ${x.daily_rate}/day` : ""}{" "}
+                              {x.hourly_rate ? `• ${x.hourly_rate}/hr` : ""}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-right"><Input type="number" value={String(l.dailyRate ?? 0)} onChange={e => {
-                      const v = Number(e.target.value || 0); setLabor(prev => prev.map((r,i)=> i===idx ? {...r, dailyRate: v} : r));
-                    }} /></TableCell>
-                    <TableCell className="text-right"><Input type="number" value={String(l.hourlyRate ?? 0)} onChange={e => {
-                      const v = Number(e.target.value || 0); setLabor(prev => prev.map((r,i)=> i===idx ? {...r, hourlyRate: v} : r));
-                    }} /></TableCell>
-                    <TableCell className="text-right"><Input type="number" value={String(l.plannedProjectMandays ?? 0)} onChange={e => {
-                      const v = Number(e.target.value || 0); setLabor(prev => prev.map((r,i)=> i===idx ? {...r, plannedProjectMandays: v} : r));
-                    }} /></TableCell>
-                    <TableCell className="text-right"><Input type="number" value={String(l.plannedProjectManhours ?? 0)} onChange={e => {
-                      const v = Number(e.target.value || 0); setLabor(prev => prev.map((r,i)=> i===idx ? {...r, plannedProjectManhours: v} : r));
-                    }} /></TableCell>
-                    <TableCell className="text-right"><Input type="number" value={String(l.plannedWarrantyMandays ?? 0)} onChange={e => {
-                      const v = Number(e.target.value || 0); setLabor(prev => prev.map((r,i)=> i===idx ? {...r, plannedWarrantyMandays: v} : r));
-                    }} /></TableCell>
-                    <TableCell className="text-right"><Input type="number" value={String(l.plannedWarrantyManhours ?? 0)} onChange={e => {
-                      const v = Number(e.target.value || 0); setLabor(prev => prev.map((r,i)=> i===idx ? {...r, plannedWarrantyManhours: v} : r));
-                    }} /></TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        value={String(l.dailyRate ?? 0)}
+                        onChange={(e) => {
+                          const v = Number(e.target.value || 0);
+                          setLabor((prev) =>
+                            prev.map((r, i) =>
+                              i === idx ? { ...r, dailyRate: v } : r,
+                            ),
+                          );
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        value={String(l.hourlyRate ?? 0)}
+                        onChange={(e) => {
+                          const v = Number(e.target.value || 0);
+                          setLabor((prev) =>
+                            prev.map((r, i) =>
+                              i === idx ? { ...r, hourlyRate: v } : r,
+                            ),
+                          );
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        value={String(l.plannedProjectMandays ?? 0)}
+                        onChange={(e) => {
+                          const v = Number(e.target.value || 0);
+                          setLabor((prev) =>
+                            prev.map((r, i) =>
+                              i === idx
+                                ? { ...r, plannedProjectMandays: v }
+                                : r,
+                            ),
+                          );
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        value={String(l.plannedProjectManhours ?? 0)}
+                        onChange={(e) => {
+                          const v = Number(e.target.value || 0);
+                          setLabor((prev) =>
+                            prev.map((r, i) =>
+                              i === idx
+                                ? { ...r, plannedProjectManhours: v }
+                                : r,
+                            ),
+                          );
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        value={String(l.plannedWarrantyMandays ?? 0)}
+                        onChange={(e) => {
+                          const v = Number(e.target.value || 0);
+                          setLabor((prev) =>
+                            prev.map((r, i) =>
+                              i === idx
+                                ? { ...r, plannedWarrantyMandays: v }
+                                : r,
+                            ),
+                          );
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        value={String(l.plannedWarrantyManhours ?? 0)}
+                        onChange={(e) => {
+                          const v = Number(e.target.value || 0);
+                          setLabor((prev) =>
+                            prev.map((r, i) =>
+                              i === idx
+                                ? { ...r, plannedWarrantyManhours: v }
+                                : r,
+                            ),
+                          );
+                        }}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -345,34 +517,81 @@ export default function ProjectCostSheetPage() {
                 {expenses.map((e, idx) => (
                   <TableRow key={e.id}>
                     <TableCell>
-                      <Select value={e.costCode} onValueChange={(v) => {
-                        setExpenses(prev => prev.map((r,i)=> i===idx ? {...r, costCode: v, description: (catalog.find(c=>c.code===v)?.description || r.description)} : r));
-                      }}>
+                      <Select
+                        value={e.costCode}
+                        onValueChange={(v) => {
+                          setExpenses((prev) =>
+                            prev.map((r, i) =>
+                              i === idx
+                                ? {
+                                    ...r,
+                                    costCode: v,
+                                    description:
+                                      catalog.find((c) => c.code === v)
+                                        ?.description || r.description,
+                                  }
+                                : r,
+                            ),
+                          );
+                        }}
+                      >
                         <SelectTrigger className="w-[180px]">
                           <SelectValue placeholder="เลือก Cost Code" />
                         </SelectTrigger>
                         <SelectContent>
-                          {catalog.map(c => (
-                            <SelectItem key={c.code} value={c.code}>{c.code}</SelectItem>
+                          {catalog.map((c) => (
+                            <SelectItem key={c.code} value={c.code}>
+                              {c.code}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </TableCell>
                     <TableCell>
-                      <Input value={e.description} onChange={ev => {
-                        const v = ev.target.value; setExpenses(prev => prev.map((r,i)=> i===idx ? {...r, description: v} : r));
-                      }} placeholder="คำอธิบาย" />
+                      <Input
+                        value={e.description}
+                        onChange={(ev) => {
+                          const v = ev.target.value;
+                          setExpenses((prev) =>
+                            prev.map((r, i) =>
+                              i === idx ? { ...r, description: v } : r,
+                            ),
+                          );
+                        }}
+                        placeholder="คำอธิบาย"
+                      />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Input type="number" value={e.amount !== undefined ? String(e.amount) : ''} onChange={ev => {
-                        const v = ev.target.value === '' ? undefined : Number(ev.target.value);
-                        setExpenses(prev => prev.map((r,i)=> i===idx ? {...r, amount: v} : r));
-                      }} placeholder="-" />
+                      <Input
+                        type="number"
+                        value={e.amount !== undefined ? String(e.amount) : ""}
+                        onChange={(ev) => {
+                          const v =
+                            ev.target.value === ""
+                              ? undefined
+                              : Number(ev.target.value);
+                          setExpenses((prev) =>
+                            prev.map((r, i) =>
+                              i === idx ? { ...r, amount: v } : r,
+                            ),
+                          );
+                        }}
+                        placeholder="-"
+                      />
                     </TableCell>
                     <TableCell>
-                      <Input value={e.remark || ''} onChange={ev => {
-                        const v = ev.target.value; setExpenses(prev => prev.map((r,i)=> i===idx ? {...r, remark: v} : r));
-                      }} placeholder="หมายเหตุ" />
+                      <Input
+                        value={e.remark || ""}
+                        onChange={(ev) => {
+                          const v = ev.target.value;
+                          setExpenses((prev) =>
+                            prev.map((r, i) =>
+                              i === idx ? { ...r, remark: v } : r,
+                            ),
+                          );
+                        }}
+                        placeholder="หมายเหตุ"
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

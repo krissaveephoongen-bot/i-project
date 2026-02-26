@@ -1,13 +1,13 @@
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Folder, 
-  CheckSquare, 
-  ClipboardList, 
-  Receipt, 
-  CheckCircle, 
-  BarChart, 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Folder,
+  CheckSquare,
+  ClipboardList,
+  Receipt,
+  CheckCircle,
+  BarChart,
   Briefcase,
   Users,
   Building2,
@@ -16,67 +16,67 @@ import {
   User,
   FileText,
   BriefcaseIcon,
-  PieChart
-} from 'lucide-react';
+  PieChart,
+} from "lucide-react";
 
 function Sidebar({ isOpen }) {
   try {
     const pathname = usePathname();
-    
+
     const menuGroups = [
       {
-        title: 'Main',
+        title: "Main",
         items: [
-          { id: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }
-        ]
+          { id: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        ],
       },
       {
-        title: 'Work',
+        title: "Work",
         items: [
-          { id: '/projects', label: 'Projects', icon: Folder },
-          { id: '/tasks', label: 'Tasks', icon: CheckSquare },
-          { id: '/timesheet', label: 'Timesheet', icon: ClipboardList }
-        ]
+          { id: "/projects", label: "Projects", icon: Folder },
+          { id: "/tasks", label: "Tasks", icon: CheckSquare },
+          { id: "/timesheet", label: "Timesheet", icon: ClipboardList },
+        ],
       },
       {
-        title: 'Management',
+        title: "Management",
         items: [
-          { id: '/clients', label: 'Clients', icon: Building2 },
-          { id: '/stakeholders', label: 'Stakeholders', icon: Users },
-          { id: '/staff', label: 'Staff', icon: BriefcaseIcon },
-          { id: '/users', label: 'Users', icon: User }
-        ]
+          { id: "/clients", label: "Clients", icon: Building2 },
+          { id: "/stakeholders", label: "Stakeholders", icon: Users },
+          { id: "/staff", label: "Staff", icon: BriefcaseIcon },
+          { id: "/users", label: "Users", icon: User },
+        ],
       },
       {
-        title: 'Finance',
+        title: "Finance",
         items: [
-          { id: '/expenses', label: 'Expenses', icon: Receipt },
-          { id: '/approvals', label: 'Approvals', icon: CheckCircle }
-        ]
+          { id: "/expenses", label: "Expenses", icon: Receipt },
+          { id: "/approvals", label: "Approvals", icon: CheckCircle },
+        ],
       },
       {
-        title: 'Analytics',
+        title: "Analytics",
         items: [
-          { id: '/reports', label: 'Reports', icon: BarChart },
-          { id: '/resources', label: 'Resources', icon: PieChart }
-        ]
+          { id: "/reports", label: "Reports", icon: BarChart },
+          { id: "/resources", label: "Resources", icon: PieChart },
+        ],
       },
       {
-        title: 'System',
+        title: "System",
         items: [
-          { id: '/admin', label: 'Admin', icon: Briefcase },
-          { id: '/settings', label: 'Settings', icon: Settings },
-          { id: '/help', label: 'Help', icon: HelpCircle }
-        ]
-      }
+          { id: "/admin", label: "Admin", icon: Briefcase },
+          { id: "/settings", label: "Settings", icon: Settings },
+          { id: "/help", label: "Help", icon: HelpCircle },
+        ],
+      },
     ];
 
     return (
-      <div 
+      <div
         className={`fixed left-0 top-0 h-full bg-[#0F172A] text-white transition-all duration-300 ease-in-out ${
-          isOpen ? 'w-64' : 'w-20'
+          isOpen ? "w-64" : "w-20"
         } z-30 shadow-xl`}
-        data-name="sidebar" 
+        data-name="sidebar"
         data-file="components/Sidebar.js"
       >
         <div className="h-full flex flex-col">
@@ -87,7 +87,9 @@ function Sidebar({ isOpen }) {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20">
                   <span className="font-bold text-lg text-white">IP</span>
                 </div>
-                <span className="text-xl font-bold tracking-tight text-white">I-PROJECT</span>
+                <span className="text-xl font-bold tracking-tight text-white">
+                  I-PROJECT
+                </span>
               </div>
             ) : (
               <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
@@ -95,7 +97,7 @@ function Sidebar({ isOpen }) {
               </div>
             )}
           </div>
-          
+
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-8">
             {menuGroups.map((group, idx) => (
@@ -106,27 +108,41 @@ function Sidebar({ isOpen }) {
                   </div>
                 )}
                 <div className="space-y-1">
-                  {group.items.map(item => {
-                    const isActive = pathname === item.id || pathname?.startsWith(item.id + '/');
+                  {group.items.map((item) => {
+                    const isActive =
+                      pathname === item.id ||
+                      pathname?.startsWith(item.id + "/");
                     const Icon = item.icon;
-                    
+
                     return (
                       <Link
                         key={item.id}
                         href={item.id}
                         className={`flex items-center px-4 py-3 rounded-xl transition-all duration-200 group relative ${
-                          isActive 
-                            ? 'bg-blue-600 text-white shadow-md shadow-blue-900/20' 
-                            : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                          isActive
+                            ? "bg-blue-600 text-white shadow-md shadow-blue-900/20"
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
                         }`}
                       >
-                        <div className={`flex items-center justify-center ${isOpen ? '' : 'mx-auto'}`}>
-                          <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-white' : 'group-hover:text-white'} />
+                        <div
+                          className={`flex items-center justify-center ${isOpen ? "" : "mx-auto"}`}
+                        >
+                          <Icon
+                            size={20}
+                            strokeWidth={isActive ? 2.5 : 2}
+                            className={
+                              isActive ? "text-white" : "group-hover:text-white"
+                            }
+                          />
                         </div>
-                        
-                        <span className={`ml-3 font-medium whitespace-nowrap transition-all duration-300 ${
-                          isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 absolute left-14 pointer-events-none'
-                        }`}>
+
+                        <span
+                          className={`ml-3 font-medium whitespace-nowrap transition-all duration-300 ${
+                            isOpen
+                              ? "opacity-100 translate-x-0"
+                              : "opacity-0 -translate-x-4 absolute left-14 pointer-events-none"
+                          }`}
+                        >
                           {item.label}
                         </span>
 
@@ -145,14 +161,20 @@ function Sidebar({ isOpen }) {
 
           {/* User Profile Summary (Optional Footer) */}
           <div className="p-4 border-t border-white/10">
-            <div className={`flex items-center ${isOpen ? 'gap-3' : 'justify-center'}`}>
+            <div
+              className={`flex items-center ${isOpen ? "gap-3" : "justify-center"}`}
+            >
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-inner">
                 U
               </div>
               {isOpen && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">User Profile</p>
-                  <p className="text-xs text-slate-400 truncate">View Settings</p>
+                  <p className="text-sm font-semibold text-white truncate">
+                    User Profile
+                  </p>
+                  <p className="text-xs text-slate-400 truncate">
+                    View Settings
+                  </p>
                 </div>
               )}
             </div>
@@ -161,7 +183,7 @@ function Sidebar({ isOpen }) {
       </div>
     );
   } catch (error) {
-    console.error('Sidebar component error:', error);
+    console.error("Sidebar component error:", error);
     return null;
   }
 }

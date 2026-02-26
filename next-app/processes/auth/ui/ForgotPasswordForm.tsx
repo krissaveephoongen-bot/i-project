@@ -1,24 +1,33 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Loader2, ArrowLeft } from 'lucide-react';
-import { useAuth } from '../model/useAuth';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Label } from '../../../components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Alert, AlertDescription } from '../../../components/ui/alert';
-import type { ForgotPasswordFormData } from '../model/types';
+import { useState } from "react";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { useAuth } from "../model/useAuth";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import { Alert, AlertDescription } from "../../../components/ui/alert";
+import type { ForgotPasswordFormData } from "../model/types";
 
 interface ForgotPasswordFormProps {
   onSwitchToLogin?: () => void;
   onSuccess?: () => void;
 }
 
-export function ForgotPasswordForm({ onSwitchToLogin, onSuccess }: ForgotPasswordFormProps) {
+export function ForgotPasswordForm({
+  onSwitchToLogin,
+  onSuccess,
+}: ForgotPasswordFormProps) {
   const { forgotPassword, isLoading, error, clearError } = useAuth();
   const [formData, setFormData] = useState<ForgotPasswordFormData>({
-    email: '',
+    email: "",
   });
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -33,21 +42,27 @@ export function ForgotPasswordForm({ onSwitchToLogin, onSuccess }: ForgotPasswor
 
     try {
       await forgotPassword(formData);
-      setSuccessMessage('If an account with that email exists, a password reset link has been sent.');
+      setSuccessMessage(
+        "If an account with that email exists, a password reset link has been sent.",
+      );
       onSuccess?.();
     } catch (error) {
       // Error is handled by the hook
     }
   };
 
-  const isFormValid = formData.email.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
+  const isFormValid =
+    formData.email.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
 
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">Reset Password</CardTitle>
+        <CardTitle className="text-2xl font-bold text-center">
+          Reset Password
+        </CardTitle>
         <CardDescription className="text-center">
-          Enter your email address and we'll send you a link to reset your password
+          Enter your email address and we'll send you a link to reset your
+          password
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -88,7 +103,7 @@ export function ForgotPasswordForm({ onSwitchToLogin, onSuccess }: ForgotPasswor
                 Sending reset link...
               </>
             ) : (
-              'Send Reset Link'
+              "Send Reset Link"
             )}
           </Button>
 

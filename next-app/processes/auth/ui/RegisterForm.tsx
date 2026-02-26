@@ -1,44 +1,53 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { useAuth } from '../model/useAuth';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Label } from '../../../components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Alert, AlertDescription } from '../../../components/ui/alert';
-import type { RegisterFormData } from '../model/types';
+import { useState } from "react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuth } from "../model/useAuth";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import { Alert, AlertDescription } from "../../../components/ui/alert";
+import type { RegisterFormData } from "../model/types";
 
 interface RegisterFormProps {
   onSwitchToLogin?: () => void;
   onSuccess?: () => void;
 }
 
-export function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) {
+export function RegisterForm({
+  onSwitchToLogin,
+  onSuccess,
+}: RegisterFormProps) {
   const { register, isLoading, error, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState<RegisterFormData>({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    department: '',
-    position: '',
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    department: "",
+    position: "",
   });
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const handleInputChange = (field: keyof RegisterFormData) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value,
-    }));
-    if (error) clearError();
-    if (successMessage) setSuccessMessage(null);
-  };
+  const handleInputChange =
+    (field: keyof RegisterFormData) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: e.target.value,
+      }));
+      if (error) clearError();
+      if (successMessage) setSuccessMessage(null);
+    };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +56,9 @@ export function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) 
       const { confirmPassword, ...registerData } = formData;
       await register(registerData);
 
-      setSuccessMessage('Registration successful! Please check your email for verification instructions.');
+      setSuccessMessage(
+        "Registration successful! Please check your email for verification instructions.",
+      );
       onSuccess?.();
     } catch (error) {
       // Error is handled by the hook
@@ -68,7 +79,9 @@ export function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) 
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
+        <CardTitle className="text-2xl font-bold text-center">
+          Create Account
+        </CardTitle>
         <CardDescription className="text-center">
           Enter your information to create your account
         </CardDescription>
@@ -94,7 +107,7 @@ export function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) 
               type="text"
               placeholder="Enter your full name"
               value={formData.name}
-              onChange={handleInputChange('name')}
+              onChange={handleInputChange("name")}
               disabled={isLoading}
               required
             />
@@ -107,7 +120,7 @@ export function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) 
               type="email"
               placeholder="Enter your email"
               value={formData.email}
-              onChange={handleInputChange('email')}
+              onChange={handleInputChange("email")}
               disabled={isLoading}
               required
             />
@@ -120,7 +133,7 @@ export function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) 
               type="text"
               placeholder="Enter your department"
               value={formData.department}
-              onChange={handleInputChange('department')}
+              onChange={handleInputChange("department")}
               disabled={isLoading}
             />
           </div>
@@ -132,7 +145,7 @@ export function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) 
               type="text"
               placeholder="Enter your position"
               value={formData.position}
-              onChange={handleInputChange('position')}
+              onChange={handleInputChange("position")}
               disabled={isLoading}
             />
           </div>
@@ -142,10 +155,10 @@ export function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) 
             <div className="relative">
               <Input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 value={formData.password}
-                onChange={handleInputChange('password')}
+                onChange={handleInputChange("password")}
                 disabled={isLoading}
                 required
               />
@@ -165,7 +178,9 @@ export function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) 
               </Button>
             </div>
             {!passwordLengthValid && formData.password && (
-              <p className="text-sm text-destructive">Password must be at least 6 characters</p>
+              <p className="text-sm text-destructive">
+                Password must be at least 6 characters
+              </p>
             )}
           </div>
 
@@ -174,10 +189,10 @@ export function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) 
             <div className="relative">
               <Input
                 id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm your password"
                 value={formData.confirmPassword}
-                onChange={handleInputChange('confirmPassword')}
+                onChange={handleInputChange("confirmPassword")}
                 disabled={isLoading}
                 required
               />
@@ -212,13 +227,15 @@ export function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) 
                 Creating account...
               </>
             ) : (
-              'Create Account'
+              "Create Account"
             )}
           </Button>
 
           {onSwitchToLogin && (
             <div className="text-center text-sm">
-              <span className="text-muted-foreground">Already have an account? </span>
+              <span className="text-muted-foreground">
+                Already have an account?{" "}
+              </span>
               <button
                 type="button"
                 className="text-primary hover:underline"

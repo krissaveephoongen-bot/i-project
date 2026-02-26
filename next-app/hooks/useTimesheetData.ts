@@ -3,10 +3,10 @@
  * Handles all timesheet data fetching with proper race condition prevention
  */
 
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import * as TimesheetService from '@/lib/timesheet-service';
+import { useEffect, useRef, useState } from "react";
+import * as TimesheetService from "@/lib/timesheet-service";
 
 export interface UseTimesheetDataReturn {
   projects: TimesheetService.Project[];
@@ -26,12 +26,13 @@ export function useTimesheetData(
   userId: string | undefined,
   currentMonth: Date,
   weekStart: Date,
-  activityUser: string = 'all',
-  activityTeam: string = ''
+  activityUser: string = "all",
+  activityTeam: string = "",
 ): UseTimesheetDataReturn {
   const [projects, setProjects] = useState<TimesheetService.Project[]>([]);
   const [entries, setEntries] = useState<TimesheetService.TimesheetEntry[]>([]);
-  const [submissionStatus, setSubmissionStatus] = useState<TimesheetService.SubmissionStatus | null>(null);
+  const [submissionStatus, setSubmissionStatus] =
+    useState<TimesheetService.SubmissionStatus | null>(null);
   const [weekly, setWeekly] = useState<any>(null);
   const [activities, setActivities] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +58,11 @@ export function useTimesheetData(
         // Fetch all data in parallel (but with same AbortSignal for safety)
         const [projectsData, submissionData, weeklyData] = await Promise.all([
           TimesheetService.fetchProjects(userId, controller.signal),
-          TimesheetService.fetchSubmissionStatus(userId, currentMonth, controller.signal),
+          TimesheetService.fetchSubmissionStatus(
+            userId,
+            currentMonth,
+            controller.signal,
+          ),
           TimesheetService.fetchWeeklyData(weekStart, controller.signal),
         ]);
 
@@ -74,7 +79,7 @@ export function useTimesheetData(
             userId,
             currentMonth,
             projectsData.map((p) => p.id),
-            controller.signal
+            controller.signal,
           );
 
           if (!controller.signal.aborted) {
@@ -84,9 +89,9 @@ export function useTimesheetData(
 
         // Fetch activities
         const activitiesData = await TimesheetService.fetchActivities(
-          activityUser === 'all' ? '' : activityUser,
+          activityUser === "all" ? "" : activityUser,
           activityTeam,
-          controller.signal
+          controller.signal,
         );
 
         if (!controller.signal.aborted) {
@@ -94,7 +99,7 @@ export function useTimesheetData(
         }
       } catch (err) {
         // Ignore abort errors
-        if (err instanceof Error && err.name === 'AbortError') {
+        if (err instanceof Error && err.name === "AbortError") {
           return;
         }
 
@@ -102,7 +107,7 @@ export function useTimesheetData(
         if (!controller.signal.aborted) {
           const error = err instanceof Error ? err : new Error(String(err));
           setError(error);
-          console.error('Timesheet data fetch error:', error);
+          console.error("Timesheet data fetch error:", error);
         }
       } finally {
         setLoading(false);

@@ -1,10 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/app/components/ui/Button';
-import { Input } from '@/app/components/ui/Input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { X, Save, User, Briefcase, Building, Mail, Phone } from 'lucide-react';
+import { useState } from "react";
+import { Button } from "@/app/components/ui/Button";
+import { Input } from "@/app/components/ui/Input";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
+import { X, Save, User, Briefcase, Building, Mail, Phone } from "lucide-react";
 
 interface StakeholderFormProps {
   stakeholder?: any;
@@ -13,16 +18,21 @@ interface StakeholderFormProps {
   projects?: any[];
 }
 
-export default function StakeholderForm({ stakeholder, onSave, onCancel, projects }: StakeholderFormProps) {
+export default function StakeholderForm({
+  stakeholder,
+  onSave,
+  onCancel,
+  projects,
+}: StakeholderFormProps) {
   const [formData, setFormData] = useState({
-    id: stakeholder?.id || '',
-    name: stakeholder?.name || '',
-    position: stakeholder?.position || stakeholder?.role || '',
-    organization: stakeholder?.organization || '',
-    email: stakeholder?.email || '',
-    phone: stakeholder?.phone || '',
-    project_id: stakeholder?.project_id || stakeholder?.project?.id || '',
-    type: stakeholder?.type || 'stakeholder'
+    id: stakeholder?.id || "",
+    name: stakeholder?.name || "",
+    position: stakeholder?.position || stakeholder?.role || "",
+    organization: stakeholder?.organization || "",
+    email: stakeholder?.email || "",
+    phone: stakeholder?.phone || "",
+    project_id: stakeholder?.project_id || stakeholder?.project?.id || "",
+    type: stakeholder?.type || "stakeholder",
   });
 
   const [saving, setSaving] = useState(false);
@@ -32,29 +42,27 @@ export default function StakeholderForm({ stakeholder, onSave, onCancel, project
     setSaving(true);
 
     try {
-      const method = stakeholder?.id ? 'PUT' : 'POST';
-      const url = stakeholder?.id 
-        ? '/api/stakeholders' 
-        : '/api/stakeholders';
+      const method = stakeholder?.id ? "PUT" : "POST";
+      const url = stakeholder?.id ? "/api/stakeholders" : "/api/stakeholders";
 
-      const payload = stakeholder?.id 
+      const payload = stakeholder?.id
         ? { ...formData, id: stakeholder.id }
         : formData;
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
         const data = await res.json();
         onSave(data);
       } else {
-        alert('Failed to save stakeholder');
+        alert("Failed to save stakeholder");
       }
     } catch (error) {
-      alert('Error saving stakeholder');
+      alert("Error saving stakeholder");
     } finally {
       setSaving(false);
     }
@@ -66,7 +74,7 @@ export default function StakeholderForm({ stakeholder, onSave, onCancel, project
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
-            {stakeholder?.id ? 'Edit Stakeholder' : 'Add Stakeholder'}
+            {stakeholder?.id ? "Edit Stakeholder" : "Add Stakeholder"}
           </CardTitle>
           <Button variant="ghost" size="sm" onClick={onCancel}>
             <X className="w-4 h-4" />
@@ -80,7 +88,9 @@ export default function StakeholderForm({ stakeholder, onSave, onCancel, project
               </label>
               <Input
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="Enter stakeholder name"
                 required
               />
@@ -92,7 +102,9 @@ export default function StakeholderForm({ stakeholder, onSave, onCancel, project
               </label>
               <Input
                 value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, position: e.target.value })
+                }
                 placeholder="Enter position or role"
               />
             </div>
@@ -103,7 +115,9 @@ export default function StakeholderForm({ stakeholder, onSave, onCancel, project
               </label>
               <Input
                 value={formData.organization}
-                onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, organization: e.target.value })
+                }
                 placeholder="Enter organization"
               />
             </div>
@@ -115,7 +129,9 @@ export default function StakeholderForm({ stakeholder, onSave, onCancel, project
               <Input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 placeholder="Enter email"
               />
             </div>
@@ -126,7 +142,9 @@ export default function StakeholderForm({ stakeholder, onSave, onCancel, project
               </label>
               <Input
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 placeholder="Enter phone number"
               />
             </div>
@@ -137,7 +155,9 @@ export default function StakeholderForm({ stakeholder, onSave, onCancel, project
               </label>
               <select
                 value={formData.project_id}
-                onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, project_id: e.target.value })
+                }
                 className="w-full border border-slate-200 rounded-lg px-3 py-2"
                 required
               >
@@ -157,7 +177,7 @@ export default function StakeholderForm({ stakeholder, onSave, onCancel, project
                 className="flex-1"
               >
                 <Save className="w-4 h-4 mr-2" />
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? "Saving..." : "Save"}
               </Button>
               <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel

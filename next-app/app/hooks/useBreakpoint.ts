@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
-export type Breakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+export type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 
 const BREAKPOINTS = {
   xs: 0,
@@ -8,11 +8,11 @@ const BREAKPOINTS = {
   md: 768,
   lg: 1024,
   xl: 1280,
-  '2xl': 1536,
+  "2xl": 1536,
 } as const;
 
 export function useBreakpoint() {
-  const [breakpoint, setBreakpoint] = useState<Breakpoint>('lg');
+  const [breakpoint, setBreakpoint] = useState<Breakpoint>("lg");
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
@@ -21,18 +21,18 @@ export function useBreakpoint() {
       const width = window.innerWidth;
       setDimensions({ width, height: window.innerHeight });
 
-      if (width >= BREAKPOINTS['2xl']) {
-        setBreakpoint('2xl');
+      if (width >= BREAKPOINTS["2xl"]) {
+        setBreakpoint("2xl");
       } else if (width >= BREAKPOINTS.xl) {
-        setBreakpoint('xl');
+        setBreakpoint("xl");
       } else if (width >= BREAKPOINTS.lg) {
-        setBreakpoint('lg');
+        setBreakpoint("lg");
       } else if (width >= BREAKPOINTS.md) {
-        setBreakpoint('md');
+        setBreakpoint("md");
       } else if (width >= BREAKPOINTS.sm) {
-        setBreakpoint('sm');
+        setBreakpoint("sm");
       } else {
-        setBreakpoint('xs');
+        setBreakpoint("xs");
       }
     };
 
@@ -40,24 +40,25 @@ export function useBreakpoint() {
     updateBreakpoint();
 
     // Add event listener
-    window.addEventListener('resize', updateBreakpoint);
+    window.addEventListener("resize", updateBreakpoint);
 
     // Cleanup
-    return () => window.removeEventListener('resize', updateBreakpoint);
+    return () => window.removeEventListener("resize", updateBreakpoint);
   }, []);
 
   return {
     breakpoint,
     dimensions,
-    isMobile: breakpoint === 'xs' || breakpoint === 'sm',
-    isTablet: breakpoint === 'md',
-    isDesktop: breakpoint === 'lg' || breakpoint === 'xl' || breakpoint === '2xl',
-    isXs: breakpoint === 'xs',
-    isSm: breakpoint === 'sm',
-    isMd: breakpoint === 'md',
-    isLg: breakpoint === 'lg',
-    isXl: breakpoint === 'xl',
-    is2Xl: breakpoint === '2xl',
+    isMobile: breakpoint === "xs" || breakpoint === "sm",
+    isTablet: breakpoint === "md",
+    isDesktop:
+      breakpoint === "lg" || breakpoint === "xl" || breakpoint === "2xl",
+    isXs: breakpoint === "xs",
+    isSm: breakpoint === "sm",
+    isMd: breakpoint === "md",
+    isLg: breakpoint === "lg",
+    isXl: breakpoint === "xl",
+    is2Xl: breakpoint === "2xl",
     // Utility functions
     greaterThan: (bp: Breakpoint) => {
       const currentIndex = Object.keys(BREAKPOINTS).indexOf(breakpoint);
@@ -81,7 +82,7 @@ export function useBreakpoint() {
 // Hook for conditional rendering based on breakpoint
 export function useResponsiveValue<T>(
   values: Partial<Record<Breakpoint, T>>,
-  defaultValue: T
+  defaultValue: T,
 ): T {
   const { breakpoint } = useBreakpoint();
   return values[breakpoint] ?? defaultValue;
@@ -90,9 +91,9 @@ export function useResponsiveValue<T>(
 // Hook for responsive classes
 export function useResponsiveClass(
   classes: Partial<Record<Breakpoint, string>>,
-  baseClass = ''
+  baseClass = "",
 ): string {
   const { breakpoint } = useBreakpoint();
-  const responsiveClass = classes[breakpoint] || '';
+  const responsiveClass = classes[breakpoint] || "";
   return `${baseClass} ${responsiveClass}`.trim();
 }

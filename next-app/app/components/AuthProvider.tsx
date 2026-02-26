@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from "react";
 
 interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'manager' | 'employee';
+  role: "admin" | "manager" | "employee";
   department?: string;
   position?: string;
   avatar?: string;
@@ -17,8 +17,17 @@ interface AuthContextType {
   user: User | null;
   profile: any | null;
   loading: boolean;
-  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
-  signUp: (email: string, password: string, name?: string, role?: 'admin'|'manager'|'employee') => Promise<void>;
+  signIn: (
+    email: string,
+    password: string,
+    rememberMe?: boolean,
+  ) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    name?: string,
+    role?: "admin" | "manager" | "employee",
+  ) => Promise<void>;
   signOut: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
 }
@@ -31,12 +40,16 @@ const USE_MOCK = false;
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
 
-export default function AuthProvider({ children }: { children: React.ReactNode }) {
+export default function AuthProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,24 +61,26 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         if (USE_MOCK) {
           // Simulate a logged-in user for dev/demo
           const mockUser: User = {
-            id: 'mock-user-1',
-            email: 'demo@example.com',
-            name: 'Demo User',
-            role: 'manager'
+            id: "mock-user-1",
+            email: "demo@example.com",
+            name: "Demo User",
+            role: "manager",
           };
           setUser(mockUser);
           setLoading(false);
           return;
         }
 
-        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-        const rememberedEmail = localStorage.getItem('remembered_email');
-        
+        const token =
+          localStorage.getItem("auth_token") ||
+          sessionStorage.getItem("auth_token");
+        const rememberedEmail = localStorage.getItem("remembered_email");
+
         if (token) {
           // Verify token with backend
-          const response = await fetch('/api/auth/verify', {
+          const response = await fetch("/api/auth/verify", {
             headers: {
-              'Authorization': `Bearer ${token}`,
+              Authorization: `Bearer ${token}`,
             },
           });
 
@@ -75,18 +90,20 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             setProfile(data.profile || null);
           } else {
             // Token invalid, remove it
-            localStorage.removeItem('auth_token');
+            localStorage.removeItem("auth_token");
           }
         }
-        
+
         // Store remembered email for login form
         if (rememberedEmail) {
           // This will be used by the login component
-          window.dispatchEvent(new CustomEvent('rememberedEmail', { detail: rememberedEmail }));
+          window.dispatchEvent(
+            new CustomEvent("rememberedEmail", { detail: rememberedEmail }),
+          );
         }
       } catch (error) {
-        console.error('Error checking auth state:', error);
-        localStorage.removeItem('auth_token');
+        console.error("Error checking auth state:", error);
+        localStorage.removeItem("auth_token");
       } finally {
         setLoading(false);
       }
@@ -95,112 +112,121 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     checkUser();
   }, []);
 
-  const signIn = async (email: string, password: string, rememberMe = false) => {
+  const signIn = async (
+    email: string,
+    password: string,
+    rememberMe = false,
+  ) => {
     if (USE_MOCK) {
-       const mockUser: User = {
-         id: 'mock-user-1',
-         email,
-         name: 'Demo User',
-         role: 'manager'
-       };
-       setUser(mockUser);
-       if (rememberMe) localStorage.setItem('auth_token', 'mock-token');
-       else sessionStorage.setItem('auth_token', 'mock-token');
-       return;
+      const mockUser: User = {
+        id: "mock-user-1",
+        email,
+        name: "Demo User",
+        role: "manager",
+      };
+      setUser(mockUser);
+      if (rememberMe) localStorage.setItem("auth_token", "mock-token");
+      else sessionStorage.setItem("auth_token", "mock-token");
+      return;
     }
 
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ email, password, rememberMe }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Login failed');
+      throw new Error(error.error || "Login failed");
     }
 
     const data = await response.json();
 
     // Store token and user
     if (rememberMe) {
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('remembered_email', email);
+      localStorage.setItem("auth_token", data.token);
+      localStorage.setItem("remembered_email", email);
     } else {
-      sessionStorage.setItem('auth_token', data.token);
-      localStorage.removeItem('remembered_email');
+      sessionStorage.setItem("auth_token", data.token);
+      localStorage.removeItem("remembered_email");
     }
-    
+
     setUser(data.user);
     setProfile(data.profile || null);
   };
 
   const signOut = async () => {
     if (USE_MOCK) {
-       setUser(null);
-       localStorage.removeItem('auth_token');
-       sessionStorage.removeItem('auth_token');
-       return;
+      setUser(null);
+      localStorage.removeItem("auth_token");
+      sessionStorage.removeItem("auth_token");
+      return;
     }
 
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
+      await fetch("/api/auth/logout", {
+        method: "POST",
       });
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error("Error during logout:", error);
     }
 
     // Clear local storage and state
-    localStorage.removeItem('auth_token');
-    sessionStorage.removeItem('auth_token');
+    localStorage.removeItem("auth_token");
+    sessionStorage.removeItem("auth_token");
     setUser(null);
     setProfile(null);
   };
-  
-  const signUp = async (email: string, password: string, name?: string, role: 'admin'|'manager'|'employee' = 'employee') => {
+
+  const signUp = async (
+    email: string,
+    password: string,
+    name?: string,
+    role: "admin" | "manager" | "employee" = "employee",
+  ) => {
     if (USE_MOCK) {
-       const mockUser: User = {
-         id: `mock-user-${Date.now()}`,
-         email,
-         name: name || 'New User',
-         role
-       };
-       setUser(mockUser);
-       return;
+      const mockUser: User = {
+        id: `mock-user-${Date.now()}`,
+        email,
+        name: name || "New User",
+        role,
+      };
+      setUser(mockUser);
+      return;
     }
 
-    const response = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, name, role }),
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Register failed');
+      throw new Error(error.error || "Register failed");
     }
     const data = await response.json();
-    localStorage.setItem('auth_token', data.token);
+    localStorage.setItem("auth_token", data.token);
     setUser(data.user);
     setProfile(data.profile || null);
   };
-  
+
   const forgotPassword = async (email: string) => {
     if (USE_MOCK) return;
 
-    const response = await fetch('/api/auth/forgot-password', {
-      method: 'POST',
+    const response = await fetch("/api/auth/forgot-password", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ email }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to send password reset email');
+      throw new Error(error.error || "Failed to send password reset email");
     }
   };
 
@@ -214,9 +240,5 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     forgotPassword,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

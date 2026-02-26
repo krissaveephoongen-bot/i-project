@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { User, Eye, EyeOff, AlertCircle, Briefcase, Lock } from 'lucide-react';
-import { useVendorAuth } from '@/hooks/useAuth';
-import { Skeleton } from '@/app/components/ui/Skeleton';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { User, Eye, EyeOff, AlertCircle, Briefcase, Lock } from "lucide-react";
+import { useVendorAuth } from "@/hooks/useAuth";
+import { Skeleton } from "@/app/components/ui/Skeleton";
 
 export default function VendorLoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const { signIn, loading: authLoading } = useVendorAuth();
@@ -19,13 +19,13 @@ export default function VendorLoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       await signIn(email, password);
-      router.push('/vendor');
+      router.push("/vendor");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setIsLoading(false);
     }
@@ -77,8 +77,12 @@ export default function VendorLoginPage() {
           <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
             <Briefcase className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-3">Vendor Portal</h1>
-          <p className="text-slate-600 text-lg">เข้าสู่ระบบเพื่อดูงานที่ได้รับมอบหมาย</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-3">
+            Vendor Portal
+          </h1>
+          <p className="text-slate-600 text-lg">
+            เข้าสู่ระบบเพื่อดูงานที่ได้รับมอบหมาย
+          </p>
         </div>
 
         {/* Login Form */}
@@ -91,7 +95,10 @@ export default function VendorLoginPage() {
           )}
 
           <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-semibold text-slate-700">
+            <label
+              htmlFor="email"
+              className="block text-sm font-semibold text-slate-700"
+            >
               อีเมล
             </label>
             <div className="relative">
@@ -111,7 +118,10 @@ export default function VendorLoginPage() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm font-semibold text-slate-700">
+            <label
+              htmlFor="password"
+              className="block text-sm font-semibold text-slate-700"
+            >
               รหัสผ่าน
             </label>
             <div className="relative">
@@ -120,7 +130,7 @@ export default function VendorLoginPage() {
               </div>
               <input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-12 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all text-gray-900 placeholder-gray-400 shadow-sm"
@@ -132,7 +142,11 @@ export default function VendorLoginPage() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
               </button>
             </div>
           </div>
@@ -145,13 +159,25 @@ export default function VendorLoginPage() {
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
                 </svg>
                 กำลังเข้าสู่ระบบ...
               </span>
             ) : (
-              'เข้าสู่ระบบ'
+              "เข้าสู่ระบบ"
             )}
           </button>
         </form>
@@ -159,8 +185,11 @@ export default function VendorLoginPage() {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-sm text-slate-600">
-            มีปัญหาในการเข้าสู่ระบบ?{' '}
-            <a href="#" className="text-blue-600 hover:text-blue-700 font-semibold transition-colors">
+            มีปัญหาในการเข้าสู่ระบบ?{" "}
+            <a
+              href="#"
+              className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+            >
               ติดต่อผู้ดูแลระบบ
             </a>
           </p>

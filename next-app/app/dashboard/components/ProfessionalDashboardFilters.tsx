@@ -1,23 +1,43 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { CalendarIcon, Filter, Search, X, RefreshCcw, Download } from "lucide-react"
-import { format } from "date-fns"
+import * as React from "react";
+import {
+  CalendarIcon,
+  Filter,
+  Search,
+  X,
+  RefreshCcw,
+  Download,
+} from "lucide-react";
+import { format } from "date-fns";
 
-import { Button } from "../../components/ui/Button"
-import { Calendar } from "../../components/ui/calendar"
-import { Input } from "../../components/ui/Input"
-import { Label } from "../../components/ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/Select"
-import { Badge } from "../../components/ui/badge"
-import { cn } from "@/lib/utils"
-import { useDebounce } from "@/hooks/useDebounce"
-import { useDynamicFilterOptions, DynamicFilterOptions } from "@/hooks/useDynamicFilterOptions"
+import { Button } from "../../components/ui/Button";
+import { Calendar } from "../../components/ui/calendar";
+import { Input } from "../../components/ui/Input";
+import { Label } from "../../components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/Select";
+import { Badge } from "../../components/ui/badge";
+import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/useDebounce";
+import {
+  useDynamicFilterOptions,
+  DynamicFilterOptions,
+} from "@/hooks/useDynamicFilterOptions";
 
 interface DateRange {
-  from: Date | undefined
-  to: Date | undefined
+  from: Date | undefined;
+  to: Date | undefined;
 }
 
 interface ProfessionalDashboardFiltersProps {
@@ -36,16 +56,19 @@ interface ProfessionalDashboardFiltersProps {
 }
 
 export function ProfessionalDashboardFilters({
-  search, setSearch,
-  status, setStatus,
-  startMonth, setStartMonth,
-  endMonth, setEndMonth,
+  search,
+  setSearch,
+  status,
+  setStatus,
+  startMonth,
+  setStartMonth,
+  endMonth,
+  setEndMonth,
   onRefresh,
   refreshing,
   filteredRows,
-  totalRows
+  totalRows,
 }: ProfessionalDashboardFiltersProps) {
-  
   const debouncedSearch = useDebounce(search, 300);
   const { data: dynamicOptions, isLoading } = useDynamicFilterOptions();
   const [dateRange, setDateRange] = React.useState<DateRange>({
@@ -71,32 +94,44 @@ export function ProfessionalDashboardFilters({
   }, [dateRange, setStartMonth, setEndMonth]);
 
   const handleExportCSV = () => {
-    const cols = ['id','name','status','progress','spi','budget','committed','actual','remaining'];
-    const header = cols.join(',');
-    const rowsCsv = filteredRows.map((r)=>cols.map(c => String(r[c] ?? '')).join(',')).join('\n');
-    const csv = header + '\n' + rowsCsv;
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const cols = [
+      "id",
+      "name",
+      "status",
+      "progress",
+      "spi",
+      "budget",
+      "committed",
+      "actual",
+      "remaining",
+    ];
+    const header = cols.join(",");
+    const rowsCsv = filteredRows
+      .map((r) => cols.map((c) => String(r[c] ?? "")).join(","))
+      .join("\n");
+    const csv = header + "\n" + rowsCsv;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'dashboard.csv';
+    a.download = "dashboard.csv";
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const clearAllFilters = () => {
-    setSearch('');
-    setStatus('all');
-    setStartMonth('');
-    setEndMonth('');
+    setSearch("");
+    setStatus("all");
+    setStartMonth("");
+    setEndMonth("");
     setDateRange({ from: undefined, to: undefined });
   };
 
   const activeFiltersCount = [
     search,
-    status !== 'all',
+    status !== "all",
     startMonth,
-    endMonth
+    endMonth,
   ].filter(Boolean).length;
 
   const statusOptions = React.useMemo(() => {
@@ -104,9 +139,9 @@ export function ProfessionalDashboardFilters({
       return options.projectStatuses;
     }
     return [
-      { value: 'active', label: 'กำลังดำเนินการ (Active)' },
-      { value: 'planning', label: 'วางแผน (Planning)' },
-      { value: 'completed', label: 'เสร็จสิ้น (Completed)' },
+      { value: "active", label: "กำลังดำเนินการ (Active)" },
+      { value: "planning", label: "วางแผน (Planning)" },
+      { value: "completed", label: "เสร็จสิ้น (Completed)" },
     ];
   }, [options]);
 
@@ -144,7 +179,11 @@ export function ProfessionalDashboardFilters({
           {/* Status Filter */}
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <Select value={status} onValueChange={setStatus} disabled={isLoading}>
+            <Select
+              value={status}
+              onValueChange={setStatus}
+              disabled={isLoading}
+            >
               <SelectTrigger className="pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none cursor-pointer hover:bg-slate-100 transition-colors">
                 <SelectValue placeholder="สถานะทั้งหมด" />
               </SelectTrigger>
@@ -167,17 +206,21 @@ export function ProfessionalDashboardFilters({
                   variant="ghost"
                   className={cn(
                     "px-3 py-1.5 bg-transparent text-sm focus:outline-none cursor-pointer h-auto",
-                    !dateRange.from && "text-muted-foreground"
+                    !dateRange.from && "text-muted-foreground",
                   )}
                 >
-                  {dateRange.from ? format(dateRange.from, "MMM yyyy") : "Start"}
+                  {dateRange.from
+                    ? format(dateRange.from, "MMM yyyy")
+                    : "Start"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
                   selected={dateRange.from}
-                  onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
+                  onSelect={(date) =>
+                    setDateRange((prev) => ({ ...prev, from: date }))
+                  }
                   initialFocus
                 />
               </PopoverContent>
@@ -189,7 +232,7 @@ export function ProfessionalDashboardFilters({
                   variant="ghost"
                   className={cn(
                     "px-3 py-1.5 bg-transparent text-sm focus:outline-none cursor-pointer h-auto",
-                    !dateRange.to && "text-muted-foreground"
+                    !dateRange.to && "text-muted-foreground",
                   )}
                 >
                   {dateRange.to ? format(dateRange.to, "MMM yyyy") : "End"}
@@ -199,7 +242,9 @@ export function ProfessionalDashboardFilters({
                 <Calendar
                   mode="single"
                   selected={dateRange.to}
-                  onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
+                  onSelect={(date) =>
+                    setDateRange((prev) => ({ ...prev, to: date }))
+                  }
                   initialFocus
                 />
               </PopoverContent>
@@ -211,7 +256,7 @@ export function ProfessionalDashboardFilters({
             <button
               onClick={onRefresh}
               disabled={refreshing}
-              className={`p-2.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all ${refreshing ? 'animate-spin text-blue-600' : ''}`}
+              className={`p-2.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all ${refreshing ? "animate-spin text-blue-600" : ""}`}
               title="รีเฟรชข้อมูล"
             >
               <RefreshCcw className="w-5 h-5" />
@@ -232,7 +277,9 @@ export function ProfessionalDashboardFilters({
         {filteredRows.length === 0 ? (
           <span className="text-red-600">ไม่พบข้อมูลที่ตรงตามเงื่อนไข</span>
         ) : (
-          <span>แสดง {filteredRows.length} รายการจากทั้งหมด {totalRows} รายการ</span>
+          <span>
+            แสดง {filteredRows.length} รายการจากทั้งหมด {totalRows} รายการ
+          </span>
         )}
       </div>
     </div>

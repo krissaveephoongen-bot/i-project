@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useTranslation } from 'react-i18next';
-import '../lib/i18n';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
+import "../lib/i18n";
 
 interface I18nProviderProps {
   children: React.ReactNode;

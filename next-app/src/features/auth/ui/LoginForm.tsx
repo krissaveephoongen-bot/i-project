@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useAuth } from '@/processes/auth/model/useAuth';
-import { Button } from '@/shared/ui/components/Button';
+import { useState } from "react";
+import { useAuth } from "@/processes/auth/model/useAuth";
+import { Button } from "@/shared/ui/components/Button";
 
 export function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       await login(email, password);
     } catch (err) {
-      setError('Invalid email or password');
+      setError("Invalid email or password");
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +88,7 @@ export function LoginForm() {
               disabled={isLoading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </div>
 

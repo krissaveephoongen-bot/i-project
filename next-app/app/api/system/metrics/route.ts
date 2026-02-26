@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
-import redis from '@/lib/redis';
+import { NextResponse } from "next/server";
+import redis from "@/lib/redis";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET() {
@@ -15,106 +15,113 @@ export async function GET() {
         uptime: process.uptime || 0,
         memory: process.memoryUsage || {},
         cpuUsage: process.cpuUsage ? process.cpuUsage() : null,
-        environment: process.env.NODE_ENV || 'development',
-        pid: process.pid
+        environment: process.env.NODE_ENV || "development",
+        pid: process.pid,
       },
       redis: {
         connected: false,
-        memory: '0B',
-        keys: '0',
-        hitRate: '0%',
-        opsPerSec: '0',
-        uptime: '0s',
-        version: 'unknown'
+        memory: "0B",
+        keys: "0",
+        hitRate: "0%",
+        opsPerSec: "0",
+        uptime: "0s",
+        version: "unknown",
       },
       database: {
         connected: false,
         urlPresent: false,
         keyPresent: false,
-        responseTime: '0ms'
+        responseTime: "0ms",
       },
       api: {
         endpoints: 0,
         healthyEndpoints: 0,
-        avgResponseTime: '0ms',
-        errorRate: '0%'
+        avgResponseTime: "0ms",
+        errorRate: "0%",
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     // Normalize base URL for internal API calls
-    const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+    const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 
     // Get Redis metrics
     try {
       const redisHealth = await fetch(`${base}/api/redis/health`, {
-        cache: 'no-store'
+        cache: "no-store",
       });
-      
+
       if (redisHealth.ok) {
         const redisData = await redisHealth.json();
         systemMetrics.redis = {
           connected: redisData.redis?.connected || false,
-          memory: redisData.redis?.memory || '0B',
-          keys: redisData.redis?.keys || '0',
-          hitRate: redisData.redis?.hit_rate || '0%',
-          opsPerSec: redisData.redis?.operations?.instantaneous_ops_per_sec || '0',
-          uptime: redisData.timestamp ? `${Math.floor((Date.now() - new Date(redisData.timestamp).getTime()) / 1000)}s` : '0s',
-          version: redisData.redis?.version || 'unknown'
+          memory: redisData.redis?.memory || "0B",
+          keys: redisData.redis?.keys || "0",
+          hitRate: redisData.redis?.hit_rate || "0%",
+          opsPerSec:
+            redisData.redis?.operations?.instantaneous_ops_per_sec || "0",
+          uptime: redisData.timestamp
+            ? `${Math.floor((Date.now() - new Date(redisData.timestamp).getTime()) / 1000)}s`
+            : "0s",
+          version: redisData.redis?.version || "unknown",
         };
       }
     } catch (error) {
-      console.error('Failed to get Redis metrics:', error);
+      console.error("Failed to get Redis metrics:", error);
     }
 
     // Get database metrics
     try {
       const dbHealth = await fetch(`${base}/api/health`, {
-        cache: 'no-store'
+        cache: "no-store",
       });
-      
+
       if (dbHealth.ok) {
         const dbData = await dbHealth.json();
         systemMetrics.database = {
           connected: dbData?.supabase?.connected || false,
           urlPresent: dbData?.supabase?.urlPresent || false,
           keyPresent: dbData?.supabase?.keyPresent || false,
-          responseTime: '0ms' // Would need to implement timing
+          responseTime: "0ms", // Would need to implement timing
         };
       }
     } catch (error) {
-      console.error('Failed to get database metrics:', error);
+      console.error("Failed to get database metrics:", error);
     }
 
     // Get API metrics
     try {
       const apiHealth = await fetch(`${base}/api/system/health`, {
-        cache: 'no-store'
+        cache: "no-store",
       });
-      
+
       if (apiHealth.ok) {
         const apiData = await apiHealth.json();
         systemMetrics.api = {
           endpoints: apiData.api?.endpoints || 0,
           healthyEndpoints: apiData.api?.healthyEndpoints || 0,
-          avgResponseTime: apiData.api?.avgResponseTime || '0ms',
-          errorRate: apiData.api?.errorRate || '0%'
+          avgResponseTime: apiData.api?.avgResponseTime || "0ms",
+          errorRate: apiData.api?.errorRate || "0%",
         };
       }
     } catch (error) {
-      console.error('Failed to get API metrics:', error);
+      console.error("Failed to get API metrics:", error);
     }
 
     // Calculate overall system health
     const healthyComponents = [
       systemMetrics.redis.connected,
       systemMetrics.database.connected,
-      systemMetrics.api.healthyEndpoints === systemMetrics.api.endpoints
+      systemMetrics.api.healthyEndpoints === systemMetrics.api.endpoints,
     ].filter(Boolean).length;
 
     const totalComponents = 3;
-    const overallHealth = healthyComponents === totalComponents ? 'healthy' : 
-                          healthyComponents > 0 ? 'degraded' : 'unhealthy';
+    const overallHealth =
+      healthyComponents === totalComponents
+        ? "healthy"
+        : healthyComponents > 0
+          ? "degraded"
+          : "unhealthy";
 
     return NextResponse.json({
       success: true,
@@ -123,19 +130,23 @@ export async function GET() {
       components: {
         redis: systemMetrics.redis.connected,
         database: systemMetrics.database.connected,
-        api: systemMetrics.api.endpoints > 0 && systemMetrics.api.healthyEndpoints === systemMetrics.api.endpoints
+        api:
+          systemMetrics.api.endpoints > 0 &&
+          systemMetrics.api.healthyEndpoints === systemMetrics.api.endpoints,
       },
       metrics: systemMetrics,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error: any) {
-    console.error('System metrics error:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: (error as Error).message,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    console.error("System metrics error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 },
+    );
   }
 }

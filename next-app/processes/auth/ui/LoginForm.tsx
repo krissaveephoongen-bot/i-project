@@ -1,46 +1,55 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { useAuth } from '../model/useAuth';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Label } from '../../../components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Alert, AlertDescription } from '../../../components/ui/alert';
-import type { LoginFormData } from '../model/types';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuth } from "../model/useAuth";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import { Alert, AlertDescription } from "../../../components/ui/alert";
+import type { LoginFormData } from "../model/types";
 
 interface LoginFormProps {
   onSwitchToRegister?: () => void;
   onSwitchToForgotPassword?: () => void;
 }
 
-export function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword }: LoginFormProps) {
+export function LoginForm({
+  onSwitchToRegister,
+  onSwitchToForgotPassword,
+}: LoginFormProps) {
   const router = useRouter();
   const { login, isLoading, error, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<LoginFormData>({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
 
-  const handleInputChange = (field: keyof LoginFormData) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value,
-    }));
-    if (error) clearError();
-  };
+  const handleInputChange =
+    (field: keyof LoginFormData) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: e.target.value,
+      }));
+      if (error) clearError();
+    };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       await login(formData);
-      router.push('/'); // Redirect to dashboard
+      router.push("/"); // Redirect to dashboard
     } catch (error) {
       // Error is handled by the hook
     }
@@ -51,7 +60,9 @@ export function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword }: Logi
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">Sign In</CardTitle>
+        <CardTitle className="text-2xl font-bold text-center">
+          Sign In
+        </CardTitle>
         <CardDescription className="text-center">
           Enter your credentials to access your account
         </CardDescription>
@@ -71,7 +82,7 @@ export function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword }: Logi
               type="email"
               placeholder="Enter your email"
               value={formData.email}
-              onChange={handleInputChange('email')}
+              onChange={handleInputChange("email")}
               disabled={isLoading}
               required
             />
@@ -82,10 +93,10 @@ export function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword }: Logi
             <div className="relative">
               <Input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 value={formData.password}
-                onChange={handleInputChange('password')}
+                onChange={handleInputChange("password")}
                 disabled={isLoading}
                 required
               />
@@ -130,13 +141,15 @@ export function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword }: Logi
                 Signing in...
               </>
             ) : (
-              'Sign In'
+              "Sign In"
             )}
           </Button>
 
           {onSwitchToRegister && (
             <div className="text-center text-sm">
-              <span className="text-muted-foreground">Don't have an account? </span>
+              <span className="text-muted-foreground">
+                Don't have an account?{" "}
+              </span>
               <button
                 type="button"
                 className="text-primary hover:underline"

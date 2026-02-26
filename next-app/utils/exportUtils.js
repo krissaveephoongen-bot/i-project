@@ -1,38 +1,44 @@
 const ExportUtils = {
-    // Export to Excel (CSV format)
-    exportToExcel: (data, filename) => {
-        if (!data || data.length === 0) {
-            alert('ไม่มีข้อมูลสำหรับ Export');
-            return;
-        }
+  // Export to Excel (CSV format)
+  exportToExcel: (data, filename) => {
+    if (!data || data.length === 0) {
+      alert("ไม่มีข้อมูลสำหรับ Export");
+      return;
+    }
 
-        const headers = Object.keys(data[0]);
-        const csvContent = [
-            headers.join(','),
-            ...data.map(row => headers.map(header => {
-                const value = row[header] || '';
-                return `"${String(value).replace(/"/g, '""')}"`;
-            }).join(','))
-        ].join('\n');
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(","),
+      ...data.map((row) =>
+        headers
+          .map((header) => {
+            const value = row[header] || "";
+            return `"${String(value).replace(/"/g, '""')}"`;
+          })
+          .join(","),
+      ),
+    ].join("\n");
 
-        const BOM = '\uFEFF';
-        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
-        link.click();
-    },
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename}_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+  },
 
-    // Export to PDF (using browser print)
-    exportToPDF: (elementId, filename) => {
-        const element = document.getElementById(elementId);
-        if (!element) {
-            alert('ไม่พบข้อมูลสำหรับ Export');
-            return;
-        }
+  // Export to PDF (using browser print)
+  exportToPDF: (elementId, filename) => {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      alert("ไม่พบข้อมูลสำหรับ Export");
+      return;
+    }
 
-        const printWindow = window.open('', '', 'width=800,height=600');
-        printWindow.document.write(`
+    const printWindow = window.open("", "", "width=800,height=600");
+    printWindow.document.write(`
             <html>
             <head>
                 <title>${filename}</title>
@@ -51,7 +57,7 @@ const ExportUtils = {
             <body>
                 <div class="header">
                     <h1>${filename}</h1>
-                    <p>วันที่สร้างรายงาน: ${new Date().toLocaleDateString('th-TH')}</p>
+                    <p>วันที่สร้างรายงาน: ${new Date().toLocaleDateString("th-TH")}</p>
                 </div>
                 ${element.innerHTML}
                 <script>
@@ -63,6 +69,6 @@ const ExportUtils = {
             </body>
             </html>
         `);
-        printWindow.document.close();
-    }
+    printWindow.document.close();
+  },
 };

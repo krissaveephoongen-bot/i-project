@@ -1,5 +1,5 @@
-import { ok } from '../../_lib/db';
-import { pool } from '../../_lib/db';
+import { ok } from "../../_lib/db";
+import { pool } from "../../_lib/db";
 
 export async function GET() {
   try {
@@ -16,5 +16,6 @@ export async function GET() {
     return ok(res.rows, 200);
   } catch (error) {
     return ok([], 200);
-  } finally { }
+  } finally {
+  }
 }

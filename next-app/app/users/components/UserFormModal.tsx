@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { X, Eye, EyeOff } from 'lucide-react';
-import { User as UserType } from '../../../types/user.types';
+import { useState, useEffect } from "react";
+import { X, Eye, EyeOff } from "lucide-react";
+import { User as UserType } from "../../../types/user.types";
 
 interface UserFormModalProps {
   isOpen: boolean;
@@ -12,21 +12,21 @@ interface UserFormModalProps {
   loading?: boolean;
 }
 
-export default function UserFormModal({ 
-  isOpen, 
-  onClose, 
-  onSubmit, 
-  user, 
-  loading = false 
+export default function UserFormModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  user,
+  loading = false,
 }: UserFormModalProps) {
   const [formData, setFormData] = useState<UserType & { password?: string }>({
-    name: '',
-    email: '',
-    role: 'employee',
-    department: '',
-    password: ''
+    name: "",
+    email: "",
+    role: "employee",
+    department: "",
+    password: "",
   });
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -36,16 +36,16 @@ export default function UserFormModal({
         name: user.name,
         email: user.email,
         role: user.role,
-        department: user.department || '',
-        password: ''
+        department: user.department || "",
+        password: "",
       });
     } else {
       setFormData({
-        name: '',
-        email: '',
-        role: 'employee',
-        department: '',
-        password: ''
+        name: "",
+        email: "",
+        role: "employee",
+        department: "",
+        password: "",
       });
     }
     setErrors({});
@@ -55,23 +55,23 @@ export default function UserFormModal({
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'กรุณาระบุชื่อ';
+      newErrors.name = "กรุณาระบุชื่อ";
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'กรุณาระบุอีเมล';
+      newErrors.email = "กรุณาระบุอีเมล";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'รูปแบบอีเมลไม่ถูกต้อง';
+      newErrors.email = "รูปแบบอีเมลไม่ถูกต้อง";
     }
 
     if (!formData.role) {
-      newErrors.role = 'กรุณาเลือกบทบาท';
+      newErrors.role = "กรุณาเลือกบทบาท";
     }
 
     if (!user && !formData.password) {
-      newErrors.password = 'กรุณาระบุรหัสผ่าน';
+      newErrors.password = "กรุณาระบุรหัสผ่าน";
     } else if (formData.password && formData.password.length < 6) {
-      newErrors.password = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+      newErrors.password = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
     }
 
     setErrors(newErrors);
@@ -80,7 +80,7 @@ export default function UserFormModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -93,13 +93,15 @@ export default function UserFormModal({
     onSubmit(submitData);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     const { name, value } = e.target;
     setFormData((prev: any) => ({ ...prev, [name]: value }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -109,7 +111,7 @@ export default function UserFormModal({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         {/* Background overlay */}
-        <div 
+        <div
           className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
           onClick={onClose}
         />
@@ -119,7 +121,7 @@ export default function UserFormModal({
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">
-                {user ? 'แก้ไขข้อมูลผู้ใช้' : 'เพิ่มผู้ใช้ใหม่'}
+                {user ? "แก้ไขข้อมูลผู้ใช้" : "เพิ่มผู้ใช้ใหม่"}
               </h3>
               <button
                 onClick={onClose}
@@ -132,7 +134,10 @@ export default function UserFormModal({
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Name */}
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   ชื่อ <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -142,7 +147,7 @@ export default function UserFormModal({
                   value={formData.name}
                   onChange={handleChange}
                   className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.name ? 'border-red-500' : 'border-gray-300'
+                    errors.name ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="กรอกชื่อ-นามสกุล"
                 />
@@ -153,7 +158,10 @@ export default function UserFormModal({
 
               {/* Email */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   อีเมล <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -163,7 +171,7 @@ export default function UserFormModal({
                   value={formData.email}
                   onChange={handleChange}
                   className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.email ? 'border-red-500' : 'border-gray-300'
+                    errors.email ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="example@email.com"
                 />
@@ -174,7 +182,10 @@ export default function UserFormModal({
 
               {/* Role */}
               <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="role"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   บทบาท <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -183,7 +194,7 @@ export default function UserFormModal({
                   value={formData.role}
                   onChange={handleChange}
                   className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.role ? 'border-red-500' : 'border-gray-300'
+                    errors.role ? "border-red-500" : "border-gray-300"
                   }`}
                 >
                   <option value="">เลือกบทบาท</option>
@@ -198,7 +209,10 @@ export default function UserFormModal({
 
               {/* Department */}
               <div>
-                <label htmlFor="department" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="department"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   แผนก
                 </label>
                 <select
@@ -220,19 +234,24 @@ export default function UserFormModal({
               {/* Password - Only show for new users or when changing password */}
               {(!user || showPassword) && (
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                    {user ? 'รหัสผ่านใหม่ (ปล่อยว่างหากไม่เปลี่ยน)' : 'รหัสผ่าน'} 
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    {user
+                      ? "รหัสผ่านใหม่ (ปล่อยว่างหากไม่เปลี่ยน)"
+                      : "รหัสผ่าน"}
                     {!user && <span className="text-red-500">*</span>}
                   </label>
                   <div className="relative">
                     <input
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPassword ? "text" : "password"}
                       id="password"
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
                       className={`mt-1 block w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.password ? 'border-red-500' : 'border-gray-300'
+                        errors.password ? "border-red-500" : "border-gray-300"
                       }`}
                       placeholder="กรอกรหัสผ่าน"
                     />
@@ -249,7 +268,9 @@ export default function UserFormModal({
                     </button>
                   </div>
                   {errors.password && (
-                    <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.password}
+                    </p>
                   )}
                 </div>
               )}
@@ -264,7 +285,10 @@ export default function UserFormModal({
                     onChange={(e) => setShowPassword(e.target.checked)}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <label htmlFor="showPasswordToggle" className="ml-2 block text-sm text-gray-700">
+                  <label
+                    htmlFor="showPasswordToggle"
+                    className="ml-2 block text-sm text-gray-700"
+                  >
                     เปลี่ยนรหัสผ่าน
                   </label>
                 </div>
@@ -283,10 +307,12 @@ export default function UserFormModal({
               {loading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {user ? 'กำลังอัปเดต...' : 'กำลังสร้าง...'}
+                  {user ? "กำลังอัปเดต..." : "กำลังสร้าง..."}
                 </div>
+              ) : user ? (
+                "อัปเดต"
               ) : (
-                user ? 'อัปเดต' : 'สร้าง'
+                "สร้าง"
               )}
             </button>
             <button

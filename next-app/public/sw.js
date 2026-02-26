@@ -121,7 +121,7 @@ self.addEventListener('sync', (event) => {
     event.waitUntil(
       caches.keys().then((cacheNames) => {
         return Promise.all(
-          cacheNames.map((cacheName) => caches.delete(cacheName));
+          cacheNames.map((cacheName) => caches.delete(cacheName))
         );
       })
     );
@@ -135,7 +135,7 @@ self.addEventListener('push', (event) => {
         caches.open(CACHE_NAME).then((cache) => {
           return caches.keys().then((cacheNames) => {
             return Promise.all(
-              cacheNames.map((cacheName) => caches.delete(cacheName));
+              cacheNames.map((cacheName) => caches.delete(cacheName))
             });
           }).then(() => {
             return caches.open(CACHE_NAME).then((cache) => {

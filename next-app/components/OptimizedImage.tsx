@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import Image, { ImageProps } from 'next/image';
-import { useState, useCallback } from 'react';
-import { Skeleton } from '@/app/components/ui/Skeleton';
-import { clsx } from 'clsx';
+import Image, { ImageProps } from "next/image";
+import { useState, useCallback } from "react";
+import { Skeleton } from "@/app/components/ui/Skeleton";
+import { clsx } from "clsx";
 
-interface OptimizedImageProps extends Omit<ImageProps, 'onLoadingComplete'> {
+interface OptimizedImageProps extends Omit<ImageProps, "onLoadingComplete"> {
   fallback?: React.ReactNode;
   showSkeleton?: boolean;
   skeletonClassName?: string;
@@ -34,16 +34,22 @@ export function OptimizedImage({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const handleLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
-    setIsLoading(false);
-    onLoad?.(e);
-  }, [onLoad]);
+  const handleLoad = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement>) => {
+      setIsLoading(false);
+      onLoad?.(e);
+    },
+    [onLoad],
+  );
 
-  const handleError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
-    setIsLoading(false);
-    setHasError(true);
-    onError?.(e);
-  }, [onError]);
+  const handleError = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement>) => {
+      setIsLoading(false);
+      setHasError(true);
+      onError?.(e);
+    },
+    [onError],
+  );
 
   if (hasError && fallback) {
     return <>{fallback}</>;
@@ -52,20 +58,15 @@ export function OptimizedImage({
   return (
     <div className="relative">
       {isLoading && showSkeleton && (
-        <Skeleton 
-          className={clsx(
-            'absolute inset-0',
-            skeletonClassName
-          )} 
-        />
+        <Skeleton className={clsx("absolute inset-0", skeletonClassName)} />
       )}
       <Image
         src={src}
         alt={alt}
         className={clsx(
           className,
-          fadeIn && 'transition-opacity duration-300',
-          isLoading ? 'opacity-0' : 'opacity-100'
+          fadeIn && "transition-opacity duration-300",
+          isLoading ? "opacity-0" : "opacity-100",
         )}
         onLoad={handleLoad}
         onError={handleError}
@@ -80,7 +81,7 @@ export function OptimizedImage({
 interface AvatarImageProps {
   src?: string | null;
   name: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }
 
@@ -91,35 +92,35 @@ const avatarSizes = {
   xl: 64,
 };
 
-export function AvatarImage({ 
-  src, 
-  name, 
-  size = 'md', 
-  className 
+export function AvatarImage({
+  src,
+  name,
+  size = "md",
+  className,
 }: AvatarImageProps) {
   const dimension = avatarSizes[size];
   const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0284c7&color=fff&size=${dimension * 2}`;
-  
+
   return (
     <OptimizedImage
       src={src || fallbackUrl}
       alt={`${name}'s avatar`}
       width={dimension}
       height={dimension}
-      className={clsx('rounded-full object-cover', className)}
+      className={clsx("rounded-full object-cover", className)}
       skeletonClassName="rounded-full"
       fallback={
-        <div 
+        <div
           className={clsx(
-            'rounded-full bg-blue-600 flex items-center justify-center text-white font-medium',
-            className
+            "rounded-full bg-blue-600 flex items-center justify-center text-white font-medium",
+            className,
           )}
           style={{ width: dimension, height: dimension }}
         >
           {name.charAt(0).toUpperCase()}
         </div>
       }
-      unoptimized={src?.startsWith('https://ui-avatars.com') || !src}
+      unoptimized={src?.startsWith("https://ui-avatars.com") || !src}
     />
   );
 }
@@ -132,34 +133,34 @@ interface ProjectImageProps {
   size?: number;
 }
 
-export function ProjectImage({ 
-  name, 
-  src, 
+export function ProjectImage({
+  name,
+  src,
   className,
-  size = 40 
+  size = 40,
 }: ProjectImageProps) {
   const fallbackUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`;
-  
+
   return (
     <OptimizedImage
       src={src || fallbackUrl}
       alt={`${name} logo`}
       width={size}
       height={size}
-      className={clsx('rounded-lg object-cover', className)}
+      className={clsx("rounded-lg object-cover", className)}
       skeletonClassName="rounded-lg"
       fallback={
-        <div 
+        <div
           className={clsx(
-            'rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold',
-            className
+            "rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold",
+            className,
           )}
           style={{ width: size, height: size }}
         >
           {name.charAt(0).toUpperCase()}
         </div>
       }
-      unoptimized={src?.startsWith('https://api.dicebear.com') || !src}
+      unoptimized={src?.startsWith("https://api.dicebear.com") || !src}
     />
   );
 }

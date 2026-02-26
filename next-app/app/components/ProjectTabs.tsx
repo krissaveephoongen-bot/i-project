@@ -1,30 +1,54 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useParams, usePathname } from 'next/navigation';
-import { clsx } from 'clsx';
-import { Button } from './ui/Button';
-import { Users } from 'lucide-react';
+import Link from "next/link";
+import { useParams, usePathname } from "next/navigation";
+import { clsx } from "clsx";
+import { Button } from "./ui/Button";
+import { Users } from "lucide-react";
 
 const tabs = [
-  { key: 'overview', label: 'Overview', path: (id: string) => `/projects/${id}/overview` },
-  { key: 'plan', label: 'Plan', path: (id: string) => `/projects/${id}/tasks` },
-  { key: 'budget', label: 'Budget', path: (id: string) => `/projects/${id}/budget` },
-  { key: 'finance', label: 'Finance', path: (id: string) => `/projects/${id}/milestones` },
-  { key: 'risk', label: 'Risk', path: (id: string) => `/projects/${id}/risks` },
-  { key: 'docs', label: 'Documents', path: (id: string) => `/projects/${id}/documents` },
-  { key: 'team', label: 'Team', path: (id: string) => `/projects/${id}/team` },
-  { key: 'closure', label: 'Closure', path: (id: string) => `/projects/${id}/closure` },
+  {
+    key: "overview",
+    label: "Overview",
+    path: (id: string) => `/projects/${id}/overview`,
+  },
+  { key: "plan", label: "Plan", path: (id: string) => `/projects/${id}/tasks` },
+  {
+    key: "budget",
+    label: "Budget",
+    path: (id: string) => `/projects/${id}/budget`,
+  },
+  {
+    key: "finance",
+    label: "Finance",
+    path: (id: string) => `/projects/${id}/milestones`,
+  },
+  { key: "risk", label: "Risk", path: (id: string) => `/projects/${id}/risks` },
+  {
+    key: "docs",
+    label: "Documents",
+    path: (id: string) => `/projects/${id}/documents`,
+  },
+  { key: "team", label: "Team", path: (id: string) => `/projects/${id}/team` },
+  {
+    key: "closure",
+    label: "Closure",
+    path: (id: string) => `/projects/${id}/closure`,
+  },
 ];
 
-export default function ProjectTabs({ children }: { children?: React.ReactNode }) {
+export default function ProjectTabs({
+  children,
+}: {
+  children?: React.ReactNode;
+}) {
   const params = useParams() as { id?: string };
   const pathname = usePathname();
-  const id = params?.id || '';
+  const id = params?.id || "";
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 mb-4 flex items-center justify-between gap-2">
       <div className="flex gap-2 overflow-x-auto">
-        {tabs.map(t => {
+        {tabs.map((t) => {
           const href = t.path(id);
           const active = pathname?.startsWith(href);
           return (
@@ -32,8 +56,10 @@ export default function ProjectTabs({ children }: { children?: React.ReactNode }
               key={t.key}
               href={href}
               className={clsx(
-                'px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap',
-                active ? 'bg-[#2563EB] text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                "px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap",
+                active
+                  ? "bg-[#2563EB] text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200",
               )}
             >
               {t.label}
@@ -45,7 +71,7 @@ export default function ProjectTabs({ children }: { children?: React.ReactNode }
       <Button
         variant="outline"
         size="sm"
-        onClick={() => window.open('/stakeholders', '_blank')}
+        onClick={() => window.open("/stakeholders", "_blank")}
         className="gap-2"
       >
         <Users className="w-4 h-4" />

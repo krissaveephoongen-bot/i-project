@@ -4,7 +4,7 @@ function useProjectAnalytics(projectId) {
     budgetData: null,
     mandayData: null,
     loading: true,
-    error: null
+    error: null,
   });
 
   React.useEffect(() => {
@@ -19,53 +19,53 @@ function useProjectAnalytics(projectId) {
         budgetData: null,
         mandayData: null,
         loading: false,
-        error: null
+        error: null,
       });
     }
   }, [projectId]);
 
   const loadAnalytics = async () => {
     try {
-      setAnalytics(prev => ({ ...prev, loading: true }));
+      setAnalytics((prev) => ({ ...prev, loading: true }));
 
       const [
         project,
         tasksResponse,
         timesheetsResponse,
         expensesResponse,
-        usersResponse
+        usersResponse,
       ] = await Promise.all([
-        trickleGetObject('project', projectId).catch(() => null),
-        trickleListObjects('task', 500, true).catch(() => ({ items: [] })),
-        trickleListObjects('worklog', 500, true).catch(() => ({ items: [] })),
-        trickleListObjects('expense', 500, true).catch(() => ({ items: [] })),
-        trickleListObjects('user', 100, true).catch(() => ({ items: [] }))
+        trickleGetObject("project", projectId).catch(() => null),
+        trickleListObjects("task", 500, true).catch(() => ({ items: [] })),
+        trickleListObjects("worklog", 500, true).catch(() => ({ items: [] })),
+        trickleListObjects("expense", 500, true).catch(() => ({ items: [] })),
+        trickleListObjects("user", 100, true).catch(() => ({ items: [] })),
       ]);
 
       if (!project) {
-        throw new Error('Project not found');
+        throw new Error("Project not found");
       }
 
-      const tasks = (tasksResponse.items || []).filter(t => 
-        t.objectData && t.objectData.ProjectId === projectId
+      const tasks = (tasksResponse.items || []).filter(
+        (t) => t.objectData && t.objectData.ProjectId === projectId,
       );
 
       const scurveData = SCurveService.generateSCurveData(
-        project, 
-        tasks, 
-        timesheetsResponse.items || []
+        project,
+        tasks,
+        timesheetsResponse.items || [],
       );
 
       const budgetData = ExpenseService.calculateBudgetUtilization(
         project,
         expensesResponse.items || [],
         timesheetsResponse.items || [],
-        usersResponse.items || []
+        usersResponse.items || [],
       );
 
       const mandayData = MandayService.aggregateMandaysForProject(
         timesheetsResponse.items || [],
-        projectId
+        projectId,
       );
 
       setAnalytics({
@@ -73,16 +73,16 @@ function useProjectAnalytics(projectId) {
         budgetData,
         mandayData,
         loading: false,
-        error: null
+        error: null,
       });
     } catch (error) {
-      console.error('Error loading analytics:', error);
+      console.error("Error loading analytics:", error);
       setAnalytics({
         scurveData: [],
         budgetData: null,
         mandayData: null,
         loading: false,
-        error: error.message
+        error: error.message,
       });
     }
   };

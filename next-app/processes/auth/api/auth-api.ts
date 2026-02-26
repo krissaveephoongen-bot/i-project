@@ -8,10 +8,10 @@ import type {
   VerifyResponse,
   ForgotPasswordResponse,
   ResetPasswordResponse,
-  ApiError
-} from '../model/types';
+  ApiError,
+} from "../model/types";
 
-const API_BASE_URL = '/api/auth';
+const API_BASE_URL = "/api/auth";
 
 /**
  * Authentication API functions
@@ -23,12 +23,12 @@ export class AuthApi {
   static async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(credentials),
       });
       if (!response.ok) {
-        let msg = 'เข้าสู่ระบบล้มเหลว';
+        let msg = "เข้าสู่ระบบล้มเหลว";
         try {
           const body = await response.json();
           msg = body?.error || body?.message || msg;
@@ -42,9 +42,9 @@ export class AuthApi {
       }
       return response.json();
     } catch (e: any) {
-      const message = String(e?.message || '').includes('Failed to fetch')
-        ? 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่หรือเช็คการเชื่อมต่อ'
-        : (e?.message || 'เข้าสู่ระบบล้มเหลว');
+      const message = String(e?.message || "").includes("Failed to fetch")
+        ? "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่หรือเช็คการเชื่อมต่อ"
+        : e?.message || "เข้าสู่ระบบล้มเหลว";
       throw new Error(message);
     }
   }
@@ -54,16 +54,16 @@ export class AuthApi {
    */
   static async register(data: RegisterData): Promise<RegisterResponse> {
     const response = await fetch(`${API_BASE_URL}/register`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
 
     if (!response.ok) {
       const error: ApiError = await response.json();
-      throw new Error(error.error || 'Registration failed');
+      throw new Error(error.error || "Registration failed");
     }
 
     return response.json();
@@ -73,22 +73,22 @@ export class AuthApi {
    * Verify authentication token
    */
   static async verify(): Promise<VerifyResponse> {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem("auth_token");
 
     if (!token) {
-      throw new Error('No token found');
+      throw new Error("No token found");
     }
 
     const response = await fetch(`${API_BASE_URL}/verify`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!response.ok) {
       const error: ApiError = await response.json();
-      throw new Error(error.error || 'Token verification failed');
+      throw new Error(error.error || "Token verification failed");
     }
 
     return response.json();
@@ -99,33 +99,35 @@ export class AuthApi {
    */
   static async logout(): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/logout`, {
-      method: 'POST',
+      method: "POST",
     });
 
     if (!response.ok) {
-      throw new Error('Logout failed');
+      throw new Error("Logout failed");
     }
 
     // Clear local storage
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_user");
   }
 
   /**
    * Initiate password reset
    */
-  static async forgotPassword(data: ForgotPasswordData): Promise<ForgotPasswordResponse> {
+  static async forgotPassword(
+    data: ForgotPasswordData,
+  ): Promise<ForgotPasswordResponse> {
     const response = await fetch(`${API_BASE_URL}/forgot-password`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
 
     if (!response.ok) {
       const error: ApiError = await response.json();
-      throw new Error(error.error || 'Password reset request failed');
+      throw new Error(error.error || "Password reset request failed");
     }
 
     return response.json();
@@ -134,18 +136,20 @@ export class AuthApi {
   /**
    * Reset password using token
    */
-  static async resetPassword(data: ResetPasswordData): Promise<ResetPasswordResponse> {
+  static async resetPassword(
+    data: ResetPasswordData,
+  ): Promise<ResetPasswordResponse> {
     const response = await fetch(`${API_BASE_URL}/reset-password`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
 
     if (!response.ok) {
       const error: ApiError = await response.json();
-      throw new Error(error.error || 'Password reset failed');
+      throw new Error(error.error || "Password reset failed");
     }
 
     return response.json();

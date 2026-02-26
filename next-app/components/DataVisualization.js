@@ -5,33 +5,35 @@ function DataVisualization() {
 
     React.useEffect(() => {
       if (chartRef.current) {
-        const ctx = chartRef.current.getContext('2d');
-        
+        const ctx = chartRef.current.getContext("2d");
+
         if (chartInstance.current) {
           chartInstance.current.destroy();
         }
 
         chartInstance.current = new ChartJS(ctx, {
-          type: 'bar',
+          type: "bar",
           data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            datasets: [{
-              label: 'Projects',
-              data: [12, 19, 15, 25, 22, 30],
-              backgroundColor: 'rgba(0, 86, 210, 0.7)',
-              borderRadius: 8
-            }]
+            labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+            datasets: [
+              {
+                label: "Projects",
+                data: [12, 19, 15, 25, 22, 30],
+                backgroundColor: "rgba(0, 86, 210, 0.7)",
+                borderRadius: 8,
+              },
+            ],
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { display: false }
+              legend: { display: false },
             },
             scales: {
-              y: { beginAtZero: true }
-            }
-          }
+              y: { beginAtZero: true },
+            },
+          },
         });
       }
 
@@ -43,7 +45,11 @@ function DataVisualization() {
     }, []);
 
     return (
-      <div className="card" data-name="data-visualization" data-file="components/DataVisualization.js">
+      <div
+        className="card"
+        data-name="data-visualization"
+        data-file="components/DataVisualization.js"
+      >
         <h3 className="text-lg font-semibold mb-4">Monthly Project Overview</h3>
         <div className="h-64">
           <canvas ref={chartRef}></canvas>
@@ -51,7 +57,7 @@ function DataVisualization() {
       </div>
     );
   } catch (error) {
-    console.error('DataVisualization error:', error);
+    console.error("DataVisualization error:", error);
     return null;
   }
 }

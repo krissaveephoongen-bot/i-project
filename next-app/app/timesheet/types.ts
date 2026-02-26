@@ -8,30 +8,30 @@
 // ============================================================================
 
 export enum WorkType {
-  PROJECT = 'project',
-  OFFICE = 'office',
-  TRAINING = 'training',
-  LEAVE = 'leave',
-  OVERTIME = 'overtime',
-  OTHER = 'other',
+  PROJECT = "project",
+  OFFICE = "office",
+  TRAINING = "training",
+  LEAVE = "leave",
+  OVERTIME = "overtime",
+  OTHER = "other",
 }
 
 export enum LeaveType {
-  ANNUAL = 'annual',
-  SICK = 'sick',
-  PERSONAL = 'personal',
-  MATERNITY = 'maternity',
-  UNPAID = 'unpaid',
+  ANNUAL = "annual",
+  SICK = "sick",
+  PERSONAL = "personal",
+  MATERNITY = "maternity",
+  UNPAID = "unpaid",
 }
 
 export enum EntryStatus {
-  PENDING = 'pending',
-  IN_REVIEW = 'in_review',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  IN_PROGRESS = 'in_progress',
-  DONE = 'done',
-  TODO = 'todo',
+  PENDING = "pending",
+  IN_REVIEW = "in_review",
+  APPROVED = "approved",
+  REJECTED = "rejected",
+  IN_PROGRESS = "in_progress",
+  DONE = "done",
+  TODO = "todo",
 }
 
 // ============================================================================
@@ -317,49 +317,62 @@ export interface HoursBreakdown {
 // ============================================================================
 
 export const WORK_TYPE_LABELS: Record<WorkType, string> = {
-  [WorkType.PROJECT]: 'โครงการ',
-  [WorkType.OFFICE]: 'สำนักงาน',
-  [WorkType.TRAINING]: 'การฝึกอบรม',
-  [WorkType.LEAVE]: 'วันลา',
-  [WorkType.OVERTIME]: 'พิเศษ',
-  [WorkType.OTHER]: 'อื่น ๆ',
+  [WorkType.PROJECT]: "โครงการ",
+  [WorkType.OFFICE]: "สำนักงาน",
+  [WorkType.TRAINING]: "การฝึกอบรม",
+  [WorkType.LEAVE]: "วันลา",
+  [WorkType.OVERTIME]: "พิเศษ",
+  [WorkType.OTHER]: "อื่น ๆ",
 };
 
 export const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
-  [LeaveType.ANNUAL]: 'ลาประจำปี',
-  [LeaveType.SICK]: 'ลาป่วย',
-  [LeaveType.PERSONAL]: 'ลากิจ',
-  [LeaveType.MATERNITY]: 'ลาคลอด',
-  [LeaveType.UNPAID]: 'ลาไม่ได้ค่าจ้าง',
+  [LeaveType.ANNUAL]: "ลาประจำปี",
+  [LeaveType.SICK]: "ลาป่วย",
+  [LeaveType.PERSONAL]: "ลากิจ",
+  [LeaveType.MATERNITY]: "ลาคลอด",
+  [LeaveType.UNPAID]: "ลาไม่ได้ค่าจ้าง",
 };
 
 export const STATUS_LABELS: Record<EntryStatus, string> = {
-  [EntryStatus.PENDING]: 'รอการอนุมัติ',
-  [EntryStatus.IN_REVIEW]: 'กำลังตรวจสอบ',
-  [EntryStatus.APPROVED]: 'อนุมัติแล้ว',
-  [EntryStatus.REJECTED]: 'ปฏิเสธ',
-  [EntryStatus.IN_PROGRESS]: 'กำลังดำเนิน',
-  [EntryStatus.DONE]: 'เสร็จสิ้น',
-  [EntryStatus.TODO]: 'ต้องทำ',
+  [EntryStatus.PENDING]: "รอการอนุมัติ",
+  [EntryStatus.IN_REVIEW]: "กำลังตรวจสอบ",
+  [EntryStatus.APPROVED]: "อนุมัติแล้ว",
+  [EntryStatus.REJECTED]: "ปฏิเสธ",
+  [EntryStatus.IN_PROGRESS]: "กำลังดำเนิน",
+  [EntryStatus.DONE]: "เสร็จสิ้น",
+  [EntryStatus.TODO]: "ต้องทำ",
 };
 
 export const WORK_TYPE_COLORS: Record<WorkType, string> = {
-  [WorkType.PROJECT]: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  [WorkType.OFFICE]: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  [WorkType.TRAINING]: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  [WorkType.LEAVE]: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-  [WorkType.OVERTIME]: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  [WorkType.OTHER]: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
+  [WorkType.PROJECT]:
+    "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+  [WorkType.OFFICE]:
+    "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+  [WorkType.TRAINING]:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+  [WorkType.LEAVE]:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+  [WorkType.OVERTIME]:
+    "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+  [WorkType.OTHER]:
+    "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
 };
 
 export const STATUS_COLORS: Record<EntryStatus, string> = {
-  [EntryStatus.PENDING]: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  [EntryStatus.IN_REVIEW]: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300',
-  [EntryStatus.APPROVED]: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  [EntryStatus.REJECTED]: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  [EntryStatus.IN_PROGRESS]: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  [EntryStatus.DONE]: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  [EntryStatus.TODO]: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
+  [EntryStatus.PENDING]:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+  [EntryStatus.IN_REVIEW]:
+    "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300",
+  [EntryStatus.APPROVED]:
+    "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+  [EntryStatus.REJECTED]:
+    "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+  [EntryStatus.IN_PROGRESS]:
+    "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+  [EntryStatus.DONE]:
+    "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+  [EntryStatus.TODO]:
+    "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
 };
 
 // ============================================================================
@@ -369,34 +382,34 @@ export const STATUS_COLORS: Record<EntryStatus, string> = {
 export function isTimeEntry(obj: any): obj is TimeEntry {
   return (
     obj &&
-    typeof obj === 'object' &&
-    'id' in obj &&
-    'date' in obj &&
-    'startTime' in obj &&
-    'endTime' in obj &&
-    'hours' in obj
+    typeof obj === "object" &&
+    "id" in obj &&
+    "date" in obj &&
+    "startTime" in obj &&
+    "endTime" in obj &&
+    "hours" in obj
   );
 }
 
 export function isLeaveRequest(obj: any): obj is LeaveRequest {
   return (
     obj &&
-    typeof obj === 'object' &&
-    'id' in obj &&
-    'startDate' in obj &&
-    'endDate' in obj &&
-    'leaveType' in obj
+    typeof obj === "object" &&
+    "id" in obj &&
+    "startDate" in obj &&
+    "endDate" in obj &&
+    "leaveType" in obj
   );
 }
 
 export function isLeaveAllocation(obj: any): obj is LeaveAllocation {
   return (
     obj &&
-    typeof obj === 'object' &&
-    'id' in obj &&
-    'userId' in obj &&
-    'year' in obj &&
-    'annualLeaveHours' in obj
+    typeof obj === "object" &&
+    "id" in obj &&
+    "userId" in obj &&
+    "year" in obj &&
+    "annualLeaveHours" in obj
   );
 }
 
@@ -475,7 +488,7 @@ export interface ModalRow {
 }
 
 export interface SubmissionStatus {
-  status: 'Draft' | 'Submitted' | 'ManagerApproved' | 'Approved' | 'Rejected';
+  status: "Draft" | "Submitted" | "ManagerApproved" | "Approved" | "Rejected";
   submittedAt?: string;
   reviewedBy?: string;
   reviewedAt?: string;

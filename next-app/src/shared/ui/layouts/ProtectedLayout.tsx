@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/processes/auth/model/useAuth';
-import { LoginForm } from '@/features/auth/ui/LoginForm';
+import { useAuth } from "@/processes/auth/model/useAuth";
+import { LoginForm } from "@/features/auth/ui/LoginForm";
 
 export function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();

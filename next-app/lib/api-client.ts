@@ -4,8 +4,8 @@
  * Includes built-in retry logic with exponential backoff
  */
 
-import { ApiResponse, ApiError } from '@/types/api';
-import { retryAsync, RetryOptions } from './retry-utils';
+import { ApiResponse, ApiError } from "@/types/api";
+import { retryAsync, RetryOptions } from "./retry-utils";
 
 export interface ApiClientOptions extends RequestInit {
   timeout?: number;
@@ -15,10 +15,10 @@ export class ApiClientError extends Error {
   constructor(
     public statusCode: number,
     public error: ApiError,
-    public path: string
+    public path: string,
   ) {
     super(error.message);
-    this.name = 'ApiClientError';
+    this.name = "ApiClientError";
   }
 }
 
@@ -31,9 +31,9 @@ export class ApiClient {
   private retryOptions: RetryOptions;
 
   constructor(
-    baseUrl = process.env.NEXT_PUBLIC_API_URL || '',
+    baseUrl = process.env.NEXT_PUBLIC_API_URL || "",
     timeout = 30000,
-    retryOptions?: RetryOptions
+    retryOptions?: RetryOptions,
   ) {
     this.baseUrl = baseUrl;
     this.timeout = timeout;
@@ -63,16 +63,20 @@ export class ApiClient {
    * Make a GET request
    */
   async get<T>(path: string, options?: ApiClientOptions): Promise<T> {
-    return this.request<T>(path, { ...options, method: 'GET' });
+    return this.request<T>(path, { ...options, method: "GET" });
   }
 
   /**
    * Make a POST request
    */
-  async post<T>(path: string, body?: any, options?: ApiClientOptions): Promise<T> {
+  async post<T>(
+    path: string,
+    body?: any,
+    options?: ApiClientOptions,
+  ): Promise<T> {
     return this.request<T>(path, {
       ...options,
-      method: 'POST',
+      method: "POST",
       body: body ? JSON.stringify(body) : undefined,
     });
   }
@@ -80,10 +84,14 @@ export class ApiClient {
   /**
    * Make a PUT request
    */
-  async put<T>(path: string, body?: any, options?: ApiClientOptions): Promise<T> {
+  async put<T>(
+    path: string,
+    body?: any,
+    options?: ApiClientOptions,
+  ): Promise<T> {
     return this.request<T>(path, {
       ...options,
-      method: 'PUT',
+      method: "PUT",
       body: body ? JSON.stringify(body) : undefined,
     });
   }
@@ -92,16 +100,20 @@ export class ApiClient {
    * Make a DELETE request
    */
   async delete<T>(path: string, options?: ApiClientOptions): Promise<T> {
-    return this.request<T>(path, { ...options, method: 'DELETE' });
+    return this.request<T>(path, { ...options, method: "DELETE" });
   }
 
   /**
    * Make a PATCH request
    */
-  async patch<T>(path: string, body?: any, options?: ApiClientOptions): Promise<T> {
+  async patch<T>(
+    path: string,
+    body?: any,
+    options?: ApiClientOptions,
+  ): Promise<T> {
     return this.request<T>(path, {
       ...options,
-      method: 'PATCH',
+      method: "PATCH",
       body: body ? JSON.stringify(body) : undefined,
     });
   }
@@ -109,28 +121,34 @@ export class ApiClient {
   /**
    * Internal method for making requests with retry logic
    */
-  private async request<T>(path: string, options?: ApiClientOptions): Promise<T> {
+  private async request<T>(
+    path: string,
+    options?: ApiClientOptions,
+  ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
 
     // Wrap the request in retry logic
     return retryAsync(async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), options?.timeout || this.timeout);
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        options?.timeout || this.timeout,
+      );
 
       try {
         const response = await fetch(url, {
           ...options,
           signal: controller.signal,
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
             ...options?.headers,
           },
         });
 
         clearTimeout(timeoutId);
 
-        const contentType = response.headers.get('content-type');
-        const isJson = contentType?.includes('application/json');
+        const contentType = response.headers.get("content-type");
+        const isJson = contentType?.includes("application/json");
 
         if (!response.ok) {
           let errorData: ApiError;
@@ -138,14 +156,17 @@ export class ApiClient {
           if (isJson) {
             const body: ApiResponse = await response.json();
             errorData = body.error || {
-              code: 'UNKNOWN_ERROR',
-              message: response.statusText || 'An error occurred',
+              code: "UNKNOWN_ERROR",
+              message: response.statusText || "An error occurred",
               timestamp: new Date().toISOString(),
             };
           } else {
             errorData = {
-              code: 'UNKNOWN_ERROR',
-              message: await response.text() || response.statusText || 'An error occurred',
+              code: "UNKNOWN_ERROR",
+              message:
+                (await response.text()) ||
+                response.statusText ||
+                "An error occurred",
               timestamp: new Date().toISOString(),
             };
           }
@@ -156,21 +177,25 @@ export class ApiClient {
         }
 
         if (!isJson) {
-          throw new Error('Invalid response format - expected JSON');
+          throw new Error("Invalid response format - expected JSON");
         }
 
         const body: ApiResponse<T> = await response.json();
 
         if (!body.success) {
-          throw new ApiClientError(response.status, body.error || {
-            code: 'API_ERROR',
-            message: 'API returned error status',
-            timestamp: new Date().toISOString(),
-          }, path);
+          throw new ApiClientError(
+            response.status,
+            body.error || {
+              code: "API_ERROR",
+              message: "API returned error status",
+              timestamp: new Date().toISOString(),
+            },
+            path,
+          );
         }
 
         if (!body.data) {
-          throw new Error('No data in response');
+          throw new Error("No data in response");
         }
 
         return body.data;
@@ -182,13 +207,13 @@ export class ApiClient {
         }
 
         if (error instanceof Error) {
-          if (error.name === 'AbortError') {
-            throw new Error('Request timeout');
+          if (error.name === "AbortError") {
+            throw new Error("Request timeout");
           }
           throw error;
         }
 
-        throw new Error('Unknown error occurred');
+        throw new Error("Unknown error occurred");
       }
     }, this.retryOptions);
   }

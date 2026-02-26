@@ -1,6 +1,12 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  type ReactNode,
+} from "react";
 
 interface SidebarContextType {
   mobileOpen: boolean;
@@ -16,10 +22,12 @@ const SidebarContext = createContext<SidebarContextType>({
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const toggleMobile = useCallback(() => setMobileOpen(prev => !prev), []);
+  const toggleMobile = useCallback(() => setMobileOpen((prev) => !prev), []);
 
   return (
-    <SidebarContext.Provider value={{ mobileOpen, setMobileOpen, toggleMobile }}>
+    <SidebarContext.Provider
+      value={{ mobileOpen, setMobileOpen, toggleMobile }}
+    >
       {children}
     </SidebarContext.Provider>
   );

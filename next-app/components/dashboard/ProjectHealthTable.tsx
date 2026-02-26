@@ -3,7 +3,14 @@
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
@@ -31,7 +38,10 @@ const riskStyles = {
   Critical: "bg-red-100 text-red-700 border-red-200",
 };
 
-export function ProjectHealthTable({ projects, className }: ProjectHealthTableProps) {
+export function ProjectHealthTable({
+  projects,
+  className,
+}: ProjectHealthTableProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -54,11 +64,21 @@ export function ProjectHealthTable({ projects, className }: ProjectHealthTablePr
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
-                  <TableHead className="font-semibold text-slate-700">Project</TableHead>
-                  <TableHead className="text-center font-semibold text-slate-700">Progress</TableHead>
-                  <TableHead className="text-center font-semibold text-slate-700">SPI</TableHead>
-                  <TableHead className="text-center font-semibold text-slate-700">Risk Level</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-700">Action</TableHead>
+                  <TableHead className="font-semibold text-slate-700">
+                    Project
+                  </TableHead>
+                  <TableHead className="text-center font-semibold text-slate-700">
+                    Progress
+                  </TableHead>
+                  <TableHead className="text-center font-semibold text-slate-700">
+                    SPI
+                  </TableHead>
+                  <TableHead className="text-center font-semibold text-slate-700">
+                    Risk Level
+                  </TableHead>
+                  <TableHead className="text-right font-semibold text-slate-700">
+                    Action
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -75,25 +95,38 @@ export function ProjectHealthTable({ projects, className }: ProjectHealthTablePr
                         <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
                           {project.name}
                         </p>
-                        <p className="text-sm text-slate-500">{project.client}</p>
+                        <p className="text-sm text-slate-500">
+                          {project.client}
+                        </p>
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="space-y-2">
                         <div className="flex items-center justify-center gap-4 text-sm">
-                          <span className="text-slate-500">Plan: {project.progress_plan}%</span>
-                          <span className="font-medium text-slate-900">Actual: {project.progress_actual}%</span>
+                          <span className="text-slate-500">
+                            Plan: {project.progress_plan}%
+                          </span>
+                          <span className="font-medium text-slate-900">
+                            Actual: {project.progress_actual}%
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Progress value={project.progress_actual} className="h-2 flex-1" />
+                          <Progress
+                            value={project.progress_actual}
+                            className="h-2 flex-1"
+                          />
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
-                        project.spi >= 1 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
-                      )}>
+                      <div
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
+                          project.spi >= 1
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-red-100 text-red-700",
+                        )}
+                      >
                         {project.spi >= 1 ? (
                           <ArrowUpRight className="w-3.5 h-3.5" />
                         ) : (
@@ -103,7 +136,13 @@ export function ProjectHealthTable({ projects, className }: ProjectHealthTablePr
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className={cn("font-medium", riskStyles[project.risk_level])}>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "font-medium",
+                          riskStyles[project.risk_level],
+                        )}
+                      >
                         {project.risk_level}
                       </Badge>
                     </TableCell>

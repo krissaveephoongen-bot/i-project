@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,8 +8,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/app/components/ui/Dialog';
-import { Button } from '@/app/components/ui/Button';
+} from "@/app/components/ui/Dialog";
+import { Button } from "@/app/components/ui/Button";
 
 interface DeleteConfirmationDialogProps {
   open: boolean;
@@ -24,8 +24,8 @@ interface DeleteConfirmationDialogProps {
 
 export default function DeleteConfirmationDialog({
   open,
-  title = 'ยืนยันการลบ',
-  description = 'การกระทำนี้ไม่สามารถย้อนกลับได้',
+  title = "ยืนยันการลบ",
+  description = "การกระทำนี้ไม่สามารถย้อนกลับได้",
   entityName,
   isLoading = false,
   onConfirm,
@@ -36,7 +36,9 @@ export default function DeleteConfirmationDialog({
     <Dialog open={open} onOpenChange={onCancel}>
       <DialogContent className="sm:max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle className={`flex items-center gap-2 ${isDangerous ? 'text-red-600' : 'text-slate-900'}`}>
+          <DialogTitle
+            className={`flex items-center gap-2 ${isDangerous ? "text-red-600" : "text-slate-900"}`}
+          >
             <AlertTriangle className="w-5 h-5" />
             {title}
           </DialogTitle>
@@ -55,8 +57,8 @@ export default function DeleteConfirmationDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={onCancel}
             disabled={isLoading}
             className="rounded-xl"
@@ -75,7 +77,7 @@ export default function DeleteConfirmationDialog({
                 กำลังลบ...
               </>
             ) : (
-              'ยืนยันลบ'
+              "ยืนยันลบ"
             )}
           </Button>
         </DialogFooter>

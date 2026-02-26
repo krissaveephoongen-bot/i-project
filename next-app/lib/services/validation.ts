@@ -11,12 +11,11 @@ import {
   isDateInPast,
   isDateInFuture,
 } from "./timesheet.utils";
-import { isValidLeaveRequest, isDateInPast as isLeaveInPast } from "./leave.utils";
 import {
-  TIMESHEET_DEFAULTS,
-  LEAVE_DEFAULTS,
-  VALIDATION,
-} from "@/lib/config";
+  isValidLeaveRequest,
+  isDateInPast as isLeaveInPast,
+} from "./leave.utils";
+import { TIMESHEET_DEFAULTS, LEAVE_DEFAULTS, VALIDATION } from "@/lib/config";
 
 // Time Entry Validation
 
@@ -53,13 +52,13 @@ export function validateTimeEntry(data: {
   const hours = calculateHoursBetween(data.startTime, data.endTime);
   if (hours > TIMESHEET_DEFAULTS.MAXIMUM_DAILY_HOURS) {
     errors.push(
-      `Hours exceed maximum daily limit of ${TIMESHEET_DEFAULTS.MAXIMUM_DAILY_HOURS} hours`
+      `Hours exceed maximum daily limit of ${TIMESHEET_DEFAULTS.MAXIMUM_DAILY_HOURS} hours`,
     );
   }
 
   if (hours < TIMESHEET_DEFAULTS.MINIMUM_HOURS) {
     errors.push(
-      `Hours must be at least ${TIMESHEET_DEFAULTS.MINIMUM_HOURS} hours`
+      `Hours must be at least ${TIMESHEET_DEFAULTS.MINIMUM_HOURS} hours`,
     );
   }
 
@@ -92,11 +91,11 @@ export function validateTimeEntryComment(comment: string): {
     errors.push("Comment is required");
   } else if (comment.length < VALIDATION.MIN_COMMENT_LENGTH) {
     errors.push(
-      `Comment must be at least ${VALIDATION.MIN_COMMENT_LENGTH} characters`
+      `Comment must be at least ${VALIDATION.MIN_COMMENT_LENGTH} characters`,
     );
   } else if (comment.length > VALIDATION.MAX_COMMENT_LENGTH) {
     errors.push(
-      `Comment must not exceed ${VALIDATION.MAX_COMMENT_LENGTH} characters`
+      `Comment must not exceed ${VALIDATION.MAX_COMMENT_LENGTH} characters`,
     );
   }
 
@@ -109,9 +108,10 @@ export function validateTimeEntryComment(comment: string): {
 /**
  * Validate bulk time entry approval
  */
-export function validateBulkApproval(
-  entryIds: string[]
-): { valid: boolean; errors: string[] } {
+export function validateBulkApproval(entryIds: string[]): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   if (!entryIds || entryIds.length === 0) {
@@ -151,7 +151,7 @@ export function validateLeaveRequestInput(data: {
       data.startDate,
       data.endDate,
       data.leaveType,
-      data.reason
+      data.reason,
     );
 
     if (!dateValidation.valid) {
@@ -169,11 +169,11 @@ export function validateLeaveRequestInput(data: {
     errors.push("Reason is required");
   } else if (data.reason.length < VALIDATION.MIN_REASON_LENGTH) {
     errors.push(
-      `Reason must be at least ${VALIDATION.MIN_REASON_LENGTH} characters`
+      `Reason must be at least ${VALIDATION.MIN_REASON_LENGTH} characters`,
     );
   } else if (data.reason.length > VALIDATION.MAX_REASON_LENGTH) {
     errors.push(
-      `Reason must not exceed ${VALIDATION.MAX_REASON_LENGTH} characters`
+      `Reason must not exceed ${VALIDATION.MAX_REASON_LENGTH} characters`,
     );
   }
 
@@ -190,7 +190,7 @@ export function validateLeaveBalance(
   allocated: number,
   used: number,
   requested: number,
-  pending: number = 0
+  pending: number = 0,
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
@@ -202,7 +202,7 @@ export function validateLeaveBalance(
 
   if (remaining < requested) {
     errors.push(
-      `Insufficient leave balance. Available: ${remaining} days, Requested: ${requested} days`
+      `Insufficient leave balance. Available: ${remaining} days, Requested: ${requested} days`,
     );
   }
 
@@ -225,11 +225,11 @@ export function validateRejectionReason(reason: string): {
     errors.push("Rejection reason is required");
   } else if (reason.length < VALIDATION.MIN_REASON_LENGTH) {
     errors.push(
-      `Reason must be at least ${VALIDATION.MIN_REASON_LENGTH} characters`
+      `Reason must be at least ${VALIDATION.MIN_REASON_LENGTH} characters`,
     );
   } else if (reason.length > VALIDATION.MAX_REASON_LENGTH) {
     errors.push(
-      `Reason must not exceed ${VALIDATION.MAX_REASON_LENGTH} characters`
+      `Reason must not exceed ${VALIDATION.MAX_REASON_LENGTH} characters`,
     );
   }
 
@@ -242,9 +242,10 @@ export function validateRejectionReason(reason: string): {
 /**
  * Validate bulk leave approval
  */
-export function validateBulkLeaveApproval(
-  requestIds: string[]
-): { valid: boolean; errors: string[] } {
+export function validateBulkLeaveApproval(requestIds: string[]): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   if (!requestIds || requestIds.length === 0) {
@@ -276,7 +277,7 @@ export function validateEmail(email: string): boolean {
  */
 export function validateDateRange(
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
@@ -293,9 +294,10 @@ export function validateDateRange(
 /**
  * Validate required fields
  */
-export function validateRequired(
-  fields: Record<string, any>
-): { valid: boolean; errors: string[] } {
+export function validateRequired(fields: Record<string, any>): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   Object.entries(fields).forEach(([key, value]) => {
@@ -317,7 +319,7 @@ export function validateNumberRange(
   value: number,
   min: number,
   max: number,
-  fieldName: string = "Value"
+  fieldName: string = "Value",
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
@@ -342,7 +344,7 @@ export function validateStringLength(
   value: string,
   min: number,
   max: number,
-  fieldName: string = "Value"
+  fieldName: string = "Value",
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
@@ -366,7 +368,7 @@ export function validateStringLength(
 export function validateSelect(
   value: string | undefined,
   validOptions: string[],
-  fieldName: string = "Selection"
+  fieldName: string = "Selection",
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
@@ -387,7 +389,7 @@ export function validateSelect(
  */
 export function validateCheckbox(
   value: boolean,
-  fieldName: string = "Confirmation"
+  fieldName: string = "Confirmation",
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
@@ -405,7 +407,7 @@ export function validateCheckbox(
  * Combine multiple validations
  */
 export function combineValidations(
-  validations: Array<{ valid: boolean; errors: string[] }>
+  validations: Array<{ valid: boolean; errors: string[] }>,
 ): { valid: boolean; errors: string[] } {
   const allErrors: string[] = [];
 
