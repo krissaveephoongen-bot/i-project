@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/app/lib/supabaseClient";
+import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import {
   firstOk,
   MILESTONE_ID_COLUMNS,
@@ -89,7 +90,8 @@ export async function PUT(request: NextRequest) {
       payload[mapKey(k)] = v;
     });
     payload["updated_at"] = new Date().toISOString();
-    const { data, error } = await supabase
+    const client = supabaseAdmin || supabase;
+    const { data, error } = await client
       .from("tasks")
       .update(payload)
       .eq("id", id)
@@ -113,7 +115,8 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
     }
-    const { error } = await supabase.from("tasks").delete().eq("id", id);
+    const client = supabaseAdmin || supabase;
+    const { error } = await client.from("tasks").delete().eq("id", id);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true }, { status: 200 });
