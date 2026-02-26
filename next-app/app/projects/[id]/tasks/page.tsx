@@ -113,34 +113,38 @@ export default function ProjectTasksPage() {
     }
 
     try {
-      const payload = {
-        projectId: pid,
-        name: "งานใหม่",
-        status: "Pending",
-        phase: "Development",
-        weight: 5,
-        progressPlan: 0,
-        progressActual: 0,
-        startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      };
-      const res = await fetch(`/api/projects/tasks/create`, {
+      // Primary: use /api/tasks (schema-flexible)
+      const primary = await fetch(`/api/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          title: "งานใหม่",
+          projectId: pid,
+          status: "todo",
+        }),
       });
       let data: any = null;
-      if (!res.ok) {
+      if (!primary.ok) {
         // Fallback: try generic /api/tasks which is schema-flexible
-        const fbRes = await fetch(`/api/tasks`, {
+        const fbRes = await fetch(`/api/projects/tasks/create`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: "งานใหม่", projectId: pid }),
+          body: JSON.stringify({
+            projectId: pid,
+            name: "งานใหม่",
+            status: "Pending",
+            phase: "Development",
+            weight: 5,
+            progressPlan: 0,
+            progressActual: 0,
+            startDate: new Date().toISOString(),
+            endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          }),
         });
         if (!fbRes.ok) {
           const msg = (() => {
             try {
-              return (res as any)?.statusText || "สร้างงานไม่สำเร็จ";
+              return (fbRes as any)?.statusText || "สร้างงานไม่สำเร็จ";
             } catch {
               return "สร้างงานไม่สำเร็จ";
             }
@@ -152,7 +156,7 @@ export default function ProjectTasksPage() {
         }
         data = await fbRes.json();
       } else {
-        data = await res.json();
+        data = await primary.json();
       }
       if (data) {
         setTasks((prev) => [
