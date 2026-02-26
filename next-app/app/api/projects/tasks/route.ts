@@ -75,29 +75,44 @@ export async function PUT(request: NextRequest) {
         { status: 400 },
       );
     }
-    const mapKey = (k: string) => {
-      const m: Record<string, string> = {
-        progress_plan: "progressPlan",
-        progress_actual: "progressActual",
-        start_date: "startDate",
-        end_date: "endDate",
-        milestone_id: "milestoneId",
-        project_id: "projectId",
-      };
-      return m[k] || k;
+    const toSnake: Record<string, string> = {
+      progressPlan: "progress_plan",
+      progressActual: "progress_actual",
+      startDate: "start_date",
+      endDate: "end_date",
+      milestoneId: "milestone_id",
+      projectId: "project_id",
+      // passthrough: title, status, phase, weight
     };
-    const payload: Record<string, any> = {};
-    Object.entries(updatedFields || {}).forEach(([k, v]) => {
-      payload[mapKey(k)] = v;
-    });
-    payload["updated_at"] = new Date().toISOString();
+    const nowIso = new Date().toISOString();
+    const snakePayload: any = { updated_at: nowIso };
+    const camelPayload: any = { updatedAt: nowIso };
+    for (const [k, v] of Object.entries(updatedFields || {})) {
+      const snakeKey =
+        toSnake[k] ||
+        k // if already snake
+          ;
+      snakePayload[snakeKey] = v;
+      camelPayload[k] = v;
+    }
     const client = supabaseAdmin || supabase;
-    const { data, error } = await client
-      .from("tasks")
-      .update(payload)
-      .eq("id", id)
-      .select("*")
-      .single();
+    let data: any = null;
+    let error: any = null;
+    for (const p of [snakePayload, camelPayload]) {
+      const res = await client
+        .from("tasks")
+        .update(p)
+        .eq("id", id)
+        .select("*")
+        .single();
+      data = res.data;
+      error = res.error;
+      if (!error) break;
+      const msg = `${error?.message || ""}`;
+      if (msg.includes("Could not find the") || msg.includes("schema cache"))
+        continue;
+      break;
+    }
     if (error)
       return NextResponse.json({ error: error.message }, { status: 500 });
     await redis.delPattern("tasks:*");

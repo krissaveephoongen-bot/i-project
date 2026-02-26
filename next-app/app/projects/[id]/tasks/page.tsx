@@ -104,11 +104,17 @@ export default function ProjectTasksPage() {
   }, [projectId]);
 
   const addTask = async () => {
-    if (!dbProjectId) return;
+    const pid = dbProjectId || projectId;
+    if (!pid) {
+      try {
+        alert("ไม่พบรหัสโครงการ");
+      } catch {}
+      return;
+    }
 
     try {
       const payload = {
-        projectId: dbProjectId,
+        projectId: pid,
         name: "งานใหม่",
         status: "Pending",
         phase: "Development",
@@ -123,7 +129,20 @@ export default function ProjectTasksPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = res.ok ? await res.json() : null;
+      if (!res.ok) {
+        const msg = (() => {
+          try {
+            return (res as any)?.statusText || "สร้างงานไม่สำเร็จ";
+          } catch {
+            return "สร้างงานไม่สำเร็จ";
+          }
+        })();
+        try {
+          alert(msg);
+        } catch {}
+        return;
+      }
+      const data = await res.json();
       if (data) {
         setTasks((prev) => [
           ...prev,
@@ -156,6 +175,9 @@ export default function ProjectTasksPage() {
       }
     } catch (err) {
       console.error("Error adding task:", err);
+      try {
+        alert("เพิ่มงานไม่สำเร็จ");
+      } catch {}
       setError("เพิ่มงานไม่สำเร็จ");
     }
   };
