@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Header from "@/app/components/Header";
 import ProjectTabs from "@/app/components/ProjectTabs";
@@ -39,6 +39,8 @@ export default function ProjectTasksPage() {
   >("list");
   const [dbProjectId, setDbProjectId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const params = useParams() as Record<
     string,
@@ -194,6 +196,140 @@ export default function ProjectTasksPage() {
         alert("เพิ่มงานไม่สำเร็จ");
       } catch {}
       setError("เพิ่มงานไม่สำเร็จ");
+    }
+  };
+
+  const parseCSV = (text: string) => {
+    const rows: string[] = [];
+    let cur = "";
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '"') {
+        if (inQuotes && text[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === "\n" && !inQuotes) {
+        rows.push(cur.trimEnd());
+        cur = "";
+      } else if (ch === "\r") {
+      } else {
+        cur += ch;
+      }
+    }
+    if (cur.length) rows.push(cur.trimEnd());
+    const split = (line: string) => {
+      const cols: string[] = [];
+      let c = "";
+      let q = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (q && line[i + 1] === '"') {
+            c += '"';
+            i++;
+          } else {
+            q = !q;
+          }
+        } else if (ch === "," && !q) {
+          cols.push(c.trim());
+          c = "";
+        } else {
+          c += ch;
+        }
+      }
+      cols.push(c.trim());
+      return cols;
+    };
+    if (rows.length === 0) return [];
+    const header = split(rows[0]).map((h) => h.toLowerCase());
+    const items: any[] = [];
+    for (let i = 1; i < rows.length; i++) {
+      const line = rows[i];
+      if (!line.trim()) continue;
+      const cols = split(line);
+      const rec: any = {};
+      header.forEach((h, idx) => {
+        rec[h] = cols[idx] ?? "";
+      });
+      items.push(rec);
+    }
+    return items;
+  };
+
+  const triggerUpload = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleWbsFile = async (file: File) => {
+    const pid = dbProjectId || projectId;
+    if (!pid) {
+      try {
+        alert("ไม่พบรหัสโครงการ");
+      } catch {}
+      return;
+    }
+    try {
+      setUploading(true);
+      const text = await file.text();
+      const rows = parseCSV(text);
+      let okCount = 0;
+      let failCount = 0;
+      for (const r of rows) {
+        const title = r["title"] || r["name"] || r["งาน"] || "Task";
+        const status =
+          r["status"] ||
+          r["สถานะ"] ||
+          "todo";
+        const weightRaw = r["weight"] || r["น้ำหนัก"] || "";
+        const weight = Number(weightRaw || 0) || 0;
+        const startDate = r["startdate"] || r["start_date"] || r["วันที่เริ่ม"] || "";
+        const endDate = r["enddate"] || r["end_date"] || r["วันที่สิ้นสุด"] || "";
+        const body: any = { title, projectId: pid, status };
+        if (weight) body.estimatedHours = weight;
+        if (startDate) body.dueDate = endDate || startDate;
+        const res = await fetch(`/api/tasks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          okCount++;
+          setTasks((prev) => [
+            ...prev,
+            {
+              id: data.id,
+              title: data.title || title,
+              status: data.status || "todo",
+              projectId: pid,
+              milestoneId: null,
+              phase: null,
+              weight: weight || 0,
+              progressPlan: 0,
+              progressActual: 0,
+              startDate: startDate || null,
+              endDate: endDate || null,
+              projects: { id: pid, name: "Project" },
+              assigned_user: { id: "", name: "Unassigned" },
+            } as any,
+          ]);
+        } else {
+          failCount++;
+        }
+      }
+      try {
+        alert(`นำเข้าเสร็จสิ้น: สำเร็จ ${okCount} รายการ, ล้มเหลว ${failCount} รายการ`);
+      } catch {}
+    } catch (e) {
+      try {
+        alert("นำเข้าไม่สำเร็จ");
+      } catch {}
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -405,12 +541,32 @@ export default function ProjectTasksPage() {
                   </button>
                 </div>
               </div>
-              <button
-                onClick={addTask}
-                className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm w-full md:w-auto justify-center"
-              >
-                <Plus className="w-4 h-4" /> เพิ่มงาน
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={addTask}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm w-full md:w-auto justify-center"
+                >
+                  <Plus className="w-4 h-4" /> เพิ่มงาน
+                </button>
+                <button
+                  disabled={uploading}
+                  onClick={triggerUpload}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm w-full md:w-auto justify-center disabled:opacity-70"
+                >
+                  อัปโหลด WBS (CSV)
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleWbsFile(f);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  className="hidden"
+                />
+              </div>
             </div>
 
             {/* Overall Progress */}
