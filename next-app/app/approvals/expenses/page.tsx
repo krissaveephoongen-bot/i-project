@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { getPendingExpenses, updateExpenseApproval } from "@/app/lib/approvals";
 import ApprovalModal from "../components/ApprovalModal";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 
 export default function ExpenseApprovalsPage() {

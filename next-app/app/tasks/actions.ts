@@ -7,7 +7,7 @@ import { z } from "zod";
 
 const taskSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
+  description: z.string().optional().nullable(),
   projectId: z.string().uuid("Project is required"),
   status: z.string().default("todo"),
   priority: z.string().default("medium"),

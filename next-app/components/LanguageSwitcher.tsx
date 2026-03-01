@@ -2,7 +2,7 @@
 
 import { useLanguage } from "@/lib/hooks/useLanguage";
 import { LANGUAGES } from "@/lib/config";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 
 interface LanguageSwitcherProps {

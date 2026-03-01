@@ -1,7 +1,7 @@
 "use client";
 
 import { lazy, Suspense, ComponentType, LazyExoticComponent } from "react";
-import { Skeleton } from "@/app/components/ui/Skeleton";
+import { Skeleton } from "@/app/components/ui/skeleton";
 import { clsx } from "clsx";
 
 // Loading fallback variants
@@ -141,7 +141,7 @@ export function createLazyComponent<T extends ComponentType<any>>(
     </Suspense>
   );
 
-  WrappedComponent.displayName = `Lazy(${LazyComponent.displayName || "Component"})`;
+  WrappedComponent.displayName = `Lazy(${(LazyComponent as any).displayName || "Component"})`;
 
   return WrappedComponent;
 }

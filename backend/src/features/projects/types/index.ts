@@ -122,4 +122,4 @@ export interface ValidationResult {
 }
 
 // Export insights types
-export * from './insights';
+export * from "./insights";

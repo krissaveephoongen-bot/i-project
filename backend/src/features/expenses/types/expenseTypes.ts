@@ -2,8 +2,13 @@
  * Expense Types and Interfaces
  */
 
-export type ExpenseStatus = 'pending' | 'approved' | 'rejected';
-export type ExpenseCategory = 'travel' | 'supplies' | 'equipment' | 'training' | 'other';
+export type ExpenseStatus = "pending" | "approved" | "rejected";
+export type ExpenseCategory =
+  | "travel"
+  | "supplies"
+  | "equipment"
+  | "training"
+  | "other";
 
 export interface Expense {
   id: string;
@@ -91,7 +96,7 @@ export interface ExpensePagination {
   page: number;
   limit: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface ExpenseListResult {

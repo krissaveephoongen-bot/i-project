@@ -1,6 +1,6 @@
 // Core UI Components
-export { Button, buttonVariants } from "./Button";
-export { Input } from "./Input";
+export { Button, buttonVariants } from "./button";
+export { Input } from "./input";
 export { Label } from "./label";
 export { Textarea } from "./textarea";
 export { Checkbox } from "./checkbox";
@@ -12,7 +12,7 @@ export {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./Select";
+} from "./select";
 export {
   Dialog,
   DialogContent,
@@ -21,7 +21,7 @@ export {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./Dialog";
+} from "./dialog";
 
 // Layout Components
 export {

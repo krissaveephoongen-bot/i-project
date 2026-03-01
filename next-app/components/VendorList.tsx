@@ -144,7 +144,7 @@ const VendorList: React.FC<VendorListProps> = ({
       } else {
         setError(data?.error || "ไม่สามารถโหลดรายชื่อ vendor");
       }
-    } catch (error) {
+    } catch (error: any) {
       setError(error?.message || "เกิดข้อผิดพลาดขณะโหลดข้อมูล");
     } finally {
       setLoading(false);

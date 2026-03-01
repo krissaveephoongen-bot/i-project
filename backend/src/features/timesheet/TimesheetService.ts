@@ -3,19 +3,19 @@
  * Handles all timesheet-related business logic and database operations
  */
 
-import { PrismaClient } from '@prisma/client';
-import { AppError } from '../../shared/errors/AppError';
-import { calculateHours, getMonthDateRange } from './timesheet.utils';
+import { PrismaClient } from "@prisma/client";
+import { AppError } from "../../shared/errors/AppError";
+import { calculateHours, getMonthDateRange } from "./timesheet.utils";
 import {
   validateTimeEntry,
   hasValidationErrors,
   formatValidationErrors,
-} from './timesheet.validation';
+} from "./timesheet.validation";
 import {
   detectDuplicateOrParallelWork,
   updateConcurrentRelationships,
   checkDailyTotalHours,
-} from './timesheet.duplicate-detection';
+} from "./timesheet.duplicate-detection";
 
 const prisma = new PrismaClient();
 
@@ -37,44 +37,53 @@ export class TimesheetService {
   /**
    * Create a new time entry
    */
-  async createTimeEntry(data: TimeEntryData & { isConcurrent?: boolean; concurrentReason?: string; chargeable?: boolean; chargeAmount?: number }) {
+  async createTimeEntry(
+    data: TimeEntryData & {
+      isConcurrent?: boolean;
+      concurrentReason?: string;
+      chargeable?: boolean;
+      chargeAmount?: number;
+    },
+  ) {
     // Validate input
     const validationErrors = validateTimeEntry({
       startTime: data.startTime,
       endTime: data.endTime,
       breakDuration: data.breakDuration,
-      date: typeof data.date === 'string' ? data.date : data.date.toISOString().split('T')[0],
+      date:
+        typeof data.date === "string"
+          ? data.date
+          : data.date.toISOString().split("T")[0],
       workType: data.workType,
       description: data.description,
     });
 
     if (hasValidationErrors(validationErrors)) {
-      throw new AppError(400, 'Validation failed', formatValidationErrors(validationErrors));
+      throw new AppError(
+        400,
+        "Validation failed",
+        formatValidationErrors(validationErrors),
+      );
     }
 
     // Check for duplicates and parallel work
-    const date = typeof data.date === 'string' ? new Date(data.date) : data.date;
-    const duplicateCheck = await detectDuplicateOrParallelWork(
-      {
-        userId: data.userId,
-        date,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        projectId: data.projectId,
-        workType: data.workType,
-      }
-    );
+    const date =
+      typeof data.date === "string" ? new Date(data.date) : data.date;
+    const duplicateCheck = await detectDuplicateOrParallelWork({
+      userId: data.userId,
+      date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      projectId: data.projectId,
+      workType: data.workType,
+    });
 
     // If concurrent work but no comment provided, throw error
     if (duplicateCheck.isConcurrent && !data.concurrentReason) {
-      throw new AppError(
-        400,
-        'CONCURRENT_REASON_REQUIRED',
-        {
-          message: 'โปรดระบุเหตุผลการทำงานขนาน',
-          warnings: duplicateCheck.warnings,
-        }
-      );
+      throw new AppError(400, "CONCURRENT_REASON_REQUIRED", {
+        message: "โปรดระบุเหตุผลการทำงานขนาน",
+        warnings: duplicateCheck.warnings,
+      });
     }
 
     // Check daily total doesn't exceed 24 hours
@@ -82,8 +91,8 @@ export class TimesheetService {
     if (dailyTotal.exceeds) {
       throw new AppError(
         400,
-        'EXCEEDS_DAILY_LIMIT',
-        `วันนี้บันทึก ${dailyTotal.total} ชั่วโมง (>24h)`
+        "EXCEEDS_DAILY_LIMIT",
+        `วันนี้บันทึก ${dailyTotal.total} ชั่วโมง (>24h)`,
       );
     }
 
@@ -91,12 +100,12 @@ export class TimesheetService {
     const hours = calculateHours(
       data.startTime,
       data.endTime,
-      data.breakDuration || 0
+      data.breakDuration || 0,
     );
 
     // Determine billable hours
     let billableHours: number | null = null;
-    if (['project', 'training'].includes(data.workType) && !data.chargeable) {
+    if (["project", "training"].includes(data.workType) && !data.chargeable) {
       billableHours = hours;
     }
 
@@ -114,7 +123,7 @@ export class TimesheetService {
           hours: hours.toString(),
           billableHours: billableHours?.toString() || null,
           description: data.description,
-          status: 'pending',
+          status: "pending",
           // New concurrent work fields
           isConcurrent: duplicateCheck.isConcurrent,
           concurrentReason: data.concurrentReason || null,
@@ -128,7 +137,7 @@ export class TimesheetService {
         await updateConcurrentRelationships(
           timeEntry.id,
           duplicateCheck.overlappingEntries.map((e) => e.id),
-          data.concurrentReason || ''
+          data.concurrentReason || "",
         );
       }
 
@@ -136,14 +145,14 @@ export class TimesheetService {
     } catch (error) {
       if (error instanceof AppError) throw error;
       if (error instanceof Error) {
-        if (error.message.includes('user_id')) {
-          throw new AppError(404, 'User not found');
+        if (error.message.includes("user_id")) {
+          throw new AppError(404, "User not found");
         }
-        if (error.message.includes('project_id')) {
-          throw new AppError(404, 'Project not found');
+        if (error.message.includes("project_id")) {
+          throw new AppError(404, "Project not found");
         }
       }
-      throw new AppError(500, 'Failed to create time entry');
+      throw new AppError(500, "Failed to create time entry");
     }
   }
 
@@ -159,13 +168,13 @@ export class TimesheetService {
         users_time_entries_userIdTousers: true,
         time_entry_comments: {
           include: { users: true },
-          orderBy: { created_at: 'desc' },
+          orderBy: { created_at: "desc" },
         },
       },
     });
 
     if (!timeEntry) {
-      throw new AppError(404, 'Time entry not found');
+      throw new AppError(404, "Time entry not found");
     }
 
     return this.formatTimeEntryWithRelations(timeEntry);
@@ -189,7 +198,7 @@ export class TimesheetService {
         projects: true,
         time_entry_comments: { include: { users: true } },
       },
-      orderBy: [{ date: 'desc' }, { created_at: 'desc' }],
+      orderBy: [{ date: "desc" }, { created_at: "desc" }],
     });
 
     return timeEntries.map((entry) => this.formatTimeEntry(entry));
@@ -198,7 +207,11 @@ export class TimesheetService {
   /**
    * Calculate total hours for a user in a month
    */
-  async getMonthlyHours(userId: string, month: number, year: number): Promise<number> {
+  async getMonthlyHours(
+    userId: string,
+    month: number,
+    year: number,
+  ): Promise<number> {
     const { start, end } = getMonthDateRange(month, year);
 
     const result = await prisma.time_entries.aggregate({
@@ -208,7 +221,7 @@ export class TimesheetService {
           gte: start,
           lte: end,
         },
-        status: 'pending', // Only count approved entries
+        status: "pending", // Only count approved entries
       },
       _sum: {
         hours: true,
@@ -224,7 +237,7 @@ export class TimesheetService {
   async getProjectHours(
     projectId: string,
     month?: number,
-    year?: number
+    year?: number,
   ): Promise<number> {
     let whereClause: any = {
       projectId,
@@ -262,18 +275,19 @@ export class TimesheetService {
     });
 
     if (!timeEntry) {
-      throw new AppError(404, 'Time entry not found');
+      throw new AppError(404, "Time entry not found");
     }
 
-    if (timeEntry.status !== 'pending' && timeEntry.status !== 'rejected') {
-      throw new AppError(400, 'Cannot edit approved or in-review time entries');
+    if (timeEntry.status !== "pending" && timeEntry.status !== "rejected") {
+      throw new AppError(400, "Cannot edit approved or in-review time entries");
     }
 
     // Prepare update data
     const updateData: any = {};
 
     if (data.date) {
-      updateData.date = typeof data.date === 'string' ? new Date(data.date) : data.date;
+      updateData.date =
+        typeof data.date === "string" ? new Date(data.date) : data.date;
     }
 
     if (data.startTime || data.endTime) {
@@ -290,12 +304,20 @@ export class TimesheetService {
       });
 
       if (hasValidationErrors(validationErrors)) {
-        throw new AppError(400, 'Validation failed', formatValidationErrors(validationErrors));
+        throw new AppError(
+          400,
+          "Validation failed",
+          formatValidationErrors(validationErrors),
+        );
       }
 
       updateData.startTime = startTime;
       updateData.endTime = endTime;
-      updateData.hours = calculateHours(startTime, endTime, breakMin).toString();
+      updateData.hours = calculateHours(
+        startTime,
+        endTime,
+        breakMin,
+      ).toString();
     }
 
     if (data.breakDuration !== undefined) {
@@ -328,7 +350,7 @@ export class TimesheetService {
 
       return this.formatTimeEntry(updated);
     } catch (error) {
-      throw new AppError(500, 'Failed to update time entry');
+      throw new AppError(500, "Failed to update time entry");
     }
   }
 
@@ -341,18 +363,18 @@ export class TimesheetService {
     });
 
     if (!timeEntry) {
-      throw new AppError(404, 'Time entry not found');
+      throw new AppError(404, "Time entry not found");
     }
 
-    if (timeEntry.status !== 'pending') {
-      throw new AppError(400, 'Only pending time entries can be approved');
+    if (timeEntry.status !== "pending") {
+      throw new AppError(400, "Only pending time entries can be approved");
     }
 
     try {
       const updated = await prisma.time_entries.update({
         where: { id },
         data: {
-          status: 'approved',
+          status: "approved",
           approvedBy,
           approvedAt: new Date(),
         },
@@ -360,7 +382,7 @@ export class TimesheetService {
 
       return this.formatTimeEntry(updated);
     } catch (error) {
-      throw new AppError(500, 'Failed to approve time entry');
+      throw new AppError(500, "Failed to approve time entry");
     }
   }
 
@@ -373,25 +395,25 @@ export class TimesheetService {
     });
 
     if (!timeEntry) {
-      throw new AppError(404, 'Time entry not found');
+      throw new AppError(404, "Time entry not found");
     }
 
-    if (!['pending', 'in_review'].includes(timeEntry.status)) {
-      throw new AppError(400, 'Can only reject pending or in-review entries');
+    if (!["pending", "in_review"].includes(timeEntry.status)) {
+      throw new AppError(400, "Can only reject pending or in-review entries");
     }
 
     try {
       const updated = await prisma.time_entries.update({
         where: { id },
         data: {
-          status: 'rejected',
+          status: "rejected",
           rejectedReason: reason,
         },
       });
 
       return this.formatTimeEntry(updated);
     } catch (error) {
-      throw new AppError(500, 'Failed to reject time entry');
+      throw new AppError(500, "Failed to reject time entry");
     }
   }
 
@@ -404,11 +426,11 @@ export class TimesheetService {
     });
 
     if (!timeEntry) {
-      throw new AppError(404, 'Time entry not found');
+      throw new AppError(404, "Time entry not found");
     }
 
-    if (!['pending', 'rejected'].includes(timeEntry.status)) {
-      throw new AppError(400, 'Cannot delete approved or in-review entries');
+    if (!["pending", "rejected"].includes(timeEntry.status)) {
+      throw new AppError(400, "Cannot delete approved or in-review entries");
     }
 
     try {
@@ -422,7 +444,7 @@ export class TimesheetService {
         where: { id },
       });
     } catch (error) {
-      throw new AppError(500, 'Failed to delete time entry');
+      throw new AppError(500, "Failed to delete time entry");
     }
   }
 
@@ -435,11 +457,11 @@ export class TimesheetService {
     });
 
     if (!timeEntry) {
-      throw new AppError(404, 'Time entry not found');
+      throw new AppError(404, "Time entry not found");
     }
 
     if (!text || text.trim().length === 0) {
-      throw new AppError(400, 'Comment text is required');
+      throw new AppError(400, "Comment text is required");
     }
 
     try {
@@ -462,7 +484,7 @@ export class TimesheetService {
         createdAt: comment.created_at,
       };
     } catch (error) {
-      throw new AppError(500, 'Failed to add comment');
+      throw new AppError(500, "Failed to add comment");
     }
   }
 
@@ -473,7 +495,7 @@ export class TimesheetService {
     const comments = await prisma.time_entry_comments.findMany({
       where: { time_entry_id: timeEntryId },
       include: { users: true },
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
     });
 
     return comments.map((comment) => ({
@@ -494,7 +516,7 @@ export class TimesheetService {
   private formatTimeEntry(entry: any) {
     return {
       id: entry.id,
-      date: entry.date.toISOString().split('T')[0],
+      date: entry.date.toISOString().split("T")[0],
       startTime: entry.startTime,
       endTime: entry.endTime,
       breakDuration: entry.breakDuration,
@@ -503,7 +525,9 @@ export class TimesheetService {
       taskId: entry.taskId,
       userId: entry.userId,
       hours: parseFloat(entry.hours),
-      billableHours: entry.billableHours ? parseFloat(entry.billableHours) : null,
+      billableHours: entry.billableHours
+        ? parseFloat(entry.billableHours)
+        : null,
       description: entry.description,
       status: entry.status,
       approvedBy: entry.approvedBy,
@@ -520,22 +544,30 @@ export class TimesheetService {
   private formatTimeEntryWithRelations(entry: any) {
     return {
       ...this.formatTimeEntry(entry),
-      project: entry.projects ? {
-        id: entry.projects.id,
-        name: entry.projects.name,
-      } : null,
-      task: entry.tasks ? {
-        id: entry.tasks.id,
-        name: entry.tasks.name,
-      } : null,
-      user: entry.users_time_entries_userIdTousers ? {
-        id: entry.users_time_entries_userIdTousers.id,
-        name: entry.users_time_entries_userIdTousers.name,
-      } : null,
-      approver: entry.users_time_entries_approvedByTousers ? {
-        id: entry.users_time_entries_approvedByTousers.id,
-        name: entry.users_time_entries_approvedByTousers.name,
-      } : null,
+      project: entry.projects
+        ? {
+            id: entry.projects.id,
+            name: entry.projects.name,
+          }
+        : null,
+      task: entry.tasks
+        ? {
+            id: entry.tasks.id,
+            name: entry.tasks.name,
+          }
+        : null,
+      user: entry.users_time_entries_userIdTousers
+        ? {
+            id: entry.users_time_entries_userIdTousers.id,
+            name: entry.users_time_entries_userIdTousers.name,
+          }
+        : null,
+      approver: entry.users_time_entries_approvedByTousers
+        ? {
+            id: entry.users_time_entries_approvedByTousers.id,
+            name: entry.users_time_entries_approvedByTousers.name,
+          }
+        : null,
       comments: (entry.time_entry_comments || []).map((comment: any) => ({
         id: comment.id,
         text: comment.text,

@@ -73,7 +73,7 @@ export interface PasswordResetToken {
 }
 
 // User status types
-export type UserStatus = 'active' | 'inactive' | 'locked' | 'deleted';
+export type UserStatus = "active" | "inactive" | "locked" | "deleted";
 
 export interface UserAccountStatus {
   isActive: boolean;

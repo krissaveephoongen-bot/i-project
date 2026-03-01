@@ -44,12 +44,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../components/ui/Dialog"; // Keep if custom or standard
+} from "../components/ui/dialog"; // Keep if custom or standard
 import { Progress } from "../components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { DataTable } from "../components/data-table";
 import { ProfessionalFilter } from "@/components/ProfessionalFilter";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyState } from "@/components/ui/empty-state";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -404,7 +404,7 @@ export default function ProjectsClient({
     }: {
       id: string;
       updatedFields: Partial<ProjectType>;
-    }) => updateProjectAction(id, updatedFields),
+    }) => updateProjectAction(id, updatedFields as any),
     onSuccess: (result, { id, updatedFields }) => {
       if (result.error) {
         toast.error(`Update failed: ${result.error}`);

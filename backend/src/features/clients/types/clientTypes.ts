@@ -46,7 +46,7 @@ export interface ClientPagination {
   page: number;
   limit: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface ClientListResult {

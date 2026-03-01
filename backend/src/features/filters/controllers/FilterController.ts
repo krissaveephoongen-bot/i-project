@@ -1,13 +1,15 @@
-import { Request, Response } from 'express';
-import { getDbClient } from '@/shared/database';
-import { sql } from 'drizzle-orm';
+import { Request, Response } from "express";
+import { getDbClient } from "@/shared/database";
+import { sql } from "drizzle-orm";
 
 export class FilterController {
   static async getFilterOptions(req: Request, res: Response) {
     try {
       const { db } = getDbClient();
       if (!db) {
-        return res.status(500).json({ error: 'Database connection not available' });
+        return res
+          .status(500)
+          .json({ error: "Database connection not available" });
       }
 
       // Get unique project statuses
@@ -165,8 +167,8 @@ export class FilterController {
 
       return res.json(filterOptions);
     } catch (error) {
-      console.error('Error fetching filter options:', error);
-      return res.status(500).json({ error: 'Failed to fetch filter options' });
+      console.error("Error fetching filter options:", error);
+      return res.status(500).json({ error: "Failed to fetch filter options" });
     }
   }
 }

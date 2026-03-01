@@ -16,15 +16,15 @@ import {
   TableHeader,
   TableRow,
 } from "../../../components/ui/table";
-import { Button } from "../../../components/ui/Button";
-import { Input } from "../../../components/ui/Input";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../../components/ui/Select";
+} from "../../../components/ui/select";
 import { useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import {
@@ -39,7 +39,7 @@ import type {
 
 export default function ProjectCostSheetPage() {
   const params = useParams();
-  const projectId = params.id as string;
+  const projectId = (params?.id as string) || "";
   const [loading, setLoading] = useState(true);
 
   const [catalog, setCatalog] = useState<CostCodeCatalog[]>([]);

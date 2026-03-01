@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { ProfessionalFilter } from "@/components/ProfessionalFilter";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Card,
   CardContent,
@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { CalendarIcon, Filter, Search, X } from "lucide-react";
 import { useDynamicFilterOptions } from "@/hooks/useDynamicFilterOptions";
 

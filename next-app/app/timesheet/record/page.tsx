@@ -9,15 +9,15 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { Button } from "../../components/ui/Button";
-import { Input } from "../../components/ui/Input";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/Select";
+} from "../../components/ui/select";
 import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
@@ -47,6 +47,7 @@ export default function TimesheetRecordPage() {
     activity: string;
     description: string;
     billable: boolean;
+    taskMode: "planned" | "adhoc";
   }>({
     workType: WorkType.PROJECT,
     projectId: "",

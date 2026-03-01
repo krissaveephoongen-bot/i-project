@@ -10,24 +10,7 @@ import {
 import "gantt-task-react/dist/index.css";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-
-interface Task {
-  id: string;
-  name?: string; // Made optional for compatibility
-  phase?: string;
-  weight?: number; // Made optional for compatibility
-  progress_plan?: number;
-  progress_actual?: number;
-  start_date?: string;
-  end_date?: string;
-  assignee?: string; // Made optional for compatibility
-  vendor?: string;
-  status: string;
-  progressPlan?: number;
-  progressActual?: number;
-  startDate?: string;
-  endDate?: string;
-}
+import { Task } from "@/lib/tasks";
 
 interface ProjectGanttProps {
   tasks: Task[];
@@ -52,7 +35,7 @@ export default function ProjectGantt({ tasks }: ProjectGanttProps) {
     return {
       start,
       end,
-      name: task.name || `Task ${task.id}`, // Fallback to ID
+      name: task.title || `Task ${task.id}`, // Fallback to ID
       id: task.id,
       type: "task",
       progress: task.progressActual || 0,

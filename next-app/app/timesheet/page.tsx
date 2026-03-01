@@ -16,7 +16,7 @@ import { useAuth } from "../components/AuthProvider";
 import { useThaiLocale } from "@/lib/hooks/useThaiLocale";
 
 // Shadcn UI Components
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import {
   Tabs,
@@ -31,9 +31,9 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/app/components/ui/Dialog";
+} from "@/app/components/ui/dialog";
 import PageTransition from "../components/PageTransition";
-import { Skeleton } from "../components/ui/Skeleton";
+import { Skeleton } from "../components/ui/skeleton";
 import { useRouter } from "next/navigation";
 
 // Custom Components
@@ -150,6 +150,7 @@ export default function TimesheetPage() {
             (project: any, index: number) => ({
               id: project.id,
               name: project.name,
+              status: project.status || "Active",
               color: `hsl(${index * 60}, 70%, 50%)`,
               is_billable: !!project.is_billable,
               tasks: project.tasks || [],

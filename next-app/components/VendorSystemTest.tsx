@@ -22,7 +22,7 @@ interface VendorSystemTestProps {
   onTestComplete?: (results: TestResult[]) => void;
 }
 
-const VendorSystemTestProps: React.FC<VendorSystemTestProps> = ({
+const VendorSystemTest: React.FC<VendorSystemTestProps> = ({
   onTestComplete,
 }) => {
   const [testing, setTesting] = useState(false);
@@ -76,7 +76,7 @@ const VendorSystemTestProps: React.FC<VendorSystemTestProps> = ({
             name: "Vendor API Connection",
             status: "error",
             message: "ไม่สามารถเชื่อมต่อ API",
-            details: error.message,
+            details: (error as Error).message,
           },
         ],
         passed: 0,
@@ -126,7 +126,7 @@ const VendorSystemTestProps: React.FC<VendorSystemTestProps> = ({
             name: "Contracts API Connection",
             status: "error",
             message: "ไม่สามารถเชื่อมต่อ Contracts API",
-            details: error.message,
+            details: (error as Error).message,
           },
         ],
         passed: 0,
@@ -176,7 +176,7 @@ const VendorSystemTestProps: React.FC<VendorSystemTestProps> = ({
             name: "Payments API Connection",
             status: "error",
             message: "ไม่สามารถเชื่อมต่อ Payments API",
-            details: error.message,
+            details: (error as Error).message,
           },
         ],
         passed: 0,
@@ -226,7 +226,7 @@ const VendorSystemTestProps: React.FC<VendorSystemTestProps> = ({
             name: "Expense Items API Connection",
             status: "error",
             message: "ไม่สามารถเชื่อมต่อ Expense Items API",
-            details: error.message,
+            details: (error as Error).message,
           },
         ],
         passed: 0,
@@ -276,7 +276,7 @@ const VendorSystemTestProps: React.FC<VendorSystemTestProps> = ({
             name: "KPI API Connection",
             status: "error",
             message: "ไม่สามารถเชื่อมต่อ KPI API",
-            details: error.message,
+            details: (error as Error).message,
           },
         ],
         passed: 0,
@@ -320,14 +320,14 @@ const VendorSystemTestProps: React.FC<VendorSystemTestProps> = ({
             name: `Table: ${table}`,
             status: "error",
             message: `ไม่สามารถตรวจสอบตาราง ${table}`,
-            details: error.message,
+            details: (error as Error).message,
           });
         }
       }
 
       results.push({
         category: "Database Schema",
-        tests: tableTests,
+        tests: tableTests as any[],
         passed: tablesPassed,
         total: tables.length,
         successRate: (tablesPassed / tables.length) * 100,
@@ -340,7 +340,7 @@ const VendorSystemTestProps: React.FC<VendorSystemTestProps> = ({
             name: "Schema Validation",
             status: "error",
             message: "ไม่สามารถตรวจสอบ database schema",
-            details: error.message,
+            details: (error as Error).message,
           },
         ],
         passed: 0,
@@ -377,7 +377,7 @@ const VendorSystemTestProps: React.FC<VendorSystemTestProps> = ({
 
       results.push({
         category: "UI Components",
-        tests: uiTests,
+        tests: uiTests as any[],
         passed: uiTests.filter((t) => t.status === "success").length,
         total: uiTests.length,
         successRate:
@@ -393,7 +393,7 @@ const VendorSystemTestProps: React.FC<VendorSystemTestProps> = ({
             name: "Component Loading",
             status: "error",
             message: "ไม่สามารถโหลด UI components",
-            details: error.message,
+            details: (error as Error).message,
           },
         ],
         passed: 0,

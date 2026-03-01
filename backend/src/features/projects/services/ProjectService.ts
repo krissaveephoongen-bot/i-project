@@ -1,6 +1,6 @@
-import { db, schema } from '../../../shared/database/connection';
-import { eq, and, or, ilike, desc, asc } from 'drizzle-orm';
-import { AppError } from '../../../shared/errors/AppError';
+import { db, schema } from "../../../shared/database/connection";
+import { eq, and, or, ilike, desc, asc } from "drizzle-orm";
+import { AppError } from "../../../shared/errors/AppError";
 
 interface ProjectFilters {
   status?: string;
@@ -12,7 +12,7 @@ interface PaginationParams {
   page: number;
   limit: number;
   sortBy: string;
-  sortOrder: 'asc' | 'desc';
+  sortOrder: "asc" | "desc";
 }
 
 interface CreateProjectData {
@@ -39,26 +39,26 @@ export class ProjectService {
 
     // Build where conditions
     const whereConditions = [];
-    
+
     if (filters.status) {
       whereConditions.push(eq(schema.projects.status, filters.status as any));
     }
-    
+
     if (filters.managerId) {
       whereConditions.push(eq(schema.projects.managerId, filters.managerId));
     }
-    
+
     if (filters.search) {
       whereConditions.push(
         or(
           ilike(schema.projects.name, `%${filters.search}%`),
-          ilike(schema.projects.description, `%${filters.search}%`)
-        )
+          ilike(schema.projects.description, `%${filters.search}%`),
+        ),
       );
     }
 
     // Build order by
-    const orderBy = sortOrder === 'desc' ? desc : asc;
+    const orderBy = sortOrder === "desc" ? desc : asc;
     const orderByColumn = this.getOrderByColumn(sortBy);
 
     // Get total count
@@ -145,7 +145,7 @@ export class ProjectService {
       .limit(1);
 
     if (!project) {
-      throw new AppError('Project not found', 404);
+      throw new AppError("Project not found", 404);
     }
 
     return project;
@@ -162,7 +162,7 @@ export class ProjectService {
         budget: data.budget ? data.budget.toString() : null,
         managerId: data.managerId,
         clientId: data.clientId || null,
-        remaining: data.budget ? data.budget.toString() : '0.00',
+        remaining: data.budget ? data.budget.toString() : "0.00",
       })
       .returning();
 
@@ -187,7 +187,7 @@ export class ProjectService {
       updateData.budget = data.budget.toString();
       // Recalculate remaining if budget changed
       const currentProject = await this.getProjectById(id);
-      const spent = parseFloat(currentProject.spent || '0');
+      const spent = parseFloat(currentProject.spent || "0");
       updateData.remaining = (data.budget - spent).toString();
     }
 
@@ -195,7 +195,7 @@ export class ProjectService {
       updateData.spent = data.actualCost.toString();
       // Recalculate remaining if actual cost changed
       const currentProject = await this.getProjectById(id);
-      const budget = parseFloat(currentProject.budget || '0');
+      const budget = parseFloat(currentProject.budget || "0");
       updateData.remaining = (budget - data.actualCost).toString();
     }
 
@@ -206,7 +206,7 @@ export class ProjectService {
       .returning();
 
     if (!updatedProject) {
-      throw new AppError('Project not found', 404);
+      throw new AppError("Project not found", 404);
     }
 
     return this.getProjectById(id);
@@ -219,7 +219,7 @@ export class ProjectService {
       .returning();
 
     if (!deletedProject) {
-      throw new AppError('Project not found', 404);
+      throw new AppError("Project not found", 404);
     }
   }
 
@@ -249,17 +249,17 @@ export class ProjectService {
 
   private getOrderByColumn(sortBy: string): any {
     switch (sortBy) {
-      case 'name':
+      case "name":
         return schema.projects.name;
-      case 'status':
+      case "status":
         return schema.projects.status;
-      case 'startDate':
+      case "startDate":
         return schema.projects.startDate;
-      case 'endDate':
+      case "endDate":
         return schema.projects.endDate;
-      case 'budget':
+      case "budget":
         return schema.projects.budget;
-      case 'createdAt':
+      case "createdAt":
       default:
         return schema.projects.createdAt;
     }

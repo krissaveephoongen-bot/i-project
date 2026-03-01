@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { clsx } from "clsx";
-import { Button } from "./ui/Button";
+import { Button } from "./ui/button";
 import { Users } from "lucide-react";
 
 const tabs = [

@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-02-24T06:38:30.624Z",
+  "summary": {
+    "total": 3,
+    "passed": 0,
+    "failed": 3,
+    "successRate": "0.0%"
+  },
+  "modules": [
+    {
+      "module": "Stakeholders API",
+      "tests": [
+        {
+          "operation": "API_ERROR",
+          "status": "FAIL",
+          "error": ""
+        }
+      ]
+    },
+    {
+      "module": "Expenses API",
+      "tests": [
+        {
+          "operation": "API_ERROR",
+          "status": "FAIL",
+          "error": ""
+        }
+      ]
+    },
+    {
+      "module": "Admin Users API",
+      "tests": [
+        {
+          "operation": "API_ERROR",
+          "status": "FAIL",
+          "error": ""
+        }
+      ]
+    }
+  ]
+}

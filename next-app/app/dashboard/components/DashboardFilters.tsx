@@ -6,14 +6,14 @@ import {
   DialogContent,
   DialogTrigger,
   DialogClose,
-} from "@/app/components/ui/Dialog";
+} from "@/app/components/ui/dialog";
 import {
   Select,
   SelectTrigger,
   SelectContent,
   SelectItem,
   SelectValue,
-} from "@/app/components/ui/Select";
+} from "@/app/components/ui/select";
 import type { ProjectRow } from "../types";
 
 interface DashboardFiltersProps {

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/app/components/ui/Button";
-import { Input } from "@/app/components/ui/Input";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 import {
   Select,
@@ -10,7 +10,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/Select";
+} from "@/app/components/ui/select";
 import { Calendar, User, Flag, Clock } from "lucide-react";
 import { Task } from "@/lib/tasks";
 import { useLanguage } from "@/lib/hooks/useLanguage";
@@ -237,7 +237,7 @@ export default function TaskForm({
           <Select
             value={formData.assignedTo || ""}
             onValueChange={(value) =>
-              setFormData({ ...formData, assignedTo: value || null })
+              setFormData({ ...formData, assignedTo: value || "" })
             }
           >
             <SelectTrigger>

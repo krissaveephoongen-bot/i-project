@@ -59,7 +59,7 @@ export default function DataSyncProvider({
             qc.invalidateQueries({ queryKey: ["reports"] });
           },
         )
-        .subscribe((status) => {
+        .subscribe((status: any) => {
           if (status === "SUBSCRIBED") {
             setRealtimeConnected(true);
             console.log("✓ Realtime connected");

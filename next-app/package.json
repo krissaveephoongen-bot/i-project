@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "check-types": "tsc --noEmit",
+    "check-casing": "node scripts/check-casing.js",
+    "check-deployment": "npm run check-casing",
     "start": "next start",
     "lint": "next lint",
+    "check": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",

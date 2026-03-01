@@ -1,6 +1,6 @@
-import { eq, gte, lte, desc, sql, and, count, sum, extract } from 'drizzle-orm';
-import { getDbClient } from '../../shared/database.js';
-import { timeEntries, projects, users } from '../../shared/database/schema.js';
+import { eq, gte, lte, desc, sql, and, count, sum, extract } from "drizzle-orm";
+import { getDbClient } from "../../shared/database.js";
+import { timeEntries, projects, users } from "../../shared/database/schema.js";
 
 export class WeeklySummaryService {
   constructor() {
@@ -11,7 +11,7 @@ export class WeeklySummaryService {
    * ดึงข้อมูลสรุปรายสัปดาห์
    */
   async getWeeklySummary(filters = {}) {
-    if (!this.db) throw new Error('Database not configured');
+    if (!this.db) throw new Error("Database not configured");
 
     const weekRange = this.getWeekRange(filters);
     const { weekStart, weekEnd } = weekRange;
@@ -47,16 +47,22 @@ export class WeeklySummaryService {
       .from(timeEntries)
       .leftJoin(users, eq(timeEntries.userId, users.id))
       .leftJoin(projects, eq(timeEntries.projectId, projects.id))
-      .where(and(
-        gte(timeEntries.date, weekStart),
-        lte(timeEntries.date, weekEnd),
-        filters.userId ? eq(timeEntries.userId, filters.userId) : sql`1=1`
-      ))
+      .where(
+        and(
+          gte(timeEntries.date, weekStart),
+          lte(timeEntries.date, weekEnd),
+          filters.userId ? eq(timeEntries.userId, filters.userId) : sql`1=1`,
+        ),
+      )
       .orderBy(timeEntries.date, timeEntries.startTime);
 
     // จัดกลุ่มข้อมูลตามพนักงานและวัน
-    const employeeData = await this.buildEmployeeData(allEmployees, timesheetData, weekRange);
-    
+    const employeeData = await this.buildEmployeeData(
+      allEmployees,
+      timesheetData,
+      weekRange,
+    );
+
     // คำนวณสรุป
     const summary = this.calculateWeeklySummary(employeeData, weekRange);
 
@@ -74,30 +80,38 @@ export class WeeklySummaryService {
    * ดึงข้อมูลสรุปรายวันในสัปดาห์
    */
   async getDailySummary(weekStart, weekEnd) {
-    if (!this.db) throw new Error('Database not configured');
+    if (!this.db) throw new Error("Database not configured");
 
     const dailyData = await this.db
       .select({
         date: timeEntries.date,
         totalHours: sum(timeEntries.hours).mapWith(Number),
-        employeesWorking: count(sql`DISTINCT ${timeEntries.userId}`).mapWith(Number),
-        projectHours: sum(sql`CASE WHEN ${timeEntries.workType} = 'project' THEN ${timeEntries.hours} ELSE 0 END`).mapWith(Number),
-        nonProjectHours: sum(sql`CASE WHEN ${timeEntries.workType} != 'project' THEN ${timeEntries.hours} ELSE 0 END`).mapWith(Number),
+        employeesWorking: count(sql`DISTINCT ${timeEntries.userId}`).mapWith(
+          Number,
+        ),
+        projectHours: sum(
+          sql`CASE WHEN ${timeEntries.workType} = 'project' THEN ${timeEntries.hours} ELSE 0 END`,
+        ).mapWith(Number),
+        nonProjectHours: sum(
+          sql`CASE WHEN ${timeEntries.workType} != 'project' THEN ${timeEntries.hours} ELSE 0 END`,
+        ).mapWith(Number),
       })
       .from(timeEntries)
-      .where(and(
-        gte(timeEntries.date, weekStart),
-        lte(timeEntries.date, weekEnd)
-      ))
+      .where(
+        and(gte(timeEntries.date, weekStart), lte(timeEntries.date, weekEnd)),
+      )
       .groupBy(timeEntries.date)
       .orderBy(timeEntries.date);
 
-    return dailyData.map(data => ({
+    return dailyData.map((data) => ({
       date: data.date,
       dayName: this.getDayName(data.date),
       totalHours: data.totalHours || 0,
       employeesWorking: data.employeesWorking || 0,
-      averageHoursPerEmployee: data.employeesWorking > 0 ? (data.totalHours || 0) / data.employeesWorking : 0,
+      averageHoursPerEmployee:
+        data.employeesWorking > 0
+          ? (data.totalHours || 0) / data.employeesWorking
+          : 0,
       projectHours: data.projectHours || 0,
       nonProjectHours: data.nonProjectHours || 0,
     }));
@@ -115,10 +129,12 @@ export class WeeklySummaryService {
       this.getWeeklySummary({ weekStart: previousWeekStart.toISOString() }),
     ]);
 
-    const totalHoursChange = currentWeek.summary.totalHours - previousWeek.summary.totalHours;
-    const totalHoursChangePercentage = previousWeek.summary.totalHours > 0 
-      ? (totalHoursChange / previousWeek.summary.totalHours) * 100 
-      : 0;
+    const totalHoursChange =
+      currentWeek.summary.totalHours - previousWeek.summary.totalHours;
+    const totalHoursChangePercentage =
+      previousWeek.summary.totalHours > 0
+        ? (totalHoursChange / previousWeek.summary.totalHours) * 100
+        : 0;
 
     return {
       currentWeek,
@@ -126,8 +142,12 @@ export class WeeklySummaryService {
       changes: {
         totalHoursChange,
         totalHoursChangePercentage,
-        employeesWithDataChange: currentWeek.summary.employeesWithData - previousWeek.summary.employeesWithData,
-        averageHoursPerEmployeeChange: currentWeek.summary.averageHoursPerEmployee - previousWeek.summary.averageHoursPerEmployee,
+        employeesWithDataChange:
+          currentWeek.summary.employeesWithData -
+          previousWeek.summary.employeesWithData,
+        averageHoursPerEmployeeChange:
+          currentWeek.summary.averageHoursPerEmployee -
+          previousWeek.summary.averageHoursPerEmployee,
       },
     };
   }
@@ -136,7 +156,7 @@ export class WeeklySummaryService {
    * ดึงข้อมูลแนวโน้มรายสัปดาห์ (ย้อนหลัง 12 สัปดาห์)
    */
   async getWeeklyTrends(year, weeks = 12) {
-    if (!this.db) throw new Error('Database not configured');
+    if (!this.db) throw new Error("Database not configured");
 
     const trends = [];
 
@@ -148,13 +168,14 @@ export class WeeklySummaryService {
       const weekData = await this.db
         .select({
           totalHours: sum(timeEntries.hours).mapWith(Number),
-          employeesWithData: count(sql`DISTINCT ${timeEntries.userId}`).mapWith(Number),
+          employeesWithData: count(sql`DISTINCT ${timeEntries.userId}`).mapWith(
+            Number,
+          ),
         })
         .from(timeEntries)
-        .where(and(
-          gte(timeEntries.date, weekStart),
-          lte(timeEntries.date, weekEnd)
-        ));
+        .where(
+          and(gte(timeEntries.date, weekStart), lte(timeEntries.date, weekEnd)),
+        );
 
       const totalHours = weekData[0]?.totalHours || 0;
       const employeesWithData = weekData[0]?.employeesWithData || 0;
@@ -165,7 +186,8 @@ export class WeeklySummaryService {
         weekStart,
         totalHours,
         employeesWithData,
-        averageHoursPerEmployee: employeesWithData > 0 ? totalHours / employeesWithData : 0,
+        averageHoursPerEmployee:
+          employeesWithData > 0 ? totalHours / employeesWithData : 0,
       });
     }
 
@@ -179,36 +201,36 @@ export class WeeklySummaryService {
     const weeklySummary = await this.getWeeklySummary(filters);
 
     const headers = [
-      'ชื่อพนักงาน',
-      'ตำแหน่ง',
-      'อาทิตย์',
-      'จันทร์',
-      'อังคาร',
-      'พุธ',
-      'พฤหัสบดี',
-      'ศุกร์',
-      'เสาร์',
-      'รวมสัปดาห์',
-      'เฉลี่ย/วัน',
-      'วันทำงาน',
+      "ชื่อพนักงาน",
+      "ตำแหน่ง",
+      "อาทิตย์",
+      "จันทร์",
+      "อังคาร",
+      "พุธ",
+      "พฤหัสบดี",
+      "ศุกร์",
+      "เสาร์",
+      "รวมสัปดาห์",
+      "เฉลี่ย/วัน",
+      "วันทำงาน",
     ];
 
-    const data = weeklySummary.employees.map(employee => {
+    const data = weeklySummary.employees.map((employee) => {
       const dailyHours = employee.dailyHours.reduce((acc, day) => {
-        acc[day.dayNumber] = day.hasData ? day.hours.toFixed(2) : '0.00';
+        acc[day.dayNumber] = day.hasData ? day.hours.toFixed(2) : "0.00";
         return acc;
       }, {});
 
       return [
         employee.employeeName,
         employee.role,
-        dailyHours[0] || '0.00', // Sunday
-        dailyHours[1] || '0.00', // Monday
-        dailyHours[2] || '0.00', // Tuesday
-        dailyHours[3] || '0.00', // Wednesday
-        dailyHours[4] || '0.00', // Thursday
-        dailyHours[5] || '0.00', // Friday
-        dailyHours[6] || '0.00', // Saturday
+        dailyHours[0] || "0.00", // Sunday
+        dailyHours[1] || "0.00", // Monday
+        dailyHours[2] || "0.00", // Tuesday
+        dailyHours[3] || "0.00", // Wednesday
+        dailyHours[4] || "0.00", // Thursday
+        dailyHours[5] || "0.00", // Friday
+        dailyHours[6] || "0.00", // Saturday
         employee.totalWeeklyHours.toFixed(2),
         employee.averageDailyHours.toFixed(2),
         employee.workingDays.toString(),
@@ -216,12 +238,12 @@ export class WeeklySummaryService {
     });
 
     return {
-      fileName: `สรุปรายสัปดาห์_${weeklySummary.year}_W${weeklySummary.weekNumber.toString().padStart(2, '0')}_${new Date().toISOString().split('T')[0]}.xlsx`,
+      fileName: `สรุปรายสัปดาห์_${weeklySummary.year}_W${weeklySummary.weekNumber.toString().padStart(2, "0")}_${new Date().toISOString().split("T")[0]}.xlsx`,
       headers,
       data,
       weekInfo: {
-        weekStart: weeklySummary.weekStart.toISOString().split('T')[0],
-        weekEnd: weeklySummary.weekEnd.toISOString().split('T')[0],
+        weekStart: weeklySummary.weekStart.toISOString().split("T")[0],
+        weekEnd: weeklySummary.weekEnd.toISOString().split("T")[0],
         weekNumber: weeklySummary.weekNumber,
         year: weeklySummary.year,
       },
@@ -242,10 +264,9 @@ export class WeeklySummaryService {
       const hasData = await this.db
         .select({ count: count() })
         .from(timeEntries)
-        .where(and(
-          gte(timeEntries.date, weekStart),
-          lte(timeEntries.date, weekEnd)
-        ))
+        .where(
+          and(gte(timeEntries.date, weekStart), lte(timeEntries.date, weekEnd)),
+        )
         .limit(1);
 
       if (hasData.length > 0 && hasData[0].count > 0) {
@@ -254,7 +275,7 @@ export class WeeklySummaryService {
           weekEnd,
           weekNumber,
           year,
-          displayText: `สัปดาห์ที่ ${weekNumber} (${weekStart.toLocaleDateString('th-TH')} - ${weekEnd.toLocaleDateString('th-TH')})`,
+          displayText: `สัปดาห์ที่ ${weekNumber} (${weekStart.toLocaleDateString("th-TH")} - ${weekEnd.toLocaleDateString("th-TH")})`,
         });
       }
     }
@@ -281,7 +302,7 @@ export class WeeklySummaryService {
       weekEnd,
       weekNumber,
       year,
-      displayText: `สัปดาห์ที่ ${weekNumber} (${weekStart.toLocaleDateString('th-TH')} - ${weekEnd.toLocaleDateString('th-TH')})`,
+      displayText: `สัปดาห์ที่ ${weekNumber} (${weekStart.toLocaleDateString("th-TH")} - ${weekEnd.toLocaleDateString("th-TH")})`,
     };
   }
 
@@ -304,7 +325,8 @@ export class WeeklySummaryService {
 
   getWeekNumber(date) {
     const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+    const pastDaysOfYear =
+      (date.getTime() - firstDayOfYear.getTime()) / 86400000;
     return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
   }
 
@@ -312,8 +334,10 @@ export class WeeklySummaryService {
     const employees = [];
 
     for (const employee of allEmployees) {
-      const employeeTimesheets = timesheetData.filter(entry => entry.userId === employee.userId);
-      
+      const employeeTimesheets = timesheetData.filter(
+        (entry) => entry.userId === employee.userId,
+      );
+
       // สร้างข้อมูลรายวัน (7 วันในสัปดาห์)
       const dailyHours = [];
       let totalWeeklyHours = 0;
@@ -322,12 +346,16 @@ export class WeeklySummaryService {
       for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
         const currentDate = new Date(weekRange.weekStart);
         currentDate.setDate(weekRange.weekStart.getDate() + dayOffset);
-        
-        const dayTimesheets = employeeTimesheets.filter(entry => 
-          entry.workDate.toDateString() === currentDate.toDateString()
+
+        const dayTimesheets = employeeTimesheets.filter(
+          (entry) =>
+            entry.workDate.toDateString() === currentDate.toDateString(),
         );
 
-        const dayHours = dayTimesheets.reduce((sum, entry) => sum + Number(entry.hours), 0);
+        const dayHours = dayTimesheets.reduce(
+          (sum, entry) => sum + Number(entry.hours),
+          0,
+        );
         const hasData = dayTimesheets.length > 0;
 
         if (hasData) {
@@ -336,14 +364,14 @@ export class WeeklySummaryService {
         }
 
         // สร้าง entries สำหรับวันนี้
-        const entries = dayTimesheets.map(entry => ({
+        const entries = dayTimesheets.map((entry) => ({
           id: entry.id,
           workType: entry.workType,
           projectName: entry.projectName || undefined,
           activity: this.getActivityFromDescription(entry.description),
-          description: entry.description || '',
-          startTime: entry.startTime || '',
-          endTime: entry.endTime || '',
+          description: entry.description || "",
+          startTime: entry.startTime || "",
+          endTime: entry.endTime || "",
           hours: Number(entry.hours),
         }));
 
@@ -374,15 +402,19 @@ export class WeeklySummaryService {
 
   calculateWeeklySummary(employees, weekRange) {
     const totalEmployees = employees.length;
-    const employeesWithData = employees.filter(emp => emp.hasData).length;
+    const employeesWithData = employees.filter((emp) => emp.hasData).length;
     const employeesWithoutData = totalEmployees - employeesWithData;
-    const totalHours = employees.reduce((sum, emp) => sum + emp.totalWeeklyHours, 0);
-    const averageHoursPerEmployee = totalEmployees > 0 ? totalHours / totalEmployees : 0;
+    const totalHours = employees.reduce(
+      (sum, emp) => sum + emp.totalWeeklyHours,
+      0,
+    );
+    const averageHoursPerEmployee =
+      totalEmployees > 0 ? totalHours / totalEmployees : 0;
     const averageHoursPerDay = averageHoursPerEmployee / 7;
 
     // หาวันที่ทำงานมากที่สุดและน้อยที่สุด
     const dayTotals = new Array(7).fill(0);
-    employees.forEach(employee => {
+    employees.forEach((employee) => {
       employee.dailyHours.forEach((day, index) => {
         if (day.hasData) {
           dayTotals[index] += day.hours;
@@ -390,9 +422,19 @@ export class WeeklySummaryService {
       });
     });
 
-    const dayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
-    let maxHours = 0, minHours = Infinity;
-    let mostProductiveDay = dayNames[0], leastProductiveDay = dayNames[0];
+    const dayNames = [
+      "อาทิตย์",
+      "จันทร์",
+      "อังคาร",
+      "พุธ",
+      "พฤหัสบดี",
+      "ศุกร์",
+      "เสาร์",
+    ];
+    let maxHours = 0,
+      minHours = Infinity;
+    let mostProductiveDay = dayNames[0],
+      leastProductiveDay = dayNames[0];
 
     dayTotals.forEach((hours, index) => {
       if (hours > maxHours) {
@@ -424,32 +466,42 @@ export class WeeklySummaryService {
   }
 
   getDayName(date) {
-    const dayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+    const dayNames = [
+      "อาทิตย์",
+      "จันทร์",
+      "อังคาร",
+      "พุธ",
+      "พฤหัสบดี",
+      "ศุกร์",
+      "เสาร์",
+    ];
     return dayNames[date.getDay()];
   }
 
   getRoleDisplayName(role) {
     const roleMap = {
-      'admin': 'Administrator',
-      'manager': 'PM',
-      'employee': 'Employee',
-      'project_manager': 'PM',
-      'project_coordinator': 'Project Coordinator',
-      'vp_pm': 'VP PM',
+      admin: "Administrator",
+      manager: "PM",
+      employee: "Employee",
+      project_manager: "PM",
+      project_coordinator: "Project Coordinator",
+      vp_pm: "VP PM",
     };
-    return roleMap[role || ''] || role || 'Employee';
+    return roleMap[role || ""] || role || "Employee";
   }
 
   getActivityFromDescription(description) {
-    if (!description) return 'Other';
-    
+    if (!description) return "Other";
+
     const desc = description.toLowerCase();
-    if (desc.includes('meeting') || desc.includes('ประชุม')) return 'Meeting';
-    if (desc.includes('document') || desc.includes('เอกสาร')) return 'Document';
-    if (desc.includes('presentation') || desc.includes('นำเสนอ')) return 'Presentation';
-    if (desc.includes('follow') || desc.includes('ติดตาม')) return 'Follow Up';
-    if (desc.includes('internal') || desc.includes('ภายใน')) return 'Internal Work';
-    
-    return 'Other Internal Work';
+    if (desc.includes("meeting") || desc.includes("ประชุม")) return "Meeting";
+    if (desc.includes("document") || desc.includes("เอกสาร")) return "Document";
+    if (desc.includes("presentation") || desc.includes("นำเสนอ"))
+      return "Presentation";
+    if (desc.includes("follow") || desc.includes("ติดตาม")) return "Follow Up";
+    if (desc.includes("internal") || desc.includes("ภายใน"))
+      return "Internal Work";
+
+    return "Other Internal Work";
   }
 }

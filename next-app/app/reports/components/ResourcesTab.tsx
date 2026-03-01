@@ -17,7 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { Skeleton } from "@/app/components/ui/Skeleton";
+import { Skeleton } from "@/app/components/ui/skeleton";
 import { getResourcesReportAction } from "../actions";
 import { Users, Clock, Percent } from "lucide-react";
 

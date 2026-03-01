@@ -13,7 +13,7 @@ import {
   parseISO,
 } from "date-fns";
 import { ChevronLeft, ChevronRight, Search, Calendar } from "lucide-react";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 import {
   Card,
   CardContent,

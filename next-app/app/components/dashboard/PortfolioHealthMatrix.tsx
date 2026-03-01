@@ -37,7 +37,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/Select";
+} from "@/app/components/ui/select";
 
 type ExtendedProject = ProjectHealth & {
   status?: string;

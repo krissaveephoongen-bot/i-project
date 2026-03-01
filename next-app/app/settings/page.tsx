@@ -4,16 +4,16 @@ import { useEffect, useState } from "react";
 import Header from "@/app/components/Header";
 import { useAuth } from "@/app/components/AuthProvider";
 import PageTransition from "@/app/components/PageTransition";
-import { Skeleton } from "@/app/components/ui/Skeleton";
-import { Button } from "@/app/components/ui/Button";
-import { Input } from "@/app/components/ui/Input";
+import { Skeleton } from "@/app/components/ui/skeleton";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/Select";
+} from "@/app/components/ui/select";
 import {
   Card,
   CardContent,

@@ -24,8 +24,8 @@ import { toastDeleteSuccess, toastError } from "@/lib/toast-utils";
 import ClientFormModal, { Client } from "./components/ClientFormModal";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 
-import { Button } from "@/app/components/ui/Button";
-import { Input } from "@/app/components/ui/Input";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
 import {
   Table,
   TableBody,

@@ -1,0 +1,118 @@
+{
+  "timestamp": "2026-02-24T06:51:57.508Z",
+  "duration": "2054ms",
+  "summary": {
+    "total": 7,
+    "passed": 2,
+    "failed": 5,
+    "successRate": "28.6%"
+  },
+  "modules": [
+    {
+      "status": "FAIL",
+      "error": "Invalid JSON response",
+      "statusCode": 200
+    },
+    {
+      "module": "Project Structure",
+      "operation": "FILE_CHECK",
+      "status": "PASS",
+      "summary": {
+        "total": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      "details": [
+        {
+          "file": "next-app/app/admin/users/page.tsx",
+          "exists": true
+        },
+        {
+          "file": "next-app/app/expenses/page.tsx",
+          "exists": true
+        },
+        {
+          "file": "next-app/app/timesheet/page.tsx",
+          "exists": true
+        },
+        {
+          "file": "next-app/app/stakeholders/page.tsx",
+          "exists": true
+        },
+        {
+          "file": "next-app/app/api/stakeholders/route.ts",
+          "exists": true
+        },
+        {
+          "file": "next-app/app/api/expenses/route.ts",
+          "exists": true
+        },
+        {
+          "file": "next-app/app/api/admin/users/route.ts",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "module": "Database",
+      "operation": "CONNECTION_CHECK",
+      "status": "PASS",
+      "summary": {
+        "found": 2,
+        "total": 2
+      }
+    },
+    {
+      "module": "Stakeholders",
+      "operation": "ROUTE_TEST",
+      "status": "FAIL",
+      "method": "GET",
+      "path": "/api/stakeholders",
+      "statusCode": 500
+    },
+    {
+      "module": "Expenses",
+      "operation": "ROUTE_TEST",
+      "status": "FAIL",
+      "method": "GET",
+      "path": "/api/expenses",
+      "statusCode": 400
+    },
+    {
+      "module": "Admin Users",
+      "operation": "ROUTE_TEST",
+      "status": "FAIL",
+      "method": "GET",
+      "path": "/api/admin/users",
+      "statusCode": 500
+    },
+    {
+      "module": "Timesheet",
+      "operation": "ROUTE_TEST",
+      "status": "FAIL",
+      "method": "GET",
+      "path": "/api/timesheet",
+      "error": "Invalid JSON response",
+      "statusCode": 404
+    }
+  ],
+  "recommendations": [
+    "Check API routes configuration and ensure they are properly exported",
+    "Verify database connection in API routes",
+    "Check for any middleware that might be blocking requests"
+  ],
+  "troubleshooting": {
+    "commonIssues": [
+      "API timeouts may indicate database connection issues",
+      "Check server console logs for detailed error messages",
+      "Verify environment variables are properly set",
+      "Ensure database is accessible and running"
+    ],
+    "nextSteps": [
+      "Check Next.js server console for errors",
+      "Test API endpoints manually with curl or Postman",
+      "Review API route implementations",
+      "Check database connection strings"
+    ]
+  }
+}

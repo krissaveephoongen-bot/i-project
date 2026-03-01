@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import Joi from 'joi';
-import { AppError } from '../errors/AppError';
-import { ErrorCode } from '../types/api-response';
+import { Request, Response, NextFunction } from "express";
+import Joi from "joi";
+import { AppError } from "../errors/AppError";
+import { ErrorCode } from "../types/api-response";
 
 export interface ValidateRequestOptions {
   body?: Joi.Schema;
@@ -21,7 +21,9 @@ export const validateRequest = (options: ValidateRequestOptions) => {
 
       // Validate body
       if (options.body) {
-        const { error, value } = options.body.validate(req.body, { abortEarly: false });
+        const { error, value } = options.body.validate(req.body, {
+          abortEarly: false,
+        });
         if (error) {
           errors.body = error.details.map((d: any) => d.message);
           req.body = value; // Update with cleaned value
@@ -32,7 +34,9 @@ export const validateRequest = (options: ValidateRequestOptions) => {
 
       // Validate query
       if (options.query) {
-        const { error, value } = options.query.validate(req.query, { abortEarly: false });
+        const { error, value } = options.query.validate(req.query, {
+          abortEarly: false,
+        });
         if (error) {
           errors.query = error.details.map((d: any) => d.message);
           (req as any).query = value;
@@ -43,7 +47,9 @@ export const validateRequest = (options: ValidateRequestOptions) => {
 
       // Validate params
       if (options.params) {
-        const { error, value } = options.params.validate(req.params, { abortEarly: false });
+        const { error, value } = options.params.validate(req.params, {
+          abortEarly: false,
+        });
         if (error) {
           errors.params = error.details.map((d: any) => d.message);
           (req as any).params = value;
@@ -54,7 +60,11 @@ export const validateRequest = (options: ValidateRequestOptions) => {
 
       // If there are errors, throw
       if (Object.keys(errors).length > 0) {
-        const appError = new AppError('Validation failed', 400, ErrorCode.VALIDATION_ERROR);
+        const appError = new AppError(
+          "Validation failed",
+          400,
+          ErrorCode.VALIDATION_ERROR,
+        );
         appError.details = errors;
         throw appError;
       }

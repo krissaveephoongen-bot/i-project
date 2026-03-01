@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
           isActive: u.isActive !== false && u.active !== false, // Default to true if not specified
         };
       })
-      .filter((u) => u.isActive !== false); // Only show active users
+      .filter((u: any) => u.isActive !== false); // Only show active users
 
     // Fetch stakeholders
     const { data: stakeholderRows, error: stakeholdersError } =

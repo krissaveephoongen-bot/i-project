@@ -41,11 +41,11 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
         String(a.dueDate || "").localeCompare(String(b.dueDate || "")),
       );
     const paidAmount = milestones
-      .filter((m) => String(m.status).toLowerCase() === "paid")
-      .reduce((s, m) => s + Number(m.amount || 0), 0);
+      .filter((m: any) => String(m.status).toLowerCase() === "paid")
+      .reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
     const approvedAmount = milestones
-      .filter((m) => String(m.status).toLowerCase() === "approved")
-      .reduce((s, m) => s + Number(m.amount || 0), 0);
+      .filter((m: any) => String(m.status).toLowerCase() === "approved")
+      .reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
     const pendingAmount = Math.max(0, budget - paidAmount);
 
     const teRes = await firstOk(PROJECT_ID_COLUMNS, (col) =>
@@ -115,7 +115,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       approvedBudget: budget,
       actualCost:
         spent > 0 ? spent : monthly.reduce((s, x) => s + Number(x.cost), 0),
-      committedCost: milestones.reduce((s, x) => s + Number(x.amount || 0), 0),
+      committedCost: milestones.reduce((s: number, x: any) => s + Number(x.amount || 0), 0),
       remainingBudget: Math.max(
         0,
         budget -

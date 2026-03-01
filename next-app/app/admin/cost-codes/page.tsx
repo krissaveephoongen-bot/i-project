@@ -8,8 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/Button";
-import { Input } from "@/app/components/ui/Input";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
 import {
   Table,
   TableBody,
@@ -25,7 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/app/components/ui/Dialog";
+} from "@/app/components/ui/dialog";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 

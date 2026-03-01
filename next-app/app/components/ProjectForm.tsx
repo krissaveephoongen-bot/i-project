@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Project } from "../lib/projects";
-import { Button } from "./ui/Button";
+import { Button } from "./ui/button";
 import { getUsers, User } from "../users/actions";
 import { getClients, Client } from "../clients/actions";
 import { useToast } from "@/hooks/useToast";

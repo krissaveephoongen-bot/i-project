@@ -4,9 +4,9 @@ import * as React from "react";
 import { CalendarIcon, Filter, Search, X } from "lucide-react";
 import { format } from "date-fns";
 
-import { Button } from "./ui/Button";
+import { Button } from "./ui/button";
 import { Calendar } from "./ui/calendar";
-import { Input } from "./ui/Input";
+import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
@@ -15,7 +15,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/Select";
+} from "./ui/select";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 

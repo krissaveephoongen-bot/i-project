@@ -7,7 +7,7 @@ export interface PaginationParams {
   page: number;
   limit: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface PaginatedResult<T> {
@@ -32,7 +32,7 @@ const DEFAULT_LIMIT = 20;
  */
 export function validatePagination(
   page?: any,
-  limit?: any
+  limit?: any,
 ): { page: number; limit: number; offset: number } {
   // Parse page
   let parsedPage = DEFAULT_PAGE;
@@ -69,7 +69,7 @@ export function buildPagination<T>(
   data: T[],
   total: number,
   page: number,
-  limit: number
+  limit: number,
 ): PaginatedResult<T> {
   const totalPages = Math.ceil(total / limit);
   const hasNextPage = page < totalPages;
@@ -91,8 +91,8 @@ export function buildPagination<T>(
 /**
  * Validate sort order
  */
-export function validateSortOrder(sortOrder?: string): 'asc' | 'desc' {
-  return sortOrder?.toLowerCase() === 'desc' ? 'desc' : 'asc';
+export function validateSortOrder(sortOrder?: string): "asc" | "desc" {
+  return sortOrder?.toLowerCase() === "desc" ? "desc" : "asc";
 }
 
 /**
@@ -100,7 +100,7 @@ export function validateSortOrder(sortOrder?: string): 'asc' | 'desc' {
  */
 export function validateSortField<T extends Record<string, any>>(
   sortBy: string | undefined,
-  allowedFields: (keyof T)[]
+  allowedFields: (keyof T)[],
 ): keyof T | undefined {
   if (!sortBy) return undefined;
 

@@ -10,8 +10,8 @@ import {
   isValidHours,
   calculateHours,
   parseDate,
-} from './timesheet.utils';
-import { WORK_TYPES, LEAVE_TYPES } from '@/lib/enums';
+} from "./timesheet.utils";
+import { WORK_TYPES, LEAVE_TYPES } from "@/lib/enums";
 
 export interface ValidationError {
   field: string;
@@ -36,21 +36,21 @@ export function validateTimeEntry(data: {
 
   // Validate startTime
   if (!data.startTime) {
-    errors.push({ field: 'startTime', message: 'Start time is required' });
+    errors.push({ field: "startTime", message: "Start time is required" });
   } else if (!isValidTimeFormat(data.startTime)) {
     errors.push({
-      field: 'startTime',
-      message: 'Start time must be in HH:mm format (00:00-23:59)',
+      field: "startTime",
+      message: "Start time must be in HH:mm format (00:00-23:59)",
     });
   }
 
   // Validate endTime
   if (!data.endTime) {
-    errors.push({ field: 'endTime', message: 'End time is required' });
+    errors.push({ field: "endTime", message: "End time is required" });
   } else if (!isValidTimeFormat(data.endTime)) {
     errors.push({
-      field: 'endTime',
-      message: 'End time must be in HH:mm format (00:00-23:59)',
+      field: "endTime",
+      message: "End time must be in HH:mm format (00:00-23:59)",
     });
   }
 
@@ -61,8 +61,8 @@ export function validateTimeEntry(data: {
     !isValidTimeRange(data.startTime, data.endTime)
   ) {
     errors.push({
-      field: 'timeRange',
-      message: 'End time must be after start time',
+      field: "timeRange",
+      message: "End time must be after start time",
     });
   }
 
@@ -72,8 +72,8 @@ export function validateTimeEntry(data: {
     !isValidBreakDuration(data.breakDuration)
   ) {
     errors.push({
-      field: 'breakDuration',
-      message: 'Break duration must be between 0 and 480 minutes',
+      field: "breakDuration",
+      message: "Break duration must be between 0 and 480 minutes",
     });
   }
 
@@ -81,8 +81,8 @@ export function validateTimeEntry(data: {
   if (data.hours !== undefined) {
     if (!isValidHours(data.hours)) {
       errors.push({
-        field: 'hours',
-        message: 'Hours must be a positive number up to 24',
+        field: "hours",
+        message: "Hours must be a positive number up to 24",
       });
     }
 
@@ -92,12 +92,12 @@ export function validateTimeEntry(data: {
         const calculatedHours = calculateHours(
           data.startTime,
           data.endTime,
-          data.breakDuration || 0
+          data.breakDuration || 0,
         );
         if (Math.abs(calculatedHours - data.hours) > 0.01) {
           // Allow 1 minute tolerance
           errors.push({
-            field: 'hours',
+            field: "hours",
             message: `Hours mismatch. Expected ${calculatedHours}, got ${data.hours}`,
           });
         }
@@ -109,33 +109,33 @@ export function validateTimeEntry(data: {
 
   // Validate date
   if (!data.date) {
-    errors.push({ field: 'date', message: 'Date is required' });
+    errors.push({ field: "date", message: "Date is required" });
   } else {
     try {
       parseDate(data.date);
     } catch {
       errors.push({
-        field: 'date',
-        message: 'Date must be a valid ISO date string (YYYY-MM-DD)',
+        field: "date",
+        message: "Date must be a valid ISO date string (YYYY-MM-DD)",
       });
     }
   }
 
   // Validate workType
   if (!data.workType) {
-    errors.push({ field: 'workType', message: 'Work type is required' });
+    errors.push({ field: "workType", message: "Work type is required" });
   } else if (!WORK_TYPES.includes(data.workType as any)) {
     errors.push({
-      field: 'workType',
-      message: `Work type must be one of: ${WORK_TYPES.join(', ')}`,
+      field: "workType",
+      message: `Work type must be one of: ${WORK_TYPES.join(", ")}`,
     });
   }
 
   // Validate description (optional, but if provided should be non-empty)
-  if (data.description !== undefined && typeof data.description !== 'string') {
+  if (data.description !== undefined && typeof data.description !== "string") {
     errors.push({
-      field: 'description',
-      message: 'Description must be a string',
+      field: "description",
+      message: "Description must be a string",
     });
   }
 
@@ -157,28 +157,28 @@ export function validateLeaveRequest(data: {
 
   // Validate startDate
   if (!data.startDate) {
-    errors.push({ field: 'startDate', message: 'Start date is required' });
+    errors.push({ field: "startDate", message: "Start date is required" });
   } else {
     try {
       parseDate(data.startDate);
     } catch {
       errors.push({
-        field: 'startDate',
-        message: 'Start date must be a valid ISO date string (YYYY-MM-DD)',
+        field: "startDate",
+        message: "Start date must be a valid ISO date string (YYYY-MM-DD)",
       });
     }
   }
 
   // Validate endDate
   if (!data.endDate) {
-    errors.push({ field: 'endDate', message: 'End date is required' });
+    errors.push({ field: "endDate", message: "End date is required" });
   } else {
     try {
       parseDate(data.endDate);
     } catch {
       errors.push({
-        field: 'endDate',
-        message: 'End date must be a valid ISO date string (YYYY-MM-DD)',
+        field: "endDate",
+        message: "End date must be a valid ISO date string (YYYY-MM-DD)",
       });
     }
   }
@@ -190,8 +190,8 @@ export function validateLeaveRequest(data: {
       const end = parseDate(data.endDate);
       if (end < start) {
         errors.push({
-          field: 'dateRange',
-          message: 'End date must be after or equal to start date',
+          field: "dateRange",
+          message: "End date must be after or equal to start date",
         });
       }
     } catch {
@@ -201,26 +201,29 @@ export function validateLeaveRequest(data: {
 
   // Validate leaveType
   if (!data.leaveType) {
-    errors.push({ field: 'leaveType', message: 'Leave type is required' });
+    errors.push({ field: "leaveType", message: "Leave type is required" });
   } else if (!LEAVE_TYPES.includes(data.leaveType as any)) {
     errors.push({
-      field: 'leaveType',
-      message: `Leave type must be one of: ${LEAVE_TYPES.join(', ')}`,
+      field: "leaveType",
+      message: `Leave type must be one of: ${LEAVE_TYPES.join(", ")}`,
     });
   }
 
   // Validate reason
   if (!data.reason) {
-    errors.push({ field: 'reason', message: 'Reason is required' });
-  } else if (typeof data.reason !== 'string' || data.reason.trim().length === 0) {
+    errors.push({ field: "reason", message: "Reason is required" });
+  } else if (
+    typeof data.reason !== "string" ||
+    data.reason.trim().length === 0
+  ) {
     errors.push({
-      field: 'reason',
-      message: 'Reason must be a non-empty string',
+      field: "reason",
+      message: "Reason must be a non-empty string",
     });
   } else if (data.reason.length > 1000) {
     errors.push({
-      field: 'reason',
-      message: 'Reason must not exceed 1000 characters',
+      field: "reason",
+      message: "Reason must not exceed 1000 characters",
     });
   }
 
@@ -233,31 +236,37 @@ export function validateLeaveRequest(data: {
  * @param requireReason - Whether rejection reason is required
  * @returns Array of validation errors (empty if valid)
  */
-export function validateApprovalAction(data: {
-  action?: 'approve' | 'reject';
-  reason?: string;
-}, requireReason = false): ValidationError[] {
+export function validateApprovalAction(
+  data: {
+    action?: "approve" | "reject";
+    reason?: string;
+  },
+  requireReason = false,
+): ValidationError[] {
   const errors: ValidationError[] = [];
 
   if (!data.action) {
-    errors.push({ field: 'action', message: 'Action is required' });
-  } else if (!['approve', 'reject'].includes(data.action)) {
+    errors.push({ field: "action", message: "Action is required" });
+  } else if (!["approve", "reject"].includes(data.action)) {
     errors.push({
-      field: 'action',
+      field: "action",
       message: 'Action must be either "approve" or "reject"',
     });
   }
 
-  if (data.action === 'reject' && requireReason) {
+  if (data.action === "reject" && requireReason) {
     if (!data.reason) {
       errors.push({
-        field: 'reason',
-        message: 'Rejection reason is required',
+        field: "reason",
+        message: "Rejection reason is required",
       });
-    } else if (typeof data.reason !== 'string' || data.reason.trim().length === 0) {
+    } else if (
+      typeof data.reason !== "string" ||
+      data.reason.trim().length === 0
+    ) {
       errors.push({
-        field: 'reason',
-        message: 'Reason must be a non-empty string',
+        field: "reason",
+        message: "Reason must be a non-empty string",
       });
     }
   }
@@ -271,15 +280,18 @@ export function validateApprovalAction(data: {
  * @param limit - Items per page
  * @returns Array of validation errors (empty if valid)
  */
-export function validatePagination(page?: number, limit?: number): ValidationError[] {
+export function validatePagination(
+  page?: number,
+  limit?: number,
+): ValidationError[] {
   const errors: ValidationError[] = [];
 
   if (page === undefined || page === null) {
     // page is optional, default to 1
   } else if (!Number.isInteger(page) || page < 1) {
     errors.push({
-      field: 'page',
-      message: 'Page must be a positive integer',
+      field: "page",
+      message: "Page must be a positive integer",
     });
   }
 
@@ -287,8 +299,8 @@ export function validatePagination(page?: number, limit?: number): ValidationErr
     // limit is optional, default to 20
   } else if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
     errors.push({
-      field: 'limit',
-      message: 'Limit must be an integer between 1 and 100',
+      field: "limit",
+      message: "Limit must be an integer between 1 and 100",
     });
   }
 
@@ -310,7 +322,7 @@ export function hasValidationErrors(errors: ValidationError[]): boolean {
  * @returns Object mapping field names to error messages
  */
 export function formatValidationErrors(
-  errors: ValidationError[]
+  errors: ValidationError[],
 ): Record<string, string> {
   const formatted: Record<string, string> = {};
   errors.forEach((error) => {

@@ -1,6 +1,6 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from './schema';
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "./schema";
 
 // Create the connection lazily
 let _client: postgres.Sql | null = null;
@@ -16,11 +16,13 @@ function ensureConnection() {
   const connectionString = getConnectionString();
 
   if (!connectionString) {
-    console.warn('DATABASE_URL is not defined. Database features will be disabled.');
+    console.warn(
+      "DATABASE_URL is not defined. Database features will be disabled.",
+    );
     return { client: null, db: null };
   }
 
-  console.log('Creating database connection...');
+  console.log("Creating database connection...");
   try {
     _client = postgres(connectionString, {
       max: 1,
@@ -29,10 +31,10 @@ function ensureConnection() {
       ssl: true, // Explicitly enable SSL
     });
     _db = drizzle(_client, { schema });
-    console.log('Database connection created successfully');
+    console.log("Database connection created successfully");
     return { client: _client, db: _db };
   } catch (error) {
-    console.error('Failed to create database connection:', error);
+    console.error("Failed to create database connection:", error);
     _client = null;
     _db = null;
     return { client: null, db: null };
@@ -46,21 +48,21 @@ export async function checkDatabaseConnection() {
   if (!sql) {
     return {
       success: false,
-      error: 'Database connection not configured',
-      code: 'NOT_CONFIGURED',
+      error: "Database connection not configured",
+      code: "NOT_CONFIGURED",
     };
   }
 
   try {
     const result = await sql`SELECT 1 as health_check`;
-    console.log('✅ Database connection successful');
+    console.log("✅ Database connection successful");
     return { success: true, data: result };
   } catch (error: any) {
-    console.error('❌ Database connection failed:', error.message);
+    console.error("❌ Database connection failed:", error.message);
     return {
       success: false,
-      error: error.message || 'Unknown error',
-      code: error.code || 'UNKNOWN',
+      error: error.message || "Unknown error",
+      code: error.code || "UNKNOWN",
     };
   }
 }
@@ -72,10 +74,13 @@ export function getDbClient() {
 }
 
 // Export db for backward compatibility (lazy)
-export const db = new Proxy({}, {
-  get(target, prop) {
-    const { db: dbInstance } = ensureConnection();
-    if (!dbInstance) return undefined;
-    return dbInstance[prop as keyof typeof dbInstance];
-  }
-}) as ReturnType<typeof drizzle>;
+export const db = new Proxy(
+  {},
+  {
+    get(target, prop) {
+      const { db: dbInstance } = ensureConnection();
+      if (!dbInstance) return undefined;
+      return dbInstance[prop as keyof typeof dbInstance];
+    },
+  },
+) as ReturnType<typeof drizzle>;

@@ -1,6 +1,6 @@
-import { Router } from 'express';
-import { FilterController } from '../controllers/FilterController';
-import { authMiddleware } from '@/shared/middleware/authMiddleware';
+import { Router } from "express";
+import { FilterController } from "../controllers/FilterController";
+import { authMiddleware } from "@/shared/middleware/authMiddleware";
 
 const router = Router();
 
@@ -8,6 +8,6 @@ const router = Router();
 router.use(authMiddleware);
 
 // GET /api/filters/options - Get all dynamic filter options
-router.get('/options', FilterController.getFilterOptions);
+router.get("/options", FilterController.getFilterOptions);
 
 export default router;

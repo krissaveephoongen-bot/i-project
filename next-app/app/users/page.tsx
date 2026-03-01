@@ -12,7 +12,7 @@ import {
   type User,
 } from "./actions";
 import PageTransition from "@/app/components/PageTransition";
-import { Skeleton } from "@/app/components/ui/Skeleton";
+import { Skeleton } from "@/app/components/ui/skeleton";
 import {
   toastCreateSuccess,
   toastUpdateSuccess,
@@ -37,15 +37,15 @@ import {
 } from "lucide-react";
 
 // Shadcn UI
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/Select";
+} from "@/app/components/ui/select";
 import {
   Table,
   TableBody,
@@ -62,7 +62,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/Dialog";
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -11,7 +11,7 @@ import {
   Project as ProjectType,
 } from "@/app/lib/projects";
 import { Card, CardContent } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 
 export default function EditProjectPage() {
   const params = useParams() as Record<

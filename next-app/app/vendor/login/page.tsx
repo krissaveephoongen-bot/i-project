@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, Eye, EyeOff, AlertCircle, Briefcase, Lock } from "lucide-react";
 import { useVendorAuth } from "@/hooks/useAuth";
-import { Skeleton } from "@/app/components/ui/Skeleton";
+import { Skeleton } from "@/app/components/ui/skeleton";
 
 export default function VendorLoginPage() {
   const [email, setEmail] = useState("");

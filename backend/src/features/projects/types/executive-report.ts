@@ -22,7 +22,7 @@ export interface TimesheetReportData {
   workDate: Date;
   startTime: string;
   endTime: string;
-  workType: 'project' | 'office' | 'other';
+  workType: "project" | "office" | "other";
   projectName?: string;
   activity: string;
   description: string;
@@ -36,7 +36,7 @@ export interface ReportFilters {
   month?: number; // undefined = ทั้งหมด
   userId?: string;
   projectId?: string;
-  workType?: 'project' | 'office' | 'other';
+  workType?: "project" | "office" | "other";
 }
 
 export interface ExecutiveReportFilters {
@@ -44,7 +44,7 @@ export interface ExecutiveReportFilters {
   month?: number;
   userId?: string;
   projectId?: string;
-  workType?: 'project' | 'office' | 'other';
+  workType?: "project" | "office" | "other";
   startDate?: string;
   endDate?: string;
 }

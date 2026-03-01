@@ -12,8 +12,8 @@ import {
   CheckCircle,
   Trash2,
 } from "lucide-react";
-import { Button } from "@/app/components/ui/Button";
-import { Input } from "@/app/components/ui/Input";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
 import {
   Table,
   TableBody,
@@ -37,14 +37,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/app/components/ui/Dialog";
+} from "@/app/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/Select";
+} from "@/app/components/ui/select";
 import { toast } from "react-hot-toast";
 
 export default function UserManagementPage() {

@@ -2,10 +2,13 @@
  * Client Controller - Handles HTTP requests for client endpoints
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { ClientService } from '../services/ClientService';
-import { ApiResponse, PaginatedResponse } from '../../../shared/types/ApiResponse';
-import { ClientFilters, ClientPagination } from '../types/clientTypes';
+import { Request, Response, NextFunction } from "express";
+import { ClientService } from "../services/ClientService";
+import {
+  ApiResponse,
+  PaginatedResponse,
+} from "../../../shared/types/ApiResponse";
+import { ClientFilters, ClientPagination } from "../types/clientTypes";
 
 export class ClientController {
   private clientService: ClientService;
@@ -22,8 +25,8 @@ export class ClientController {
       const {
         page = 1,
         limit = 10,
-        sortBy = 'name',
-        sortOrder = 'asc',
+        sortBy = "name",
+        sortOrder = "asc",
         search,
         taxId,
       } = req.query;
@@ -37,14 +40,14 @@ export class ClientController {
         page: parseInt(page as string),
         limit: parseInt(limit as string),
         sortBy: sortBy as string,
-        sortOrder: sortOrder as 'asc' | 'desc',
+        sortOrder: sortOrder as "asc" | "desc",
       };
 
       const result = await this.clientService.getClients(filters, pagination);
 
       const response: PaginatedResponse<any> = {
         success: true,
-        message: 'Clients retrieved successfully',
+        message: "Clients retrieved successfully",
         data: result.clients,
         pagination: result.pagination,
       };
@@ -65,7 +68,7 @@ export class ClientController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'Client retrieved successfully',
+        message: "Client retrieved successfully",
         data: client,
       };
 
@@ -85,7 +88,7 @@ export class ClientController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'Client created successfully',
+        message: "Client created successfully",
         data: client,
       };
 
@@ -107,7 +110,7 @@ export class ClientController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'Client updated successfully',
+        message: "Client updated successfully",
         data: client,
       };
 
@@ -128,7 +131,7 @@ export class ClientController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'Client deleted successfully',
+        message: "Client deleted successfully",
       };
 
       res.json(response);
@@ -147,12 +150,12 @@ export class ClientController {
 
       const results = await this.clientService.searchClients(
         query,
-        parseInt(limit as string)
+        parseInt(limit as string),
       );
 
       const response: ApiResponse = {
         success: true,
-        message: 'Clients search results',
+        message: "Clients search results",
         data: results,
       };
 
@@ -171,7 +174,7 @@ export class ClientController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'Clients count retrieved successfully',
+        message: "Clients count retrieved successfully",
         data: { count },
       };
 

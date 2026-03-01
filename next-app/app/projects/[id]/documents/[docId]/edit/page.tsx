@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/app/components/Header";
 import { Card, CardContent } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 

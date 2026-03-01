@@ -133,7 +133,8 @@ export class DashboardCache {
     try {
       // This would typically fetch and cache common data
       // For now, we'll just log the operation
-      const cacheKeys = await redis.getClient().keys("*");
+      const client = await redis.getClient();
+      const cacheKeys = await client.keys("*");
       console.log(`Current cache keys: ${cacheKeys.length}`);
     } catch (error) {
       console.error("Cache warming error:", error);
@@ -159,7 +160,7 @@ export class DashboardCache {
       return {
         connected: true,
         memory: stats.used_memory_human || "unknown",
-        keys: stats.db0?.keys || "unknown",
+        keys: stats["db0"] || "unknown",
         hits: stats.keyspace_hits || "0",
         misses: stats.keyspace_misses || "0",
         hit_rate:
@@ -172,10 +173,10 @@ export class DashboardCache {
               ).toFixed(2) + "%"
             : "0%",
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         connected: false,
-        error: error.message,
+        error: error.message || "Unknown error",
       };
     }
   }

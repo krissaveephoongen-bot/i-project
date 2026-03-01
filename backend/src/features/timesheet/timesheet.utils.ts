@@ -10,7 +10,7 @@
  */
 export function timeToMinutes(time: string): number {
   if (!time) return 0;
-  const [hours, minutes] = time.split(':').map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
   if (isNaN(hours) || isNaN(minutes)) {
     throw new Error(`Invalid time format: ${time}. Use HH:mm`);
   }
@@ -25,7 +25,7 @@ export function timeToMinutes(time: string): number {
 export function minutesToTime(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
 }
 
 /**
@@ -38,25 +38,25 @@ export function minutesToTime(minutes: number): string {
 export function calculateHours(
   startTime: string,
   endTime: string,
-  breakMinutes: number = 0
+  breakMinutes: number = 0,
 ): number {
   try {
     const startMin = timeToMinutes(startTime);
     const endMin = timeToMinutes(endTime);
 
     if (endMin <= startMin) {
-      throw new Error('End time must be after start time');
+      throw new Error("End time must be after start time");
     }
 
     const totalMinutes = endMin - startMin - breakMinutes;
     if (totalMinutes < 0) {
-      throw new Error('Break duration cannot exceed work time');
+      throw new Error("Break duration cannot exceed work time");
     }
 
     return Number((totalMinutes / 60).toFixed(2));
   } catch (error) {
     throw new Error(
-      `Failed to calculate hours: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to calculate hours: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
 }
@@ -105,7 +105,7 @@ export function isValidBreakDuration(minutes: number): boolean {
  * @returns true if valid (positive number)
  */
 export function isValidHours(hours: number): boolean {
-  return typeof hours === 'number' && hours > 0 && hours <= 24;
+  return typeof hours === "number" && hours > 0 && hours <= 24;
 }
 
 /**
@@ -116,10 +116,10 @@ export function isValidHours(hours: number): boolean {
  */
 export function getMonthDateRange(
   month: number,
-  year: number
+  year: number,
 ): { start: Date; end: Date } {
   if (month < 1 || month > 12) {
-    throw new Error('Month must be between 1 and 12');
+    throw new Error("Month must be between 1 and 12");
   }
 
   const start = new Date(year, month - 1, 1);
@@ -189,7 +189,7 @@ export function formatHours(hours: number): string {
  */
 export function canEditTimeEntry(status: string): boolean {
   // Can only edit pending or rejected entries
-  return status === 'pending' || status === 'rejected';
+  return status === "pending" || status === "rejected";
 }
 
 /**
@@ -199,7 +199,7 @@ export function canEditTimeEntry(status: string): boolean {
  */
 export function canApproveTimeEntry(status: string): boolean {
   // Can only approve pending entries
-  return status === 'pending';
+  return status === "pending";
 }
 
 /**
@@ -209,7 +209,7 @@ export function canApproveTimeEntry(status: string): boolean {
  */
 export function canRejectTimeEntry(status: string): boolean {
   // Can only reject pending or in_review entries
-  return status === 'pending' || status === 'in_review';
+  return status === "pending" || status === "in_review";
 }
 
 /**
@@ -229,10 +229,10 @@ export function calculateLeaveHours(startDate: Date, endDate: Date): number {
  * @returns ISO string
  */
 export function formatDate(date: Date | string): string {
-  if (typeof date === 'string') {
+  if (typeof date === "string") {
     return date;
   }
-  return date.toISOString().split('T')[0];
+  return date.toISOString().split("T")[0];
 }
 
 /**
@@ -254,7 +254,7 @@ export function parseDate(dateString: string): Date {
  * @returns true if date is in the past
  */
 export function isPastDate(date: Date | string): boolean {
-  const checkDate = typeof date === 'string' ? parseDate(date) : date;
+  const checkDate = typeof date === "string" ? parseDate(date) : date;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return checkDate < today;
@@ -266,7 +266,7 @@ export function isPastDate(date: Date | string): boolean {
  * @returns true if date is today
  */
 export function isToday(date: Date | string): boolean {
-  const checkDate = typeof date === 'string' ? parseDate(date) : date;
+  const checkDate = typeof date === "string" ? parseDate(date) : date;
   const today = new Date();
   return (
     checkDate.getDate() === today.getDate() &&
@@ -281,7 +281,7 @@ export function isToday(date: Date | string): boolean {
  * @returns true if date is in the future
  */
 export function isFutureDate(date: Date | string): boolean {
-  const checkDate = typeof date === 'string' ? parseDate(date) : date;
+  const checkDate = typeof date === "string" ? parseDate(date) : date;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return checkDate > today;

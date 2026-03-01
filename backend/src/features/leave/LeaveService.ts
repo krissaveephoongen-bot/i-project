@@ -3,14 +3,14 @@
  * Handles leave allocations and requests
  */
 
-import { PrismaClient } from '@prisma/client';
-import { AppError } from '../../shared/errors/AppError';
-import { calculateLeaveHours, parseDate } from '../timesheet/timesheet.utils';
+import { PrismaClient } from "@prisma/client";
+import { AppError } from "../../shared/errors/AppError";
+import { calculateLeaveHours, parseDate } from "../timesheet/timesheet.utils";
 import {
   validateLeaveRequest,
   hasValidationErrors,
   formatValidationErrors,
-} from '../timesheet/timesheet.validation';
+} from "../timesheet/timesheet.validation";
 
 const prisma = new PrismaClient();
 
@@ -46,19 +46,19 @@ export class LeaveService {
           data: {
             user_id: userId,
             year,
-            annual_leave_hours: '160', // 20 days * 8 hours
-            used_leave_hours: '0',
-            remaining_hours: '160',
+            annual_leave_hours: "160", // 20 days * 8 hours
+            used_leave_hours: "0",
+            remaining_hours: "160",
           },
         });
       }
 
       return this.formatAllocation(allocation);
     } catch (error) {
-      if (error instanceof Error && error.message.includes('user_id')) {
-        throw new AppError(404, 'User not found');
+      if (error instanceof Error && error.message.includes("user_id")) {
+        throw new AppError(404, "User not found");
       }
-      throw new AppError(500, 'Failed to get or create allocation');
+      throw new AppError(500, "Failed to get or create allocation");
     }
   }
 
@@ -74,7 +74,7 @@ export class LeaveService {
     });
 
     if (!allocation) {
-      throw new AppError(404, 'Leave allocation not found');
+      throw new AppError(404, "Leave allocation not found");
     }
 
     return this.formatAllocation(allocation);
@@ -86,7 +86,7 @@ export class LeaveService {
   async updateAllocation(
     userId: string,
     year: number,
-    data: UpdateAllocationData
+    data: UpdateAllocationData,
   ) {
     const allocation = await prisma.leave_allocations.findFirst({
       where: {
@@ -96,27 +96,28 @@ export class LeaveService {
     });
 
     if (!allocation) {
-      throw new AppError(404, 'Leave allocation not found');
+      throw new AppError(404, "Leave allocation not found");
     }
 
     const updateData: any = {};
 
     if (data.annualLeaveHours !== undefined) {
       if (data.annualLeaveHours < 0) {
-        throw new AppError(400, 'Annual leave hours must be non-negative');
+        throw new AppError(400, "Annual leave hours must be non-negative");
       }
       updateData.annual_leave_hours = data.annualLeaveHours.toString();
     }
 
     if (data.usedLeaveHours !== undefined) {
       if (data.usedLeaveHours < 0) {
-        throw new AppError(400, 'Used leave hours must be non-negative');
+        throw new AppError(400, "Used leave hours must be non-negative");
       }
       updateData.used_leave_hours = data.usedLeaveHours.toString();
     }
 
     // Calculate remaining hours
-    const annual = data.annualLeaveHours ?? parseFloat(allocation.annual_leave_hours);
+    const annual =
+      data.annualLeaveHours ?? parseFloat(allocation.annual_leave_hours);
     const used = data.usedLeaveHours ?? parseFloat(allocation.used_leave_hours);
     updateData.remaining_hours = (annual - used).toString();
 
@@ -128,7 +129,7 @@ export class LeaveService {
 
       return this.formatAllocation(updated);
     } catch (error) {
-      throw new AppError(500, 'Failed to update allocation');
+      throw new AppError(500, "Failed to update allocation");
     }
   }
 
@@ -138,18 +139,32 @@ export class LeaveService {
   async createLeaveRequest(userId: string, data: CreateLeaveRequestData) {
     // Validate input
     const validationErrors = validateLeaveRequest({
-      startDate: typeof data.startDate === 'string' ? data.startDate : data.startDate.toISOString().split('T')[0],
-      endDate: typeof data.endDate === 'string' ? data.endDate : data.endDate.toISOString().split('T')[0],
+      startDate:
+        typeof data.startDate === "string"
+          ? data.startDate
+          : data.startDate.toISOString().split("T")[0],
+      endDate:
+        typeof data.endDate === "string"
+          ? data.endDate
+          : data.endDate.toISOString().split("T")[0],
       leaveType: data.leaveType,
       reason: data.reason,
     });
 
     if (hasValidationErrors(validationErrors)) {
-      throw new AppError(400, 'Validation failed', formatValidationErrors(validationErrors));
+      throw new AppError(
+        400,
+        "Validation failed",
+        formatValidationErrors(validationErrors),
+      );
     }
 
-    const startDate = typeof data.startDate === 'string' ? parseDate(data.startDate) : data.startDate;
-    const endDate = typeof data.endDate === 'string' ? parseDate(data.endDate) : data.endDate;
+    const startDate =
+      typeof data.startDate === "string"
+        ? parseDate(data.startDate)
+        : data.startDate;
+    const endDate =
+      typeof data.endDate === "string" ? parseDate(data.endDate) : data.endDate;
 
     // Calculate leave hours
     const leaveHours = calculateLeaveHours(startDate, endDate);
@@ -158,10 +173,10 @@ export class LeaveService {
     const year = startDate.getFullYear();
     const allocation = await this.getOrCreateAllocation(userId, year);
 
-    if (data.leaveType === 'annual' && leaveHours > allocation.remainingHours) {
+    if (data.leaveType === "annual" && leaveHours > allocation.remainingHours) {
       throw new AppError(
         400,
-        `Insufficient leave balance. Requested: ${leaveHours} hours, Available: ${allocation.remainingHours} hours`
+        `Insufficient leave balance. Requested: ${leaveHours} hours, Available: ${allocation.remainingHours} hours`,
       );
     }
 
@@ -174,7 +189,7 @@ export class LeaveService {
           end_date: endDate,
           leave_type: data.leaveType as any,
           reason: data.reason,
-          status: 'pending',
+          status: "pending",
         },
         include: {
           leave_allocations: true,
@@ -184,7 +199,7 @@ export class LeaveService {
 
       return this.formatLeaveRequest(request);
     } catch (error) {
-      throw new AppError(500, 'Failed to create leave request');
+      throw new AppError(500, "Failed to create leave request");
     }
   }
 
@@ -202,7 +217,7 @@ export class LeaveService {
     });
 
     if (!request) {
-      throw new AppError(404, 'Leave request not found');
+      throw new AppError(404, "Leave request not found");
     }
 
     return this.formatLeaveRequest(request);
@@ -223,7 +238,7 @@ export class LeaveService {
         leave_allocations: true,
         approver: true,
       },
-      orderBy: [{ start_date: 'desc' }, { created_at: 'desc' }],
+      orderBy: [{ start_date: "desc" }, { created_at: "desc" }],
     });
 
     return requests.map((request) => this.formatLeaveRequest(request));
@@ -244,7 +259,7 @@ export class LeaveService {
 
     const requests = await prisma.leave_requests.findMany({
       where: {
-        status: 'pending',
+        status: "pending",
       },
       include: {
         leave_allocations: {
@@ -252,7 +267,7 @@ export class LeaveService {
         },
         approver: true,
       },
-      orderBy: { created_at: 'asc' },
+      orderBy: { created_at: "asc" },
     });
 
     return requests.map((request) => this.formatLeaveRequest(request));
@@ -268,11 +283,11 @@ export class LeaveService {
     });
 
     if (!request) {
-      throw new AppError(404, 'Leave request not found');
+      throw new AppError(404, "Leave request not found");
     }
 
-    if (request.status !== 'pending') {
-      throw new AppError(400, 'Only pending requests can be approved');
+    if (request.status !== "pending") {
+      throw new AppError(400, "Only pending requests can be approved");
     }
 
     const startDate = new Date(request.start_date);
@@ -284,7 +299,7 @@ export class LeaveService {
       const updated = await prisma.leave_requests.update({
         where: { id },
         data: {
-          status: 'approved',
+          status: "approved",
           approved_by: approvedBy,
           approved_at: new Date(),
         },
@@ -297,8 +312,7 @@ export class LeaveService {
 
       // Update allocation
       const allocation = request.leave_allocations;
-      const newUsedHours =
-        parseFloat(allocation.used_leave_hours) + leaveHours;
+      const newUsedHours = parseFloat(allocation.used_leave_hours) + leaveHours;
 
       await prisma.leave_allocations.update({
         where: { id: allocation.id },
@@ -312,7 +326,7 @@ export class LeaveService {
 
       return this.formatLeaveRequest(updated);
     } catch (error) {
-      throw new AppError(500, 'Failed to approve leave request');
+      throw new AppError(500, "Failed to approve leave request");
     }
   }
 
@@ -325,18 +339,18 @@ export class LeaveService {
     });
 
     if (!request) {
-      throw new AppError(404, 'Leave request not found');
+      throw new AppError(404, "Leave request not found");
     }
 
-    if (request.status !== 'pending') {
-      throw new AppError(400, 'Only pending requests can be rejected');
+    if (request.status !== "pending") {
+      throw new AppError(400, "Only pending requests can be rejected");
     }
 
     try {
       const updated = await prisma.leave_requests.update({
         where: { id },
         data: {
-          status: 'rejected',
+          status: "rejected",
         },
         include: {
           leave_allocations: true,
@@ -347,7 +361,7 @@ export class LeaveService {
 
       return this.formatLeaveRequest(updated);
     } catch (error) {
-      throw new AppError(500, 'Failed to reject leave request');
+      throw new AppError(500, "Failed to reject leave request");
     }
   }
 
@@ -375,8 +389,8 @@ export class LeaveService {
       id: request.id,
       userId: request.user_id,
       leaveAllocationId: request.leave_allocation_id,
-      startDate: request.start_date.toISOString().split('T')[0],
-      endDate: request.end_date.toISOString().split('T')[0],
+      startDate: request.start_date.toISOString().split("T")[0],
+      endDate: request.end_date.toISOString().split("T")[0],
       leaveType: request.leave_type,
       reason: request.reason,
       status: request.status,
@@ -384,17 +398,21 @@ export class LeaveService {
       approvedAt: request.approved_at?.toISOString() || null,
       createdAt: request.created_at.toISOString(),
       updatedAt: request.updated_at.toISOString(),
-      user: request.users ? {
-        id: request.users.id,
-        name: request.users.name,
-      } : null,
+      user: request.users
+        ? {
+            id: request.users.id,
+            name: request.users.name,
+          }
+        : null,
       allocation: request.leave_allocations
         ? this.formatAllocation(request.leave_allocations)
         : null,
-      approver: request.approver ? {
-        id: request.approver.id,
-        name: request.approver.name,
-      } : null,
+      approver: request.approver
+        ? {
+            id: request.approver.id,
+            name: request.approver.name,
+          }
+        : null,
     };
   }
 }

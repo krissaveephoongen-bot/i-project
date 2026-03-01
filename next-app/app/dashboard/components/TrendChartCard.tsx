@@ -17,7 +17,7 @@ import {
   SelectContent,
   SelectItem,
   SelectValue,
-} from "@/app/components/ui/Select";
+} from "@/app/components/ui/select";
 import type { SpiTrendEntry, ProjectRow } from "../types";
 
 interface TrendChartCardProps {

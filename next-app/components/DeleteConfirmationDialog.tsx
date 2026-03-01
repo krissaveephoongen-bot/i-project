@@ -8,8 +8,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/app/components/ui/Dialog";
-import { Button } from "@/app/components/ui/Button";
+} from "@/app/components/ui/dialog";
+import { Button } from "@/app/components/ui/button";
 
 interface DeleteConfirmationDialogProps {
   open: boolean;

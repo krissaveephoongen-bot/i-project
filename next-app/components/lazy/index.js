@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
-import { LoadingSpinner } from "../components/ui/Loading";
+import { LoadingSpinner } from "../components/ui/loading";
 
 // Loading component
 const LoadingFallback = () => (

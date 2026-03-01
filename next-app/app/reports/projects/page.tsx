@@ -2,7 +2,7 @@
 
 import Header from "@/app/components/Header";
 import PageTransition from "@/app/components/PageTransition";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 import { Printer, Briefcase } from "lucide-react";
 import ProjectsTab from "../components/ProjectsTab";
 

@@ -25,15 +25,15 @@ import {
   CardTitle,
   CardDescription,
 } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/Button";
-import { Input } from "@/app/components/ui/Input";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/Select";
+} from "@/app/components/ui/select";
 import {
   Table,
   TableBody,
@@ -50,7 +50,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/app/components/ui/Dialog";
+} from "@/app/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,

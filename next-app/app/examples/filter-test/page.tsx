@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { ProfessionalFilter } from "@/components/ProfessionalFilter";
 import { ProfessionalFilterEnhanced } from "@/components/ProfessionalFilterEnhanced";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Card,
   CardContent,
@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle, RefreshCw, Bug, CheckCircle } from "lucide-react";

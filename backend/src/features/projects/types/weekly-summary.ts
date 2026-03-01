@@ -30,7 +30,7 @@ export interface DailyHours {
 
 export interface TimesheetEntry {
   id: string;
-  workType: 'project' | 'office' | 'other';
+  workType: "project" | "office" | "other";
   projectName?: string;
   activity: string;
   description: string;

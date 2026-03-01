@@ -34,8 +34,8 @@ interface Vendor {
   country?: string;
   bankAccount?: string;
   bankName?: string;
-  paymentTerms?: number;
-  creditLimit?: number;
+  paymentTerms?: number | string;
+  creditLimit?: number | string;
   notes?: string;
 }
 
@@ -164,12 +164,12 @@ const VendorForm: React.FC<VendorFormProps> = ({
 
     if (
       formData.paymentTerms &&
-      (formData.paymentTerms < 0 || formData.paymentTerms > 365)
+      (Number(formData.paymentTerms) < 0 || Number(formData.paymentTerms) > 365)
     ) {
       newErrors.paymentTerms = "เงื่อนไขการชำระเงินต้องอยู่ระหว่าง 0-365 วัน";
     }
 
-    if (formData.creditLimit && formData.creditLimit < 0) {
+    if (formData.creditLimit && Number(formData.creditLimit) < 0) {
       newErrors.creditLimit = "วงเงินเครดิตต้องมากกว่าหรือเท่ากับ 0";
     }
 

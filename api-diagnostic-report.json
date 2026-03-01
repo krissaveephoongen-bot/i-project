@@ -1,0 +1,40 @@
+{
+  "timestamp": "2026-02-24T06:49:29.392Z",
+  "issues": [
+    "Missing environment variable: DATABASE_URL",
+    "Missing environment variable: NEXT_PUBLIC_SUPABASE_URL",
+    "Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "Missing environment variable: SUPABASE_SERVICE_ROLE_KEY",
+    "next-app/app/api/expenses/route.ts: Missing critical elements: Supabase usage, Success response, Error response",
+    "next-app/app/api/admin/users/route.ts: Missing critical elements: Success response, Error response",
+    "Missing API route: next-app/app/api/timesheet/route.ts"
+  ],
+  "fixes": [
+    {
+      "file": "next-app/app/api/expenses/route.ts",
+      "issues": [
+        "Supabase usage",
+        "Success response",
+        "Error response"
+      ],
+      "fixes": [
+        "Add success response: return ok(data, 200)",
+        "Add error response: return err(error.message, 500)"
+      ]
+    },
+    {
+      "file": "next-app/app/api/admin/users/route.ts",
+      "issues": [
+        "Success response",
+        "Error response"
+      ],
+      "fixes": [
+        "Add success response: return ok(data, 200)",
+        "Add error response: return err(error.message, 500)"
+      ]
+    }
+  ],
+  "recommendations": [
+    "Set up DATABASE_URL in .env.local with your Supabase connection string"
+  ]
+}

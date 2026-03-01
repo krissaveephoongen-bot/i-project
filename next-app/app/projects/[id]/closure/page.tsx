@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { Check, Save, AlertCircle, FileText } from "lucide-react";
 import Header from "@/app/components/Header";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 import {
   updateProjectClosureAction,
 } from "../../closureActions";
@@ -16,7 +16,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/app/components/ui/card";
-import { Input } from "@/app/components/ui/Input";
+import { Input } from "@/app/components/ui/input";
 import { Badge } from "@/app/components/ui/badge";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Textarea } from "@/app/components/ui/textarea";

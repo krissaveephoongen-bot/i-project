@@ -2,9 +2,14 @@
  * Expense Service - Business logic for expense operations
  */
 
-import { db } from '../../../shared/database/connection';
-import { expenses, projects, tasks, users } from '../../../shared/database/schema';
-import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
+import { db } from "../../../shared/database/connection";
+import {
+  expenses,
+  projects,
+  tasks,
+  users,
+} from "../../../shared/database/schema";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 import {
   Expense,
   ExpenseWithRelations,
@@ -16,7 +21,7 @@ import {
   ExpensePagination,
   ExpenseListResult,
   ExpenseStatus,
-} from '../types/expenseTypes';
+} from "../types/expenseTypes";
 
 export class ExpenseService {
   /**
@@ -24,9 +29,14 @@ export class ExpenseService {
    */
   async getExpenses(
     filters: ExpenseFilters,
-    pagination: ExpensePagination
+    pagination: ExpensePagination,
   ): Promise<ExpenseListResult> {
-    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = pagination;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "date",
+      sortOrder = "desc",
+    } = pagination;
     const offset = (page - 1) * limit;
 
     // Build where conditions
@@ -51,7 +61,8 @@ export class ExpenseService {
       whereConditions.push(lte(expenses.date, filters.endDate));
     }
 
-    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+    const whereClause =
+      whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
     // Fetch total count
     const countResult = await db
@@ -99,13 +110,13 @@ export class ExpenseService {
       .leftJoin(tasks, eq(expenses.taskId, tasks.id))
       .where(whereClause)
       .orderBy(
-        sortBy === 'date'
-          ? sortOrder === 'asc'
+        sortBy === "date"
+          ? sortOrder === "asc"
             ? expenses.date
             : desc(expenses.date)
-          : sortOrder === 'asc'
+          : sortOrder === "asc"
             ? expenses.amount
-            : desc(expenses.amount)
+            : desc(expenses.amount),
       )
       .limit(limit)
       .offset(offset);
@@ -165,7 +176,7 @@ export class ExpenseService {
       .limit(1);
 
     if (result.length === 0) {
-      throw new Error('Expense not found');
+      throw new Error("Expense not found");
     }
 
     return result[0] as ExpenseWithRelations;
@@ -183,7 +194,7 @@ export class ExpenseService {
       .limit(1);
 
     if (projectExists.length === 0) {
-      throw new Error('Invalid project ID');
+      throw new Error("Invalid project ID");
     }
 
     // Validate task if provided
@@ -191,11 +202,13 @@ export class ExpenseService {
       const taskExists = await db
         .select()
         .from(tasks)
-        .where(and(eq(tasks.id, data.taskId), eq(tasks.projectId, data.projectId)))
+        .where(
+          and(eq(tasks.id, data.taskId), eq(tasks.projectId, data.projectId)),
+        )
         .limit(1);
 
       if (taskExists.length === 0) {
-        throw new Error('Invalid task ID for the specified project');
+        throw new Error("Invalid task ID for the specified project");
       }
     }
 
@@ -204,12 +217,12 @@ export class ExpenseService {
       .insert(expenses)
       .values({
         ...data,
-        status: 'pending' as ExpenseStatus,
+        status: "pending" as ExpenseStatus,
       })
       .returning();
 
     if (result.length === 0) {
-      throw new Error('Failed to create expense');
+      throw new Error("Failed to create expense");
     }
 
     return this.getExpenseById(result[0].id);
@@ -218,7 +231,10 @@ export class ExpenseService {
   /**
    * Update expense
    */
-  async updateExpense(id: string, data: UpdateExpenseDTO): Promise<ExpenseWithRelations> {
+  async updateExpense(
+    id: string,
+    data: UpdateExpenseDTO,
+  ): Promise<ExpenseWithRelations> {
     // Check if expense exists
     const existing = await db
       .select()
@@ -227,7 +243,7 @@ export class ExpenseService {
       .limit(1);
 
     if (existing.length === 0) {
-      throw new Error('Expense not found');
+      throw new Error("Expense not found");
     }
 
     // Validate task/project relationship if updating
@@ -242,7 +258,7 @@ export class ExpenseService {
           .limit(1);
 
         if (taskExists.length === 0) {
-          throw new Error('Invalid task ID for the project');
+          throw new Error("Invalid task ID for the project");
         }
       }
     }
@@ -258,7 +274,7 @@ export class ExpenseService {
       .returning();
 
     if (result.length === 0) {
-      throw new Error('Failed to update expense');
+      throw new Error("Failed to update expense");
     }
 
     return this.getExpenseById(id);
@@ -268,21 +284,27 @@ export class ExpenseService {
    * Delete expense
    */
   async deleteExpense(id: string): Promise<void> {
-    const result = await db.delete(expenses).where(eq(expenses.id, id)).returning();
+    const result = await db
+      .delete(expenses)
+      .where(eq(expenses.id, id))
+      .returning();
 
     if (result.length === 0) {
-      throw new Error('Expense not found');
+      throw new Error("Expense not found");
     }
   }
 
   /**
    * Approve expense
    */
-  async approveExpense(id: string, data: ApproveExpenseDTO): Promise<ExpenseWithRelations> {
+  async approveExpense(
+    id: string,
+    data: ApproveExpenseDTO,
+  ): Promise<ExpenseWithRelations> {
     const result = await db
       .update(expenses)
       .set({
-        status: 'approved' as ExpenseStatus,
+        status: "approved" as ExpenseStatus,
         approvedBy: data.approvedBy,
         approvedAt: new Date(),
         updatedAt: new Date(),
@@ -291,7 +313,7 @@ export class ExpenseService {
       .returning();
 
     if (result.length === 0) {
-      throw new Error('Expense not found');
+      throw new Error("Expense not found");
     }
 
     return this.getExpenseById(id);
@@ -300,11 +322,14 @@ export class ExpenseService {
   /**
    * Reject expense
    */
-  async rejectExpense(id: string, data: RejectExpenseDTO): Promise<ExpenseWithRelations> {
+  async rejectExpense(
+    id: string,
+    data: RejectExpenseDTO,
+  ): Promise<ExpenseWithRelations> {
     const result = await db
       .update(expenses)
       .set({
-        status: 'rejected' as ExpenseStatus,
+        status: "rejected" as ExpenseStatus,
         approvedBy: data.approvedBy,
         approvedAt: new Date(),
         updatedAt: new Date(),
@@ -313,7 +338,7 @@ export class ExpenseService {
       .returning();
 
     if (result.length === 0) {
-      throw new Error('Expense not found');
+      throw new Error("Expense not found");
     }
 
     return this.getExpenseById(id);
@@ -323,16 +348,16 @@ export class ExpenseService {
    * Get expense categories
    */
   getCategories(): string[] {
-    return ['travel', 'supplies', 'equipment', 'training', 'other'];
+    return ["travel", "supplies", "equipment", "training", "other"];
   }
 
   /**
    * Get expense summary by category
    */
   async getExpenseSummaryByCategory(
-    filters: ExpenseFilters
+    filters: ExpenseFilters,
   ): Promise<Array<{ category: string; total: number; count: number }>> {
-    const whereConditions: any[] = [eq(expenses.status, 'approved')];
+    const whereConditions: any[] = [eq(expenses.status, "approved")];
 
     if (filters.userId) {
       whereConditions.push(eq(expenses.userId, filters.userId));
@@ -347,7 +372,8 @@ export class ExpenseService {
       whereConditions.push(lte(expenses.date, filters.endDate));
     }
 
-    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+    const whereClause =
+      whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
     return db
       .select({

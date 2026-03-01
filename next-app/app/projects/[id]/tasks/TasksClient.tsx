@@ -197,6 +197,8 @@ export default function TasksClient({
           status: "todo",
           priority: "medium",
           weight: Number(r["weight"]) || 1,
+          progressPlan: 0,
+          progressActual: 0,
         });
         count++;
       }

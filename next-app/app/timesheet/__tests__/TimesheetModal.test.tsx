@@ -12,8 +12,8 @@ describe("TimesheetModal - Concurrent Work Feature", () => {
   const mockOnOpenChange = vi.fn();
   const mockOnSave = vi.fn();
   const mockProjects = [
-    { id: "proj-1", name: "Project A", tasks: [] },
-    { id: "proj-2", name: "Project B", tasks: [] },
+    { id: "proj-1", name: "Project A", status: "Active", tasks: [] },
+    { id: "proj-2", name: "Project B", status: "Active", tasks: [] },
   ];
 
   const defaultProps = {
@@ -72,7 +72,7 @@ describe("TimesheetModal - Concurrent Work Feature", () => {
                 },
               ],
             }),
-        }),
+        } as unknown as Response),
       );
 
       // Fill in times to trigger warning
@@ -257,8 +257,9 @@ describe("TimesheetModal - Concurrent Work Feature", () => {
               isConcurrent: false,
               requiresComment: false,
               warnings: [],
+              overlappingEntries: [],
             }),
-        }),
+        } as unknown as Response),
       );
 
       // No warning should appear

@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { Project } from "../lib/projects";
-import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/Select";
+} from "./ui/select";
 import { getUsers, User } from "../users/actions";
 import { getClients, Client } from "../clients/actions";
 import {

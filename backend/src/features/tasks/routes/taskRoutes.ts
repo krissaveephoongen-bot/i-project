@@ -1,9 +1,12 @@
-import { Router } from 'express';
-import { TaskController } from '../controllers/TaskController';
-import { authMiddleware } from '../../../shared/middleware/authMiddleware';
-import { validateRequest, validateQuery } from '../../../shared/middleware/validateRequest';
-import { createTaskSchema, updateTaskSchema } from '../schemas/taskSchemas';
-import { taskSchemas } from '../../../shared/validation/schemas';
+import { Router } from "express";
+import { TaskController } from "../controllers/TaskController";
+import { authMiddleware } from "../../../shared/middleware/authMiddleware";
+import {
+  validateRequest,
+  validateQuery,
+} from "../../../shared/middleware/validateRequest";
+import { createTaskSchema, updateTaskSchema } from "../schemas/taskSchemas";
+import { taskSchemas } from "../../../shared/validation/schemas";
 
 const router = Router();
 const taskController = new TaskController();
@@ -12,32 +15,28 @@ const taskController = new TaskController();
 router.use(authMiddleware);
 
 // GET /api/tasks - Get all tasks (with filtering and validation)
-router.get('/', validateQuery(taskSchemas.list), taskController.getTasks);
+router.get("/", validateQuery(taskSchemas.list), taskController.getTasks);
 
 // GET /api/tasks/:id - Get task by ID
-router.get('/:id', taskController.getTaskById);
+router.get("/:id", taskController.getTaskById);
 
 // POST /api/tasks - Create new task
-router.post(
-  '/',
-  validateRequest(createTaskSchema),
-  taskController.createTask
-);
+router.post("/", validateRequest(createTaskSchema), taskController.createTask);
 
 // PUT /api/tasks/:id - Update task
 router.put(
-  '/:id',
+  "/:id",
   validateRequest(updateTaskSchema),
-  taskController.updateTask
+  taskController.updateTask,
 );
 
 // DELETE /api/tasks/:id - Delete task
-router.delete('/:id', taskController.deleteTask);
+router.delete("/:id", taskController.deleteTask);
 
 // GET /api/tasks/project/:projectId - Get tasks by project
-router.get('/project/:projectId', taskController.getTasksByProject);
+router.get("/project/:projectId", taskController.getTasksByProject);
 
 // GET /api/tasks/assignee/:userId - Get tasks by assignee
-router.get('/assignee/:userId', taskController.getTasksByAssignee);
+router.get("/assignee/:userId", taskController.getTasksByAssignee);
 
 export { router as taskRoutes };

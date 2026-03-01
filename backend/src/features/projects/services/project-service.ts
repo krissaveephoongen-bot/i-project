@@ -1,4 +1,4 @@
-import { ProjectRepository } from '../repositories/project-repository';
+import { ProjectRepository } from "../repositories/project-repository";
 import type {
   ProjectWithRelations,
   CreateProjectData,
@@ -6,8 +6,8 @@ import type {
   ProjectFilters,
   ProjectStats,
   ValidationResult,
-  ValidationError
-} from '../types';
+  ValidationError,
+} from "../types";
 
 export class ProjectService {
   private repository: ProjectRepository;
@@ -22,7 +22,7 @@ export class ProjectService {
   async getProjects(
     filters: ProjectFilters = {},
     page = 1,
-    limit = 50
+    limit = 50,
   ): Promise<{
     projects: ProjectWithRelations[];
     total: number;
@@ -46,14 +46,16 @@ export class ProjectService {
     // Validate input
     const validation = await this.validateCreateProjectData(data);
     if (!validation.isValid) {
-      throw new Error(`Validation failed: ${validation.errors.map(e => e.message).join(', ')}`);
+      throw new Error(
+        `Validation failed: ${validation.errors.map((e) => e.message).join(", ")}`,
+      );
     }
 
     // Check for duplicate code
     if (data.code) {
       const codeExists = await this.repository.codeExists(data.code);
       if (codeExists) {
-        throw new Error('Project code already exists');
+        throw new Error("Project code already exists");
       }
     }
 
@@ -61,37 +63,44 @@ export class ProjectService {
     const project = await this.repository.create(data);
 
     // Return with relations
-    return this.repository.findById(project.id) as Promise<ProjectWithRelations>;
+    return this.repository.findById(
+      project.id,
+    ) as Promise<ProjectWithRelations>;
   }
 
   /**
    * Update project
    */
-  async updateProject(id: string, data: UpdateProjectData): Promise<ProjectWithRelations> {
+  async updateProject(
+    id: string,
+    data: UpdateProjectData,
+  ): Promise<ProjectWithRelations> {
     // Check if project exists
     const existingProject = await this.repository.findById(id);
     if (!existingProject) {
-      throw new Error('Project not found');
+      throw new Error("Project not found");
     }
 
     // Validate update data
     const validation = this.validateUpdateProjectData(data);
     if (!validation.isValid) {
-      throw new Error(`Validation failed: ${validation.errors.map(e => e.message).join(', ')}`);
+      throw new Error(
+        `Validation failed: ${validation.errors.map((e) => e.message).join(", ")}`,
+      );
     }
 
     // Check for duplicate code (excluding current project)
     if (data.code && data.code !== existingProject.code) {
       const codeExists = await this.repository.codeExists(data.code, id);
       if (codeExists) {
-        throw new Error('Project code already exists');
+        throw new Error("Project code already exists");
       }
     }
 
     // Update project
     const updatedProject = await this.repository.update(id, data);
     if (!updatedProject) {
-      throw new Error('Failed to update project');
+      throw new Error("Failed to update project");
     }
 
     // Return with relations
@@ -105,13 +114,13 @@ export class ProjectService {
     // Check if project exists
     const project = await this.repository.findById(id);
     if (!project) {
-      throw new Error('Project not found');
+      throw new Error("Project not found");
     }
 
     // Delete project
     const deleted = await this.repository.delete(id);
     if (!deleted) {
-      throw new Error('Failed to delete project');
+      throw new Error("Failed to delete project");
     }
   }
 
@@ -150,7 +159,7 @@ export class ProjectService {
     // For now, just update the updatedAt timestamp
     const project = await this.repository.findById(id);
     if (!project) {
-      throw new Error('Project not found');
+      throw new Error("Project not found");
     }
 
     await this.repository.update(id, {});
@@ -159,27 +168,35 @@ export class ProjectService {
   /**
    * Validate create project data
    */
-  private async validateCreateProjectData(data: CreateProjectData): Promise<ValidationResult> {
+  private async validateCreateProjectData(
+    data: CreateProjectData,
+  ): Promise<ValidationResult> {
     const errors: ValidationError[] = [];
 
     // Required fields
     if (!data.name?.trim()) {
-      errors.push({ field: 'name', message: 'Project name is required' });
+      errors.push({ field: "name", message: "Project name is required" });
     }
 
     // Date validation
     if (data.startDate && data.endDate && data.startDate >= data.endDate) {
-      errors.push({ field: 'endDate', message: 'End date must be after start date' });
+      errors.push({
+        field: "endDate",
+        message: "End date must be after start date",
+      });
     }
 
     // Budget validation
     if (data.budget !== undefined && data.budget < 0) {
-      errors.push({ field: 'budget', message: 'Budget cannot be negative' });
+      errors.push({ field: "budget", message: "Budget cannot be negative" });
     }
 
     // Hourly rate validation
     if (data.hourlyRate !== undefined && data.hourlyRate < 0) {
-      errors.push({ field: 'hourlyRate', message: 'Hourly rate cannot be negative' });
+      errors.push({
+        field: "hourlyRate",
+        message: "Hourly rate cannot be negative",
+      });
     }
 
     return {
@@ -196,22 +213,28 @@ export class ProjectService {
 
     // Name validation
     if (data.name !== undefined && !data.name.trim()) {
-      errors.push({ field: 'name', message: 'Project name cannot be empty' });
+      errors.push({ field: "name", message: "Project name cannot be empty" });
     }
 
     // Date validation
     if (data.startDate && data.endDate && data.startDate >= data.endDate) {
-      errors.push({ field: 'endDate', message: 'End date must be after start date' });
+      errors.push({
+        field: "endDate",
+        message: "End date must be after start date",
+      });
     }
 
     // Budget validation
     if (data.budget !== undefined && data.budget < 0) {
-      errors.push({ field: 'budget', message: 'Budget cannot be negative' });
+      errors.push({ field: "budget", message: "Budget cannot be negative" });
     }
 
     // Hourly rate validation
     if (data.hourlyRate !== undefined && data.hourlyRate < 0) {
-      errors.push({ field: 'hourlyRate', message: 'Hourly rate cannot be negative' });
+      errors.push({
+        field: "hourlyRate",
+        message: "Hourly rate cannot be negative",
+      });
     }
 
     return {

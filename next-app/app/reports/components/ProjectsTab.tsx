@@ -17,7 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { Skeleton } from "@/app/components/ui/Skeleton";
+import { Skeleton } from "@/app/components/ui/skeleton";
 import { Badge } from "@/app/components/ui/badge";
 import { Briefcase, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
 import { Switch, Label } from "@/app/components/ui";

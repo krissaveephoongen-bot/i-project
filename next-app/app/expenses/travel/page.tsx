@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Header from "../../components/Header";
 import { useAuth } from "../../components/AuthProvider";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 import {
   Card,
   CardContent,
@@ -22,14 +22,14 @@ import {
   CardTitle,
   CardDescription,
 } from "@/app/components/ui/card";
-import { Input } from "@/app/components/ui/Input";
+import { Input } from "@/app/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/Select";
+} from "@/app/components/ui/select";
 import {
   Table,
   TableBody,

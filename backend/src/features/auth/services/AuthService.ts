@@ -1,12 +1,12 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { db, schema } from '../../../shared/database/connection';
-import { eq } from 'drizzle-orm';
-import { AppError } from '../../../shared/errors/AppError';
-import { getValidatedEnv } from '../../../shared/validation/env.validation';
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { db, schema } from "../../../shared/database/connection";
+import { eq } from "drizzle-orm";
+import { AppError } from "../../../shared/errors/AppError";
+import { getValidatedEnv } from "../../../shared/validation/env.validation";
 
 // Type declarations for jsonwebtoken
-declare module 'jsonwebtoken' {
+declare module "jsonwebtoken" {
   export function sign(payload: any, secret: string, options?: any): string;
   export function verify(token: string, secret: string): any;
 }
@@ -47,19 +47,19 @@ export class AuthService {
       .limit(1);
 
     if (!user) {
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError("Invalid credentials", 401);
     }
 
     // Check if user is locked
     if (user.lockedUntil && user.lockedUntil > new Date()) {
-      throw new AppError('Account is locked', 423);
+      throw new AppError("Account is locked", 423);
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password || '');
+    const isPasswordValid = await bcrypt.compare(password, user.password || "");
     if (!isPasswordValid) {
       await this.handleFailedLogin(user);
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError("Invalid credentials", 401);
     }
 
     // Reset failed login attempts
@@ -95,7 +95,7 @@ export class AuthService {
       .limit(1);
 
     if (existingUser) {
-      throw new AppError('User already exists', 409);
+      throw new AppError("User already exists", 409);
     }
 
     // Hash password
@@ -108,7 +108,7 @@ export class AuthService {
         name: userData.name,
         email: userData.email,
         password: hashedPassword,
-        role: (userData.role || 'employee') as any, // Type assertion for enum
+        role: (userData.role || "employee") as any, // Type assertion for enum
       })
       .returning();
 
@@ -148,7 +148,7 @@ export class AuthService {
       .limit(1);
 
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError("User not found", 404);
     }
 
     return user;
@@ -191,7 +191,7 @@ export class AuthService {
       .limit(1);
 
     if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
-      throw new AppError('Invalid or expired reset token', 400);
+      throw new AppError("Invalid or expired reset token", 400);
     }
 
     // Hash new password
@@ -219,13 +219,17 @@ export class AuthService {
       .returning();
 
     if (!updatedUser) {
-      throw new AppError('User not found', 404);
+      throw new AppError("User not found", 404);
     }
 
     return this.getUserById(userId);
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
     const [user] = await db
       .select()
       .from(schema.users)
@@ -233,13 +237,16 @@ export class AuthService {
       .limit(1);
 
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError("User not found", 404);
     }
 
     // Verify current password
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password || '');
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password || "",
+    );
     if (!isCurrentPasswordValid) {
-      throw new AppError('Current password is incorrect', 400);
+      throw new AppError("Current password is incorrect", 400);
     }
 
     // Hash new password
@@ -263,12 +270,15 @@ export class AuthService {
         role: user.role,
       },
       this.JWT_SECRET,
-      { expiresIn: this.JWT_EXPIRES_IN }
+      { expiresIn: this.JWT_EXPIRES_IN },
     );
   }
 
   private generateResetToken(): string {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    return (
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15)
+    );
   }
 
   private async handleFailedLogin(user: any): Promise<void> {

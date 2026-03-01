@@ -1,0 +1,92 @@
+{
+  "timestamp": "2026-02-24T06:47:30.643Z",
+  "duration": "5772ms",
+  "summary": {
+    "total": 7,
+    "passed": 3,
+    "failed": 4,
+    "successRate": "42.9%"
+  },
+  "modules": [
+    {
+      "status": "PASS",
+      "message": "Server accessible"
+    },
+    {
+      "module": "Project Structure",
+      "operation": "FILE_CHECK",
+      "status": "PASS",
+      "summary": {
+        "total": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      "details": [
+        {
+          "file": "next-app/app/admin/users/page.tsx",
+          "exists": true
+        },
+        {
+          "file": "next-app/app/expenses/page.tsx",
+          "exists": true
+        },
+        {
+          "file": "next-app/app/timesheet/page.tsx",
+          "exists": true
+        },
+        {
+          "file": "next-app/app/stakeholders/page.tsx",
+          "exists": true
+        },
+        {
+          "file": "next-app/app/api/stakeholders/route.ts",
+          "exists": true
+        },
+        {
+          "file": "next-app/app/api/expenses/route.ts",
+          "exists": true
+        },
+        {
+          "file": "next-app/app/api/admin/users/route.ts",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "module": "Database",
+      "operation": "CONNECTION_CHECK",
+      "status": "PASS",
+      "summary": {
+        "found": 2,
+        "total": 2
+      }
+    },
+    {
+      "module": "Stakeholders",
+      "operation": "API_ACCESS",
+      "status": "FAIL",
+      "error": "Request timeout"
+    },
+    {
+      "module": "Expenses",
+      "operation": "API_ACCESS",
+      "status": "FAIL",
+      "error": "Connection failed"
+    },
+    {
+      "module": "Admin Users",
+      "operation": "API_ACCESS",
+      "status": "FAIL",
+      "error": "Connection failed"
+    },
+    {
+      "module": "Timesheet",
+      "operation": "API_ACCESS",
+      "status": "FAIL",
+      "error": "Connection failed"
+    }
+  ],
+  "recommendations": [
+    "Check API routes configuration and ensure server is running"
+  ]
+}

@@ -17,7 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { Skeleton } from "@/app/components/ui/Skeleton";
+import { Skeleton } from "@/app/components/ui/skeleton";
 import { DollarSign, TrendingUp, TrendingDown, PieChart } from "lucide-react";
 import { Switch, Label } from "@/app/components/ui";
 import { getFinancialReportAction } from "../actions";

@@ -5,7 +5,7 @@ import Header from "@/app/components/Header";
 import Link from "next/link";
 import { AlertTriangle, Folder } from "lucide-react";
 import PageTransition from "@/app/components/PageTransition";
-import { Skeleton } from "@/app/components/ui/Skeleton";
+import { Skeleton } from "@/app/components/ui/skeleton";
 import { createLazyComponent } from "@/lib/lazy-load";
 import { LoadingFallback } from "@/lib/lazy-load";
 

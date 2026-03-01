@@ -173,7 +173,7 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
       // Handle special cases
       if (field === "quantity" || field === "unitPrice") {
         const numValue = parseFloat(value) || 0;
-        item[field] = numValue;
+        (item as any)[field] = numValue;
         item.totalPrice = item.quantity * item.unitPrice;
 
         // Recalculate margin if baseCost is set
@@ -183,18 +183,18 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
         }
       } else if (field === "baseCost") {
         const numValue = parseFloat(value) || 0;
-        item[field] = numValue;
+        (item as any)[field] = numValue;
         item.marginAmount = item.totalPrice - numValue;
         item.finalPrice = numValue * (1 + item.markup / 100);
       } else if (field === "markup") {
         const numValue = parseFloat(value) || 0;
-        item[field] = numValue;
+        (item as any)[field] = numValue;
         if (item.baseCost) {
           item.finalPrice = item.baseCost * (1 + numValue / 100);
           item.marginAmount = item.finalPrice - item.baseCost;
         }
       } else {
-        item[field] = value;
+        (item as any)[field] = value;
       }
 
       newItems[index] = item;
@@ -258,7 +258,7 @@ const ExpenseItemsForm: React.FC<ExpenseItemsFormProps> = ({
       const itemsToSave = items.map((item) => ({
         ...item,
         expenseId,
-        vendorId: item.vendorId || null,
+        vendorId: item.vendorId || undefined,
       }));
 
       onSave(itemsToSave);

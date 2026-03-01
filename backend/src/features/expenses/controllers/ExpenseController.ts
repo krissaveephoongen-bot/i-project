@@ -2,10 +2,13 @@
  * Expense Controller - Handles HTTP requests for expense endpoints
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { ExpenseService } from '../services/ExpenseService';
-import { ApiResponse, PaginatedResponse } from '../../../shared/types/ApiResponse';
-import { ExpenseFilters, ExpensePagination } from '../types/expenseTypes';
+import { Request, Response, NextFunction } from "express";
+import { ExpenseService } from "../services/ExpenseService";
+import {
+  ApiResponse,
+  PaginatedResponse,
+} from "../../../shared/types/ApiResponse";
+import { ExpenseFilters, ExpensePagination } from "../types/expenseTypes";
 
 export class ExpenseController {
   private expenseService: ExpenseService;
@@ -22,8 +25,8 @@ export class ExpenseController {
       const {
         page = 1,
         limit = 10,
-        sortBy = 'date',
-        sortOrder = 'desc',
+        sortBy = "date",
+        sortOrder = "desc",
         userId,
         projectId,
         category,
@@ -45,14 +48,14 @@ export class ExpenseController {
         page: parseInt(page as string),
         limit: parseInt(limit as string),
         sortBy: sortBy as string,
-        sortOrder: sortOrder as 'asc' | 'desc',
+        sortOrder: sortOrder as "asc" | "desc",
       };
 
       const result = await this.expenseService.getExpenses(filters, pagination);
 
       const response: PaginatedResponse<any> = {
         success: true,
-        message: 'Expenses retrieved successfully',
+        message: "Expenses retrieved successfully",
         data: result.expenses,
         pagination: result.pagination,
       };
@@ -73,7 +76,7 @@ export class ExpenseController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'Expense retrieved successfully',
+        message: "Expense retrieved successfully",
         data: expense,
       };
 
@@ -97,7 +100,7 @@ export class ExpenseController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'Expense created successfully',
+        message: "Expense created successfully",
         data: expense,
       };
 
@@ -122,7 +125,7 @@ export class ExpenseController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'Expense updated successfully',
+        message: "Expense updated successfully",
         data: expense,
       };
 
@@ -143,7 +146,7 @@ export class ExpenseController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'Expense deleted successfully',
+        message: "Expense deleted successfully",
       };
 
       res.json(response);
@@ -163,15 +166,17 @@ export class ExpenseController {
       if (!approvedBy) {
         return res.status(400).json({
           success: false,
-          message: 'Approver ID is required',
+          message: "Approver ID is required",
         });
       }
 
-      const expense = await this.expenseService.approveExpense(id, { approvedBy });
+      const expense = await this.expenseService.approveExpense(id, {
+        approvedBy,
+      });
 
       const response: ApiResponse = {
         success: true,
-        message: 'Expense approved successfully',
+        message: "Expense approved successfully",
         data: expense,
       };
 
@@ -192,15 +197,18 @@ export class ExpenseController {
       if (!approvedBy) {
         return res.status(400).json({
           success: false,
-          message: 'Approver ID is required',
+          message: "Approver ID is required",
         });
       }
 
-      const expense = await this.expenseService.rejectExpense(id, { approvedBy, reason });
+      const expense = await this.expenseService.rejectExpense(id, {
+        approvedBy,
+        reason,
+      });
 
       const response: ApiResponse = {
         success: true,
-        message: 'Expense rejected successfully',
+        message: "Expense rejected successfully",
         data: expense,
       };
 
@@ -219,7 +227,7 @@ export class ExpenseController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'Expense categories retrieved successfully',
+        message: "Expense categories retrieved successfully",
         data: categories,
       };
 
@@ -232,7 +240,11 @@ export class ExpenseController {
   /**
    * GET /api/expenses/summary/by-category - Get expense summary by category
    */
-  getSummaryByCategory = async (req: Request, res: Response, next: NextFunction) => {
+  getSummaryByCategory = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const { userId, projectId, startDate, endDate } = req.query;
 
@@ -243,11 +255,12 @@ export class ExpenseController {
         endDate: endDate ? new Date(endDate as string) : undefined,
       };
 
-      const summary = await this.expenseService.getExpenseSummaryByCategory(filters);
+      const summary =
+        await this.expenseService.getExpenseSummaryByCategory(filters);
 
       const response: ApiResponse = {
         success: true,
-        message: 'Expense summary retrieved successfully',
+        message: "Expense summary retrieved successfully",
         data: summary,
       };
 

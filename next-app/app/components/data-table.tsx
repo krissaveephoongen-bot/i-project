@@ -15,7 +15,7 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 
-import { Button } from "./ui/Button";
+import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 import {
   DropdownMenu,
@@ -26,7 +26,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
 } from "./ui/dropdown-menu";
-import { Input } from "./ui/Input";
+import { Input } from "./ui/input";
 import {
   Table,
   TableBody,

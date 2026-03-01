@@ -20,19 +20,19 @@ import { useAuth } from "../components/AuthProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/lib/hooks/useLanguage";
 import { getExpensePageLabels } from "@/lib/services/expenses.utils";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 import {
   Card,
   CardContent,
 } from "@/app/components/ui/card";
-import { Input } from "@/app/components/ui/Input";
+import { Input } from "@/app/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/Select";
+} from "@/app/components/ui/select";
 import { Badge } from "@/app/components/ui/badge";
 import {
   Table,
@@ -49,7 +49,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/app/components/ui/Dialog";
+} from "@/app/components/ui/dialog";
 import { Textarea } from "@/app/components/ui/textarea";
 import {
   validateRequired,

@@ -7,15 +7,15 @@ import {
   CardTitle,
   CardDescription,
 } from "@/app/components/ui/card";
-import { Input } from "@/app/components/ui/Input";
+import { Input } from "@/app/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/Select";
-import { Button } from "@/app/components/ui/Button";
+} from "@/app/components/ui/select";
+import { Button } from "@/app/components/ui/button";
 import {
   Table,
   TableBody,

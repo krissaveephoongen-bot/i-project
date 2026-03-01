@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { X, Plus, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { Button } from "@/app/components/ui/Button";
-import { Input } from "@/app/components/ui/Input";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/Select";
+} from "@/app/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/app/components/ui/Dialog";
+} from "@/app/components/ui/dialog";
 import { Project, ModalRow } from "../types";
 import { useThaiLocale } from "@/lib/hooks/useThaiLocale";
 import { useTranslation } from "react-i18next";

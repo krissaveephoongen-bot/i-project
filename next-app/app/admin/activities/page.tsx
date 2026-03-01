@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Header from "../../components/Header";
-import { Button } from "../../components/ui/Button";
+import { Button } from "../../components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { Input } from "../../components/ui/Input";
+import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import {
   Select,
@@ -17,7 +17,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/Select";
+} from "../../components/ui/select";
 import {
   Table,
   TableBody,
@@ -32,7 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "../../components/ui/Dialog";
+} from "../../components/ui/dialog";
 import { Edit2, Trash2, Plus } from "lucide-react";
 import { activityService, ActivityType } from "@/app/lib/activity-service";
 import { WorkType } from "@/app/timesheet/types";

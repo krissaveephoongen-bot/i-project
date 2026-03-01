@@ -1,0 +1,35 @@
+{
+  "timestamp": "2026-02-24T06:37:46.426Z",
+  "summary": {
+    "total": 4,
+    "passed": 0,
+    "failed": 4,
+    "successRate": "0.0%"
+  },
+  "modules": [
+    {
+      "module": "Stakeholders",
+      "status": "FAIL",
+      "operation": "READ",
+      "error": ""
+    },
+    {
+      "module": "Expenses",
+      "status": "FAIL",
+      "operation": "READ",
+      "error": ""
+    },
+    {
+      "module": "Admin Users",
+      "status": "FAIL",
+      "operation": "READ",
+      "error": ""
+    },
+    {
+      "module": "Timesheet",
+      "status": "FAIL",
+      "operation": "READ",
+      "error": ""
+    }
+  ]
+}

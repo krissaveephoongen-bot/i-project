@@ -1,58 +1,60 @@
-import Joi from 'joi';
-import { USER_ROLES } from '@/lib/enums';
+import Joi from "joi";
+import { USER_ROLES } from "@/lib/enums";
 
 export const loginSchema = Joi.object({
   email: Joi.string().email().required().messages({
-    'string.email': 'Please provide a valid email address',
-    'any.required': 'Email is required',
+    "string.email": "Please provide a valid email address",
+    "any.required": "Email is required",
   }),
   password: Joi.string().min(6).required().messages({
-    'string.min': 'Password must be at least 6 characters long',
-    'any.required': 'Password is required',
+    "string.min": "Password must be at least 6 characters long",
+    "any.required": "Password is required",
   }),
 });
 
 export const registerSchema = Joi.object({
   name: Joi.string().min(2).max(50).required().messages({
-    'string.min': 'Name must be at least 2 characters long',
-    'string.max': 'Name cannot exceed 50 characters',
-    'any.required': 'Name is required',
+    "string.min": "Name must be at least 2 characters long",
+    "string.max": "Name cannot exceed 50 characters",
+    "any.required": "Name is required",
   }),
   email: Joi.string().email().required().messages({
-    'string.email': 'Please provide a valid email address',
-    'any.required': 'Email is required',
+    "string.email": "Please provide a valid email address",
+    "any.required": "Email is required",
   }),
   password: Joi.string().min(6).required().messages({
-    'string.min': 'Password must be at least 6 characters long',
-    'any.required': 'Password is required',
+    "string.min": "Password must be at least 6 characters long",
+    "any.required": "Password is required",
   }),
-  role: Joi.string().valid(...USER_ROLES).optional(),
+  role: Joi.string()
+    .valid(...USER_ROLES)
+    .optional(),
 });
 
 export const forgotPasswordSchema = Joi.object({
   email: Joi.string().email().required().messages({
-    'string.email': 'Please provide a valid email address',
-    'any.required': 'Email is required',
+    "string.email": "Please provide a valid email address",
+    "any.required": "Email is required",
   }),
 });
 
 export const resetPasswordSchema = Joi.object({
   token: Joi.string().required().messages({
-    'any.required': 'Reset token is required',
+    "any.required": "Reset token is required",
   }),
   password: Joi.string().min(6).required().messages({
-    'string.min': 'Password must be at least 6 characters long',
-    'any.required': 'Password is required',
+    "string.min": "Password must be at least 6 characters long",
+    "any.required": "Password is required",
   }),
 });
 
 export const changePasswordSchema = Joi.object({
   currentPassword: Joi.string().required().messages({
-    'any.required': 'Current password is required',
+    "any.required": "Current password is required",
   }),
   newPassword: Joi.string().min(6).required().messages({
-    'string.min': 'New password must be at least 6 characters long',
-    'any.required': 'New password is required',
+    "string.min": "New password must be at least 6 characters long",
+    "any.required": "New password is required",
   }),
 });
 

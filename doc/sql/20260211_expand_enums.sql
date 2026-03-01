@@ -1,0 +1,9 @@
+ALTER TYPE "Status" ADD VALUE IF NOT EXISTS 'in_review';
+ALTER TYPE "Status" ADD VALUE IF NOT EXISTS 'inactive';
+ALTER TYPE "Status" ADD VALUE IF NOT EXISTS 'approved';
+ALTER TYPE "Status" ADD VALUE IF NOT EXISTS 'rejected';
+
+ALTER TYPE "Priority" ADD VALUE IF NOT EXISTS 'urgent';
+
+ALTER TYPE "ExpenseStatus" ADD VALUE IF NOT EXISTS 'approved';
+ALTER TYPE "ExpenseStatus" ADD VALUE IF NOT EXISTS 'rejected';

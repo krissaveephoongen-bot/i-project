@@ -3,12 +3,12 @@
  * Provides consistent logging across the application
  */
 
-import winston from 'winston';
-import path from 'path';
-import fs from 'fs';
+import winston from "winston";
+import path from "path";
+import fs from "fs";
 
 // Create logs directory if it doesn't exist
-const logsDir = path.join(process.cwd(), 'logs');
+const logsDir = path.join(process.cwd(), "logs");
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
@@ -24,25 +24,25 @@ const logLevels = {
 
 // Define colors for console output
 const colors = {
-  error: 'red',
-  warn: 'yellow',
-  info: 'green',
-  http: 'magenta',
-  debug: 'white',
+  error: "red",
+  warn: "yellow",
+  info: "green",
+  http: "magenta",
+  debug: "white",
 };
 
 winston.addColors(colors);
 
 // Define log format
 const format = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
+  winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss:ms" }),
   winston.format.errors({ stack: true }),
   winston.format.printf(
     (info) =>
       `${info.timestamp} ${info.level}: ${info.message}` +
-      (info.requestId ? ` [${info.requestId}]` : '') +
-      (info.stack ? `\n${info.stack}` : '')
-  )
+      (info.requestId ? ` [${info.requestId}]` : "") +
+      (info.stack ? `\n${info.stack}` : ""),
+  ),
 );
 
 // Define transports
@@ -51,39 +51,39 @@ const transports = [
   new winston.transports.Console({
     format: winston.format.combine(
       winston.format.colorize({ all: true }),
-      format
+      format,
     ),
   }),
 
   // Error log file (errors only)
   new winston.transports.File({
-    filename: path.join(logsDir, 'error.log'),
-    level: 'error',
+    filename: path.join(logsDir, "error.log"),
+    level: "error",
     format,
   }),
 
   // Combined log file (all levels)
   new winston.transports.File({
-    filename: path.join(logsDir, 'combined.log'),
+    filename: path.join(logsDir, "combined.log"),
     format,
   }),
 ];
 
 // Create logger
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL || "info",
   levels: logLevels,
   format,
   transports,
   exceptionHandlers: [
     new winston.transports.File({
-      filename: path.join(logsDir, 'exceptions.log'),
+      filename: path.join(logsDir, "exceptions.log"),
       format,
     }),
   ],
   rejectionHandlers: [
     new winston.transports.File({
-      filename: path.join(logsDir, 'rejections.log'),
+      filename: path.join(logsDir, "rejections.log"),
       format,
     }),
   ],
@@ -97,12 +97,11 @@ export function logHttpRequest(
   method: string,
   path: string,
   statusCode: number,
-  duration: number
+  duration: number,
 ): void {
-  logger.http(
-    `${method} ${path} - ${statusCode} - ${duration}ms`,
-    { requestId }
-  );
+  logger.http(`${method} ${path} - ${statusCode} - ${duration}ms`, {
+    requestId,
+  });
 }
 
 /**
@@ -111,7 +110,7 @@ export function logHttpRequest(
 export function logError(
   message: string,
   error?: Error,
-  context?: Record<string, any>
+  context?: Record<string, any>,
 ): void {
   logger.error(message, {
     ...context,
@@ -138,7 +137,7 @@ export function logInfo(message: string, context?: Record<string, any>): void {
  * Log debug
  */
 export function logDebug(message: string, context?: Record<string, any>): void {
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== "production") {
     logger.debug(message, context);
   }
 }

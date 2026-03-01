@@ -2,7 +2,7 @@
 
 import Header from "@/app/components/Header";
 import PageTransition from "@/app/components/PageTransition";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 import { Printer, PieChart } from "lucide-react";
 import InsightsTab from "../components/InsightsTab";
 

@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Badge } from "./ui/badge";
-import { EmptyState } from "./ui/EmptyState";
+import { EmptyState } from "./ui/empty-state";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import {

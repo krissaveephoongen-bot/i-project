@@ -11,7 +11,7 @@ import {
   Users,
   PieChart,
 } from "lucide-react";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 import {
   Tabs,
   TabsList,

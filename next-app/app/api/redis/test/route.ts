@@ -104,7 +104,7 @@ export async function GET() {
     });
 
     // Cleanup test data
-    await client.del("test_counter", "pipe_test1", "pipe_test2");
+    await client.del(["test_counter", "pipe_test1", "pipe_test2"]);
 
     // Calculate overall performance
     const totalTime = testResults.reduce((sum, test) => {

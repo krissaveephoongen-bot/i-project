@@ -6,9 +6,9 @@ import Link from "next/link";
 import Header from "@/app/components/Header";
 import SCurveChart from "../SCurveChart";
 import ProjectTabs from "@/app/components/ProjectTabs";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 import PageTransition from "@/app/components/PageTransition";
-import { Skeleton } from "@/app/components/ui/Skeleton";
+import { Skeleton } from "@/app/components/ui/skeleton";
 
 // Icons
 import { getProjectOverview } from "../../overviewActions";
@@ -290,7 +290,7 @@ export default function ProjectOverviewPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <SCurveChart />
+              <SCurveChart tasks={tasks} />
             </CardContent>
           </Card>
 

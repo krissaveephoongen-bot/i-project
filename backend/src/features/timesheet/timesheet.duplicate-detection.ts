@@ -8,8 +8,8 @@
  * - Block all work on leave days
  */
 
-import { PrismaClient } from '@prisma/client';
-import { AppError } from '../../shared/errors/AppError';
+import { PrismaClient } from "@prisma/client";
+import { AppError } from "../../shared/errors/AppError";
 
 const prisma = new PrismaClient();
 
@@ -36,10 +36,10 @@ function calculateOverlapMinutes(
   start1: string,
   end1: string,
   start2: string,
-  end2: string
+  end2: string,
 ): number {
   const parse = (time: string) => {
-    const [hours, minutes] = time.split(':').map(Number);
+    const [hours, minutes] = time.split(":").map(Number);
     return hours * 60 + minutes;
   };
 
@@ -76,7 +76,7 @@ export async function detectDuplicateOrParallelWork(
     projectId?: string;
     workType: string;
   },
-  excludeEntryId?: string
+  excludeEntryId?: string,
 ): Promise<DuplicateDetectionResult> {
   try {
     // 1. Check for leave conflict (HARD BLOCK)
@@ -84,8 +84,8 @@ export async function detectDuplicateOrParallelWork(
     if (leaveConflict) {
       throw new AppError(
         400,
-        'LEAVE_CONFLICT',
-        `ไม่สามารถบันทึกเวลาทำงานในวันลา: ${leaveConflict}`
+        "LEAVE_CONFLICT",
+        `ไม่สามารถบันทึกเวลาทำงานในวันลา: ${leaveConflict}`,
       );
     }
 
@@ -95,7 +95,7 @@ export async function detectDuplicateOrParallelWork(
       data.date,
       data.startTime,
       data.endTime,
-      excludeEntryId
+      excludeEntryId,
     );
 
     if (overlappingEntries.length === 0) {
@@ -109,16 +109,13 @@ export async function detectDuplicateOrParallelWork(
     }
 
     // 3. Analyze overlap type and determine if allowed
-    return await analyzeOverlapAndDecide(
-      data,
-      overlappingEntries
-    );
+    return await analyzeOverlapAndDecide(data, overlappingEntries);
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError(
       500,
-      'DUPLICATE_CHECK_FAILED',
-      'ไม่สามารถตรวจสอบการซ้ำของบันทึกได้'
+      "DUPLICATE_CHECK_FAILED",
+      "ไม่สามารถตรวจสอบการซ้ำของบันทึกได้",
     );
   }
 }
@@ -126,20 +123,23 @@ export async function detectDuplicateOrParallelWork(
 /**
  * Check if date falls within approved/submitted leave
  */
-async function checkLeaveConflict(userId: string, date: Date): Promise<string | null> {
+async function checkLeaveConflict(
+  userId: string,
+  date: Date,
+): Promise<string | null> {
   const leaveRequest = await prisma.leave_requests.findFirst({
     where: {
       user_id: userId,
       start_date: { lte: date },
       end_date: { gte: date },
-      status: { in: ['approved', 'pending'] },
+      status: { in: ["approved", "pending"] },
     },
   });
 
   if (leaveRequest) {
     return `${leaveRequest.leave_type} (${leaveRequest.start_date.toLocaleDateString(
-      'th-TH'
-    )}-${leaveRequest.end_date.toLocaleDateString('th-TH')})`;
+      "th-TH",
+    )}-${leaveRequest.end_date.toLocaleDateString("th-TH")})`;
   }
 
   return null;
@@ -153,7 +153,7 @@ async function findOverlappingEntries(
   date: Date,
   startTime: string,
   endTime: string,
-  excludeEntryId?: string
+  excludeEntryId?: string,
 ) {
   const entries = await prisma.time_entries.findMany({
     where: {
@@ -162,7 +162,7 @@ async function findOverlappingEntries(
         gte: date,
         lt: new Date(date.getTime() + 24 * 60 * 60 * 1000),
       },
-      status: { in: ['pending', 'approved'] },
+      status: { in: ["pending", "approved"] },
       ...(excludeEntryId && { id: { not: excludeEntryId } }),
     },
     include: {
@@ -178,7 +178,7 @@ async function findOverlappingEntries(
         startTime,
         endTime,
         entry.startTime,
-        entry.endTime || ''
+        entry.endTime || "",
       ),
     }))
     .filter((entry) => entry.overlapMinutes > 0);
@@ -196,7 +196,7 @@ async function analyzeOverlapAndDecide(
     projectId?: string;
     workType: string;
   },
-  overlappingEntries: any[]
+  overlappingEntries: any[],
 ): Promise<DuplicateDetectionResult> {
   // Check for exact duplicate
   const exactDuplicate = overlappingEntries.find(
@@ -204,14 +204,14 @@ async function analyzeOverlapAndDecide(
       entry.startTime === newEntry.startTime &&
       entry.endTime === newEntry.endTime &&
       entry.projectId === newEntry.projectId &&
-      entry.workType === newEntry.workType
+      entry.workType === newEntry.workType,
   );
 
   if (exactDuplicate) {
     throw new AppError(
       400,
-      'EXACT_DUPLICATE',
-      'บันทึกนี้มีอยู่แล้วในวันเดียวกัน'
+      "EXACT_DUPLICATE",
+      "บันทึกนี้มีอยู่แล้วในวันเดียวกัน",
     );
   }
 
@@ -219,35 +219,38 @@ async function analyzeOverlapAndDecide(
   const sameProjectOverlap = overlappingEntries.find(
     (entry) =>
       entry.projectId === newEntry.projectId &&
-      entry.workType === 'project' &&
-      newEntry.workType === 'project'
+      entry.workType === "project" &&
+      newEntry.workType === "project",
   );
 
   if (sameProjectOverlap) {
     throw new AppError(
       400,
-      'SAME_PROJECT_OVERLAP',
-      `ไม่สามารถทำงานโครงการเดียวกันได้ (${newEntry.projectId}) ในเวลาเดียวกัน`
+      "SAME_PROJECT_OVERLAP",
+      `ไม่สามารถทำงานโครงการเดียวกันได้ (${newEntry.projectId}) ในเวลาเดียวกัน`,
     );
   }
 
   // 2. Count project overlaps (excluding non-project work)
   const projectOverlaps = overlappingEntries.filter(
-    (entry) => entry.workType === 'project' && newEntry.workType === 'project'
+    (entry) => entry.workType === "project" && newEntry.workType === "project",
   );
 
   // 3+ concurrent projects = BLOCK
   if (projectOverlaps.length >= 2) {
     throw new AppError(
       400,
-      'TOO_MANY_PARALLEL_PROJECTS',
-      `ไม่สามารถทำ 3 งานขนานพร้อมกันได้ (จะมี ${projectOverlaps.length + 1} งาน)`
+      "TOO_MANY_PARALLEL_PROJECTS",
+      `ไม่สามารถทำ 3 งานขนานพร้อมกันได้ (จะมี ${projectOverlaps.length + 1} งาน)`,
     );
   }
 
   // Project + Non-Project mix (meeting/training during work) = ALLOW
   // Real-world: office, training, other work types can overlap with project work
-  if (projectOverlaps.length === 0 && !['project'].includes(newEntry.workType)) {
+  if (
+    projectOverlaps.length === 0 &&
+    !["project"].includes(newEntry.workType)
+  ) {
     return {
       valid: true,
       warnings: [],
@@ -256,7 +259,10 @@ async function analyzeOverlapAndDecide(
     };
   }
 
-  if (projectOverlaps.length === 1 && !['project'].includes(newEntry.workType)) {
+  if (
+    projectOverlaps.length === 1 &&
+    !["project"].includes(newEntry.workType)
+  ) {
     return {
       valid: true,
       warnings: [],
@@ -266,41 +272,41 @@ async function analyzeOverlapAndDecide(
   }
 
   // 2 projects in parallel = WARN + REQUIRE COMMENT
-  if (projectOverlaps.length === 1 && newEntry.workType === 'project') {
+  if (projectOverlaps.length === 1 && newEntry.workType === "project") {
     const overlapEntry = projectOverlaps[0];
     const overlapMinutes = calculateOverlapMinutes(
       newEntry.startTime,
       newEntry.endTime,
       overlapEntry.startTime,
-      overlapEntry.endTime || ''
+      overlapEntry.endTime || "",
     );
     const overlapHours = overlapMinutes / 60;
 
     return {
       valid: true,
       warnings: [
-        `พบการทำงานขนาน: ${overlapEntry.projects?.name || 'โครงการ'} | ${
+        `พบการทำงานขนาน: ${overlapEntry.projects?.name || "โครงการ"} | ${
           overlapEntry.startTime
-        }-${overlapEntry.endTime || 'N/A'} (ซ้ำกัน ${overlapHours.toFixed(
-          1
+        }-${overlapEntry.endTime || "N/A"} (ซ้ำกัน ${overlapHours.toFixed(
+          1,
         )}h)`,
-        'โปรดอธิบายเหตุผลการทำงานแบบขนาน',
+        "โปรดอธิบายเหตุผลการทำงานแบบขนาน",
       ],
       isConcurrent: true,
       requiresComment: true,
       overlappingEntries: overlappingEntries
-        .filter((entry) => entry.workType === 'project')
+        .filter((entry) => entry.workType === "project")
         .map((entry) => ({
           id: entry.id,
           projectName: entry.projects?.name,
           startTime: entry.startTime,
-          endTime: entry.endTime || '',
+          endTime: entry.endTime || "",
           hours: Number(entry.hours),
           overlapMinutes: calculateOverlapMinutes(
             newEntry.startTime,
             newEntry.endTime,
             entry.startTime,
-            entry.endTime || ''
+            entry.endTime || "",
           ),
         })),
     };
@@ -322,7 +328,7 @@ async function analyzeOverlapAndDecide(
 export async function updateConcurrentRelationships(
   entryId: string,
   concurrentEntryIds: string[],
-  reason: string
+  reason: string,
 ) {
   // Update the new entry
   await prisma.time_entries.update({
@@ -346,8 +352,8 @@ export async function updateConcurrentRelationships(
               push: entryId,
             },
           },
-        })
-      )
+        }),
+      ),
     );
   }
 }
@@ -358,7 +364,7 @@ export async function updateConcurrentRelationships(
 export async function checkDailyTotalHours(
   userId: string,
   date: Date,
-  excludeEntryId?: string
+  excludeEntryId?: string,
 ): Promise<{ total: number; exceeds: boolean }> {
   const entries = await prisma.time_entries.findMany({
     where: {
@@ -367,7 +373,7 @@ export async function checkDailyTotalHours(
         gte: date,
         lt: new Date(date.getTime() + 24 * 60 * 60 * 1000),
       },
-      status: { in: ['draft', 'submitted', 'approved'] },
+      status: { in: ["draft", "submitted", "approved"] },
       ...(excludeEntryId && { id: { not: excludeEntryId } }),
     },
   });
@@ -386,9 +392,9 @@ export function formatConcurrentWarning(overlapping: any[]): string {
   const entries = overlapping
     .map(
       (e) =>
-        `${e.projectName || 'Project'}: ${e.startTime}-${e.endTime} (${formatHours(e.hours)})`
+        `${e.projectName || "Project"}: ${e.startTime}-${e.endTime} (${formatHours(e.hours)})`,
     )
-    .join('\n  ');
+    .join("\n  ");
 
   return `พบการทำงานขนานกับ:\n  ${entries}`;
 }

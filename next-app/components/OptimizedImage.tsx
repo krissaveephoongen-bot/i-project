@@ -2,7 +2,7 @@
 
 import Image, { ImageProps } from "next/image";
 import { useState, useCallback } from "react";
-import { Skeleton } from "@/app/components/ui/Skeleton";
+import { Skeleton } from "@/app/components/ui/skeleton";
 import { clsx } from "clsx";
 
 interface OptimizedImageProps extends Omit<ImageProps, "onLoadingComplete"> {

@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '../../../shared/types/ApiResponse';
+import { Request, Response, NextFunction } from "express";
+import { ApiResponse } from "../../../shared/types/ApiResponse";
 
 export class DashboardController {
   getKpiData = async (req: Request, res: Response, next: NextFunction) => {
@@ -16,7 +16,7 @@ export class DashboardController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'KPI data retrieved successfully',
+        message: "KPI data retrieved successfully",
         data: kpiData,
       };
 
@@ -26,7 +26,11 @@ export class DashboardController {
     }
   };
 
-  getProjectsOverview = async (req: Request, res: Response, next: NextFunction) => {
+  getProjectsOverview = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       // Mock projects overview data
       const projectsOverview = {
@@ -39,7 +43,7 @@ export class DashboardController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'Projects overview retrieved successfully',
+        message: "Projects overview retrieved successfully",
         data: projectsOverview,
       };
 
@@ -49,20 +53,24 @@ export class DashboardController {
     }
   };
 
-  getTeamPerformance = async (req: Request, res: Response, next: NextFunction) => {
+  getTeamPerformance = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       // Mock team performance data
       const teamPerformance = [
-        { name: 'Team A', utilization: 85, efficiency: 92 },
-        { name: 'Team B', utilization: 92, efficiency: 88 },
-        { name: 'Team C', utilization: 78, efficiency: 95 },
-        { name: 'Team D', utilization: 65, efficiency: 89 },
-        { name: 'Team E', utilization: 88, efficiency: 91 },
+        { name: "Team A", utilization: 85, efficiency: 92 },
+        { name: "Team B", utilization: 92, efficiency: 88 },
+        { name: "Team C", utilization: 78, efficiency: 95 },
+        { name: "Team D", utilization: 65, efficiency: 89 },
+        { name: "Team E", utilization: 88, efficiency: 91 },
       ];
 
       const response: ApiResponse = {
         success: true,
-        message: 'Team performance retrieved successfully',
+        message: "Team performance retrieved successfully",
         data: teamPerformance,
       };
 
@@ -72,7 +80,11 @@ export class DashboardController {
     }
   };
 
-  getFinancialSummary = async (req: Request, res: Response, next: NextFunction) => {
+  getFinancialSummary = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       // Mock financial summary data
       const financialSummary = {
@@ -85,7 +97,7 @@ export class DashboardController {
 
       const response: ApiResponse = {
         success: true,
-        message: 'Financial summary retrieved successfully',
+        message: "Financial summary retrieved successfully",
         data: financialSummary,
       };
 

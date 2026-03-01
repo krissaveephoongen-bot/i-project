@@ -1,6 +1,12 @@
-import { eq, desc, and, or, like, sql } from 'drizzle-orm';
-import { getDbClient } from '../../../shared/database';
-import { projects, users, clients, statusEnum, priorityEnum } from '../../../shared/database/schema';
+import { eq, desc, and, or, like, sql } from "drizzle-orm";
+import { getDbClient } from "../../../shared/database";
+import {
+  projects,
+  users,
+  clients,
+  statusEnum,
+  priorityEnum,
+} from "../../../shared/database/schema";
 import type {
   ProjectEntity,
   ProjectWithRelations,
@@ -8,8 +14,8 @@ import type {
   UpdateProjectData,
   ProjectFilters,
   ClientEntity,
-  UserEntity
-} from '../types';
+  UserEntity,
+} from "../types";
 
 export class ProjectRepository {
   private db = getDbClient().db;
@@ -17,11 +23,15 @@ export class ProjectRepository {
   /**
    * Find all projects with optional filters and pagination
    */
-  async findAll(filters: ProjectFilters = {}, page = 1, limit = 50): Promise<{
+  async findAll(
+    filters: ProjectFilters = {},
+    page = 1,
+    limit = 50,
+  ): Promise<{
     projects: ProjectWithRelations[];
     total: number;
   }> {
-    if (!this.db) throw new Error('Database not configured');
+    if (!this.db) throw new Error("Database not configured");
 
     const offset = (page - 1) * limit;
 
@@ -53,12 +63,13 @@ export class ProjectRepository {
         or(
           like(projects.name, `%${filters.search}%`),
           like(projects.code, `%${filters.search}%`),
-          like(projects.description, `%${filters.search}%`)
-        )
+          like(projects.description, `%${filters.search}%`),
+        ),
       );
     }
 
-    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+    const whereClause =
+      whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
     // Get total count
     const totalResult = await this.db
@@ -106,36 +117,42 @@ export class ProjectRepository {
       .offset(offset);
 
     // Transform to ProjectWithRelations
-    const projectsWithRelations: ProjectWithRelations[] = projectsResult.map(row => ({
-      id: row.id,
-      name: row.name,
-      code: row.code || undefined,
-      description: row.description || undefined,
-      status: row.status,
-      startDate: row.startDate || undefined,
-      endDate: row.endDate || undefined,
-      budget: row.budget ? Number(row.budget) : undefined,
-      spent: Number(row.spent),
-      remaining: Number(row.remaining),
-      managerId: row.managerId || undefined,
-      clientId: row.clientId || undefined,
-      hourlyRate: Number(row.hourlyRate),
-      priority: row.priority,
-      category: row.category || undefined,
-      isArchived: row.isArchived,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      manager: row.managerName ? {
-        id: row.managerId!,
-        name: row.managerName,
-        email: row.managerEmail,
-        role: row.managerRole || 'employee',
-      } : undefined,
-      client: row.clientName ? {
-        id: row.clientId!,
-        name: row.clientName,
-      } : undefined,
-    }));
+    const projectsWithRelations: ProjectWithRelations[] = projectsResult.map(
+      (row) => ({
+        id: row.id,
+        name: row.name,
+        code: row.code || undefined,
+        description: row.description || undefined,
+        status: row.status,
+        startDate: row.startDate || undefined,
+        endDate: row.endDate || undefined,
+        budget: row.budget ? Number(row.budget) : undefined,
+        spent: Number(row.spent),
+        remaining: Number(row.remaining),
+        managerId: row.managerId || undefined,
+        clientId: row.clientId || undefined,
+        hourlyRate: Number(row.hourlyRate),
+        priority: row.priority,
+        category: row.category || undefined,
+        isArchived: row.isArchived,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        manager: row.managerName
+          ? {
+              id: row.managerId!,
+              name: row.managerName,
+              email: row.managerEmail,
+              role: row.managerRole || "employee",
+            }
+          : undefined,
+        client: row.clientName
+          ? {
+              id: row.clientId!,
+              name: row.clientName,
+            }
+          : undefined,
+      }),
+    );
 
     return {
       projects: projectsWithRelations,
@@ -147,7 +164,7 @@ export class ProjectRepository {
    * Find project by ID with relations
    */
   async findById(id: string): Promise<ProjectWithRelations | null> {
-    if (!this.db) throw new Error('Database not configured');
+    if (!this.db) throw new Error("Database not configured");
 
     const result = await this.db
       .select({
@@ -207,16 +224,20 @@ export class ProjectRepository {
       isArchived: row.isArchived,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
-      manager: row.managerName ? {
-        id: row.managerId!,
-        name: row.managerName,
-        email: row.managerEmail,
-        role: row.managerRole || 'employee',
-      } : undefined,
-      client: row.clientName ? {
-        id: row.clientId!,
-        name: row.clientName,
-      } : undefined,
+      manager: row.managerName
+        ? {
+            id: row.managerId!,
+            name: row.managerName,
+            email: row.managerEmail,
+            role: row.managerRole || "employee",
+          }
+        : undefined,
+      client: row.clientName
+        ? {
+            id: row.clientId!,
+            name: row.clientName,
+          }
+        : undefined,
     };
   }
 
@@ -224,7 +245,7 @@ export class ProjectRepository {
    * Create new project
    */
   async create(data: CreateProjectData): Promise<ProjectEntity> {
-    if (!this.db) throw new Error('Database not configured');
+    if (!this.db) throw new Error("Database not configured");
 
     const result = await this.db
       .insert(projects)
@@ -232,14 +253,14 @@ export class ProjectRepository {
         name: data.name,
         code: data.code,
         description: data.description,
-        status: data.status || 'todo',
+        status: data.status || "todo",
         startDate: data.startDate,
         endDate: data.endDate,
         budget: data.budget,
         managerId: data.managerId,
         clientId: data.clientId,
         hourlyRate: data.hourlyRate || 0,
-        priority: data.priority || 'medium',
+        priority: data.priority || "medium",
         category: data.category,
         isArchived: false,
       })
@@ -251,8 +272,11 @@ export class ProjectRepository {
   /**
    * Update project
    */
-  async update(id: string, data: UpdateProjectData): Promise<ProjectEntity | null> {
-    if (!this.db) throw new Error('Database not configured');
+  async update(
+    id: string,
+    data: UpdateProjectData,
+  ): Promise<ProjectEntity | null> {
+    if (!this.db) throw new Error("Database not configured");
 
     const result = await this.db
       .update(projects)
@@ -270,7 +294,7 @@ export class ProjectRepository {
    * Delete project
    */
   async delete(id: string): Promise<boolean> {
-    if (!this.db) throw new Error('Database not configured');
+    if (!this.db) throw new Error("Database not configured");
 
     const result = await this.db
       .delete(projects)
@@ -289,7 +313,7 @@ export class ProjectRepository {
     completedProjects: number;
     overdueProjects: number;
   }> {
-    if (!this.db) throw new Error('Database not configured');
+    if (!this.db) throw new Error("Database not configured");
 
     const stats = await this.db
       .select({
@@ -308,17 +332,17 @@ export class ProjectRepository {
 
     const now = new Date();
 
-    stats.forEach(stat => {
+    stats.forEach((stat) => {
       totalProjects += stat.count;
 
-      if (stat.status === 'Completed') {
+      if (stat.status === "Completed") {
         completedProjects += stat.count;
-      } else if (stat.status === 'Active' || stat.status === 'Planning') {
+      } else if (stat.status === "Active" || stat.status === "Planning") {
         activeProjects += stat.count;
       }
 
       // Check for overdue projects
-      if (stat.endDate && stat.endDate < now && stat.status !== 'Completed') {
+      if (stat.endDate && stat.endDate < now && stat.status !== "Completed") {
         overdueProjects += stat.count;
       }
     });
@@ -335,7 +359,7 @@ export class ProjectRepository {
    * Check if project code exists
    */
   async codeExists(code: string, excludeId?: string): Promise<boolean> {
-    if (!this.db) throw new Error('Database not configured');
+    if (!this.db) throw new Error("Database not configured");
 
     const whereConditions = [eq(projects.code, code)];
     if (excludeId) {
@@ -355,7 +379,7 @@ export class ProjectRepository {
    * Get all managers (users with manager role or isProjectManager flag)
    */
   async getManagers(): Promise<UserEntity[]> {
-    if (!this.db) throw new Error('Database not configured');
+    if (!this.db) throw new Error("Database not configured");
 
     const result = await this.db
       .select({
@@ -368,12 +392,7 @@ export class ProjectRepository {
         position: users.position,
       })
       .from(users)
-      .where(
-        or(
-          eq(users.role, 'manager'),
-          eq(users.isProjectManager, true)
-        )
-      )
+      .where(or(eq(users.role, "manager"), eq(users.isProjectManager, true)))
       .orderBy(users.name);
 
     return result;
@@ -383,12 +402,9 @@ export class ProjectRepository {
    * Get all clients
    */
   async getClients(): Promise<ClientEntity[]> {
-    if (!this.db) throw new Error('Database not configured');
+    if (!this.db) throw new Error("Database not configured");
 
-    const result = await this.db
-      .select()
-      .from(clients)
-      .orderBy(clients.name);
+    const result = await this.db.select().from(clients).orderBy(clients.name);
 
     return result;
   }

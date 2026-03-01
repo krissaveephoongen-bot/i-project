@@ -12,15 +12,7 @@ import {
 } from "recharts";
 import { format, differenceInDays, addDays, isAfter } from "date-fns";
 import { th } from "date-fns/locale";
-
-interface Task {
-  id: string;
-  weight?: number; // Made optional for compatibility
-  startDate?: string;
-  endDate?: string;
-  status: string;
-  progressActual?: number;
-}
+import { Task } from "@/lib/tasks";
 
 interface BurndownChartProps {
   tasks: Task[];

@@ -1,2 +1,0 @@
-@echo off
-echo sb_publishable_MXBRHnc3b8kCjjsVaacMfQ_WwT_5g15 | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production

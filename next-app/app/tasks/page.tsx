@@ -5,7 +5,7 @@ import Header from "@/app/components/Header";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/lib/hooks/useLanguage";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +31,7 @@ import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 import { PermissionGuard } from "@/app/components/PermissionGuard";
 import { UserRole } from "@/lib/auth";
 import PageTransition from "@/app/components/PageTransition";
-import { Skeleton } from "@/app/components/ui/Skeleton";
+import { Skeleton } from "@/app/components/ui/skeleton";
 import TaskForm from "@/app/components/TaskForm";
 import {
   getTasksAction,
@@ -43,22 +43,7 @@ import {
   getMilestonesForDropdown,
 } from "./actions";
 import { toast } from "react-hot-toast";
-
-// Mock task type
-interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  projectId?: string;
-  status: string;
-  priority: string;
-  dueDate?: string;
-  estimatedHours?: number;
-  actualHours?: number;
-  assignedTo?: string;
-  projects?: { id: string; name: string };
-  assigned_user?: { id: string; name: string };
-}
+import { Task } from "@/lib/tasks";
 
 export default function TasksPage() {
   const sp = useSearchParams();
@@ -184,11 +169,11 @@ export default function TasksPage() {
     setIsModalOpen(true);
   };
 
-  const handleSaveTask = (task: Task) => {
+  const handleSaveTask = async (task: any) => {
     if (editingTask) {
-      updateTaskMutation.mutate({ id: editingTask.id, data: task });
+      await updateTaskMutation.mutateAsync({ id: editingTask.id, data: task });
     } else {
-      createTaskMutation.mutate(task);
+      await createTaskMutation.mutateAsync(task);
     }
     setIsModalOpen(false);
     setEditingTask(null);
@@ -434,7 +419,10 @@ export default function TasksPage() {
             onSave={handleSaveTask}
             projects={projects}
             users={users}
-            milestones={milestones}
+            milestones={milestones.map((m: any) => ({
+              id: m.id,
+              title: m.name || m.title || "",
+            }))}
           />
 
           {/* Delete Confirmation Modal */}

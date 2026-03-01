@@ -13,8 +13,8 @@ import {
 import Header from "@/app/components/Header";
 import { useAuth } from "@/app/components/AuthProvider";
 import PageTransition from "@/app/components/PageTransition";
-import { Skeleton } from "@/app/components/ui/Skeleton";
-import { Button } from "@/app/components/ui/Button";
+import { Skeleton } from "@/app/components/ui/skeleton";
+import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import {
   Card,
@@ -46,15 +46,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/app/components/ui/Dialog";
-import { Input } from "@/app/components/ui/Input";
+} from "@/app/components/ui/dialog";
+import { Input } from "@/app/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/Select";
+} from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
 
 interface TimesheetEntry {

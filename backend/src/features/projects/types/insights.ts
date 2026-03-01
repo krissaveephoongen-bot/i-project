@@ -15,7 +15,7 @@ export interface ProjectInsight {
 }
 
 export interface WorkTypeDistribution {
-  workType: 'project' | 'office' | 'other';
+  workType: "project" | "office" | "other";
   hours: number;
   percentage: number;
   color?: string;
@@ -43,7 +43,7 @@ export interface EfficiencyMetrics {
   overallEfficiency: number;
   projectEfficiency: number;
   timeUtilization: number;
-  trendDirection: 'improving' | 'declining' | 'stable';
+  trendDirection: "improving" | "declining" | "stable";
 }
 
 export interface ProjectInsightFilters {
@@ -51,7 +51,7 @@ export interface ProjectInsightFilters {
   userId?: string;
   startDate?: string;
   endDate?: string;
-  workType?: 'project' | 'office' | 'other';
+  workType?: "project" | "office" | "other";
 }
 
 export interface ProjectInsightSummary {

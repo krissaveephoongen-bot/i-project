@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/app/components/Header";
 import { Card, CardContent } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/button";
 
 export default function EditTaskPage() {
   const params = useParams() as Record<

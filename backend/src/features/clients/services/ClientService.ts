@@ -2,9 +2,9 @@
  * Client Service - Business logic for client operations
  */
 
-import { db } from '../../../shared/database/connection';
-import { clients } from '../../../shared/database/schema';
-import { eq, ilike, desc, sql } from 'drizzle-orm';
+import { db } from "../../../shared/database/connection";
+import { clients } from "../../../shared/database/schema";
+import { eq, ilike, desc, sql } from "drizzle-orm";
 import {
   Client,
   ClientWithRelations,
@@ -13,7 +13,7 @@ import {
   ClientFilters,
   ClientPagination,
   ClientListResult,
-} from '../types/clientTypes';
+} from "../types/clientTypes";
 
 export class ClientService {
   /**
@@ -21,27 +21,31 @@ export class ClientService {
    */
   async getClients(
     filters: ClientFilters,
-    pagination: ClientPagination
+    pagination: ClientPagination,
   ): Promise<ClientListResult> {
-    const { page = 1, limit = 10, sortBy = 'name', sortOrder = 'asc' } = pagination;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "name",
+      sortOrder = "asc",
+    } = pagination;
     const offset = (page - 1) * limit;
 
     // Build where conditions
     const whereConditions: any[] = [];
 
     if (filters.search) {
-      whereConditions.push(
-        ilike(clients.name, `%${filters.search}%`)
-      );
+      whereConditions.push(ilike(clients.name, `%${filters.search}%`));
     }
 
     if (filters.taxId) {
       whereConditions.push(eq(clients.taxId, filters.taxId));
     }
 
-    const whereClause = whereConditions.length > 0 
-      ? whereConditions.reduce((acc, cond) => acc || cond)
-      : undefined;
+    const whereClause =
+      whereConditions.length > 0
+        ? whereConditions.reduce((acc, cond) => acc || cond)
+        : undefined;
 
     // Fetch total count
     const countResult = await db
@@ -56,13 +60,13 @@ export class ClientService {
       .from(clients)
       .where(whereClause)
       .orderBy(
-        sortBy === 'name'
-          ? sortOrder === 'asc'
+        sortBy === "name"
+          ? sortOrder === "asc"
             ? clients.name
             : desc(clients.name)
-          : sortOrder === 'asc'
+          : sortOrder === "asc"
             ? clients.createdAt
-            : desc(clients.createdAt)
+            : desc(clients.createdAt),
       )
       .limit(limit)
       .offset(offset);
@@ -89,7 +93,7 @@ export class ClientService {
       .limit(1);
 
     if (result.length === 0) {
-      throw new Error('Client not found');
+      throw new Error("Client not found");
     }
 
     return result[0] as ClientWithRelations;
@@ -108,18 +112,15 @@ export class ClientService {
         .limit(1);
 
       if (existing.length > 0) {
-        throw new Error('Client with this tax ID already exists');
+        throw new Error("Client with this tax ID already exists");
       }
     }
 
     // Create client
-    const result = await db
-      .insert(clients)
-      .values(data)
-      .returning();
+    const result = await db.insert(clients).values(data).returning();
 
     if (result.length === 0) {
-      throw new Error('Failed to create client');
+      throw new Error("Failed to create client");
     }
 
     return this.getClientById(result[0].id);
@@ -128,7 +129,10 @@ export class ClientService {
   /**
    * Update client
    */
-  async updateClient(id: string, data: UpdateClientDTO): Promise<ClientWithRelations> {
+  async updateClient(
+    id: string,
+    data: UpdateClientDTO,
+  ): Promise<ClientWithRelations> {
     // Check if client exists
     const existing = await db
       .select()
@@ -137,7 +141,7 @@ export class ClientService {
       .limit(1);
 
     if (existing.length === 0) {
-      throw new Error('Client not found');
+      throw new Error("Client not found");
     }
 
     // Check for duplicate taxId if updating
@@ -149,7 +153,7 @@ export class ClientService {
         .limit(1);
 
       if (duplicate.length > 0) {
-        throw new Error('Client with this tax ID already exists');
+        throw new Error("Client with this tax ID already exists");
       }
     }
 
@@ -164,7 +168,7 @@ export class ClientService {
       .returning();
 
     if (result.length === 0) {
-      throw new Error('Failed to update client');
+      throw new Error("Failed to update client");
     }
 
     return this.getClientById(id);
@@ -174,10 +178,13 @@ export class ClientService {
    * Delete client
    */
   async deleteClient(id: string): Promise<void> {
-    const result = await db.delete(clients).where(eq(clients.id, id)).returning();
+    const result = await db
+      .delete(clients)
+      .where(eq(clients.id, id))
+      .returning();
 
     if (result.length === 0) {
-      throw new Error('Client not found');
+      throw new Error("Client not found");
     }
   }
 
@@ -197,7 +204,10 @@ export class ClientService {
   /**
    * Search clients
    */
-  async searchClients(query: string, limit: number = 10): Promise<ClientWithRelations[]> {
+  async searchClients(
+    query: string,
+    limit: number = 10,
+  ): Promise<ClientWithRelations[]> {
     return db
       .select()
       .from(clients)
