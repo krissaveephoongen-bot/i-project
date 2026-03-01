@@ -7,7 +7,7 @@ import { KanbanCard } from "./KanbanCard";
 import { clsx } from "clsx";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
-import { Task } from "@/lib/tasks";
+import { Task } from "../../../lib/tasks";
 
 interface KanbanColumnProps {
   id: string;

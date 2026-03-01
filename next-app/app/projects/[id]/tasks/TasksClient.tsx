@@ -26,7 +26,7 @@ import ProjectGantt from "@/app/components/gantt/ProjectGantt";
 import BurndownChart from "@/app/components/charts/BurndownChart";
 import TaskSheet from "@/app/components/TaskSheet";
 import SCurveChart from "../SCurveChart";
-import { Task } from "@/lib/tasks";
+import { Task } from "../../../../lib/tasks";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

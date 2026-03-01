@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { forwardRef } from "react";
-import { Task } from "@/lib/tasks";
+import { Task } from "../../../lib/tasks";
 
 interface TaskCardProps {
   task: Task;

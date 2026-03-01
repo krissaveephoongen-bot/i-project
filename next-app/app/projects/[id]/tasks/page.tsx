@@ -4,7 +4,7 @@ import Header from "@/app/components/Header";
 import PageTransition from "@/app/components/PageTransition";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
-import { Task } from "@/lib/tasks";
+import { Task } from "../../../../lib/tasks";
 
 export const metadata = {
   title: "Tasks | i-Project",

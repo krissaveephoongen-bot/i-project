@@ -10,7 +10,7 @@ import {
 import "gantt-task-react/dist/index.css";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { Task } from "@/lib/tasks";
+import { Task } from "../../../lib/tasks";
 
 interface ProjectGanttProps {
   tasks: Task[];

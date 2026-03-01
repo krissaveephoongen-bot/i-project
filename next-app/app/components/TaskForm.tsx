@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { Calendar, User, Flag, Clock } from "lucide-react";
-import { Task } from "@/lib/tasks";
+import { Task } from "../../lib/tasks";
 import { useLanguage } from "@/lib/hooks/useLanguage";
 import { useToast } from "@/hooks/useToast";
 

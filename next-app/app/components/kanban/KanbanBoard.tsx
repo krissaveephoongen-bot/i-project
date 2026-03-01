@@ -18,7 +18,7 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { KanbanColumn } from "./KanbanColumn";
 import { TaskCard } from "./KanbanCard";
-import { Task } from "@/lib/tasks";
+import { Task } from "../../../lib/tasks";
 
 interface KanbanBoardProps {
   tasks: Task[];

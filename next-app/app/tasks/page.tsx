@@ -43,7 +43,7 @@ import {
   getMilestonesForDropdown,
 } from "./actions";
 import { toast } from "react-hot-toast";
-import { Task } from "@/lib/tasks";
+import { Task } from "../../lib/tasks";
 
 export default function TasksPage() {
   const sp = useSearchParams();

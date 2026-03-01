@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { format, differenceInDays, addDays, isAfter } from "date-fns";
 import { th } from "date-fns/locale";
-import { Task } from "@/lib/tasks";
+import { Task } from "../../../lib/tasks";
 
 interface BurndownChartProps {
   tasks: Task[];

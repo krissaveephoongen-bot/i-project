@@ -6,7 +6,7 @@ import {
   SheetTitle,
 } from "./ui/sheet";
 import TaskForm from "./TaskForm";
-import { Task } from "@/lib/tasks";
+import { Task } from "../../lib/tasks";
 
 interface TaskSheetProps {
   isOpen: boolean;
