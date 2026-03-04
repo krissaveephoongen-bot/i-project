@@ -220,9 +220,10 @@ export default function UserManagementPage() {
 
       {/* Table */}
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
               <TableHead>User</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
@@ -329,6 +330,7 @@ export default function UserManagementPage() {
             )}
           </TableBody>
         </Table>
+        </div>
 
         {/* Pagination */}
         <div className="p-4 border-t border-slate-200 flex justify-between items-center">

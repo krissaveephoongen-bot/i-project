@@ -347,10 +347,11 @@ export default function ExpensesClient({
 
           <Card>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{labels.date}</TableHead>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{labels.date}</TableHead>
                     <TableHead>{labels.project}</TableHead>
                     <TableHead>{labels.category}</TableHead>
                     <TableHead>{labels.description}</TableHead>
@@ -434,6 +435,7 @@ export default function ExpensesClient({
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
 

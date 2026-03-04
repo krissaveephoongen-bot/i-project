@@ -203,8 +203,9 @@ export default function AdminVendorsPage() {
 
         {!loading && !error && (
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-            <Table>
-              <TableHeader>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                 <TableRow className="bg-slate-50">
                   <TableHead>Name</TableHead>
                   <TableHead>Code</TableHead>
@@ -265,6 +266,7 @@ export default function AdminVendorsPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
         )}
 
