@@ -127,10 +127,11 @@ export default function ActivityAdminPage() {
 
         <Card>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ชื่อกิจกรรม</TableHead>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ชื่อกิจกรรม</TableHead>
                   <TableHead>ประเภทงาน (Work Type)</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
@@ -194,6 +195,7 @@ export default function ActivityAdminPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
