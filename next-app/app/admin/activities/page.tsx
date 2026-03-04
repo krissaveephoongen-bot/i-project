@@ -1,23 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Header from "../../components/Header";
-import { Button } from "../../components/ui/button";
+import Header from "@/app/components/Header";
+import { Button } from "@/app/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../components/ui/card";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
+} from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/select";
+} from "@/app/components/ui/select";
 import {
   Table,
   TableBody,
@@ -25,14 +25,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../components/ui/table";
+} from "@/app/components/ui/table";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "../../components/ui/dialog";
+} from "@/app/components/ui/dialog";
 import { Edit2, Trash2, Plus } from "lucide-react";
 import { activityService, ActivityType } from "@/app/lib/activity-service";
 import { WorkType } from "@/app/timesheet/types";

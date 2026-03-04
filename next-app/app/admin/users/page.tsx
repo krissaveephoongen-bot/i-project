@@ -62,7 +62,7 @@ export default function UserManagementPage() {
     name: "",
     email: "",
     password: "",
-    role: "employee",
+    role: "member",
     department: "",
     position: "",
   });
@@ -168,13 +168,13 @@ export default function UserManagementPage() {
     } else {
       setEditingUser(null);
       setFormData({
-        name: "",
-        email: "",
-        password: "",
-        role: "employee",
-        department: "",
-        position: "",
-      });
+      name: "",
+      email: "",
+      password: "",
+      role: "member",
+      department: "",
+      position: "",
+    });
     }
     setIsModalOpen(true);
   };
@@ -213,7 +213,7 @@ export default function UserManagementPage() {
             <SelectItem value="all">All Roles</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>
             <SelectItem value="manager">Manager</SelectItem>
-            <SelectItem value="employee">Employee</SelectItem>
+            <SelectItem value="member">Member</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -279,7 +279,7 @@ export default function UserManagementPage() {
                       }
                     `}
                     >
-                      {user.role}
+                      {user.role === "member" ? "Member" : user.role === "employee" ? "Member" : user.role}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -403,7 +403,7 @@ export default function UserManagementPage() {
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="member">Member</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

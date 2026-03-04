@@ -34,7 +34,7 @@ import { useTranslation } from "react-i18next";
 
 export const dynamic = "force-dynamic";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const API_BASE = process.env.NEXT_PUBLIC_APP_URL || "";
 
 interface ApprovalRequest {
   id: string;
