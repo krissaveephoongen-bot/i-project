@@ -32,8 +32,17 @@ export default async function ExecutiveDashboard() {
   try {
     // Optimization: Directly fetch from internal logic if possible, but keep existing fetch for safety
     // as per "Functional Integrity" constraint.
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/dashboard/portfolio`, {
+    // Use relative path for internal API calls or environment variable
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+    // If running on server, we might need full URL, but for relative fetch in Next.js Server Components,
+    // it's tricky. Best to use direct logic or headers().
+    // However, for now let's use the env var or default to empty string if client-side (though this is server component).
+    
+    // BETTER APPROACH: Call the logic directly if possible, but here we'll fix the localhost hardcoding first.
+    // In Server Components, fetch needs absolute URL.
+    const apiUrl = baseUrl ? `${baseUrl}/api/dashboard/portfolio` : `http://localhost:${process.env.PORT || 3000}/api/dashboard/portfolio`;
+    
+    const res = await fetch(apiUrl, {
       cache: "no-store",
     });
     if (res.ok) {

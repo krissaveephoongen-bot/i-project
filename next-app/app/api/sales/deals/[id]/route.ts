@@ -1,49 +1,54 @@
 import { ok, err } from "../../../_lib/db";
-import { supabase } from "@/app/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
 export async function GET(
-  _: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
+    const supabase = createClient(cookies());
     const id = params.id;
-    const { data: d } = await supabase
+    const { data: d, error } = await supabase
       .from("sales_deals")
       .select("*")
       .eq("id", id)
-      .limit(1);
-    const deal = (d || [])[0];
-    if (!deal) return err("Not found", 404);
+      .single();
+    
+    if (error || !d) return err("Not found", 404);
+    
     let stageName = null;
-    if (deal.stage_id) {
+    if (d.stage_id) {
       const { data: stage } = await supabase
         .from("sales_stages")
         .select("name")
-        .eq("id", deal.stage_id)
-        .limit(1);
-      stageName = (stage || [])[0]?.name || null;
+        .eq("id", d.stage_id)
+        .single();
+      stageName = stage?.name || null;
     }
+    
     return ok(
       {
-        id: deal.id,
-        pipelineId: deal.pipeline_id,
-        stageId: deal.stage_id || null,
-        name: deal.name,
-        amount: Number(deal.amount || 0),
-        currency: deal.currency,
-        ownerId: deal.owner_id || null,
-        clientId: deal.client_id || null,
-        clientOrg: deal.client_org || null,
-        status: deal.status,
-        probability: Number(deal.probability || 0),
-        created_at: deal.created_at,
-        updated_at: deal.updated_at,
+        id: d.id,
+        pipelineId: d.pipeline_id,
+        stageId: d.stage_id || null,
+        name: d.name,
+        amount: Number(d.amount || 0),
+        currency: d.currency,
+        ownerId: d.owner_id || null,
+        clientId: d.client_id || null,
+        clientOrg: d.client_org || null,
+        status: d.status,
+        probability: Number(d.probability || 0),
+        created_at: d.created_at,
+        updated_at: d.updated_at,
         stage_name: stageName,
       },
       200,
     );
   } catch (e: any) {
+    console.error("GET Deal Error:", e);
     return err(e?.message || "error", 500);
   }
 }
@@ -53,6 +58,7 @@ export async function PUT(
   { params }: { params: { id: string } },
 ) {
   try {
+    const supabase = createClient(cookies());
     const id = params.id;
     const body = await req.json();
     const payload: any = { updated_at: new Date().toISOString() };
@@ -66,33 +72,40 @@ export async function PUT(
       "client_org",
       "status",
       "probability",
+      "pipeline_id", // Added pipeline_id just in case
     ];
+    
     for (const k of keys) {
-      if (k in body) payload[k] = body[k];
+      if (body[k] !== undefined) payload[k] = body[k];
     }
+    
     const { data, error } = await supabase
       .from("sales_deals")
       .update(payload)
       .eq("id", id)
-      .select("*")
-      .limit(1);
+      .select()
+      .single();
+      
     if (error) return err(error.message || "error", 500);
-    return ok((data || [])[0] || {}, 200);
+    return ok(data || {}, 200);
   } catch (e: any) {
+    console.error("PUT Deal Error:", e);
     return err(e?.message || "error", 500);
   }
 }
 
 export async function DELETE(
-  _: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
+    const supabase = createClient(cookies());
     const id = params.id;
     const { error } = await supabase.from("sales_deals").delete().eq("id", id);
     if (error) return err(error.message || "error", 500);
     return ok({ ok: true }, 200);
   } catch (e: any) {
+    console.error("DELETE Deal Error:", e);
     return err(e?.message || "error", 500);
   }
 }

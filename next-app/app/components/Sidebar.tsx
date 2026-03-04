@@ -147,7 +147,7 @@ export default function Sidebar({
         //     name: t('navigation.dashboard'),
         //     href: '/dashboard',
         //     icon: LayoutDashboard,
-        //     roles: ['admin', 'manager', 'employee']
+        //     roles: ['admin', 'manager', 'member']
         // },
         {
           name: t("navigation.reports"),
@@ -164,7 +164,7 @@ export default function Sidebar({
           name: t("navigation.projects"),
           href: "/projects",
           icon: FolderKanban,
-          roles: ["admin", "manager", "employee"],
+          roles: ["admin", "manager", "member"],
           children: [
             {
               name: "Weekly Activities",
@@ -183,18 +183,18 @@ export default function Sidebar({
           name: t("navigation.tasks"),
           href: "/tasks",
           icon: CheckSquare,
-          roles: ["admin", "manager", "employee"],
+          roles: ["admin", "manager", "member"],
         },
         {
           name: t("navigation.timesheet"),
           href: "/timesheet",
           icon: Calendar,
-          roles: ["admin", "manager", "employee"],
+          roles: ["admin", "manager", "member"],
         },
         {
           name: t("navigation.expenses"),
           icon: CreditCard,
-          roles: ["admin", "manager", "employee"],
+          roles: ["admin", "manager", "member"],
           children: [
             { name: "All Expenses", href: "/expenses", icon: CreditCard },
             { name: "Memo Expenses", href: "/expenses/memo", icon: FileText },
@@ -283,7 +283,7 @@ export default function Sidebar({
     }));
   };
 
-  const userRole = user?.role || "employee";
+  const userRole = user?.role || "member";
 
   return (
     <aside
