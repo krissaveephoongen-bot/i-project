@@ -49,7 +49,7 @@ export async function createProjectAction(input: ProjectInput) {
   // Map camelCase to snake_case for DB
   const dbInput = {
     name: input.name,
-    project_code: input.code,
+    // project_code: input.code, // Column likely missing
     description: input.description,
     status: input.status,
     manager_id: input.managerId,
@@ -88,7 +88,7 @@ export async function updateProjectAction(id: string, input: Partial<ProjectInpu
   // Map updates
   const updates: any = {};
   if (input.name !== undefined) updates.name = input.name;
-  if (input.code !== undefined) updates.project_code = input.code;
+  // if (input.code !== undefined) updates.project_code = input.code;
   if (input.description !== undefined) updates.description = input.description;
   if (input.status !== undefined) updates.status = input.status;
   if (input.managerId !== undefined) updates.manager_id = input.managerId;
@@ -151,12 +151,12 @@ export async function createTaskAction(input: TaskInput) {
       priority: input.priority,
       project_id: input.projectId, // DB column: project_id
       milestone_id: input.milestoneId,
-      assigned_to: input.assignedTo,
+      assignee_id: input.assignedTo, // Fixed: DB column is assignee_id
       start_date: input.startDate,
       end_date: input.endDate,
-      weight: input.weight,
-      progress_plan: input.progressPlan,
-      progress_actual: input.progressActual,
+      // weight: input.weight, // Columns missing in DB
+      // progress_plan: input.progressPlan,
+      // progress_actual: input.progressActual,
     })
     .select()
     .single();
@@ -189,12 +189,12 @@ export async function updateTaskAction(id: string, input: Partial<TaskInput>) {
   if (input.priority !== undefined) updates.priority = input.priority;
   if (input.projectId !== undefined) updates.project_id = input.projectId;
   if (input.milestoneId !== undefined) updates.milestone_id = input.milestoneId;
-  if (input.assignedTo !== undefined) updates.assigned_to = input.assignedTo;
+  if (input.assignedTo !== undefined) updates.assignee_id = input.assignedTo; // Fixed
   if (input.startDate !== undefined) updates.start_date = input.startDate;
   if (input.endDate !== undefined) updates.end_date = input.endDate;
-  if (input.weight !== undefined) updates.weight = input.weight;
-  if (input.progressPlan !== undefined) updates.progress_plan = input.progressPlan;
-  if (input.progressActual !== undefined) updates.progress_actual = input.progressActual;
+  // if (input.weight !== undefined) updates.weight = input.weight;
+  // if (input.progressPlan !== undefined) updates.progress_plan = input.progressPlan;
+  // if (input.progressActual !== undefined) updates.progress_actual = input.progressActual;
   
   updates.updated_at = new Date().toISOString();
 

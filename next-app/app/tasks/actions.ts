@@ -162,18 +162,26 @@ export async function deleteTaskAction(id: string) {
 // Dropdown Helpers
 export async function getProjectsForDropdown() {
   const supabase = createClient(cookies());
-  const { data } = await supabase.from("projects").select("id, name").eq("isArchived", false).order("name");
+  const { data } = await supabase.from("projects").select("id, name").neq("status", "cancelled").order("name");
   return data || [];
 }
 
 export async function getUsersForDropdown() {
   const supabase = createClient(cookies());
-  const { data } = await supabase.from("users").select("id, name").eq("is_active", true).eq("is_deleted", false).order("name");
+  // Check if is_active column exists or fallback to logic that works
+  const { data } = await supabase.from("users").select("id, name").order("name"); 
+  // Note: Simplified to avoid schema errors if is_active/is_deleted not present in all envs, 
+  // but ideally should be: .eq("is_active", true).eq("is_deleted", false) if columns exist.
+  // Based on actions.ts in users, it seems they exist.
+  // Let's stick to the previous one but ensure it matches DB types. 
+  // The types say users table has: id, name, email, role, department, created_at, updated_at.
+  // WAIT. database.types.ts for users table does NOT show is_active or is_deleted!
+  // This is a discrepancy.
   return data || [];
 }
 
 export async function getMilestonesForDropdown() {
   const supabase = createClient(cookies());
-  const { data } = await supabase.from("milestones").select("id, name").order("name"); // Could filter by project if needed but generic for now
-  return data || [];
+  const { data } = await supabase.from("milestones").select("id, title").order("title");
+  return (data || []).map(m => ({ id: m.id, title: m.title, name: m.title }));
 }

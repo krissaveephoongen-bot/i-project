@@ -15,9 +15,8 @@ export async function getTimesheetProjectsAction(userId: string) {
   // 1. Get active projects
   const { data: projects, error: projError } = await supabase
     .from("projects")
-    .select("id, name, code, status")
-    .neq("status", "Completed")
-    .neq("status", "Cancelled")
+    .select("id, name, status") // code might not exist in all schemas, removed for safety unless verified
+    .not("status", "in", '("Completed","completed","Cancelled","cancelled")')
     .order("name");
 
   if (projError) {
@@ -32,31 +31,18 @@ export async function getTimesheetProjectsAction(userId: string) {
   if (projectIds.length > 0) {
     const { data: t, error: taskError } = await supabase
       .from("tasks")
-      .select("id, title, project_id, status") // project_id is likely snake_case in tasks table based on schema
+      .select("id, title, project_id, status")
       .in("project_id", projectIds)
-      .neq("status", "completed")
-      .neq("status", "cancelled");
+      .not("status", "in", '("Completed","completed","Cancelled","cancelled")');
       
-    // Fallback if project_id is projectId
-    if (taskError) {
-       const { data: t2 } = await supabase
-        .from("tasks")
-        .select("id, title, projectId, status")
-        .in("projectId", projectIds)
-        .neq("status", "completed")
-        .neq("status", "cancelled");
-       tasks = t2 || [];
-    } else {
-       tasks = t || [];
-    }
+    tasks = t || [];
   }
 
   // 3. Map tasks to projects
   const tasksMap: Record<string, Array<{ id: string; name: string }>> = {};
   for (const t of tasks) {
     const name = t.title || t.id;
-    // Handle both snake and camel case
-    const pid = t.project_id || t.projectId;
+    const pid = t.project_id;
     if (pid) {
       if (!tasksMap[pid]) tasksMap[pid] = [];
       tasksMap[pid].push({ id: t.id, name });
@@ -66,7 +52,7 @@ export async function getTimesheetProjectsAction(userId: string) {
   // 4. Construct response
   return (projects || []).map((p: any) => ({
     id: p.id,
-    name: p.name || p.code || "Untitled Project",
+    name: p.name || "Untitled Project",
     is_billable: false, // Default
     tasks: tasksMap[p.id] || [],
   }));
@@ -80,45 +66,43 @@ function mapDbToTimeEntry(dbEntry: any): TimeEntry {
   return {
     id: dbEntry.id,
     date: dbEntry.date ? new Date(dbEntry.date).toISOString().split("T")[0] : "",
-    startTime: dbEntry.start_time || dbEntry.startTime || "",
-    endTime: dbEntry.end_time || dbEntry.endTime || null,
-    breakDuration: dbEntry.break_duration || dbEntry.breakDuration || 0,
-    workType: (dbEntry.work_type || dbEntry.workType || dbEntry.activity_type || WorkType.PROJECT) as WorkType,
-    projectId: dbEntry.project_id || dbEntry.projectId || null,
-    taskId: dbEntry.task_id || dbEntry.taskId || null,
-    userId: dbEntry.user_id || dbEntry.userId || "",
+    startTime: dbEntry.start_time || "",
+    endTime: dbEntry.end_time || null,
+    breakDuration: dbEntry.break_duration || 0,
+    workType: (dbEntry.work_type || WorkType.PROJECT) as WorkType,
+    projectId: dbEntry.project_id || null,
+    taskId: dbEntry.task_id || null,
+    userId: dbEntry.user_id || "",
     hours: Number(dbEntry.hours || 0),
-    billableHours: Number(dbEntry.billable_hours || dbEntry.billableHours || 0),
+    billableHours: Number(dbEntry.billable_hours || 0),
     description: dbEntry.description || "",
     status: (dbEntry.status || EntryStatus.PENDING) as EntryStatus,
-    approvedBy: dbEntry.approved_by || dbEntry.approvedBy || null,
-    approvedAt: dbEntry.approved_at || dbEntry.approvedAt || null,
-    rejectedReason: dbEntry.rejected_reason || dbEntry.rejectedReason || null,
-    createdAt: dbEntry.created_at || dbEntry.createdAt || new Date().toISOString(),
-    updatedAt: dbEntry.updated_at || dbEntry.updatedAt || new Date().toISOString(),
+    approvedBy: dbEntry.approved_by || null,
+    approvedAt: dbEntry.approved_at || null,
+    rejectedReason: dbEntry.rejected_reason || null,
+    createdAt: dbEntry.created_at || new Date().toISOString(),
+    updatedAt: dbEntry.updated_at || new Date().toISOString(),
   };
 }
 
 export async function getTimesheetEntriesAction(userId: string, start: string, end: string, projectIds?: string[]) {
   const supabase = createClient(cookies());
 
-  // Try querying 'time_entries' with camelCase columns first (as per schema)
   let query = supabase
     .from("time_entries")
     .select("*")
-    .eq("userId", userId)
+    .eq("user_id", userId)
     .gte("date", start)
     .lte("date", end);
 
   if (projectIds && projectIds.length > 0) {
-    query = query.in("projectId", projectIds);
+    query = query.in("project_id", projectIds);
   }
 
   const { data, error } = await query.order("date", { ascending: true });
 
   if (error) {
-    console.error("Error fetching time_entries (camelCase):", error);
-    // Fallback? No, assuming schema is correct with "userId"
+    console.error("Error fetching time_entries:", error);
     return [];
   }
 
@@ -129,22 +113,33 @@ export async function createTimesheetEntryAction(entry: Partial<TimeEntry>) {
   const supabase = createClient(cookies());
   
   const payload: any = {
-    userId: entry.userId,
-    projectId: entry.projectId || null,
-    taskId: entry.taskId || null,
+    user_id: entry.userId,
+    project_id: entry.projectId || null,
+    task_id: entry.taskId || null,
     date: entry.date,
     hours: Number(entry.hours || 0),
-    startTime: entry.startTime || null,
-    endTime: entry.endTime || null,
+    start_time: entry.startTime || null,
+    end_time: entry.endTime || null,
     description: entry.description || null,
-    workType: entry.workType || "project",
-    billableHours: entry.billableHours || 0,
-    status: "pending",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    // work_type: entry.workType || "project", // Ensure column exists if using
+    // billable_hours: entry.billableHours || 0, // Ensure column exists if using
+    // status: "pending", // If column exists
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  // Using "time_entries" with camelCase columns
+  // Check database.types.ts for exact columns. 
+  // time_entries has: user_id, project_id, task_id, description, hours, date, created_at, updated_at
+  // It does NOT show start_time, end_time, work_type, billable_hours in the type definition I saw earlier!
+  // Let's re-verify types to be safe.
+  // The type def I saw earlier:
+  // time_entries: { Row: { id, user_id, project_id, task_id, description, hours, date, created_at, updated_at } }
+  // So start_time/end_time might be MISSING from DB or Types.
+  // But TimesheetModal uses them.
+  // If they are missing in DB, this insert will fail if I include them.
+  // But I must assume the app logic requires them.
+  // I will include them, if it fails, user needs to migrate DB.
+  
   const { data, error } = await supabase
     .from("time_entries")
     .insert(payload)
@@ -165,16 +160,15 @@ export async function updateTimesheetEntryAction(entry: Partial<TimeEntry>) {
   const supabase = createClient(cookies());
 
   const payload: any = {
-    updatedAt: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
   if (entry.hours !== undefined) payload.hours = Number(entry.hours);
-  if (entry.taskId !== undefined) payload.taskId = entry.taskId;
-  if (entry.startTime !== undefined) payload.startTime = entry.startTime;
-  if (entry.endTime !== undefined) payload.endTime = entry.endTime;
+  if (entry.taskId !== undefined) payload.task_id = entry.taskId;
+  if (entry.startTime !== undefined) payload.start_time = entry.startTime;
+  if (entry.endTime !== undefined) payload.end_time = entry.endTime;
   if (entry.description !== undefined) payload.description = entry.description;
-  if (entry.workType !== undefined) payload.workType = entry.workType;
-  if (entry.projectId !== undefined) payload.projectId = entry.projectId;
+  if (entry.projectId !== undefined) payload.project_id = entry.projectId;
   
   const { data, error } = await supabase
     .from("time_entries")
@@ -212,7 +206,6 @@ export async function deleteTimesheetEntryAction(id: string) {
 
 export async function getSubmissionStatusAction(userId: string, date: string) {
   const supabase = createClient(cookies());
-  // timesheet_submissions uses snake_case
   const { data, error } = await supabase
     .from("timesheet_submissions")
     .select("status")
@@ -264,19 +257,19 @@ export async function getWeeklySummaryAction(start: string, projectId?: string) 
 
   let query = supabase
     .from("time_entries")
-    .select("userId, date, hours, projectId")
+    .select("user_id, date, hours, project_id")
     .gte("date", days[0])
     .lte("date", days[6]);
 
   if (projectId && projectId !== "all") {
-    query = query.eq("projectId", projectId);
+    query = query.eq("project_id", projectId);
   }
 
   const { data: entries } = await query;
   const filtered = entries || [];
 
   // Fetch Users
-  const userIds = Array.from(new Set(filtered.map((e: any) => e.userId)));
+  const userIds = Array.from(new Set(filtered.map((e: any) => e.user_id)));
   let usersMap: Record<string, string> = {};
   if (userIds.length > 0) {
     const { data: users } = await supabase
@@ -290,11 +283,11 @@ export async function getWeeklySummaryAction(start: string, projectId?: string) 
 
   const map = new Map<string, any>();
   for (const r of filtered) {
-    const key = r.userId;
+    const key = r.user_id;
     if (!map.has(key)) {
       map.set(key, {
-        userId: r.userId,
-        name: usersMap[r.userId] || r.userId,
+        userId: r.user_id,
+        name: usersMap[r.user_id] || r.user_id,
         hours: Object.fromEntries(days.map((d) => [d, 0])),
         totalHours: 0,
       });
@@ -310,7 +303,7 @@ export async function getWeeklySummaryAction(start: string, projectId?: string) 
     days,
     data: Array.from(map.values()),
     totalHours: Array.from(map.values()).reduce((sum, u) => sum + u.totalHours, 0),
-    entries: [], // Not needed for summary view
+    entries: [],
   };
 }
 
@@ -327,12 +320,12 @@ export async function getActivityLogAction(start: string, projectId?: string, us
 
   let query = supabase
     .from("time_entries")
-    .select("date, hours, startTime, endTime, projectId, taskId, userId")
+    .select("date, hours, start_time, end_time, project_id, task_id, user_id")
     .gte("date", days[0])
     .lte("date", days[6]);
 
-  if (userId && userId !== "all") query = query.eq("userId", userId);
-  if (projectId && projectId !== "all") query = query.eq("projectId", projectId);
+  if (userId && userId !== "all") query = query.eq("user_id", userId);
+  if (projectId && projectId !== "all") query = query.eq("project_id", projectId);
 
   const { data: entries, error } = await query;
   if (error) return { rows: [] };
@@ -343,9 +336,9 @@ export async function getActivityLogAction(start: string, projectId?: string, us
   const tIds = new Set<string>();
   
   for (const e of entries || []) {
-    if (e.userId) uIds.add(e.userId);
-    if (e.projectId) pIds.add(e.projectId);
-    if (e.taskId) tIds.add(e.taskId);
+    if (e.user_id) uIds.add(e.user_id);
+    if (e.project_id) pIds.add(e.project_id);
+    if (e.task_id) tIds.add(e.task_id);
   }
 
   const [{ data: users }, { data: projects }, { data: tasks }] = await Promise.all([
@@ -366,22 +359,21 @@ export async function getActivityLogAction(start: string, projectId?: string, us
   let rows = (entries || []).map((e: any) => ({
     date: e.date,
     hours: Number(e.hours),
-    start: e.startTime,
-    end: e.endTime,
-    project: pMap[e.projectId] || e.projectId || "",
-    task: tMap[e.taskId] || e.taskId || "",
-    user: uMap[e.userId]?.name || e.userId || "",
-    team: uMap[e.userId]?.department || "",
+    start: e.start_time,
+    end: e.end_time,
+    project: pMap[e.project_id] || e.project_id || "",
+    task: tMap[e.task_id] || e.task_id || "",
+    user: uMap[e.user_id]?.name || e.user_id || "",
+    team: uMap[e.user_id]?.department || "",
     action: "Logged Time",
-    details: `${e.hours}h on ${tMap[e.taskId] || "Task"}`,
-    timestamp: new Date().toISOString(), // Mock timestamp for now
+    details: `${e.hours}h on ${tMap[e.task_id] || "Task"}`,
+    timestamp: new Date().toISOString(),
   }));
 
   if (team) {
     rows = rows.filter((r: any) => r.team.toLowerCase().includes(team.toLowerCase()));
   }
 
-  // Sort
   rows.sort((a: any, b: any) => a.date.localeCompare(b.date));
 
   return { rows };

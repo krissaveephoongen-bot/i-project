@@ -31,7 +31,7 @@ export default async function ExpensesPage() {
       description,
       status,
       rejected_reason,
-      receiptUrl,
+      receiptUrl:receipt_url,
       details,
       project:projects(name),
       task:tasks(title)
@@ -50,8 +50,7 @@ export default async function ExpensesPage() {
   const { data: projectsData, error: projError } = await supabase
     .from("projects")
     .select("id, name")
-    .neq("status", "Completed")
-    .neq("status", "Cancelled")
+    .not("status", "in", '("Completed","completed","Cancelled","cancelled")')
     .order("name");
 
   if (projError) {
