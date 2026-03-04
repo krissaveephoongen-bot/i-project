@@ -80,9 +80,9 @@ export default function WeeklyView({
           </Button>
         </div>
 
-        <div className="rounded-xl border border-slate-200 overflow-hidden">
-          <Table>
-            <TableHeader className="bg-slate-50">
+        <div className="rounded-xl border border-slate-200 overflow-hidden overflow-x-auto">
+        <Table>
+          <TableHeader className="bg-slate-50">
               <TableRow>
                 <TableHead>พนักงาน</TableHead>
                 {(weekly?.days || []).map((d) => (

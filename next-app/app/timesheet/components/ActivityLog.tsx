@@ -100,7 +100,7 @@ export default function ActivityLog({
           </Button>
         </div>
 
-        <div className="rounded-xl border border-slate-200 overflow-hidden">
+        <div className="rounded-xl border border-slate-200 overflow-hidden overflow-x-auto">
           <Table>
             <TableHeader className="bg-slate-50">
               <TableRow>
