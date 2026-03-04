@@ -100,9 +100,8 @@ export default function TravelExpensePage() {
 
   const fetchProjects = async () => {
     try {
-      const res = await fetch(
-        `${API_BASE}/api/timesheet/projects?userId=${user?.id}`,
-      );
+      // Use /api/projects which now uses backend API or direct DB query
+      const res = await fetch(`${API_BASE}/api/projects`);
       if (res.ok) {
         const data = await res.json();
         setProjects(data);

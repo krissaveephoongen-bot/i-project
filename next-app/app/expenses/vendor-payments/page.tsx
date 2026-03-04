@@ -49,7 +49,7 @@ export default function ExpensesVendorPaymentsPage() {
       if (search) params.set("search", search);
       params.set("limit", "20");
       const res = await fetch(
-        `${baseUrl}/api/vendor-payments?${params.toString()}`,
+        `${baseUrl}/api/expenses/vendor-payments?${params.toString()}`,
         { cache: "no-store" },
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -86,7 +86,7 @@ export default function ExpensesVendorPaymentsPage() {
   };
   const openEdit = async (p: Payment) => {
     try {
-      const res = await fetch(`${baseUrl}/api/vendor-payments/${p.id}`, {
+      const res = await fetch(`${baseUrl}/api/expenses/vendor-payments/${p.id}`, {
         cache: "no-store",
       });
       if (res.ok) {
@@ -123,8 +123,8 @@ export default function ExpensesVendorPaymentsPage() {
     try {
       const method = editing ? "PUT" : "POST";
       const url = editing
-        ? `${baseUrl}/api/vendor-payments/${editing.id}`
-        : `${baseUrl}/api/vendor-payments`;
+        ? `${baseUrl}/api/expenses/vendor-payments/${editing.id}`
+        : `${baseUrl}/api/expenses/vendor-payments`;
       const body = {
         vendorId: form.vendorId,
         contractId: form.contractId || null,
@@ -153,7 +153,7 @@ export default function ExpensesVendorPaymentsPage() {
   const remove = async (id: string) => {
     if (!confirm("Delete this payment?")) return;
     try {
-      const res = await fetch(`${baseUrl}/api/vendor-payments/${id}`, {
+      const res = await fetch(`${baseUrl}/api/expenses/vendor-payments/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

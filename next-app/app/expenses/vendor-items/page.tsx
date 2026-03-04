@@ -55,7 +55,7 @@ export default function ExpensesVendorItemsPage() {
       if (search) params.set("search", search);
       params.set("limit", "20");
       const res = await fetch(
-        `${baseUrl}/api/expense-items?${params.toString()}`,
+        `${baseUrl}/api/expenses/vendor-items?${params.toString()}`,
         { cache: "no-store" },
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -96,7 +96,7 @@ export default function ExpensesVendorItemsPage() {
   };
   const openEdit = async (it: Item) => {
     try {
-      const res = await fetch(`${baseUrl}/api/expense-items/${it.id}`, {
+      const res = await fetch(`${baseUrl}/api/expenses/vendor-items/${it.id}`, {
         cache: "no-store",
       });
       if (res.ok) {
@@ -139,8 +139,8 @@ export default function ExpensesVendorItemsPage() {
     try {
       const method = editing ? "PUT" : "POST";
       const url = editing
-        ? `${baseUrl}/api/expense-items/${editing.id}`
-        : `${baseUrl}/api/expense-items`;
+        ? `${baseUrl}/api/expenses/vendor-items/${editing.id}`
+        : `${baseUrl}/api/expenses/vendor-items`;
       const body = {
         expenseId: form.expenseId,
         vendorId: form.vendorId || null,
@@ -172,7 +172,7 @@ export default function ExpensesVendorItemsPage() {
   const remove = async (id: string) => {
     if (!confirm("Delete this item?")) return;
     try {
-      const res = await fetch(`${baseUrl}/api/expense-items/${id}`, {
+      const res = await fetch(`${baseUrl}/api/expenses/vendor-items/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

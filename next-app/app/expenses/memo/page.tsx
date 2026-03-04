@@ -62,18 +62,15 @@ export default function MemoRequestPage() {
     try {
       setLoading(true);
       // Fetch Projects
-      const projRes = await fetch(
-        `${API_BASE}/api/timesheet/projects?userId=${user?.id}`,
-      );
+      // Use /api/projects which now uses backend API or direct DB query
+      const projRes = await fetch(`${API_BASE}/api/projects`);
       if (projRes.ok) {
         const data = await projRes.json();
         setProjects(data);
       }
 
       // Fetch Users (for approver selection)
-      // Assuming we have an endpoint for users, or use existing one.
-      // We can use /api/users or similar.
-      const usersRes = await fetch(`${API_BASE}/api/users`);
+      const usersRes = await fetch(`${API_BASE}/api/users?status=active`);
       if (usersRes.ok) {
         const data = await usersRes.json();
         // Filter out current user? Or allow self-approval (usually not)
