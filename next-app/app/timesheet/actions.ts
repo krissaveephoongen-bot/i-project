@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { TimeEntry, EntryStatus, WorkType, WeeklyData, ActivityData } from "./types";
@@ -10,7 +10,7 @@ import { TimeEntry, EntryStatus, WorkType, WeeklyData, ActivityData } from "./ty
 // ============================================================================
 
 export async function getTimesheetProjectsAction(userId: string) {
-  const supabase = createClient(cookies());
+  const supabase = createAdminClient();
 
   // 1. Get active projects
   const { data: projects, error: projError } = await supabase

@@ -252,8 +252,8 @@ export function getRequiredApproverRole(leaveType: string): string {
  */
 export function getLeaveTypePriority(leaveType: string): number {
   const priorities: Record<string, number> = {
-    [LeaveTypeEnum.ANNUAL]: 1,
-    [LeaveTypeEnum.MATERNITY]: 2,
+    [LeaveTypeEnum.MATERNITY]: 1,
+    [LeaveTypeEnum.ANNUAL]: 2,
     [LeaveTypeEnum.SICK]: 3,
     [LeaveTypeEnum.PERSONAL]: 4,
     [LeaveTypeEnum.UNPAID]: 5,

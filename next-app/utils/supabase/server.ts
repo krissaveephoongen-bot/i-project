@@ -1,8 +1,10 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export const createClient = (cookieStore: ReturnType<typeof cookies>) => {
   return createServerClient(supabaseUrl!, supabaseKey!, {
@@ -22,5 +24,18 @@ export const createClient = (cookieStore: ReturnType<typeof cookies>) => {
         }
       },
     },
+  });
+};
+
+// Create admin client for server-side operations with elevated permissions
+export const createAdminClient = () => {
+  return createSupabaseClient(supabaseUrl!, serviceRoleKey!, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    },
+    db: {
+      schema: 'public'
+    }
   });
 };

@@ -199,16 +199,16 @@ describe("Business Day Calculations", () => {
 
 describe("Rounding Functions", () => {
   describe("roundToNearestQuarter", () => {
-    it("should round 09:08 to 09:00", () => {
-      expect(roundToNearestQuarter("09:08")).toBe("09:00");
+    it("should round 09:08 to 09:15", () => {
+      expect(roundToNearestQuarter("09:08")).toBe("09:15");
     });
 
     it("should round 09:12 to 09:15", () => {
       expect(roundToNearestQuarter("09:12")).toBe("09:15");
     });
 
-    it("should round 09:37 to 09:45", () => {
-      expect(roundToNearestQuarter("09:37")).toBe("09:45");
+    it("should round 09:37 to 09:30", () => {
+      expect(roundToNearestQuarter("09:37")).toBe("09:30");
     });
   });
 

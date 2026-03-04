@@ -27,7 +27,7 @@ import {
   getTimesheetEntriesAction,
   createTimesheetEntryAction,
   deleteTimesheetEntryAction,
-} from "../actions";
+} from "../actions-fixed";
 import { activityService, ActivityType } from "@/app/lib/activity-service";
 import { TimeEntry, WorkType } from "@/app/timesheet/types";
 import { toast } from "react-hot-toast";
