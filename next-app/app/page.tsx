@@ -24,9 +24,11 @@ import {
   getDashboardFinancials,
   getDashboardTeamLoad,
   getDashboardProjects,
-  getDashboardVendorMetrics
+  getDashboardVendorMetrics,
+  getRecentActivities
 } from "@/app/lib/data-service";
 import { KpiCard } from "@/components/dashboard/KpiCard"; 
+import RecentActivitiesCard from "./dashboard/components/RecentActivitiesCard";
 
 // --- MAIN PAGE COMPONENT (SERVER) ---
 
@@ -40,6 +42,7 @@ export default async function ExecutiveDashboard() {
   const financialData = await getDashboardFinancials();
   const teamLoadData = await getDashboardTeamLoad();
   const vendorMetrics = await getDashboardVendorMetrics();
+  const recentActivities = await getRecentActivities();
 
   return (
     <PageTransition>
@@ -111,17 +114,19 @@ export default async function ExecutiveDashboard() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div className="lg:col-span-2">
-                <PortfolioHealthMatrix projects={projects} />
+            <div className="lg:col-span-2 space-y-6">
+              <PortfolioHealthMatrix projects={projects} />
+              <div className="bg-card rounded-xl shadow-sm border p-6">
+                <FinancialChart data={financialData} />
+              </div>
             </div>
 
-            <div className="bg-card rounded-xl shadow-sm border p-6">
-              <TeamLoadChart data={teamLoadData as any[]} />
+            <div className="space-y-6">
+              <RecentActivitiesCard activities={recentActivities} />
+              <div className="bg-card rounded-xl shadow-sm border p-6">
+                <TeamLoadChart data={teamLoadData as any[]} />
+              </div>
             </div>
-          </div>
-
-          <div className="bg-card rounded-xl shadow-sm border p-6 mb-6">
-            <FinancialChart data={financialData} />
           </div>
         </div>
       </div>

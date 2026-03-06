@@ -105,6 +105,7 @@ interface Project {
 interface ExpensesClientProps {
   initialExpenses: Expense[];
   initialProjects: Project[];
+  vendorPendingAmount?: number;
 }
 
 const CATEGORIES = [
@@ -120,6 +121,7 @@ const CATEGORIES = [
 export default function ExpensesClient({
   initialExpenses,
   initialProjects,
+  vendorPendingAmount = 0,
 }: ExpensesClientProps) {
   const { user } = useAuth();
   const { userRole } = usePermissions();
@@ -409,36 +411,48 @@ export default function ExpensesClient({
             </div>
             <div className="flex gap-2">
               <LanguageSwitcher />
+            </div>
+            
+            {/* Action Bar */}
+            <div className="flex flex-wrap gap-2 items-center bg-white p-2 rounded-xl shadow-sm border border-slate-100">
               <Link href="/expenses/memo">
-                <Button variant="outline" className="gap-2">
+                <Button variant="ghost" className="gap-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50">
                   <FileText className="h-4 w-4" /> {labels.viewMemo}
                 </Button>
               </Link>
+              <div className="w-px h-6 bg-slate-200 mx-1" />
               <Link href="/expenses/travel">
-                <Button variant="outline" className="gap-2">
+                <Button variant="ghost" className="gap-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50">
                   <Truck className="h-4 w-4" /> {labels.viewTravel}
                 </Button>
               </Link>
+              <div className="w-px h-6 bg-slate-200 mx-1" />
               <Link href="/expenses/vendor-items">
-                <Button variant="outline" className="gap-2">
+                <Button variant="ghost" className="gap-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50">
                   <List className="h-4 w-4" /> Vendor Items
                 </Button>
               </Link>
               <Link href="/expenses/vendor-payments">
-                <Button variant="outline" className="gap-2">
+                <Button variant="ghost" className="gap-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50">
                   <DollarSign className="h-4 w-4" /> Vendor Payments
                 </Button>
               </Link>
               {isAdminOrManager && (
-                <Link href="/admin/vendors">
-                  <Button variant="outline" className="gap-2">
-                    <LayoutGrid className="h-4 w-4" /> Vendors
-                  </Button>
-                </Link>
+                <>
+                  <div className="w-px h-6 bg-slate-200 mx-1" />
+                  <Link href="/admin/vendors">
+                    <Button variant="ghost" className="gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50">
+                      <LayoutGrid className="h-4 w-4" /> Vendors
+                    </Button>
+                  </Link>
+                </>
               )}
+              
+              <div className="flex-1" />
+              
               <Button
                 onClick={() => handleOpenModal()}
-                className="gap-2 bg-blue-600 hover:bg-blue-700"
+                className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-200 ml-2"
               >
                 <Plus className="h-4 w-4" />
                 {language === "th" ? "เรียกร้องใหม่" : "New Claim"}
@@ -447,31 +461,44 @@ export default function ExpensesClient({
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="shadow-sm border-slate-200 hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Pending Approval</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                <CardTitle className="text-sm font-medium text-slate-500">My Pending Approval</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">฿{totalPending.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-orange-600">฿{totalPending.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">{countPending} requests waiting</p>
               </CardContent>
             </Card>
-            <Card>
+            
+            <Card className="shadow-sm border-slate-200 hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Approved (Filtered)</CardTitle>
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CardTitle className="text-sm font-medium text-slate-500">My Approved Claims</CardTitle>
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">฿{totalApproved.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-emerald-600">฿{totalApproved.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">Total approved amount</p>
               </CardContent>
             </Card>
-            <Card>
+
+            <Card className="shadow-sm border-slate-200 hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Claims</CardTitle>
+                <CardTitle className="text-sm font-medium text-slate-500">Vendor Payments Due</CardTitle>
                 <DollarSign className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">฿{vendorPendingAmount.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Pending vendor payments</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="shadow-sm border-slate-200 hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-slate-500">Total Claims</CardTitle>
+                <FileText className="h-4 w-4 text-indigo-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-slate-900">

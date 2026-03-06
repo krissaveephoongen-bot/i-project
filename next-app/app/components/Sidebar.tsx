@@ -143,12 +143,12 @@ export default function Sidebar({
     {
       title: t("navigation.analytics", "ANALYTICS"),
       items: [
-        // {
-        //     name: t('navigation.dashboard'),
-        //     href: '/dashboard',
-        //     icon: LayoutDashboard,
-        //     roles: ['admin', 'manager', 'member']
-        // },
+        {
+          name: t("navigation.dashboard"),
+          href: "/",
+          icon: LayoutDashboard,
+          roles: ["admin", "manager", "member"],
+        },
         {
           name: t("navigation.reports"),
           href: "/reports",
@@ -265,7 +265,7 @@ export default function Sidebar({
           icon: Settings,
           roles: ["admin"],
           children: [
-            { name: t("navigation.users"), href: "/admin/users", icon: Users },
+            { name: t("navigation.users"), href: "/users", icon: Users },
             {
               name: "ประเภทกิจกรรม",
               href: "/admin/activities",

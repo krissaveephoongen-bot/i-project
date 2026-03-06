@@ -94,7 +94,60 @@ export interface VendorPaymentSummary {
   status: string;
 }
 
+export interface ActivityEntry {
+  id: string;
+  title: string;
+  description: string;
+  user: string;
+  date: string;
+  type: "audit" | "timesheet" | "system";
+}
+
 // --- Dashboard Functions ---
+
+export async function getRecentActivities(): Promise<ActivityEntry[]> {
+  const supabase = await getSafeSupabase();
+  const adminSupabase = createAdminClient();
+
+  try {
+    let { data, error } = await supabase
+      .from("activity_log")
+      .select("id, action, description, created_at, users(name)")
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    // Fallback
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && (!data || data.length === 0)) {
+       const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+       if (profile && ["admin", "manager"].includes(profile.role)) {
+          const adminRes = await adminSupabase
+            .from("activity_log")
+            .select("id, action, description, created_at, users(name)")
+            .order("created_at", { ascending: false })
+            .limit(10);
+          if (adminRes.data) data = adminRes.data;
+       }
+    }
+
+    if (error) {
+       console.error("Error fetching activities:", error);
+       return [];
+    }
+
+    return (data || []).map((a: any) => ({
+      id: a.id,
+      title: a.action,
+      description: a.description || "",
+      user: a.users?.name || "Unknown",
+      date: a.created_at,
+      type: "audit", // Default type for now
+    }));
+  } catch (error) {
+    console.error("Error in getRecentActivities:", error);
+    return [];
+  }
+}
 
 export async function getDashboardVendorMetrics(): Promise<VendorMetrics> {
   const supabase = await getSafeSupabase();

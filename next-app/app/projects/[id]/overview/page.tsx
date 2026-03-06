@@ -39,7 +39,7 @@ import { Progress } from "@/app/components/ui/progress";
 import ProjectDetailReport from "@/app/components/ProjectDetailReport";
 
 export default function ProjectOverviewPage() {
-  const params = useParams() as { id?: string };
+  const { id } = useParams() as { id?: string };
   const [overview, setOverview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +48,8 @@ export default function ProjectOverviewPage() {
     const load = async () => {
       try {
         setLoading(true);
-        const id = params?.id || "";
-        const json = await getProjectOverview(id);
+        const projectId = id || "";
+        const json = await getProjectOverview(projectId);
         setOverview(json);
         setError(null);
       } catch (e: any) {
@@ -59,7 +59,7 @@ export default function ProjectOverviewPage() {
       }
     };
     load();
-  }, [params?.id]);
+  }, [id]);
 
   if (loading) {
     return (
@@ -113,10 +113,10 @@ export default function ProjectOverviewPage() {
     (t: any) => (t.status || "").toLowerCase() === "completed",
   ).length;
   const inProgress = tasks.filter(
-    (t: any) => (t.status || "").toLowerCase() === "in progress",
+    (t: any) => (t.status || "").toLowerCase() === "in_progress",
   ).length;
   const pending = tasks.filter(
-    (t: any) => (t.status || "").toLowerCase() === "pending",
+    (t: any) => (t.status || "").toLowerCase() === "todo",
   ).length;
 
   return (
@@ -129,7 +129,7 @@ export default function ProjectOverviewPage() {
             { label: "โครงการ", href: "/projects" },
             {
               label: p?.name || "โครงการ",
-              href: `/projects/${params?.id || ""}`,
+              href: `/projects/${id || ""}`,
             },
             { label: "ภาพรวม" },
           ]}
@@ -142,7 +142,7 @@ export default function ProjectOverviewPage() {
               size="sm"
               className="hover:bg-blue-50 hover:text-blue-600 transition-colors"
             >
-              <Link href={`/projects/${params?.id}/tasks`}>
+              <Link href={`/projects/${id}/tasks`}>
                 <Plus className="w-4 h-4 mr-2" />
                 เพิ่มงาน
               </Link>
@@ -153,7 +153,7 @@ export default function ProjectOverviewPage() {
               size="sm"
               className="hover:bg-blue-50 hover:text-blue-600 transition-colors"
             >
-              <Link href={`/projects/${params?.id}/cost-sheet`}>
+              <Link href={`/projects/${id}/cost-sheet`}>
                 <FileText className="w-4 h-4 mr-2" />
                 Cost Sheet
               </Link>
@@ -164,7 +164,7 @@ export default function ProjectOverviewPage() {
               size="sm"
               className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors"
             >
-              <Link href={`/projects/${params?.id}/edit`}>
+              <Link href={`/projects/${id}/edit`}>
                 <Edit className="w-4 h-4 mr-2" />
                 แก้ไข
               </Link>

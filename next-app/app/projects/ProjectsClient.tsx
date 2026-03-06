@@ -132,6 +132,22 @@ export default function ProjectsClient({
     enabled: false,
   });
 
+  // Derived filters from project data to ensure all options are available
+  const availableStatuses = useMemo(() => {
+    const statuses = new Set(projectsData?.map(p => p.status) || []);
+    return Array.from(statuses).map(s => ({ value: s, label: s }));
+  }, [projectsData]);
+
+  const availableManagers = useMemo(() => {
+    const managers = new Map();
+    projectsData?.forEach(p => {
+      if (p.managerId && p.manager_name) {
+        managers.set(p.managerId, p.manager_name);
+      }
+    });
+    return Array.from(managers.entries()).map(([id, name]) => ({ value: id, label: name }));
+  }, [projectsData]);
+
   // Enhanced projects with computed fields
   const enhancedProjects: EnhancedProject[] = useMemo(() => {
     if (!projectsData) return [];
@@ -167,7 +183,7 @@ export default function ProjectsClient({
       const matchesManager =
         managerFilter === "all" || project.manager_name === managerFilter;
       const matchesPriority =
-        priorityFilter === "all" || project.priority === priorityFilter;
+        priorityFilter === "all" || (project.priority || "").toLowerCase() === priorityFilter.toLowerCase();
 
       return (
         matchesSearch && matchesStatus && matchesManager && matchesPriority
@@ -187,8 +203,11 @@ export default function ProjectsClient({
       key: "status",
       label: "สถานะ",
       value: statusFilter,
-      type: "dynamic" as const,
-      dynamicOptions: "projectStatuses" as const,
+      type: "static" as const,
+      staticOptions: [
+        { value: "all", label: "ทั้งหมด" },
+        ...availableStatuses,
+      ],
       onChange: setStatusFilter,
     },
     {
@@ -196,11 +215,10 @@ export default function ProjectsClient({
       label: "ผู้จัดการ",
       value: managerFilter,
       type: "static" as const,
-      staticOptions:
-        managersData?.map((manager) => ({
-          value: manager.id,
-          label: manager.name,
-        })) || [],
+      staticOptions: [
+        { value: "all", label: "ทั้งหมด" },
+        ...availableManagers,
+      ],
       onChange: setManagerFilter,
     },
     {
@@ -209,6 +227,7 @@ export default function ProjectsClient({
       value: priorityFilter,
       type: "static" as const,
       staticOptions: [
+        { value: "all", label: "ทั้งหมด" },
         { value: "low", label: "ต่ำ" },
         { value: "medium", label: "ปานกลาง" },
         { value: "high", label: "สูง" },

@@ -78,6 +78,14 @@ export default async function ExpensesPage() {
     console.error("Error fetching projects:", projError);
   }
 
+  // 3. Fetch Vendor Payment Summary (for Dashboard)
+  const { data: vendorPayments } = await supabase
+    .from("vendor_payments")
+    .select("amount, status")
+    .eq("status", "pending");
+    
+  const totalVendorPending = (vendorPayments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
   // Transform data
   const expenses = (expensesData || []).map((e: any) => ({
     id: e.id,
@@ -104,6 +112,7 @@ export default async function ExpensesPage() {
     <ExpensesClient 
       initialExpenses={expenses} 
       initialProjects={projects} 
+      vendorPendingAmount={totalVendorPending}
     />
   );
 }
