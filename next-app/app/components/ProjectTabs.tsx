@@ -14,13 +14,18 @@ const tabs = [
   },
   { key: "plan", label: "Plan", path: (id: string) => `/projects/${id}/tasks` },
   {
+    key: "cost-sheet",
+    label: "Cost Sheet",
+    path: (id: string) => `/projects/${id}/cost-sheet`,
+  },
+  {
     key: "budget",
     label: "Budget",
     path: (id: string) => `/projects/${id}/budget`,
   },
   {
-    key: "finance",
-    label: "Finance",
+    key: "billing",
+    label: "Billing",
     path: (id: string) => `/projects/${id}/milestones`,
   },
   { key: "risk", label: "Risk", path: (id: string) => `/projects/${id}/risks` },

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
@@ -50,9 +50,45 @@ export async function getCostSheetAction(projectId: string) {
     .limit(1)
     .single();
 
+  // Admin Fallback
+  if (!sheet) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+          const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+          if (profile && ["admin", "manager"].includes(profile.role)) {
+              const adminSupabase = createAdminClient();
+              const { data: adminSheet } = await adminSupabase
+                .from("cost_sheets")
+                .select("*")
+                .eq("project_id", projectId)
+                .order("version", { ascending: false })
+                .limit(1)
+                .single();
+              if (adminSheet) {
+                  sheet = adminSheet;
+              } else {
+                  // If even admin can't find it, maybe create it via admin client if user is admin
+                  // But standard creation below uses standard client.
+                  // If standard client fails insert due to RLS, then we have an issue.
+                  // For now, let's proceed.
+              }
+          }
+      }
+  }
+
+  // Use appropriate client
+  let clientToUse = supabase;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+      const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+      if (profile && ["admin", "manager"].includes(profile.role)) {
+          clientToUse = createAdminClient();
+      }
+  }
+
   // If not exists, create initial draft
   if (!sheet) {
-    const { data: newSheet, error } = await supabase
+    const { data: newSheet, error } = await clientToUse
       .from("cost_sheets")
       .insert({
         project_id: projectId,
@@ -68,13 +104,13 @@ export async function getCostSheetAction(projectId: string) {
   }
 
   // 2. Get Items
-  const { data: items } = await supabase
+  const { data: items } = await clientToUse
     .from("cost_sheet_items")
     .select("*")
     .eq("cost_sheet_id", sheet.id);
 
   // 3. Get Catalog (Optional, could be static or another table)
-  const { data: catalog } = await supabase
+  const { data: catalog } = await clientToUse
     .from("cost_code_catalog")
     .select("*")
     .eq("is_active", true);

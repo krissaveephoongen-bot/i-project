@@ -22,6 +22,8 @@ import {
   PieChart,
   Flag,
   Edit,
+  Plus,
+  FileText,
 } from "lucide-react";
 
 // Shadcn UI
@@ -138,11 +140,33 @@ export default function ProjectOverviewPage() {
               asChild
               variant="outline"
               size="sm"
+              className="hover:bg-blue-50 hover:text-blue-600 transition-colors"
+            >
+              <Link href={`/projects/${params?.id}/tasks`}>
+                <Plus className="w-4 h-4 mr-2" />
+                เพิ่มงาน
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="hover:bg-blue-50 hover:text-blue-600 transition-colors"
+            >
+              <Link href={`/projects/${params?.id}/cost-sheet`}>
+                <FileText className="w-4 h-4 mr-2" />
+                Cost Sheet
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
               className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors"
             >
               <Link href={`/projects/${params?.id}/edit`}>
                 <Edit className="w-4 h-4 mr-2" />
-                แก้ไขโครงการ
+                แก้ไข
               </Link>
             </Button>
           </ProjectTabs>

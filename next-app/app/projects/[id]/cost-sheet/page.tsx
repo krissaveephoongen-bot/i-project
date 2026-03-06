@@ -31,6 +31,7 @@ import {
   getCostSheetAction,
   saveCostSheetAction,
 } from "../../costSheetActions";
+import ProjectTabs from "@/app/components/ProjectTabs";
 import type {
   LaborItem,
   ExpenseItem,
@@ -207,6 +208,7 @@ export default function ProjectCostSheetPage() {
       />
 
       <div className="pt-24 px-6 pb-12 max-w-7xl mx-auto space-y-6">
+        <ProjectTabs />
         <div className="flex items-center justify-between">
           <div className="text-sm text-slate-600">
             สถานะ: <span className="font-medium">{status}</span>
