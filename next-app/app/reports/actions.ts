@@ -98,7 +98,7 @@ export async function getProjectsReportAction(includeInternal: boolean = false) 
 
   let query = supabase
     .from("projects")
-    .select("*")
+    .select("id, name, status, progress, progressPlan, budget, spent, category, spi, riskLevel")
     .neq("status", "Cancelled")
     .neq("isArchived", true);
 
@@ -108,25 +108,29 @@ export async function getProjectsReportAction(includeInternal: boolean = false) 
   }
 
   const { data: projects } = await query.order("name");
-  const all = projects || [];
+  const all = (projects || []).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    status: p.status,
+    progress: p.progress || 0,
+    progressPlan: p.progressPlan || p.progress_plan || 0, 
+    budget: Number(p.budget) || 0,
+    spent: Number(p.spent) || 0,
+    spi: Number(p.spi) || 1,
+    riskLevel: p.riskLevel || "Low",
+  }));
 
   // KPIs
   const totalProjects = all.length;
   const avgProgress = totalProjects > 0 
-    ? Math.round(all.reduce((sum, p) => sum + (p.progress || 0), 0) / totalProjects) 
+    ? Math.round(all.reduce((sum, p) => sum + p.progress, 0) / totalProjects) 
     : 0;
   
-  const onTime = all.filter(p => (p.progress || 0) >= (p.progressPlan || 0)).length;
-  const overBudget = all.filter(p => (p.spent || 0) > (p.budget || 0)).length;
+  const onTime = all.filter(p => p.progress >= p.progressPlan).length;
+  const overBudget = all.filter(p => p.spent > p.budget).length;
 
   return {
-    projects: all.map(p => ({
-      ...p,
-      progress: p.progress || 0,
-      progressPlan: p.progressPlan || 0,
-      budget: p.budget || 0,
-      spent: p.spent || 0,
-    })),
+    projects: all,
     kpis: {
       totalProjects,
       avgProgress,
