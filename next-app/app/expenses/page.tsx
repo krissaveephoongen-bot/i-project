@@ -64,10 +64,13 @@ export default async function ExpensesPage() {
     projectsData = pData;
   } else {
     // Fallback to Admin Client if empty (RLS issue)
-    const adminSupabase = createAdminClient();
-    const { data: adminPData } = await fetchProjects(adminSupabase);
-    if (adminPData) {
-      projectsData = adminPData;
+    const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+    if (profile && ["admin", "manager"].includes(profile.role)) {
+        const adminSupabase = createAdminClient();
+        const { data: adminPData } = await fetchProjects(adminSupabase);
+        if (adminPData) {
+          projectsData = adminPData;
+        }
     }
   }
 

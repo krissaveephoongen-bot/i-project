@@ -1,7 +1,25 @@
-import { createAdminClient } from "@/utils/supabase/server";
+import { createAdminClient, createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 
-// Initialize admin client for dashboard data
-const supabase = createAdminClient();
+// --- Helper to get safe client ---
+// Use authenticated client first, then fallback to admin only if user has permission
+async function getSafeSupabase() {
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
+  
+  // Verify user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    // If no user, return standard client (which will likely fail RLS, as expected for unauth)
+    // We do NOT default to admin for unauthenticated users.
+    return supabase;
+  }
+
+  // If user exists, check role for admin privileges if we need to bypass RLS
+  // But for now, we'll return the standard client. 
+  // The 'Admin Fallback' should be explicit in the function logic, not global.
+  return supabase;
+}
 
 // --- Types ---
 export interface KpiData {
@@ -63,15 +81,42 @@ export interface SunburstNode {
 // --- Dashboard Functions ---
 
 export async function getDashboardKPI(): Promise<KpiData> {
+  const supabase = await getSafeSupabase();
+  const adminSupabase = createAdminClient();
+  
   try {
-    const { data: projRows, error: projError } = await supabase
+    // 1. Try with user RLS
+    let { data: projRows, error: projError } = await supabase
       .from("projects")
       .select("budget,remaining,spi");
+      
+    // 2. If error or empty (and user might be admin/manager), try admin fallback
+    // Check if user is admin/manager to allow fallback
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && (!projRows || projRows.length === 0)) {
+        // Optimization: check role from metadata or profile table
+        const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+        if (profile && ["admin", "manager"].includes(profile.role)) {
+             const adminRes = await adminSupabase.from("projects").select("budget,remaining,spi");
+             if (adminRes.data) projRows = adminRes.data;
+        }
+    }
+
     if (projError) console.error("Error fetching projects for KPI:", projError);
 
-    const { data: riskRows, error: riskError } = await supabase
+    let { data: riskRows, error: riskError } = await supabase
       .from("risks")
       .select("id,status");
+      
+    // Similar fallback for risks
+    if (user && (!riskRows || riskRows.length === 0)) {
+        const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+        if (profile && ["admin", "manager"].includes(profile.role)) {
+             const adminRes = await adminSupabase.from("risks").select("id,status");
+             if (adminRes.data) riskRows = adminRes.data;
+        }
+    }
+    
     if (riskError) console.error("Error fetching risks for KPI:", riskError);
 
     const totalValue = (projRows || []).reduce(
@@ -100,16 +145,34 @@ export async function getDashboardKPI(): Promise<KpiData> {
 }
 
 export async function getDashboardProjects(): Promise<ProjectHealth[]> {
+  const supabase = await getSafeSupabase();
+  const adminSupabase = createAdminClient();
+
   try {
     // Avoid ORDER BY to maximize compatibility across schemas
-    const { data: projects, error } = await supabase
+    let { data: projects, error } = await supabase
       .from("projects")
       .select("*");
+      
+    // Admin Fallback Logic
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && (!projects || projects.length === 0)) {
+        const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+        if (profile && ["admin", "manager"].includes(profile.role)) {
+             const adminRes = await adminSupabase.from("projects").select("*");
+             if (adminRes.data) projects = adminRes.data;
+             error = adminRes.error;
+        }
+    }
 
     if (error) {
       console.error("Supabase error fetching projects:", error);
       return [];
     }
+    
+    // Use admin client for auxiliary data (users, clients) to ensure names resolve
+    // This is safe as it's just reference data, not sensitive transactional data
+    const auxClient = adminSupabase; 
 
     // Exclude internal projects (department cost) from portfolio
     const list: any[] = (projects || []).filter((p: any) => {
@@ -126,11 +189,11 @@ export async function getDashboardProjects(): Promise<ProjectHealth[]> {
     );
     
     const { data: managers } = managerIds.length
-      ? await supabase.from("users").select("id,name").in("id", managerIds)
+      ? await auxClient.from("users").select("id,name").in("id", managerIds)
       : { data: [] };
       
     const { data: clients } = clientIds.length
-      ? await supabase.from("clients").select("id,name").in("id", clientIds)
+      ? await auxClient.from("clients").select("id,name").in("id", clientIds)
       : { data: [] };
       
     const managersMap: Record<string, any> = {};
@@ -142,7 +205,7 @@ export async function getDashboardProjects(): Promise<ProjectHealth[]> {
     let milestones: any[] = [];
     
     if (ids.length) {
-      const mRes1 = await supabase
+      const mRes1 = await auxClient
         .from("milestones")
         .select("*")
         .in("project_id", ids as any);
@@ -184,7 +247,7 @@ export async function getDashboardProjects(): Promise<ProjectHealth[]> {
     // Risk Aggregation
     let risks: any[] = [];
     if (ids.length) {
-       const rRes = await supabase.from("risks").select("*").in("project_id", ids as any);
+       const rRes = await auxClient.from("risks").select("*").in("project_id", ids as any);
        risks = rRes.data || [];
     }
     
@@ -257,11 +320,24 @@ export async function getDashboardProjects(): Promise<ProjectHealth[]> {
 }
 
 export async function getDashboardFinancials(): Promise<FinancialData[]> {
+  const supabase = await getSafeSupabase();
+  const adminSupabase = createAdminClient();
+
   try {
-    const { data } = await supabase
+    let { data, error } = await supabase
       .from("financial_data")
       .select("month,revenue,cost")
       .order("month", { ascending: true });
+      
+    // Fallback
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && (!data || data.length === 0)) {
+        const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+        if (profile && ["admin", "manager"].includes(profile.role)) {
+             const adminRes = await adminSupabase.from("financial_data").select("month,revenue,cost").order("month", { ascending: true });
+             if (adminRes.data) data = adminRes.data;
+        }
+    }
 
     return (data || []).map((r: any) => ({
       month: new Date(r.month).toLocaleString("en-US", { month: "short" }),
@@ -275,11 +351,36 @@ export async function getDashboardFinancials(): Promise<FinancialData[]> {
 }
 
 export async function getDashboardTeamLoad(): Promise<TeamLoadData[]> {
+  const supabase = await getSafeSupabase();
+  const adminSupabase = createAdminClient();
+
   try {
-    const { data: users } = await supabase.from("users").select("id,name");
-    const { data: entries } = await supabase
+    let { data: users } = await supabase.from("users").select("id,name");
+    
+    // Fallback for users list
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && (!users || users.length === 0)) {
+        const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+        if (profile && ["admin", "manager"].includes(profile.role)) {
+             const adminRes = await adminSupabase.from("users").select("id,name");
+             if (adminRes.data) users = adminRes.data;
+        }
+    }
+    
+    // Time entries might be huge, maybe filter by recent?
+    // For team load, usually current month or active.
+    // For now, fetch all as per original logic, but use admin if needed.
+    let { data: entries } = await supabase
       .from("time_entries")
       .select("userId,hours");
+      
+    if (user && (!entries || entries.length === 0)) {
+         const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+         if (profile && ["admin", "manager"].includes(profile.role)) {
+             const adminRes = await adminSupabase.from("time_entries").select("userId,hours");
+             if (adminRes.data) entries = adminRes.data;
+         }
+    }
 
     const userMap = new Map<string, { name: string; hours: number }>();
 

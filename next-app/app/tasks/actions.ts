@@ -56,11 +56,17 @@ export async function getTasksAction(params?: { q?: string }) {
 
   // 2. Fallback to Admin Client if empty or error (and likely permission issue)
   if (!data || data.length === 0) {
-      const adminSupabase = createAdminClient();
-      const adminRes = await buildQuery(adminSupabase);
-      if (adminRes.data && adminRes.data.length > 0) {
-          data = adminRes.data;
-          error = null;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+          const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+          if (profile && ["admin", "manager"].includes(profile.role)) {
+               const adminSupabase = createAdminClient();
+               const adminRes = await buildQuery(adminSupabase);
+               if (adminRes.data && adminRes.data.length > 0) {
+                   data = adminRes.data;
+                   error = null;
+               }
+          }
       }
   }
 
