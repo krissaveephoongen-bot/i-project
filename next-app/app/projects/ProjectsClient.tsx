@@ -7,6 +7,8 @@ import {
   Plus,
   Edit,
   Trash2,
+  LayoutGrid,
+  List,
   Calendar,
   User,
   Users,
@@ -100,6 +102,7 @@ export default function ProjectsClient({
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ProjectType | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -636,7 +639,28 @@ export default function ProjectsClient({
               setManagerFilter("all");
               setPriorityFilter("all");
             }}
-          />
+          >
+            <div className="flex bg-muted p-1 rounded-lg ml-2">
+              <Button
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setViewMode("grid")}
+                title="มุมมองการ์ด"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setViewMode("list")}
+                title="มุมมองตาราง"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </ProfessionalFilter>
 
           {filteredProjects.length === 0 ? (
             <EmptyState
@@ -653,6 +677,111 @@ export default function ProjectsClient({
                 },
               }}
             />
+          ) : viewMode === "grid" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProjects.map((project) => (
+                <Card key={project.id} className="hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+                          <AvatarImage
+                            src={`https://api.dicebear.com/7.x/initials/svg?seed=${project.name}`}
+                          />
+                          <AvatarFallback>{project.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-base font-semibold leading-tight">
+                            <Link href={`/projects/${project.id}`} className="hover:text-primary transition-colors">
+                              {project.name}
+                            </Link>
+                          </CardTitle>
+                          {project.code && (
+                            <CardDescription className="font-mono text-xs">
+                              #{project.code}
+                            </CardDescription>
+                          )}
+                        </div>
+                      </div>
+                      <Badge variant={project.statusColor as any} className="ml-2 whitespace-nowrap">
+                        {project.status}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Progress */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground text-xs">ความคืบหน้า</span>
+                        <span className="font-bold text-xs">{project.progress}%</span>
+                      </div>
+                      <Progress value={project.progress} className="h-2" />
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">งบประมาณ</p>
+                        <p className="text-sm font-semibold">
+                          ฿{project.budget ? project.budget.toLocaleString() : "0"}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">กำหนดส่ง</p>
+                        <div className={clsx(
+                          "text-sm font-medium flex items-center gap-1.5",
+                          project.isOverdue ? "text-destructive" : "text-foreground"
+                        )}>
+                          <Calendar className="h-3.5 w-3.5" />
+                          {project.endDate ? format(new Date(project.endDate), "d MMM yy", { locale: th }) : "-"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Manager & Actions */}
+                    <div className="flex items-center justify-between pt-4 border-t mt-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <User className="h-3.5 w-3.5" />
+                        <span className="truncate max-w-[120px]">
+                          {project.manager?.name || "ไม่ระบุ"}
+                        </span>
+                      </div>
+                      
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => window.open(`/projects/${project.id}`, "_blank")}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <CanEditProjects>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleEditProject(project)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </CanEditProjects>
+                        <PermissionGuard permission={Permission.PROJECT_DELETE}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 hover:text-destructive"
+                            onClick={() => setDeleteConfirm(project.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </PermissionGuard>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           ) : (
             <DataTable
               columns={columns}

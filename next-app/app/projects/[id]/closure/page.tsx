@@ -8,8 +8,9 @@ import Header from "@/app/components/Header";
 import { Button } from "@/app/components/ui/button";
 import {
   updateProjectClosureAction,
+  getProjectClosure,
 } from "../../closureActions";
-  import {
+import {
   Card,
   CardContent,
   CardHeader,
@@ -120,17 +121,18 @@ export default function ProjectClosurePage() {
   const fetchProject = async () => {
     if (!params?.id) return;
     try {
-      const res = await fetch(`/api/projects/overview/${params.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setProject(data.project);
+      // Use Server Action instead of API Route
+      const data = await getProjectClosure(params.id as string);
+      
+      if (data && !data.error) {
+        setProject(data);
 
         // Initialize checklist
         if (
-          data.project.closureChecklist &&
-          data.project.closureChecklist.length > 0
+          data.closureChecklist &&
+          data.closureChecklist.length > 0
         ) {
-          setChecklist(data.project.closureChecklist);
+          setChecklist(data.closureChecklist);
         } else {
           // Initialize with template
           setChecklist(
@@ -143,11 +145,13 @@ export default function ProjectClosurePage() {
           );
         }
 
-        if (data.project.warrantyEndDate) {
+        if (data.warrantyEndDate) {
           setWarrantyEnd(
-            new Date(data.project.warrantyEndDate).toISOString().split("T")[0],
+            new Date(data.warrantyEndDate).toISOString().split("T")[0],
           );
         }
+      } else {
+        toast.error("Failed to load project data");
       }
     } catch (error) {
       console.error("Failed to fetch project", error);
@@ -280,9 +284,21 @@ export default function ProjectClosurePage() {
                   Progress
                 </p>
                 <p
-                  className={`text-xl font-bold ${project.progress === 100 ? "text-green-600" : "text-slate-900"}`}
+                  className={`text-xl font-bold ${
+                    checklist.length > 0 &&
+                    checklist.every((item) => item.checked)
+                      ? "text-green-600"
+                      : "text-slate-900"
+                  }`}
                 >
-                  {project.progress}%
+                  {checklist.length > 0
+                    ? Math.round(
+                        (checklist.filter((item) => item.checked).length /
+                          checklist.length) *
+                          100,
+                      )
+                    : 0}
+                  %
                 </p>
               </div>
               <Badge
@@ -382,7 +398,7 @@ export default function ProjectClosurePage() {
 
                     {project.status !== "Warranty" &&
                       project.status !== "Delivered" &&
-                      (project.progress === 100 ? (
+                      (checklist.every(i => i.checked) ? (
                         <Button
                           onClick={handleDeliver}
                           disabled={saving}
@@ -393,7 +409,7 @@ export default function ProjectClosurePage() {
                       ) : (
                         <div className="text-amber-600 text-sm flex items-center bg-amber-50 px-3 py-2 rounded-md border border-amber-200">
                           <AlertCircle className="h-4 w-4 mr-2" />
-                          Project must be 100% complete to deliver.
+                          Complete checklist to deliver.
                         </div>
                       ))}
 
