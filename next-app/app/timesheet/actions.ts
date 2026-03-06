@@ -121,24 +121,10 @@ export async function createTimesheetEntryAction(entry: Partial<TimeEntry>) {
     start_time: entry.startTime || null,
     end_time: entry.endTime || null,
     description: entry.description || null,
-    // work_type: entry.workType || "project", // Ensure column exists if using
-    // billable_hours: entry.billableHours || 0, // Ensure column exists if using
-    // status: "pending", // If column exists
+    status: "draft", // Explicitly set to draft on creation
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
-
-  // Check database.types.ts for exact columns. 
-  // time_entries has: user_id, project_id, task_id, description, hours, date, created_at, updated_at
-  // It does NOT show start_time, end_time, work_type, billable_hours in the type definition I saw earlier!
-  // Let's re-verify types to be safe.
-  // The type def I saw earlier:
-  // time_entries: { Row: { id, user_id, project_id, task_id, description, hours, date, created_at, updated_at } }
-  // So start_time/end_time might be MISSING from DB or Types.
-  // But TimesheetModal uses them.
-  // If they are missing in DB, this insert will fail if I include them.
-  // But I must assume the app logic requires them.
-  // I will include them, if it fails, user needs to migrate DB.
   
   const { data, error } = await supabase
     .from("time_entries")
@@ -220,6 +206,7 @@ export async function getSubmissionStatusAction(userId: string, date: string) {
 export async function submitTimesheetAction(userId: string, start: string, end: string, totalHours: number) {
   const supabase = createClient(cookies());
   
+  // 1. Create/Update the parent submission record
   const { error } = await supabase
     .from("timesheet_submissions")
     .upsert({
@@ -234,6 +221,20 @@ export async function submitTimesheetAction(userId: string, start: string, end: 
   if (error) {
     console.error("Submit Timesheet Error:", error);
     return false;
+  }
+
+  // 2. Update status of ALL individual time entries in this range to 'pending'
+  const { error: updateError } = await supabase
+    .from("time_entries")
+    .update({ status: "pending" })
+    .eq("user_id", userId)
+    .gte("date", start)
+    .lte("date", end)
+    .neq("status", "approved");
+
+  if (updateError) {
+      console.error("Error updating time entries status:", updateError);
+      return false;
   }
   
   revalidatePath("/timesheet");
