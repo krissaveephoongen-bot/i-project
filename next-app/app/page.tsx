@@ -13,14 +13,15 @@ import Header from "./components/Header";
 import FinancialChart from "./components/FinancialChart";
 import TeamLoadChart from "./components/TeamLoadChart";
 import PortfolioHealthMatrix from "./components/dashboard/PortfolioHealthMatrix";
-import { Button } from "@/components/ui/button"; // Corrected import
+import { Button } from "@/components/ui/button"; 
 import PageTransition from "./components/PageTransition";
 import {
   getDashboardKPI,
   getDashboardFinancials,
   getDashboardTeamLoad,
+  getDashboardProjects
 } from "@/app/lib/data-service";
-import { KpiCard } from "@/components/dashboard/KpiCard"; // Use new component
+import { KpiCard } from "@/components/dashboard/KpiCard"; 
 
 // --- MAIN PAGE COMPONENT (SERVER) ---
 
@@ -28,50 +29,8 @@ export default async function ExecutiveDashboard() {
   const kpiData = await getDashboardKPI();
   
   // Use unified API to ensure Portfolio Health Matrix uses existing projects
-  let projects: any[] = [];
-  try {
-    // Optimization: Directly fetch from internal logic if possible, but keep existing fetch for safety
-    // as per "Functional Integrity" constraint.
-    // Use relative path for internal API calls or environment variable
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "";
-    // If running on server, we might need full URL, but for relative fetch in Next.js Server Components,
-    // it's tricky. Best to use direct logic or headers().
-    // However, for now let's use the env var or default to empty string if client-side (though this is server component).
-    
-    // BETTER APPROACH: Call the logic directly if possible, but here we'll fix the localhost hardcoding first.
-    // In Server Components, fetch needs absolute URL.
-    const apiUrl = baseUrl ? `${baseUrl}/api/dashboard/portfolio` : `http://localhost:${process.env.PORT || 3000}/api/dashboard/portfolio`;
-    
-    const res = await fetch(apiUrl, {
-      cache: "no-store",
-    });
-    if (res.ok) {
-      const json = await res.json();
-      const rows = json?.rows || [];
-      projects = rows.map((r: any) => ({
-        id: r.id,
-        name: r.name,
-        code: r.code || "",
-        progress_plan: 100,
-        progress_actual: Number(r.progress || 0),
-        spi: Number(r.spi ?? 1),
-        cpi: Number(r.cpi ?? 1),
-        budget: Number(r.budget || 0),
-        risk_level:
-          (r.risks?.high || 0) > 0
-            ? "high"
-            : (r.risks?.medium || 0) > 0
-            ? "medium"
-            : "low",
-        client: r.clientName || "",
-        status: r.status || "",
-        managerName: r.managerName || "",
-      }));
-    }
-  } catch (err) {
-    console.error("Dashboard fetch error:", err);
-    projects = [];
-  }
+  // Direct call to data service (Server-side)
+  const projects = await getDashboardProjects();
   
   const financialData = await getDashboardFinancials();
   const teamLoadData = await getDashboardTeamLoad();

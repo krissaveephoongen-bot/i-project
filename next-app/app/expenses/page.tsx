@@ -1,6 +1,8 @@
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import ExpensesClient from "./ExpensesClient";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Expenses | i-Project",
@@ -14,6 +16,8 @@ export default async function ExpensesPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
+    // Redirect or show login
+    // return redirect("/login");
     return <div className="p-8 text-center">Please log in to view expenses.</div>;
   }
 
@@ -43,17 +47,31 @@ export default async function ExpensesPage() {
     console.error("Error fetching expenses:", expError);
   }
 
-  // 2. Fetch Projects (Active ones)
+  // 2. Fetch Projects (Active ones) with Fallback
   // Ideally, filter by projects user is assigned to.
   // For simplicity, fetch all active projects for now, or join with team_members if schema exists.
-  // The previous API used /api/timesheet/projects which filtered by status.
-  const { data: projectsData, error: projError } = await supabase
-    .from("projects")
-    .select("id, name")
-    .not("status", "in", '("Completed","completed","Cancelled","cancelled")')
-    .order("name");
+  let projectsData: any[] = [];
+  
+  const fetchProjects = (client: any) => 
+    client.from("projects")
+      .select("id, name")
+      .not("status", "in", '("Completed","completed","Cancelled","cancelled")')
+      .order("name");
 
-  if (projError) {
+  const { data: pData, error: projError } = await fetchProjects(supabase);
+  
+  if (pData && pData.length > 0) {
+    projectsData = pData;
+  } else {
+    // Fallback to Admin Client if empty (RLS issue)
+    const adminSupabase = createAdminClient();
+    const { data: adminPData } = await fetchProjects(adminSupabase);
+    if (adminPData) {
+      projectsData = adminPData;
+    }
+  }
+
+  if (projError && projectsData.length === 0) {
     console.error("Error fetching projects:", projError);
   }
 

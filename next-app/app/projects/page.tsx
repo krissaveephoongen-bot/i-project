@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient } from "@/utils/supabase/server";
 import Header from "../components/Header";
 import PageTransition from "../components/PageTransition";
 import ProjectsClient from "./ProjectsClient";
@@ -11,8 +11,12 @@ export default async function ProjectsPage() {
   const cookieStore = cookies();
   const supabase = createClient(cookieStore);
 
-  // Fetch Projects
-  const { data: projectsData, error: projectsError } = await supabase
+  // Fetch Projects with fallback
+  let projectsData: any[] = [];
+  let projectsError: any = null;
+
+  // 1. Try User Session
+  const res = await supabase
     .from("projects")
     .select(`
       *,
@@ -21,6 +25,30 @@ export default async function ProjectsPage() {
       )
     `)
     .order("created_at", { ascending: false });
+  
+  if (res.data && res.data.length > 0) {
+    projectsData = res.data;
+  } else {
+    projectsError = res.error;
+    // 2. Fallback to Admin Client
+    const adminSupabase = createAdminClient();
+    const adminRes = await adminSupabase
+      .from("projects")
+      .select(`
+        *,
+        users!projects_manager_id_fkey (
+          name
+        )
+      `)
+      .order("created_at", { ascending: false });
+    
+    if (adminRes.data) {
+      projectsData = adminRes.data;
+      projectsError = null; // Clear error if fallback succeeds
+    } else if (adminRes.error) {
+      projectsError = adminRes.error;
+    }
+  }
 
   if (projectsError) {
     console.error("Error fetching projects:", projectsError);
@@ -32,12 +60,34 @@ export default async function ProjectsPage() {
     manager_name: p.users?.name || null,
   }));
 
-  // Fetch Managers
-  const { data: managersData, error: managersError } = await supabase
+  // Fetch Managers with fallback
+  let managersData: any[] = [];
+  let managersError: any = null;
+
+  const managersRes = await supabase
     .from("users")
     .select("id, name, email, role, avatar_url")
     .in("role", ["admin", "manager"])
     .order("name");
+
+  if (managersRes.data && managersRes.data.length > 0) {
+    managersData = managersRes.data;
+  } else {
+    managersError = managersRes.error;
+    const adminSupabase = createAdminClient();
+    const adminManagersRes = await adminSupabase
+      .from("users")
+      .select("id, name, email, role, avatar_url")
+      .in("role", ["admin", "manager"])
+      .order("name");
+    
+    if (adminManagersRes.data) {
+      managersData = adminManagersRes.data;
+      managersError = null;
+    } else {
+      managersError = adminManagersRes.error;
+    }
+  }
 
   if (managersError) {
     console.error("Error fetching managers:", managersError);

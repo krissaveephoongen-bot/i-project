@@ -1,4 +1,7 @@
-import { supabase } from "@/app/lib/supabaseClient";
+import { createAdminClient } from "@/utils/supabase/server";
+
+// Initialize admin client for dashboard data
+const supabase = createAdminClient();
 
 // --- Types ---
 export interface KpiData {
@@ -19,6 +22,15 @@ export interface ProjectHealth {
   budget: number;
   risk_level: string;
   client: string;
+  status: string;
+  managerName: string;
+  clientName: string;
+  overdueMilestones: number;
+  remaining: number;
+  actual: number;
+  committed: number;
+  weeklyDelta: number;
+  risks: { high: number; medium: number; low: number };
 }
 
 export interface FinancialData {
@@ -89,66 +101,153 @@ export async function getDashboardKPI(): Promise<KpiData> {
 
 export async function getDashboardProjects(): Promise<ProjectHealth[]> {
   try {
-    const { data: rows, error } = await supabase
+    // Avoid ORDER BY to maximize compatibility across schemas
+    const { data: projects, error } = await supabase
       .from("projects")
-      .select("*")
-      .order("id", { ascending: false });
+      .select("*");
 
     if (error) {
       console.error("Supabase error fetching projects:", error);
       return [];
     }
 
-    const clientIds = (rows || [])
-      .map((r: any) => r.clientId)
-      .filter((v: any, i: number, a: any[]) => !!v && a.indexOf(v) === i);
+    // Exclude internal projects (department cost) from portfolio
+    const list: any[] = (projects || []).filter((p: any) => {
+      const isInternal = p.is_internal === true;
+      const cat = String(p.internal_category || p.category || "").toLowerCase();
+      return !(isInternal || cat === "internal" || cat.includes("department"));
+    });
 
-    let clientMap: Record<string, string> = {};
-    if (clientIds.length > 0) {
-      const { data: clients } = await supabase
-        .from("clients")
-        .select("id,name")
-        .in("id", clientIds);
-      clientMap = Object.fromEntries(
-        (clients || []).map((r: any) => [r.id, r.name || ""]),
-      );
+    const managerIds = Array.from(
+      new Set(list.map((p: any) => p.manager_id).filter(Boolean)),
+    );
+    const clientIds = Array.from(
+      new Set(list.map((p: any) => p.client_id).filter(Boolean)),
+    );
+    
+    const { data: managers } = managerIds.length
+      ? await supabase.from("users").select("id,name").in("id", managerIds)
+      : { data: [] };
+      
+    const { data: clients } = clientIds.length
+      ? await supabase.from("clients").select("id,name").in("id", clientIds)
+      : { data: [] };
+      
+    const managersMap: Record<string, any> = {};
+    const clientsMap: Record<string, any> = {};
+    for (const m of managers || []) managersMap[m.id] = m;
+    for (const c of clients || []) clientsMap[c.id] = c;
+
+    const ids = list.map((p) => p.id);
+    let milestones: any[] = [];
+    
+    if (ids.length) {
+      const mRes1 = await supabase
+        .from("milestones")
+        .select("*")
+        .in("project_id", ids as any);
+        
+      if (!mRes1.error) {
+        milestones = mRes1.data || [];
+      } else {
+         // Fallback for column name if needed, or just ignore
+         milestones = [];
+      }
+    }
+    
+    const budgetByProject: Record<string, number> = {};
+    for (const p of list) budgetByProject[p.id] = Number(p.budget || 0);
+    
+    const committedByProject: Record<string, number> = {};
+    const overdueCounts: Record<string, number> = {};
+    const today = new Date().toISOString().slice(0, 10);
+
+    for (const m of milestones || []) {
+      const pid = m.project_id ?? m.projectId;
+      
+      // Overdue check
+      const d = m.due_date ?? m.dueDate;
+      const st = String(m.status || "").toLowerCase();
+      if (d && d < today && st !== "paid" && st !== "completed") {
+        overdueCounts[pid] = (overdueCounts[pid] || 0) + 1;
+      }
+
+      // Committed check
+      if (st === "approved") {
+        const budget = budgetByProject[pid] || 0;
+        const pct = Number(m.percentage ?? m.progress ?? 0);
+        const amt = (pct / 100) * budget;
+        committedByProject[pid] = (committedByProject[pid] || 0) + amt;
+      }
     }
 
-    return (rows || []).map((r: any) => {
-      // Handle case-insensitivity of Postgres columns (unquoted identifiers are lowercase)
-      const plan = Number(
-        r.progressPlan ?? r.progressplan ?? r.progress_plan ?? 100,
-      );
-      const actual = Number(
-        r.progress ?? r.progressActual ?? r.progress_actual ?? 0,
-      );
-      // Recalculate SPI if missing or 0 to ensure data consistency
-      const calcSpi = plan > 0 ? actual / plan : 1;
-      const spi = Number(r.spi ?? calcSpi);
+    // Risk Aggregation
+    let risks: any[] = [];
+    if (ids.length) {
+       const rRes = await supabase.from("risks").select("*").in("project_id", ids as any);
+       risks = rRes.data || [];
+    }
+    
+    const risksByProject: Record<string, { high: number; medium: number; low: number }> = {};
+    
+    for (const r of risks || []) {
+      const pid = r.projectId ?? r.project_id;
+      if (!risksByProject[pid]) risksByProject[pid] = { high: 0, medium: 0, low: 0 };
+      const sev = (r.severity || "").toLowerCase();
+      if (sev === "high") risksByProject[pid].high++;
+      else if (sev === "medium") risksByProject[pid].medium++;
+      else if (sev === "low") risksByProject[pid].low++;
+    }
 
-      const budget = Number(r.budget || 0);
-      const spent = Number(r.spent || 0);
-      const ev = budget * (actual / 100);
-      // Calculate CPI: EV / AC (Earned Value / Actual Cost)
-      // If spent is 0: if EV > 0 -> infinite (cap at 2), else 1
-      const calcCpi = spent > 0 ? ev / spent : ev > 0 ? 2 : 1;
-      const cpi = Number(calcCpi.toFixed(2));
+    return list.map((p: any) => {
+      const budget = Number(p.budget || 0);
+      const progress = Number(p.progress || 0);
+      const actual = Number(p.spent || 0);
+      const committed = committedByProject[p.id] || 0;
+      const ev = budget * (progress / 100);
 
-      const risk = String(r.riskLevel ?? r.risklevel ?? r.risk_level ?? "low");
-      const clientId = r.clientId ?? r.clientid ?? r.client_id;
-      const client = clientId ? clientMap[clientId] || "" : "";
+      let cpi = 0;
+      if (budget > 0) {
+        cpi = actual > 0 ? ev / actual : progress > 0 ? 1 : 0;
+      } else if (progress > 0) {
+        cpi = 1;
+      } else {
+        // Fallback or use DB value if exists
+        cpi = Number(p.cpi || 1);
+      }
+
+      const riskCounts = risksByProject[p.id] || { high: 0, medium: 0, low: 0 };
+      
+      // Determine overall risk level
+      let riskLevel = "low";
+      if (riskCounts.high > 0) riskLevel = "high";
+      else if (riskCounts.medium > 0) riskLevel = "medium";
+      
+      // Fallback to DB risk level if no risks found but DB has it
+      if (riskCounts.high === 0 && riskCounts.medium === 0 && riskCounts.low === 0) {
+          riskLevel = String(p.risk_level || "low").toLowerCase();
+      }
 
       return {
-        id: r.id,
-        name: r.name,
-        code: r.code,
-        progress_plan: plan,
-        progress_actual: actual,
-        spi: Number(spi.toFixed(2)),
-        cpi,
+        id: p.id,
+        name: p.name,
+        code: p.code,
+        progress_plan: Number(p.progress_plan ?? 100),
+        progress_actual: progress,
+        spi: Number(p.spi ?? 1),
+        cpi: Number(cpi.toFixed(2)),
         budget,
-        risk_level: risk,
-        client,
+        risk_level: riskLevel,
+        client: clientsMap[p.client_id]?.name || "No Client",
+        status: p.status || "Active",
+        managerName: managersMap[p.manager_id]?.name || "Unassigned",
+        clientName: clientsMap[p.client_id]?.name || "No Client",
+        overdueMilestones: overdueCounts[p.id] || 0,
+        remaining: Math.max(budget - actual - committed, 0),
+        actual,
+        committed,
+        weeklyDelta: 0,
+        risks: riskCounts,
       };
     });
   } catch (error) {

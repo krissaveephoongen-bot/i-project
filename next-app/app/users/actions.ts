@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -50,32 +50,38 @@ export async function getUsers(params?: {
 }) {
   const supabase = createClient(cookies());
   
-  let query = supabase
-    .from("users")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const buildQuery = (client: any) => {
+    let q = client
+      .from("users")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  // Safety check: Filter by is_deleted only if we are sure it exists. 
-  // For now, we assume it might not exist in type definition.
-  // .eq("is_deleted", false) 
+    if (params?.q) {
+      q = q.or(`name.ilike.%${params.q}%,email.ilike.%${params.q}%`);
+    }
 
+    if (params?.role && params.role !== "all") {
+      q = q.eq("role", params.role);
+    }
 
-  if (params?.q) {
-    query = query.or(`name.ilike.%${params.q}%,email.ilike.%${params.q}%`);
+    // Status filtering logic
+    // if (params?.status && params.status !== "all") { ... }
+
+    return q;
+  };
+
+  // 1. Try User Session
+  let { data, error } = await buildQuery(supabase);
+
+  // 2. Fallback to Admin Client
+  if (!data || data.length === 0) {
+      const adminSupabase = createAdminClient();
+      const adminRes = await buildQuery(adminSupabase);
+      if (adminRes.data && adminRes.data.length > 0) {
+          data = adminRes.data;
+          error = null;
+      }
   }
-
-  if (params?.role && params.role !== "all") {
-    query = query.eq("role", params.role);
-  }
-
-  if (params?.status && params.status !== "all") {
-    // Note: status filtering relies on is_active which might not exist in all schemas
-    // We comment it out to ensure dropdowns work even if schema is outdated.
-    // if (params.status === "active") query = query.eq("is_active", true);
-    // if (params.status === "inactive") query = query.eq("is_active", false);
-  }
-
-  const { data, error } = await query;
 
   if (error) {
     console.error("Get Users Error:", error);

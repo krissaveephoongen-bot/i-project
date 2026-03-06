@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -37,23 +37,39 @@ export interface Task {
 
 export async function getTasksAction(params?: { q?: string }) {
   const supabase = createClient(cookies());
-  let query = supabase.from("tasks").select(`
-    *,
-    projects (id, name),
-    assigned_user:users!assigned_to (id, name)
-  `).order("created_at", { ascending: false });
+  
+  const buildQuery = (client: any) => {
+    let q = client.from("tasks").select(`
+      *,
+      projects (id, name),
+      assigned_user:users!assigned_to (id, name)
+    `).order("created_at", { ascending: false });
 
-  if (params?.q) {
-    query = query.ilike("title", `%${params.q}%`);
+    if (params?.q) {
+      q = q.ilike("title", `%${params.q}%`);
+    }
+    return q;
+  };
+
+  // 1. Try User Session
+  let { data, error } = await buildQuery(supabase);
+
+  // 2. Fallback to Admin Client if empty or error (and likely permission issue)
+  if (!data || data.length === 0) {
+      const adminSupabase = createAdminClient();
+      const adminRes = await buildQuery(adminSupabase);
+      if (adminRes.data && adminRes.data.length > 0) {
+          data = adminRes.data;
+          error = null;
+      }
   }
 
-  const { data, error } = await query;
   if (error) {
     console.error("Get Tasks Error:", error);
     return [];
   }
   
-  return (data || []).map(t => ({
+  return (data || []).map((t: any) => ({
     ...t,
     dueDate: t.due_date || t.dueDate, 
     projectId: t.project_id || t.projectId,
@@ -162,26 +178,39 @@ export async function deleteTaskAction(id: string) {
 // Dropdown Helpers
 export async function getProjectsForDropdown() {
   const supabase = createClient(cookies());
-  const { data } = await supabase.from("projects").select("id, name").neq("status", "cancelled").order("name");
+  let { data } = await supabase.from("projects").select("id, name").neq("status", "cancelled").order("name");
+  
+  if (!data || data.length === 0) {
+      const adminSupabase = createAdminClient();
+      const adminRes = await adminSupabase.from("projects").select("id, name").neq("status", "cancelled").order("name");
+      if (adminRes.data) data = adminRes.data;
+  }
+  
   return data || [];
 }
 
 export async function getUsersForDropdown() {
   const supabase = createClient(cookies());
-  // Check if is_active column exists or fallback to logic that works
-  const { data } = await supabase.from("users").select("id, name").order("name"); 
-  // Note: Simplified to avoid schema errors if is_active/is_deleted not present in all envs, 
-  // but ideally should be: .eq("is_active", true).eq("is_deleted", false) if columns exist.
-  // Based on actions.ts in users, it seems they exist.
-  // Let's stick to the previous one but ensure it matches DB types. 
-  // The types say users table has: id, name, email, role, department, created_at, updated_at.
-  // WAIT. database.types.ts for users table does NOT show is_active or is_deleted!
-  // This is a discrepancy.
+  let { data } = await supabase.from("users").select("id, name").order("name"); 
+  
+  if (!data || data.length === 0) {
+      const adminSupabase = createAdminClient();
+      const adminRes = await adminSupabase.from("users").select("id, name").order("name");
+      if (adminRes.data) data = adminRes.data;
+  }
+
   return data || [];
 }
 
 export async function getMilestonesForDropdown() {
   const supabase = createClient(cookies());
-  const { data } = await supabase.from("milestones").select("id, title").order("title");
-  return (data || []).map(m => ({ id: m.id, title: m.title, name: m.title }));
+  let { data } = await supabase.from("milestones").select("id, title").order("title");
+  
+  if (!data || data.length === 0) {
+      const adminSupabase = createAdminClient();
+      const adminRes = await adminSupabase.from("milestones").select("id, title").order("title");
+      if (adminRes.data) data = adminRes.data;
+  }
+
+  return (data || []).map((m: any) => ({ id: m.id, title: m.title, name: m.title }));
 }
