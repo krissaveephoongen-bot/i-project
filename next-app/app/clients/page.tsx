@@ -2,6 +2,8 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import ClientsClient from "./ClientsClient";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Clients | i-Project",
 };
