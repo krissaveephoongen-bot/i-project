@@ -218,6 +218,12 @@ export async function getDashboardProjects(): Promise<ProjectHealth[]> {
       }
     }
     
+    // Fetch closure status for completed projects
+    // Logic: if status is delivered or warranty, consider it closed for health metrics?
+    // Actually, dashboard shows active portfolio.
+    // If status is Warranty, it should probably still show but maybe in different section?
+    // For now, we include everything but adjust health calc.
+
     const budgetByProject: Record<string, number> = {};
     for (const p of list) budgetByProject[p.id] = Number(p.budget || 0);
     
@@ -289,6 +295,11 @@ export async function getDashboardProjects(): Promise<ProjectHealth[]> {
       // Fallback to DB risk level if no risks found but DB has it
       if (riskCounts.high === 0 && riskCounts.medium === 0 && riskCounts.low === 0) {
           riskLevel = String(p.risk_level || "low").toLowerCase();
+      }
+      
+      // If status is Warranty, risk is low by default unless specific issues
+      if (p.status === "Warranty" || p.status === "Delivered") {
+          riskLevel = "low";
       }
 
       return {
