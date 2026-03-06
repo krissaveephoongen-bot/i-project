@@ -3,73 +3,45 @@ import { supabase } from "./supabaseClient";
 
 export interface Project {
   id: string;
-  project_code: string;
-  project_type: string;
+  code: string;
   name: string;
   status: string;
   progress: number;
   budget: number;
   spent: number;
-  start_date: string;
-  end_date: string;
-  manager_id: string;
-  created_at?: string;
-  updated_at?: string;
+  startDate: string;
+  endDate: string;
+  managerId: string;
+  clientId: string;
+  priority: string;
+  category: string;
+  createdAt?: string;
+  updatedAt?: string;
   manager_name?: string;
   task_count?: number;
-  total_duration?: number;
-  elapsed_time?: number;
-  remaining_time?: number;
   description?: string;
-  payment_term?: string;
-  payment_term_count?: number;
-  payment_percentage?: number;
-  payment_schedule?: {
-    installment: number;
-    percentage: number;
-    amount?: number;
-  }[];
 }
 
-// Helper function to recalculate project data (moved from projects/page.tsx)
-export const recalculateProjectData = async (project: any) => {
-  // Count tasks for this project
-  const { count: taskCount } = await supabase
-    .from("tasks")
-    .select("*", { count: "exact", head: true })
-    .eq("project_id", project.id);
-
-  // Calculate three types of duration
-  let totalDuration = null;
-  let elapsedTime = null;
-  let remainingTime = null;
-
-  if (project.start_date && project.end_date) {
-    const start = new Date(project.start_date);
-    const end = new Date(project.end_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    start.setHours(0, 0, 0, 0);
-    end.setHours(0, 0, 0, 0);
-
-    totalDuration =
-      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-    elapsedTime =
-      Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) +
-      1;
-
-    remainingTime = Math.ceil(
-      (end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-    );
-  }
-
+// Helper function to map snake_case DB result to camelCase Project
+const mapProjectFromDB = (data: any): Project => {
   return {
-    ...project,
-    task_count: taskCount || 0,
-    total_duration: totalDuration,
-    elapsed_time: elapsedTime,
-    remaining_time: remainingTime,
+    id: data.id,
+    code: data.code || data.project_code || "",
+    name: data.name,
+    status: data.status,
+    progress: data.progress,
+    budget: data.budget,
+    spent: data.spent,
+    startDate: data.start_date || data.startDate,
+    endDate: data.end_date || data.endDate,
+    managerId: data.manager_id || data.managerId,
+    clientId: data.client_id || data.clientId,
+    priority: data.priority,
+    category: data.category,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+    manager_name: data.users?.name || data.manager_name || null,
+    description: data.description,
   };
 };
 
@@ -88,22 +60,7 @@ export async function getProjects(): Promise<Project[]> {
     throw projectsError;
   }
 
-  const projectsWithCounts = await Promise.all(
-    projects.map(async (project) => {
-      return {
-        ...project,
-        manager_name: (project.users as any)?.name || null, // Type assertion
-      };
-    }),
-  );
-
-  // Recalculate duration here or after initial fetch for all projects
-  // For now, keep it in page.tsx if it depends on status for 'completed'
-  // Or move the entire recalculateProjectData into this util and adapt to status filtering if needed here
-
-  // For the initial fetch, we want all projects with base manager_name,
-  // then filtering and duration calculation will happen in the client component
-  return projectsWithCounts;
+  return (projects || []).map(mapProjectFromDB);
 }
 
 export async function getProjectById(id: string): Promise<Project | null> {
@@ -117,29 +74,43 @@ export async function getProjectById(id: string): Promise<Project | null> {
     console.error(`Error fetching project ${id}:`, error);
     throw error;
   }
-  return data ? { ...data, manager_name: null } : null;
+  return data ? mapProjectFromDB(data) : null;
 }
+
+// Note: createProject and updateProject here are client-side helpers using supabase-js.
+// However, the app seems to be moving to Server Actions (app/projects/actions.ts).
+// If these are still used, they should map camelCase back to snake_case.
 
 export async function createProject(
   newProject: Omit<
     Project,
     | "id"
-    | "created_at"
-    | "updated_at"
+    | "createdAt"
+    | "updatedAt"
     | "manager_name"
     | "task_count"
-    | "total_duration"
-    | "elapsed_time"
-    | "remaining_time"
   >,
 ): Promise<Project> {
+  const dbPayload = {
+    name: newProject.name,
+    code: newProject.code,
+    description: newProject.description,
+    status: newProject.status,
+    progress: newProject.progress,
+    budget: newProject.budget,
+    start_date: newProject.startDate,
+    end_date: newProject.endDate,
+    manager_id: newProject.managerId,
+    client_id: newProject.clientId,
+    priority: newProject.priority,
+    category: newProject.category,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
   const { data, error } = await supabase
     .from("projects")
-    .insert({
-      ...newProject,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    .insert(dbPayload)
     .select()
     .single();
 
@@ -147,31 +118,32 @@ export async function createProject(
     console.error("Error creating project:", error);
     throw error;
   }
-  return data;
+  return mapProjectFromDB(data);
 }
 
 export async function updateProject(
   id: string,
-  updatedFields: Partial<
-    Omit<
-      Project,
-      | "id"
-      | "created_at"
-      | "updated_at"
-      | "manager_name"
-      | "task_count"
-      | "total_duration"
-      | "elapsed_time"
-      | "remaining_time"
-    >
-  >,
+  updatedFields: Partial<Project>,
 ): Promise<Project> {
+  const dbPayload: any = {
+      updated_at: new Date().toISOString(),
+  };
+  if (updatedFields.name !== undefined) dbPayload.name = updatedFields.name;
+  if (updatedFields.code !== undefined) dbPayload.code = updatedFields.code;
+  if (updatedFields.description !== undefined) dbPayload.description = updatedFields.description;
+  if (updatedFields.status !== undefined) dbPayload.status = updatedFields.status;
+  if (updatedFields.progress !== undefined) dbPayload.progress = updatedFields.progress;
+  if (updatedFields.budget !== undefined) dbPayload.budget = updatedFields.budget;
+  if (updatedFields.startDate !== undefined) dbPayload.start_date = updatedFields.startDate;
+  if (updatedFields.endDate !== undefined) dbPayload.end_date = updatedFields.endDate;
+  if (updatedFields.managerId !== undefined) dbPayload.manager_id = updatedFields.managerId;
+  if (updatedFields.clientId !== undefined) dbPayload.client_id = updatedFields.clientId;
+  if (updatedFields.priority !== undefined) dbPayload.priority = updatedFields.priority;
+  if (updatedFields.category !== undefined) dbPayload.category = updatedFields.category;
+
   const { data, error } = await supabase
     .from("projects")
-    .update({
-      ...updatedFields,
-      updated_at: new Date().toISOString(),
-    })
+    .update(dbPayload)
     .eq("id", id)
     .select()
     .single();
@@ -180,7 +152,7 @@ export async function updateProject(
     console.error(`Error updating project ${id}:`, error);
     throw error;
   }
-  return data;
+  return mapProjectFromDB(data);
 }
 
 export async function deleteProject(id: string): Promise<void> {

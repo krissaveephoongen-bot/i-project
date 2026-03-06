@@ -62,8 +62,23 @@ export default async function ProjectsPage() {
 
   // Transform projects to match expected type
   const projects: Project[] = (projectsData || []).map((p: any) => ({
-    ...p,
+    id: p.id,
+    code: p.code || p.project_code || "",
+    name: p.name,
+    status: p.status,
+    progress: p.progress,
+    budget: p.budget,
+    spent: p.spent,
+    startDate: p.start_date,
+    endDate: p.end_date,
+    managerId: p.manager_id,
+    clientId: p.client_id,
+    priority: p.priority,
+    category: p.category,
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
     manager_name: p.users?.name || null,
+    description: p.description,
   }));
 
   // Fetch Managers with fallback

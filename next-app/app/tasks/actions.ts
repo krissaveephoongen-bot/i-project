@@ -15,6 +15,7 @@ const taskSchema = z.object({
   dueDate: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   milestoneId: z.string().optional().nullable(),
+  weight: z.number().optional().default(1),
 });
 
 export type TaskInput = z.infer<typeof taskSchema>;
@@ -108,6 +109,7 @@ export async function createTaskAction(input: TaskInput) {
       due_date: input.dueDate, 
       estimated_hours: input.estimatedHours,
       milestone_id: input.milestoneId,
+      weight: input.weight,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -144,6 +146,7 @@ export async function updateTaskAction(id: string, input: Partial<TaskInput>) {
   if (input.dueDate !== undefined) updates.due_date = input.dueDate;
   if (input.estimatedHours !== undefined) updates.estimated_hours = input.estimatedHours;
   if (input.milestoneId !== undefined) updates.milestone_id = input.milestoneId;
+  if (input.weight !== undefined) updates.weight = input.weight;
 
   const { data, error } = await supabase
     .from("tasks")

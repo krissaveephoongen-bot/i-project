@@ -170,6 +170,7 @@ export default function TasksPage() {
   };
 
   const handleSaveTask = async (task: any) => {
+    // Optimistic update or wait for invalidation
     if (editingTask) {
       await updateTaskMutation.mutateAsync({ id: editingTask.id, data: task });
     } else {

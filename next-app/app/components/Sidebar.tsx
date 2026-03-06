@@ -167,6 +167,11 @@ export default function Sidebar({
           roles: ["admin", "manager", "member"],
           children: [
             {
+              name: t("navigation.allProjects", "All Projects"),
+              href: "/projects",
+              icon: FolderKanban,
+            },
+            {
               name: "Weekly Activities",
               href: "/projects/weekly-activities",
               icon: Calendar,

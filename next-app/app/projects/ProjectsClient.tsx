@@ -157,7 +157,7 @@ export default function ProjectsClient({
       const matchesSearch =
         !searchTerm ||
         project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.manager?.name
+        project.manager_name
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
         project.code?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -165,7 +165,7 @@ export default function ProjectsClient({
       const matchesStatus =
         statusFilter === "all" || project.status === statusFilter;
       const matchesManager =
-        managerFilter === "all" || project.manager?.name === managerFilter;
+        managerFilter === "all" || project.manager_name === managerFilter;
       const matchesPriority =
         priorityFilter === "all" || project.priority === priorityFilter;
 
@@ -269,7 +269,7 @@ export default function ProjectsClient({
       ),
     },
     {
-      accessorKey: "manager.name",
+      accessorKey: "manager_name",
       header: "ผู้รับผิดชอบ",
       cell: ({ row }) => (
         <div className="flex items-center space-x-2">
@@ -277,7 +277,7 @@ export default function ProjectsClient({
             <User className="h-3 w-3 text-muted-foreground" />
           </div>
           <span className="text-sm text-foreground">
-            {row.original.manager?.name || "ไม่ระบุ"}
+            {row.original.manager_name || "ไม่ระบุ"}
           </span>
         </div>
       ),
@@ -518,7 +518,7 @@ export default function ProjectsClient({
                     p.code || "",
                     p.status,
                     p.progress,
-                    p.manager?.name || "",
+                    p.manager_name || "",
                     p.budget || 0,
                     p.endDate || "",
                   ].join(","),
@@ -743,7 +743,7 @@ export default function ProjectsClient({
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <User className="h-3.5 w-3.5" />
                         <span className="truncate max-w-[120px]">
-                          {project.manager?.name || "ไม่ระบุ"}
+                          {project.manager_name || "ไม่ระบุ"}
                         </span>
                       </div>
                       
