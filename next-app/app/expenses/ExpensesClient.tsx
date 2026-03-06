@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,6 +12,10 @@ import {
   FileText,
   Truck,
   AlertTriangle,
+  CheckCircle,
+  XCircle,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import Header from "../components/Header";
 import { PermissionGuard } from "@/app/components/PermissionGuard";
@@ -24,6 +28,9 @@ import { Button } from "@/app/components/ui/button";
 import {
   Card,
   CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
 } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import {
@@ -67,7 +74,12 @@ import {
   createExpenseAction,
   updateExpenseAction,
   deleteExpenseAction,
+  approveExpenseAction,
+  rejectExpenseAction,
 } from "./actions";
+import { ProfessionalFilter } from "@/components/ProfessionalFilter";
+import { usePermissions } from "@/app/hooks/usePermissions";
+import { toast } from "react-hot-toast";
 
 interface Expense {
   id: string;
@@ -110,11 +122,21 @@ export default function ExpensesClient({
   initialProjects,
 }: ExpensesClientProps) {
   const { user } = useAuth();
+  const { userRole } = usePermissions();
   const router = useRouter();
   const { language } = useLanguage();
   const labels = getExpensePageLabels(language);
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   
+  // Filter States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
+
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -126,6 +148,11 @@ export default function ExpensesClient({
     description: "",
     receiptUrl: "",
   });
+
+  // Reject Modal State
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectId, setRejectId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   const handleOpenModal = (expense?: Expense) => {
     if (expense) {
@@ -250,10 +277,7 @@ export default function ExpensesClient({
           );
         } else {
           toastCreateSuccess("Expense");
-          // Add new expense to list immediately or wait for revalidate
-          // Since we revalidatePath in action, router.refresh() might be needed or just rely on local update
           const newExpense = result.data;
-          // Optimistically add display fields
           const project = initialProjects.find(p => p.id === newExpense.project_id);
           const expenseWithDetails = {
             ...newExpense,
@@ -270,20 +294,88 @@ export default function ExpensesClient({
     }
   };
 
+  // Approval Handlers
+  const handleApprove = async (id: string) => {
+    try {
+      const res = await approveExpenseAction(id);
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success("Expense approved successfully");
+        setExpenses(prev => prev.map(e => e.id === id ? { ...e, status: "approved" } : e));
+        router.refresh();
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to approve");
+    }
+  };
+
+  const handleRejectClick = (id: string) => {
+    setRejectId(id);
+    setRejectReason("");
+    setRejectModalOpen(true);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectId) return;
+    try {
+      const res = await rejectExpenseAction(rejectId, rejectReason);
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success("Expense rejected");
+        setExpenses(prev => prev.map(e => e.id === rejectId ? { ...e, status: "rejected", rejectedReason: rejectReason } : e));
+        router.refresh();
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reject");
+    } finally {
+      setRejectModalOpen(false);
+      setRejectId(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
         return (
-          <Badge className="bg-green-100 text-green-800 border-green-200">
+          <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
             Approved
           </Badge>
         );
       case "rejected":
         return <Badge variant="destructive">Rejected</Badge>;
       default:
-        return <Badge variant="secondary">Pending</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200">Pending</Badge>;
     }
   };
+
+  // Filter Logic
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(expense => {
+      const matchesSearch = !searchTerm || 
+        expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.category.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === "all" || expense.status === statusFilter;
+      const matchesProject = projectFilter === "all" || expense.projectId === projectFilter;
+      
+      let matchesDate = true;
+      if (dateRange.from && dateRange.to) {
+        const expDate = new Date(expense.date);
+        matchesDate = expDate >= dateRange.from && expDate <= dateRange.to;
+      }
+
+      return matchesSearch && matchesStatus && matchesProject && matchesDate;
+    });
+  }, [expenses, searchTerm, statusFilter, projectFilter, dateRange]);
+
+  // Summary Stats
+  const totalPending = filteredExpenses.filter(e => e.status === "pending").reduce((sum, e) => sum + e.amount, 0);
+  const totalApproved = filteredExpenses.filter(e => e.status === "approved").reduce((sum, e) => sum + e.amount, 0);
+  const countPending = filteredExpenses.filter(e => e.status === "pending").length;
+
+  const isAdminOrManager = userRole === "admin" || userRole === "manager";
 
   return (
     <div className="min-h-screen bg-slate-50/50">
@@ -300,27 +392,19 @@ export default function ExpensesClient({
         fallback={
           <div className="text-center py-8">
             <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold">
-              ต้องการสิทธิ์ Admin/Manager
-            </h3>
-            <p className="text-slate-600">
-              หน้านี้สำหรับสำหรับ Admin/Manager เท่านั้น
-            </p>
+            <h3 className="text-lg font-semibold">Access Denied</h3>
+            <p className="text-slate-600">You don't have permission to view this page.</p>
           </div>
         }
       >
         <div className="container mx-auto px-6 py-8 pt-24 space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">
-                {language === "th"
-                  ? "การเรียกร้องค่าใช้จ่าย"
-                  : "Expense Claims"}
+                {language === "th" ? "การเรียกร้องค่าใช้จ่าย" : "Expense Claims"}
               </h1>
               <p className="text-slate-500">
-                {language === "th"
-                  ? "จัดการและติดตามค่าใช้จ่ายของโครงการของคุณ"
-                  : "Manage and track your project expenses"}
+                {language === "th" ? "จัดการและติดตามค่าใช้จ่ายของโครงการของคุณ" : "Manage and track your project expenses"}
               </p>
             </div>
             <div className="flex gap-2">
@@ -339,102 +423,183 @@ export default function ExpensesClient({
                 onClick={() => handleOpenModal()}
                 className="gap-2 bg-blue-600 hover:bg-blue-700"
               >
-                <Plus className="h-4 w-4" />{" "}
+                <Plus className="h-4 w-4" />
                 {language === "th" ? "เรียกร้องใหม่" : "New Claim"}
               </Button>
             </div>
           </div>
 
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Pending Approval</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600">฿{totalPending.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">{countPending} requests waiting</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Approved (Filtered)</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">฿{totalApproved.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Total approved amount</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Claims</CardTitle>
+                <DollarSign className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-slate-900">
+                  ฿{filteredExpenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground">{filteredExpenses.length} total records</p>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
+            <CardHeader>
+              <CardTitle>Expense List</CardTitle>
+              <CardDescription>View and manage expense claims</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ProfessionalFilter
+                searchPlaceholder="Search description or category..."
+                searchValue={searchTerm}
+                onSearchChange={setSearchTerm}
+                filters={[
+                  {
+                    key: "status",
+                    label: "Status",
+                    value: statusFilter,
+                    type: "static",
+                    staticOptions: [
+                      { value: "pending", label: "Pending" },
+                      { value: "approved", label: "Approved" },
+                      { value: "rejected", label: "Rejected" },
+                    ],
+                    onChange: setStatusFilter,
+                  },
+                  {
+                    key: "project",
+                    label: "Project",
+                    value: projectFilter,
+                    type: "static",
+                    staticOptions: initialProjects.map(p => ({ value: p.id, label: p.name })),
+                    onChange: setProjectFilter,
+                  }
+                ]}
+                showDateFilter={true}
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                resultCount={filteredExpenses.length}
+                totalItems={expenses.length}
+                onClearAll={() => {
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                  setProjectFilter("all");
+                  setDateRange({ from: undefined, to: undefined });
+                }}
+              />
+
+              <div className="overflow-x-auto rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>{labels.date}</TableHead>
-                    <TableHead>{labels.project}</TableHead>
-                    <TableHead>{labels.category}</TableHead>
-                    <TableHead>{labels.description}</TableHead>
-                    <TableHead className="text-right">
-                      {labels.amount}
-                    </TableHead>
-                    <TableHead className="text-center">
-                      {labels.status}
-                    </TableHead>
-                    <TableHead className="text-right">
-                      {language === "th" ? "การกระทำ" : "Actions"}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {expenses.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        className="text-center h-32 text-slate-500"
-                      >
-                        {labels.noExpenses}
-                      </TableCell>
+                      <TableHead>{labels.project}</TableHead>
+                      <TableHead>{labels.category}</TableHead>
+                      <TableHead>{labels.description}</TableHead>
+                      <TableHead className="text-right">{labels.amount}</TableHead>
+                      <TableHead className="text-center">{labels.status}</TableHead>
+                      <TableHead className="text-right">{language === "th" ? "การกระทำ" : "Actions"}</TableHead>
                     </TableRow>
-                  ) : (
-                    expenses.map((expense) => (
-                      <TableRow key={expense.id}>
-                        <TableCell>
-                          {new Date(expense.date).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {expense.project?.name || "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-normal">
-                            {expense.category}
-                          </Badge>
-                        </TableCell>
-                        <TableCell
-                          className="max-w-[200px] truncate"
-                          title={expense.description}
-                        >
-                          {expense.description || "-"}
-                          {expense.rejectedReason && (
-                            <div className="text-xs text-red-500 mt-1">
-                              Reason: {expense.rejectedReason}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          ฿{expense.amount.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {getStatusBadge(expense.status)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {(expense.status === "pending" ||
-                            expense.status === "rejected") && (
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleOpenModal(expense)}
-                              >
-                                <Edit2 className="h-4 w-4 text-slate-500" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 hover:text-red-600"
-                                onClick={() => handleDeleteClick(expense.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
+                  </TableHeader>
+                  <TableBody>
+                    {filteredExpenses.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center h-32 text-slate-500">
+                          {labels.noExpenses}
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      filteredExpenses.map((expense) => (
+                        <TableRow key={expense.id}>
+                          <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
+                          <TableCell className="font-medium">{expense.project?.name || "-"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="font-normal">{expense.category}</Badge>
+                          </TableCell>
+                          <TableCell className="max-w-[200px] truncate" title={expense.description}>
+                            {expense.description || "-"}
+                            {expense.rejectedReason && (
+                              <div className="text-xs text-red-500 mt-1">Reason: {expense.rejectedReason}</div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">฿{expense.amount.toLocaleString()}</TableCell>
+                          <TableCell className="text-center">{getStatusBadge(expense.status)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              {/* Approval Actions (Admin/Manager only) */}
+                              {isAdminOrManager && expense.status === "pending" && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    onClick={() => handleApprove(expense.id)}
+                                    title="Approve"
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => handleRejectClick(expense.id)}
+                                    title="Reject"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                              
+                              {/* Edit/Delete Actions (Owner or Admin if pending) */}
+                              {(expense.status === "pending" || expense.status === "rejected") && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600"
+                                    onClick={() => handleOpenModal(expense)}
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
+                                    onClick={() => handleDeleteClick(expense.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
@@ -444,16 +609,10 @@ export default function ExpensesClient({
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>
-                  {editingId
-                    ? labels.edit
-                    : language === "th"
-                      ? "เรียกร้องค่าใช้จ่ายใหม่"
-                      : "New Expense Claim"}
+                  {editingId ? labels.edit : (language === "th" ? "เรียกร้องค่าใช้จ่ายใหม่" : "New Expense Claim")}
                 </DialogTitle>
                 <DialogDescription>
-                  {language === "th"
-                    ? "กรอกรายละเอียดสำหรับการเรียกร้องค่าใช้จ่ายของคุณ"
-                    : "Fill in the details for your expense claim."}
+                  {language === "th" ? "กรอกรายละเอียดสำหรับการเรียกร้องค่าใช้จ่ายของคุณ" : "Fill in the details for your expense claim."}
                 </DialogDescription>
               </DialogHeader>
 
@@ -467,16 +626,12 @@ export default function ExpensesClient({
                         type="date"
                         className="pl-9"
                         value={formData.date}
-                        onChange={(e) =>
-                          setFormData({ ...formData, date: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      {language === "th" ? "จำนวนเงิน (บาท)" : "Amount (THB)"}
-                    </label>
+                    <label className="text-sm font-medium">{language === "th" ? "จำนวนเงิน (บาท)" : "Amount (THB)"}</label>
                     <div className="relative">
                       <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
                       <Input
@@ -484,96 +639,70 @@ export default function ExpensesClient({
                         className="pl-9"
                         placeholder="0.00"
                         value={formData.amount}
-                        onChange={(e) =>
-                          setFormData({ ...formData, amount: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    {labels.project}
-                  </label>
+                  <label className="text-sm font-medium">{labels.project}</label>
                   <Select
                     value={formData.projectId}
-                    onValueChange={(val) =>
-                      setFormData({ ...formData, projectId: val })
-                    }
+                    onValueChange={(val) => setFormData({ ...formData, projectId: val })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Project" />
                     </SelectTrigger>
                     <SelectContent>
                       {initialProjects.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name}
-                        </SelectItem>
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    {labels.category}
-                  </label>
+                  <label className="text-sm font-medium">{labels.category}</label>
                   <Select
                     value={formData.category}
-                    onValueChange={(val) =>
-                      setFormData({ ...formData, category: val })
-                    }
+                    onValueChange={(val) => setFormData({ ...formData, category: val })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Category" />
                     </SelectTrigger>
                     <SelectContent>
                       {CATEGORIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    {labels.description}
-                  </label>
+                  <label className="text-sm font-medium">{labels.description}</label>
                   <Textarea
                     placeholder="Describe the expense..."
                     value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    {language === "th"
-                      ? "URL ใบเสร็จรับเงิน (ไม่บังคับ)"
-                      : "Receipt URL (Optional)"}
+                    {language === "th" ? "URL ใบเสร็จรับเงิน (ไม่บังคับ)" : "Receipt URL (Optional)"}
                   </label>
                   <Input
                     placeholder="https://example.com/receipt.jpg"
                     value={formData.receiptUrl}
-                    onChange={(e) =>
-                      setFormData({ ...formData, receiptUrl: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, receiptUrl: e.target.value })}
                   />
                 </div>
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => setModalOpen(false)}>
-                  {labels.cancel}
-                </Button>
-                <Button onClick={handleSubmit}>
-                  {language === "th" ? "บันทึกการเรียกร้อง" : "Save Claim"}
-                </Button>
+                <Button variant="outline" onClick={() => setModalOpen(false)}>{labels.cancel}</Button>
+                <Button onClick={handleSubmit}>{language === "th" ? "บันทึกการเรียกร้อง" : "Save Claim"}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -582,25 +711,35 @@ export default function ExpensesClient({
           <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
             <DialogContent className="sm:max-w-[400px]">
               <DialogHeader>
-                <DialogTitle>
-                  {language === "th" ? "ยืนยันการลบ" : "Confirm Deletion"}
-                </DialogTitle>
+                <DialogTitle>{language === "th" ? "ยืนยันการลบ" : "Confirm Deletion"}</DialogTitle>
                 <DialogDescription>
-                  {language === "th"
-                    ? "คุณแน่ใจหรือว่าต้องการลบค่าใช้จ่ายนี้? การกระทำนี้ไม่สามารถยกเลิกได้"
-                    : "Are you sure you want to delete this expense? This action cannot be undone."}
+                  {language === "th" ? "คุณแน่ใจหรือว่าต้องการลบค่าใช้จ่ายนี้? การกระทำนี้ไม่สามารถยกเลิกได้" : "Are you sure you want to delete this expense? This action cannot be undone."}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setDeleteConfirmOpen(false)}
-                >
-                  {labels.cancel}
-                </Button>
-                <Button variant="destructive" onClick={handleConfirmDelete}>
-                  {labels.delete}
-                </Button>
+                <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>{labels.cancel}</Button>
+                <Button variant="destructive" onClick={handleConfirmDelete}>{labels.delete}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Reject Dialog */}
+          <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
+            <DialogContent className="sm:max-w-[400px]">
+              <DialogHeader>
+                <DialogTitle>Reject Expense</DialogTitle>
+                <DialogDescription>Please provide a reason for rejection.</DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Textarea
+                  placeholder="Reason for rejection..."
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setRejectModalOpen(false)}>Cancel</Button>
+                <Button variant="destructive" onClick={handleConfirmReject} disabled={!rejectReason.trim()}>Reject</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

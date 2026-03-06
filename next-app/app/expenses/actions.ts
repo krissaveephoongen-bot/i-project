@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
@@ -125,6 +125,96 @@ export async function deleteExpenseAction(id: string) {
   if (error) {
     console.error("Delete Expense Error:", error);
     return { error: "Database error: Failed to delete expense" };
+  }
+
+  revalidatePath("/expenses");
+  return { success: true };
+}
+
+export async function approveExpenseAction(id: string) {
+  const supabase = createClient(cookies());
+  
+  // Verify permission (Admin/Manager only)
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+  
+  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+  if (!profile || !["admin", "manager"].includes(profile.role)) {
+    return { error: "Insufficient permissions" };
+  }
+
+  // Use Admin Client to bypass RLS if needed (approving others' expenses)
+  const adminSupabase = createClient(cookies()); // Try standard first
+  // Actually, if we are admin, we should be able to update. 
+  // But let's use standard update first.
+  
+  const { error } = await supabase
+    .from("expenses")
+    .update({ 
+      status: "approved",
+      updated_at: new Date().toISOString() 
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Approve Expense Error:", error);
+    // Fallback to Admin Client
+    const adminSupabase = createAdminClient();
+    const { error: adminError } = await adminSupabase
+      .from("expenses")
+      .update({ 
+        status: "approved",
+        updated_at: new Date().toISOString() 
+      })
+      .eq("id", id);
+      
+    if (adminError) {
+       console.error("Admin Approve Expense Error:", adminError);
+       return { error: "Failed to approve expense" };
+    }
+  }
+
+  revalidatePath("/expenses");
+  return { success: true };
+}
+
+export async function rejectExpenseAction(id: string, reason: string) {
+  const supabase = createClient(cookies());
+  
+  // Verify permission
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+  
+  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+  if (!profile || !["admin", "manager"].includes(profile.role)) {
+    return { error: "Insufficient permissions" };
+  }
+
+  const { error } = await supabase
+    .from("expenses")
+    .update({ 
+      status: "rejected",
+      rejected_reason: reason,
+      updated_at: new Date().toISOString() 
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Reject Expense Error:", error);
+    // Fallback
+    const adminSupabase = createAdminClient();
+    const { error: adminError } = await adminSupabase
+      .from("expenses")
+      .update({ 
+        status: "rejected",
+        rejected_reason: reason,
+        updated_at: new Date().toISOString() 
+      })
+      .eq("id", id);
+      
+    if (adminError) {
+       return { error: "Failed to reject expense" };
+    }
   }
 
   revalidatePath("/expenses");
