@@ -22,10 +22,28 @@ function quote(col) {
 }
 async function insertDynamic(table, values) {
   const cols = await getColumns(table);
-  const usable = Object.keys(values).filter((k) => cols.includes(k));
+  
+  // Helper to convert camelCase to snake_case
+  const toSnake = (s) => s.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+
+  const mappedValues = {};
+  
+  for (const [key, value] of Object.entries(values)) {
+    if (cols.includes(key)) {
+      mappedValues[key] = value;
+    } else {
+      const snakeKey = toSnake(key);
+      if (cols.includes(snakeKey)) {
+        mappedValues[snakeKey] = value;
+      }
+    }
+  }
+
+  const usable = Object.keys(mappedValues);
   if (!usable.length) return;
+  
   const sql = `INSERT INTO ${table} (${usable.map(quote).join(",")}) VALUES (${usable.map((_, i) => `$${i + 1}`).join(",")})`;
-  const params = usable.map((k) => values[k]);
+  const params = usable.map((k) => mappedValues[k]);
   await pool.query(sql, params);
 }
 async function upsertUnique(table, uniq, values) {
