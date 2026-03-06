@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   MapPin,
   Truck,
+  Send,
 } from "lucide-react";
 import Header from "../../components/Header";
 import { useAuth } from "../../components/AuthProvider";
@@ -40,8 +41,8 @@ import {
 } from "@/app/components/ui/table";
 import { Textarea } from "@/app/components/ui/textarea";
 import Link from "next/link";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+import { createExpenseAction, getProjectsSimpleAction } from "../actions";
+import { useRouter } from "next/navigation";
 
 interface Project {
   id: string;
@@ -66,6 +67,7 @@ interface Trip {
 
 export default function TravelExpensePage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -92,19 +94,22 @@ export default function TravelExpensePage() {
     if (user) {
       fetchProjects();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
     calculateTotals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trips]);
 
   const fetchProjects = async () => {
     try {
-      // Use /api/projects which now uses backend API or direct DB query
-      const res = await fetch(`${API_BASE}/api/projects`);
-      if (res.ok) {
-        const data = await res.json();
-        setProjects(data);
+      setLoading(true);
+      const res = await getProjectsSimpleAction();
+      if (res.data) {
+        setProjects(res.data);
+      } else {
+        toast.error(res.error || "Failed to load projects");
       }
     } catch (error) {
       console.error("Failed to fetch projects", error);
@@ -196,11 +201,16 @@ export default function TravelExpensePage() {
       return;
     }
 
+    if (!user) {
+      toast.error("User not authenticated");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
-        user_id: user?.id,
-        project_id: projectId,
+        userId: user.id,
+        projectId: projectId,
         date: startDate, // Use start date as the main date
         amount: totalAmount,
         category: "Travel",
@@ -217,23 +227,17 @@ export default function TravelExpensePage() {
         },
       };
 
-      const res = await fetch(`${API_BASE}/api/expenses`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await createExpenseAction(payload);
 
-      if (res.ok) {
-        toast.success("Travel claim submitted successfully");
-        // Redirect or clear
-        window.location.href = "/expenses";
+      if (res.error) {
+        toast.error(res.error);
       } else {
-        const json = await res.json();
-        toast.error(json.error || "Failed to submit claim");
+        toast.success("Travel claim submitted successfully");
+        router.push("/expenses");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Submit error", error);
-      toast.error("Failed to submit claim");
+      toast.error(error.message || "Failed to submit claim");
     } finally {
       setSubmitting(false);
     }
@@ -349,10 +353,11 @@ export default function TravelExpensePage() {
                 </span>
               </div>
               <Button
-                className="w-full mt-4"
+                className="w-full mt-4 gap-2 bg-blue-600 hover:bg-blue-700"
                 onClick={handleSubmit}
                 disabled={submitting}
               >
+                <Send className="h-4 w-4" />{" "}
                 {submitting ? "Submitting..." : "Submit Claim"}
               </Button>
             </CardContent>
@@ -377,17 +382,17 @@ export default function TravelExpensePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[120px]">Date</TableHead>
+                    <TableHead className="w-[130px]">Date</TableHead>
                     <TableHead className="w-[150px]">Detail</TableHead>
-                    <TableHead className="w-[120px]">Vehicle</TableHead>
+                    <TableHead className="w-[130px]">Vehicle</TableHead>
                     <TableHead className="w-[200px]">
                       Route (From - To)
                     </TableHead>
-                    <TableHead className="w-[100px]">Distance (km)</TableHead>
-                    <TableHead className="w-[100px]">Fuel (฿)</TableHead>
-                    <TableHead className="w-[100px]">Transport (฿)</TableHead>
-                    <TableHead className="w-[100px]">Express (฿)</TableHead>
-                    <TableHead className="w-[100px]">Parking (฿)</TableHead>
+                    <TableHead className="w-[100px] text-right">Dist (km)</TableHead>
+                    <TableHead className="w-[100px] text-right">Fuel (฿)</TableHead>
+                    <TableHead className="w-[100px] text-right">Transport</TableHead>
+                    <TableHead className="w-[100px] text-right">Express</TableHead>
+                    <TableHead className="w-[100px] text-right">Parking</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -491,7 +496,7 @@ export default function TravelExpensePage() {
                                 Number(e.target.value),
                               )
                             }
-                            className="h-8 w-20"
+                            className="h-8 text-right"
                             disabled={
                               trip.vehicleType !== "Personal Car" &&
                               trip.vehicleType !== "Company Car"
@@ -509,7 +514,7 @@ export default function TravelExpensePage() {
                                 Number(e.target.value),
                               )
                             }
-                            className="h-8 w-20"
+                            className="h-8 text-right"
                           />
                         </TableCell>
                         <TableCell>
@@ -523,7 +528,7 @@ export default function TravelExpensePage() {
                                 Number(e.target.value),
                               )
                             }
-                            className="h-8 w-20"
+                            className="h-8 text-right"
                           />
                         </TableCell>
                         <TableCell>
@@ -537,7 +542,7 @@ export default function TravelExpensePage() {
                                 Number(e.target.value),
                               )
                             }
-                            className="h-8 w-20"
+                            className="h-8 text-right"
                           />
                         </TableCell>
                         <TableCell>
@@ -551,7 +556,7 @@ export default function TravelExpensePage() {
                                 Number(e.target.value),
                               )
                             }
-                            className="h-8 w-20"
+                            className="h-8 text-right"
                           />
                         </TableCell>
                         <TableCell>

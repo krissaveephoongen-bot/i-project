@@ -62,6 +62,14 @@ const LazyInsightsTab = createLazyComponent(
   },
 );
 
+const LazyVendorTab = createLazyComponent(
+  () => import("./components/VendorTab"),
+  {
+    loadingVariant: "table",
+    loadingClassName: "min-h-[400px]",
+  },
+);
+
 export default function ReportsPage() {
   const printPdf = () => {
     window.print();
@@ -135,6 +143,12 @@ export default function ReportsPage() {
               >
                 <PieChart className="h-4 w-4" /> Insights
               </TabsTrigger>
+              <TabsTrigger
+                value="vendors"
+                className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <Users className="h-4 w-4" /> Vendors
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="executive">
@@ -155,6 +169,10 @@ export default function ReportsPage() {
 
             <TabsContent value="insights">
               <LazyInsightsTab />
+            </TabsContent>
+
+            <TabsContent value="vendors">
+              <LazyVendorTab />
             </TabsContent>
           </Tabs>
         </div>

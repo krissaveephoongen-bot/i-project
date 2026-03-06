@@ -23,8 +23,12 @@ import {
 } from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
 import Link from "next/link";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+import { 
+  createExpenseAction, 
+  getProjectsSimpleAction, 
+  getUsersSimpleAction 
+} from "../actions";
+import { useRouter } from "next/navigation";
 
 interface Project {
   id: string;
@@ -39,6 +43,7 @@ interface User {
 
 export default function MemoRequestPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,25 +61,27 @@ export default function MemoRequestPage() {
     if (user) {
       fetchData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       // Fetch Projects
-      // Use /api/projects which now uses backend API or direct DB query
-      const projRes = await fetch(`${API_BASE}/api/projects`);
-      if (projRes.ok) {
-        const data = await projRes.json();
-        setProjects(data);
+      const projRes = await getProjectsSimpleAction();
+      if (projRes.data) {
+        setProjects(projRes.data);
+      } else {
+        toast.error(projRes.error || "Failed to load projects");
       }
 
       // Fetch Users (for approver selection)
-      const usersRes = await fetch(`${API_BASE}/api/users?status=active`);
-      if (usersRes.ok) {
-        const data = await usersRes.json();
-        // Filter out current user? Or allow self-approval (usually not)
-        setUsers(data.filter((u: User) => u.id !== user?.id));
+      const usersRes = await getUsersSimpleAction();
+      if (usersRes.data) {
+        // Filter out current user
+        setUsers(usersRes.data.filter((u: any) => u.id !== user?.id));
+      } else {
+        toast.error(usersRes.error || "Failed to load users");
       }
     } catch (error) {
       console.error("Failed to fetch data", error);
@@ -90,6 +97,11 @@ export default function MemoRequestPage() {
       return;
     }
 
+    if (!user) {
+      toast.error("User not authenticated");
+      return;
+    }
+
     setSubmitting(true);
     try {
       // Find project name for reference if not manually set
@@ -101,8 +113,8 @@ export default function MemoRequestPage() {
         .padStart(3, "0")}`; // Simple auto-gen
 
       const payload = {
-        user_id: user?.id,
-        project_id: projectId,
+        userId: user.id,
+        projectId: projectId,
         date,
         amount: 0, // Memos might not have direct amount, or 0
         category: "Memo",
@@ -114,27 +126,21 @@ export default function MemoRequestPage() {
           subject,
           reference: reference || project?.name,
           content,
-          requesterName: user?.name,
-          // We can add more fields from the docx analysis
+          requesterName: user.name,
         },
       };
 
-      const res = await fetch(`${API_BASE}/api/expenses`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await createExpenseAction(payload);
 
-      if (res.ok) {
-        toast.success("Memo request submitted successfully");
-        window.location.href = "/expenses";
+      if (res.error) {
+        toast.error(res.error);
       } else {
-        const json = await res.json();
-        toast.error(json.error || "Failed to submit request");
+        toast.success("Memo request submitted successfully");
+        router.push("/expenses");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Submit error", error);
-      toast.error("Failed to submit request");
+      toast.error(error.message || "Failed to submit request");
     } finally {
       setSubmitting(false);
     }

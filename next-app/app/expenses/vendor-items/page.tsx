@@ -1,17 +1,45 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Header from "@/app/components/Header";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/app/components/ui/dialog";
+import { Plus, Search, Edit2, Trash2, AlertTriangle } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { 
+  getVendorItemsAction, 
+  createVendorItemAction, 
+  updateVendorItemAction, 
+  deleteVendorItemAction 
+} from "./actions";
+import { PermissionGuard } from "@/app/components/PermissionGuard";
+import { UserRole } from "@/lib/auth";
 
 interface Item {
   id: string;
-  expenseId?: string;
+  expenseId: string;
   vendorId?: string | null;
   vendorName?: string;
-  category?: string;
+  category: string;
   subcategory?: string | null;
-  description?: string;
-  quantity?: number;
-  unitPrice?: number;
+  description: string;
+  quantity: number;
+  unitPrice: number;
   totalPrice?: number;
   baseCost?: number | null;
   marginAmount?: number | null;
@@ -30,39 +58,32 @@ export default function ExpensesVendorItemsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
-  const [form, setForm] = useState<any>({
+  const [form, setForm] = useState<Partial<Item>>({
     expenseId: "",
     vendorId: "",
     category: "",
     subcategory: "",
     description: "",
-    quantity: "1",
-    unitPrice: "",
-    baseCost: "",
-    markup: "",
+    quantity: 1,
+    unitPrice: 0,
+    baseCost: 0,
     vendorItemCode: "",
     vendorInvoice: "",
     notes: "",
   });
 
-  const baseUrl = "";
-
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      if (search) params.set("search", search);
-      params.set("limit", "20");
-      const res = await fetch(
-        `${baseUrl}/api/expenses/vendor-items?${params.toString()}`,
-        { cache: "no-store" },
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setItems(json.items || []);
+      const res = await getVendorItemsAction(search);
+      if (res.error) {
+        setError(res.error);
+      } else if (res.data) {
+        setItems(res.data);
+      }
     } catch (e: any) {
-      setError(e.message || "Failed to load vendor items");
+      setError(e.message || "Failed to load items");
     } finally {
       setLoading(false);
     }
@@ -73,419 +94,287 @@ export default function ExpensesVendorItemsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fmt = (n?: number | null) => (n != null ? n.toLocaleString() : "-");
-  const formatDate = (d?: string) =>
-    d ? new Date(d).toLocaleDateString() : "-";
   const openCreate = () => {
     setEditing(null);
     setForm({
-      expenseId: "",
+      expenseId: "", // User must provide ID for now, or select from list if we implemented it
       vendorId: "",
       category: "",
       subcategory: "",
       description: "",
-      quantity: "1",
-      unitPrice: "",
-      baseCost: "",
-      markup: "",
+      quantity: 1,
+      unitPrice: 0,
+      baseCost: 0,
       vendorItemCode: "",
       vendorInvoice: "",
       notes: "",
     });
     setModalOpen(true);
   };
-  const openEdit = async (it: Item) => {
-    try {
-      const res = await fetch(`${baseUrl}/api/expenses/vendor-items/${it.id}`, {
-        cache: "no-store",
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const d = json.item || {};
-        setEditing(it);
-        setForm({
-          expenseId: d.expenseId || "",
-          vendorId: d.vendorId || "",
-          category: d.category || "",
-          subcategory: d.subcategory || "",
-          description: d.description || "",
-          quantity: String(d.quantity || "1"),
-          unitPrice: String(d.unitPrice || ""),
-          baseCost: d.baseCost != null ? String(d.baseCost) : "",
-          markup: d.markup != null ? String(d.markup) : "",
-          vendorItemCode: d.vendorItemCode || "",
-          vendorInvoice: d.vendorInvoice || "",
-          notes: d.notes || "",
-        });
-        setModalOpen(true);
-      } else {
-        setEditing(it);
-        setModalOpen(true);
-      }
-    } catch {
-      setEditing(it);
-      setModalOpen(true);
-    }
+
+  const openEdit = (it: Item) => {
+    setEditing(it);
+    setForm({ ...it });
+    setModalOpen(true);
   };
+
   const save = async () => {
-    if (
-      !form.expenseId ||
-      !form.category ||
-      !form.description ||
-      !form.unitPrice
-    )
+    if (!form.expenseId || !form.category || !form.description || form.unitPrice === undefined) {
+      toast.error("Please fill in required fields (Expense ID, Category, Description, Unit Price)");
       return;
+    }
     setSaving(true);
     try {
-      const method = editing ? "PUT" : "POST";
-      const url = editing
-        ? `${baseUrl}/api/expenses/vendor-items/${editing.id}`
-        : `${baseUrl}/api/expenses/vendor-items`;
-      const body = {
+      const payload: any = {
         expenseId: form.expenseId,
         vendorId: form.vendorId || null,
         category: form.category,
         subcategory: form.subcategory || null,
         description: form.description,
-        quantity: parseFloat(form.quantity || "1"),
-        unitPrice: parseFloat(form.unitPrice),
-        baseCost: form.baseCost ? parseFloat(form.baseCost) : undefined,
-        markup: form.markup ? parseFloat(form.markup) : undefined,
+        quantity: Number(form.quantity),
+        unitPrice: Number(form.unitPrice),
+        baseCost: form.baseCost ? Number(form.baseCost) : null,
         vendorItemCode: form.vendorItemCode || null,
         vendorInvoice: form.vendorInvoice || null,
         notes: form.notes || null,
       };
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setModalOpen(false);
-      await load();
+
+      let res;
+      if (editing) {
+        res = await updateVendorItemAction(editing.id, payload);
+      } else {
+        res = await createVendorItemAction(payload);
+      }
+
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success(editing ? "Item updated" : "Item created");
+        setModalOpen(false);
+        load();
+      }
     } catch (e: any) {
-      setError(e.message || "Failed to save item");
+      toast.error(e.message || "Failed to save item");
     } finally {
       setSaving(false);
     }
   };
+
   const remove = async (id: string) => {
     if (!confirm("Delete this item?")) return;
     try {
-      const res = await fetch(`${baseUrl}/api/expenses/vendor-items/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      await load();
+      const res = await deleteVendorItemAction(id);
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success("Item deleted");
+        load();
+      }
     } catch (e: any) {
-      setError(e.message || "Failed to delete item");
+      toast.error(e.message || "Failed to delete item");
     }
   };
 
+  const fmt = (n?: number | null) => (n != null ? n.toLocaleString() : "-");
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">
-          Vendor Expense Items
-        </h1>
-        <button
-          onClick={openCreate}
-          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-        >
-          Add Item
-        </button>
-      </div>
-
-      <div className="flex gap-2">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="ค้นหา description/invoice/vendor..."
-          className="border rounded px-3 py-2 w-full"
-        />
-        <button
-          onClick={load}
-          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-        >
-          Search
-        </button>
-      </div>
-
-      {loading && (
-        <div className="space-y-2">
-          <div className="h-8 bg-slate-100 rounded animate-pulse" />
-          <div className="h-8 bg-slate-100 rounded animate-pulse" />
-          <div className="h-8 bg-slate-100 rounded animate-pulse" />
-        </div>
-      )}
-      {error && (
-        <div className="border border-red-200 bg-red-50 text-red-700 rounded p-4 flex items-center justify-between">
-          <span>เกิดข้อผิดพลาด: {error}</span>
-          <button
-            onClick={load}
-            className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
-          >
-            ลองอีกครั้ง
-          </button>
-        </div>
-      )}
-
-      {!loading && !error && (
-        <div className="overflow-x-auto border rounded">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b">
-              <tr>
-                <th className="text-left px-4 py-2">Vendor</th>
-                <th className="text-left px-4 py-2">Category</th>
-                <th className="text-left px-4 py-2">Subcategory</th>
-                <th className="text-left px-4 py-2">Description</th>
-                <th className="text-right px-4 py-2">Qty</th>
-                <th className="text-right px-4 py-2">Unit</th>
-                <th className="text-right px-4 py-2">Total</th>
-                <th className="text-right px-4 py-2">Base</th>
-                <th className="text-right px-4 py-2">Margin</th>
-                <th className="text-right px-4 py-2">Final</th>
-                <th className="text-left px-4 py-2">Invoice</th>
-                <th className="text-left px-4 py-2">Created</th>
-                <th className="text-right px-4 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((it) => (
-                <tr key={it.id} className="border-b hover:bg-slate-50">
-                  <td className="px-4 py-2">{it.vendorName || "-"}</td>
-                  <td className="px-4 py-2">{it.category || "-"}</td>
-                  <td className="px-4 py-2">{it.subcategory || "-"}</td>
-                  <td className="px-4 py-2">{it.description || "-"}</td>
-                  <td className="px-4 py-2 text-right">{fmt(it.quantity)}</td>
-                  <td className="px-4 py-2 text-right">{fmt(it.unitPrice)}</td>
-                  <td className="px-4 py-2 text-right">{fmt(it.totalPrice)}</td>
-                  <td className="px-4 py-2 text-right">{fmt(it.baseCost)}</td>
-                  <td className="px-4 py-2 text-right">
-                    {fmt(it.marginAmount)}
-                  </td>
-                  <td className="px-4 py-2 text-right">{fmt(it.finalPrice)}</td>
-                  <td className="px-4 py-2">{it.vendorInvoice || "-"}</td>
-                  <td className="px-4 py-2">{formatDate(it.createdAt)}</td>
-                  <td className="px-4 py-2">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => openEdit(it)}
-                        className="px-3 py-1 rounded border border-slate-200 hover:bg-slate-50"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => remove(it.id)}
-                        className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {items.length === 0 && (
-                <tr>
-                  <td
-                    className="px-4 py-10 text-slate-500 text-center"
-                    colSpan={13}
-                  >
-                    <div className="text-base">
-                      ยังไม่มีรายการค่าใช้จ่ายจาก Vendor
-                    </div>
-                    <div className="text-xs text-slate-400 mt-1">
-                      ลองปรับเงื่อนไขค้นหาหรือเพิ่มรายการใหม่
-                    </div>
-                    <div className="mt-3">
-                      <button
-                        onClick={load}
-                        className="px-3 py-1.5 rounded bg-slate-100 hover:bg-slate-200"
-                      >
-                        โหลดใหม่
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl">
-            <div className="flex items-center justify-between p-4 border-b border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-900">
-                {editing ? "Edit Item" : "Add Item"}
-              </h3>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-4 grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Expense ID
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.expenseId}
-                  onChange={(e) =>
-                    setForm({ ...form, expenseId: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Vendor ID
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.vendorId}
-                  onChange={(e) =>
-                    setForm({ ...form, vendorId: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Category
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.category}
-                  onChange={(e) =>
-                    setForm({ ...form, category: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Subcategory
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.subcategory}
-                  onChange={(e) =>
-                    setForm({ ...form, subcategory: e.target.value })
-                  }
-                />
-              </div>
-              <div className="col-span-3">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Description
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Quantity
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.quantity}
-                  onChange={(e) =>
-                    setForm({ ...form, quantity: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Unit Price
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.unitPrice}
-                  onChange={(e) =>
-                    setForm({ ...form, unitPrice: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Base Cost
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.baseCost}
-                  onChange={(e) =>
-                    setForm({ ...form, baseCost: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Markup %
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.markup}
-                  onChange={(e) => setForm({ ...form, markup: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Vendor Item Code
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.vendorItemCode}
-                  onChange={(e) =>
-                    setForm({ ...form, vendorItemCode: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Vendor Invoice
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.vendorInvoice}
-                  onChange={(e) =>
-                    setForm({ ...form, vendorInvoice: e.target.value })
-                  }
-                />
-              </div>
-              <div className="col-span-3">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Notes
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 p-4 border-t border-slate-200">
-              <button
-                onClick={() => setModalOpen(false)}
-                className="px-4 py-2 border border-slate-200 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={save}
-                disabled={saving}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-              >
-                {saving ? "Saving..." : "Save"}
-              </button>
-            </div>
+    <div className="min-h-screen bg-slate-50">
+      <Header
+        title="Vendor Items"
+        breadcrumbs={[
+          { label: "Expenses", href: "/expenses" },
+          { label: "Vendor Items" },
+        ]}
+      />
+      
+      <PermissionGuard
+        roles={[UserRole.ADMIN, UserRole.MANAGER]}
+        fallback={
+          <div className="text-center py-24">
+            <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold">Access Denied</h3>
+            <p className="text-slate-600">Only Admins/Managers can access this page.</p>
           </div>
+        }
+      >
+        <div className="pt-24 px-6 pb-12 max-w-7xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-slate-900">Vendor Expense Items</h1>
+            <Button onClick={openCreate} className="gap-2">
+              <Plus className="w-4 h-4" /> Add Item
+            </Button>
+          </div>
+
+          <div className="flex gap-4 items-center bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                value={search}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") load();
+                }}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search description/invoice..."
+                className="pl-9"
+              />
+            </div>
+            <Button onClick={load} variant="outline">
+              Search
+            </Button>
+          </div>
+
+          {loading && (
+            <div className="space-y-2">
+              <div className="h-8 bg-slate-100 rounded animate-pulse" />
+              <div className="h-8 bg-slate-100 rounded animate-pulse" />
+              <div className="h-8 bg-slate-100 rounded animate-pulse" />
+            </div>
+          )}
+
+          {error && (
+            <div className="border border-red-200 bg-red-50 text-red-700 rounded p-4 flex items-center justify-between">
+              <span>Error: {error}</span>
+              <Button onClick={load} variant="destructive" size="sm">Retry</Button>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead>Vendor</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Unit Price</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead>Invoice</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((it) => (
+                      <TableRow key={it.id}>
+                        <TableCell>{it.vendorName || "-"}</TableCell>
+                        <TableCell>{it.category}</TableCell>
+                        <TableCell>{it.description}</TableCell>
+                        <TableCell className="text-right">{fmt(it.quantity)}</TableCell>
+                        <TableCell className="text-right">{fmt(it.unitPrice)}</TableCell>
+                        <TableCell className="text-right font-medium">{fmt(it.totalPrice)}</TableCell>
+                        <TableCell>{it.vendorInvoice || "-"}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(it)}>
+                              <Edit2 className="w-4 h-4 text-blue-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => remove(it.id)}>
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {items.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                          No items found.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
+          <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+            <DialogContent className="sm:max-w-[700px]">
+              <DialogHeader>
+                <DialogTitle>{editing ? "Edit Item" : "Add Item"}</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Expense ID *</label>
+                    <Input
+                      value={form.expenseId || ""}
+                      onChange={(e) => setForm({ ...form, expenseId: e.target.value })}
+                      placeholder="UUID of Parent Expense"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Vendor ID</label>
+                    <Input
+                      value={form.vendorId || ""}
+                      onChange={(e) => setForm({ ...form, vendorId: e.target.value })}
+                      placeholder="UUID of Vendor"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Category *</label>
+                    <Input
+                      value={form.category || ""}
+                      onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Subcategory</label>
+                    <Input
+                      value={form.subcategory || ""}
+                      onChange={(e) => setForm({ ...form, subcategory: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium mb-1 block">Description *</label>
+                    <Input
+                      value={form.description || ""}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Quantity</label>
+                    <Input
+                      type="number"
+                      value={form.quantity}
+                      onChange={(e) => setForm({ ...form, quantity: parseFloat(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Unit Price</label>
+                    <Input
+                      type="number"
+                      value={form.unitPrice}
+                      onChange={(e) => setForm({ ...form, unitPrice: parseFloat(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Invoice #</label>
+                    <Input
+                      value={form.vendorInvoice || ""}
+                      onChange={(e) => setForm({ ...form, vendorInvoice: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Item Code</label>
+                    <Input
+                      value={form.vendorItemCode || ""}
+                      onChange={(e) => setForm({ ...form, vendorItemCode: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+                <Button onClick={save} disabled={saving}>
+                  {saving ? "Saving..." : "Save"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
-      )}
+      </PermissionGuard>
     </div>
   );
 }

@@ -1,25 +1,54 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Header from "@/app/components/Header";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/app/components/ui/dialog";
+import { Plus, Search, Edit2, Trash2, AlertTriangle, DollarSign } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { 
+  getVendorPaymentsAction, 
+  createVendorPaymentAction, 
+  updateVendorPaymentAction, 
+  deleteVendorPaymentAction 
+} from "./actions";
+import { PermissionGuard } from "@/app/components/PermissionGuard";
+import { UserRole } from "@/lib/auth";
+import { Badge } from "@/app/components/ui/badge";
 
 interface Payment {
   id: string;
-  vendorId?: string;
-  projectId?: string | null;
-  contractId?: string | null;
+  vendorId: string;
   vendorName?: string;
+  projectId?: string | null;
   projectName?: string;
-  paymentType?: string;
-  amount?: number;
-  currency?: string;
-  dueDate?: string;
+  contractId?: string | null;
+  paymentType: string;
+  amount: number;
+  dueDate: string;
   paidDate?: string | null;
-  status?: string;
-  paymentMethod?: string | null;
+  status: string;
   description?: string | null;
+  notes?: string | null;
+  createdAt?: string;
 }
 
-export default function ExpensesVendorPaymentsPage() {
+export default function VendorPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,34 +56,28 @@ export default function ExpensesVendorPaymentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<Payment | null>(null);
-  const [form, setForm] = useState<any>({
+  const [form, setForm] = useState<Partial<Payment>>({
     vendorId: "",
     projectId: "",
     contractId: "",
-    paymentType: "",
-    amount: "",
-    currency: "THB",
-    dueDate: "",
-    paymentMethod: "",
+    paymentType: "full_payment",
+    amount: 0,
+    dueDate: new Date().toISOString().split("T")[0],
+    status: "pending",
     description: "",
+    notes: "",
   });
-
-  const baseUrl = "";
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      if (search) params.set("search", search);
-      params.set("limit", "20");
-      const res = await fetch(
-        `${baseUrl}/api/expenses/vendor-payments?${params.toString()}`,
-        { cache: "no-store" },
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setPayments(json.payments || []);
+      const res = await getVendorPaymentsAction(search);
+      if (res.error) {
+        setError(res.error);
+      } else if (res.data) {
+        setPayments(res.data);
+      }
     } catch (e: any) {
       setError(e.message || "Failed to load payments");
     } finally {
@@ -67,363 +90,286 @@ export default function ExpensesVendorPaymentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const formatDate = (d?: string | null) =>
-    d ? new Date(d).toLocaleDateString() : "-";
   const openCreate = () => {
     setEditing(null);
     setForm({
       vendorId: "",
       projectId: "",
       contractId: "",
-      paymentType: "",
-      amount: "",
-      currency: "THB",
-      dueDate: "",
-      paymentMethod: "",
+      paymentType: "full_payment",
+      amount: 0,
+      dueDate: new Date().toISOString().split("T")[0],
+      status: "pending",
       description: "",
+      notes: "",
     });
     setModalOpen(true);
   };
-  const openEdit = async (p: Payment) => {
-    try {
-      const res = await fetch(`${baseUrl}/api/expenses/vendor-payments/${p.id}`, {
-        cache: "no-store",
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const pd = json.payment || {};
-        setEditing(p);
-        setForm({
-          vendorId: pd.vendorId || "",
-          projectId: pd.projectId || "",
-          contractId: pd.contractId || "",
-          paymentType: pd.paymentType || "",
-          amount: pd.amount || "",
-          currency: pd.currency || "THB",
-          dueDate: pd.dueDate
-            ? new Date(pd.dueDate).toISOString().slice(0, 10)
-            : "",
-          paymentMethod: pd.paymentMethod || "",
-          description: pd.description || "",
-        });
-        setModalOpen(true);
-      } else {
-        setEditing(p);
-        setModalOpen(true);
-      }
-    } catch (e: any) {
-      setEditing(p);
-      setModalOpen(true);
-    }
+
+  const openEdit = (p: Payment) => {
+    setEditing(p);
+    setForm({ 
+      ...p,
+      dueDate: p.dueDate ? new Date(p.dueDate).toISOString().split("T")[0] : "",
+    });
+    setModalOpen(true);
   };
+
   const save = async () => {
-    if (!form.vendorId || !form.paymentType || !form.amount || !form.dueDate)
+    if (!form.vendorId || !form.paymentType || !form.dueDate || form.amount === undefined) {
+      toast.error("Please fill in required fields (Vendor ID, Payment Type, Due Date, Amount)");
       return;
+    }
     setSaving(true);
     try {
-      const method = editing ? "PUT" : "POST";
-      const url = editing
-        ? `${baseUrl}/api/expenses/vendor-payments/${editing.id}`
-        : `${baseUrl}/api/expenses/vendor-payments`;
-      const body = {
+      const payload: any = {
         vendorId: form.vendorId,
-        contractId: form.contractId || null,
         projectId: form.projectId || null,
+        contractId: form.contractId || null,
         paymentType: form.paymentType,
-        amount: parseFloat(form.amount),
-        currency: form.currency || "THB",
+        amount: Number(form.amount),
         dueDate: form.dueDate,
-        paymentMethod: form.paymentMethod || null,
+        status: form.status,
         description: form.description || null,
+        notes: form.notes || null,
       };
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setModalOpen(false);
-      await load();
+
+      let res;
+      if (editing) {
+        res = await updateVendorPaymentAction(editing.id, payload);
+      } else {
+        res = await createVendorPaymentAction(payload);
+      }
+
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success(editing ? "Payment updated" : "Payment created");
+        setModalOpen(false);
+        load();
+      }
     } catch (e: any) {
-      setError(e.message || "Failed to save payment");
+      toast.error(e.message || "Failed to save payment");
     } finally {
       setSaving(false);
     }
   };
+
   const remove = async (id: string) => {
     if (!confirm("Delete this payment?")) return;
     try {
-      const res = await fetch(`${baseUrl}/api/expenses/vendor-payments/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      await load();
+      const res = await deleteVendorPaymentAction(id);
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success("Payment deleted");
+        load();
+      }
     } catch (e: any) {
-      setError(e.message || "Failed to delete payment");
+      toast.error(e.message || "Failed to delete payment");
     }
   };
 
+  const fmt = (n?: number | null) => (n != null ? n.toLocaleString() : "-");
+  const formatDate = (d?: string) => d ? new Date(d).toLocaleDateString() : "-";
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">
-          Vendor Payments
-        </h1>
-        <button
-          onClick={openCreate}
-          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-        >
-          Add Payment
-        </button>
-      </div>
-
-      <div className="flex gap-2">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="ค้นหา description/transaction/receipt/vendor..."
-          className="border rounded px-3 py-2 w-full"
-        />
-        <button
-          onClick={load}
-          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-        >
-          Search
-        </button>
-      </div>
-
-      {loading && (
-        <div className="space-y-2">
-          <div className="h-8 bg-slate-100 rounded animate-pulse" />
-          <div className="h-8 bg-slate-100 rounded animate-pulse" />
-          <div className="h-8 bg-slate-100 rounded animate-pulse" />
-        </div>
-      )}
-      {error && (
-        <div className="border border-red-200 bg-red-50 text-red-700 rounded p-4 flex items-center justify-between">
-          <span>เกิดข้อผิดพลาด: {error}</span>
-          <button
-            onClick={load}
-            className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
-          >
-            ลองอีกครั้ง
-          </button>
-        </div>
-      )}
-
-      {!loading && !error && (
-        <div className="overflow-x-auto border rounded">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b">
-              <tr>
-                <th className="text-left px-4 py-2">Vendor</th>
-                <th className="text-left px-4 py-2">Project</th>
-                <th className="text-left px-4 py-2">Type</th>
-                <th className="text-right px-4 py-2">Amount</th>
-                <th className="text-left px-4 py-2">Due</th>
-                <th className="text-left px-4 py-2">Paid</th>
-                <th className="text-left px-4 py-2">Status</th>
-                <th className="text-left px-4 py-2">Method</th>
-                <th className="text-right px-4 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr key={p.id} className="border-b hover:bg-slate-50">
-                  <td className="px-4 py-2">{p.vendorName || "-"}</td>
-                  <td className="px-4 py-2">{p.projectName || "-"}</td>
-                  <td className="px-4 py-2">{p.paymentType || "-"}</td>
-                  <td className="px-4 py-2 text-right">
-                    {p.amount != null
-                      ? `${p.currency || "THB"} ${p.amount.toLocaleString()}`
-                      : "-"}
-                  </td>
-                  <td className="px-4 py-2">{formatDate(p.dueDate)}</td>
-                  <td className="px-4 py-2">{formatDate(p.paidDate)}</td>
-                  <td className="px-4 py-2">{p.status || "-"}</td>
-                  <td className="px-4 py-2">{p.paymentMethod || "-"}</td>
-                  <td className="px-4 py-2">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => openEdit(p)}
-                        className="px-3 py-1 rounded border border-slate-200 hover:bg-slate-50"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => remove(p.id)}
-                        className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {payments.length === 0 && (
-                <tr>
-                  <td
-                    className="px-4 py-10 text-slate-500 text-center"
-                    colSpan={9}
-                  >
-                    <div className="text-base">ยังไม่มีรายการชำระเงิน</div>
-                    <div className="text-xs text-slate-400 mt-1">
-                      ลองปรับเงื่อนไขค้นหาหรือเพิ่มข้อมูลภายหลัง
-                    </div>
-                    <button
-                      onClick={load}
-                      className="mt-3 px-3 py-1.5 rounded bg-slate-100 hover:bg-slate-200"
-                    >
-                      โหลดใหม่
-                    </button>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-900">
-                {editing ? "Edit Payment" : "Add Payment"}
-              </h3>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-4 grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Vendor ID
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.vendorId}
-                  onChange={(e) =>
-                    setForm({ ...form, vendorId: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Project ID
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.projectId}
-                  onChange={(e) =>
-                    setForm({ ...form, projectId: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Contract ID
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.contractId}
-                  onChange={(e) =>
-                    setForm({ ...form, contractId: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Type
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.paymentType}
-                  onChange={(e) =>
-                    setForm({ ...form, paymentType: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Amount
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Currency
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.currency}
-                  onChange={(e) =>
-                    setForm({ ...form, currency: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Due Date
-                </label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={form.dueDate}
-                  onChange={(e) =>
-                    setForm({ ...form, dueDate: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Method
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.paymentMethod}
-                  onChange={(e) =>
-                    setForm({ ...form, paymentMethod: e.target.value })
-                  }
-                />
-              </div>
-              <div className="col-span-3">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Description
-                </label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 p-4 border-t border-slate-200">
-              <button
-                onClick={() => setModalOpen(false)}
-                className="px-4 py-2 border border-slate-200 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={save}
-                disabled={saving}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-              >
-                {saving ? "Saving..." : "Save"}
-              </button>
-            </div>
+    <div className="min-h-screen bg-slate-50">
+      <Header
+        title="Vendor Payments"
+        breadcrumbs={[
+          { label: "Expenses", href: "/expenses" },
+          { label: "Payments" },
+        ]}
+      />
+      
+      <PermissionGuard
+        roles={[UserRole.ADMIN, UserRole.MANAGER]}
+        fallback={
+          <div className="text-center py-24">
+            <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold">Access Denied</h3>
+            <p className="text-slate-600">Only Admins/Managers can access this page.</p>
           </div>
+        }
+      >
+        <div className="pt-24 px-6 pb-12 max-w-7xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-slate-900">Vendor Payments</h1>
+            <Button onClick={openCreate} className="gap-2">
+              <Plus className="w-4 h-4" /> Add Payment
+            </Button>
+          </div>
+
+          <div className="flex gap-4 items-center bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                value={search}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") load();
+                }}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search description..."
+                className="pl-9"
+              />
+            </div>
+            <Button onClick={load} variant="outline">
+              Search
+            </Button>
+          </div>
+
+          {loading && (
+            <div className="space-y-2">
+              <div className="h-8 bg-slate-100 rounded animate-pulse" />
+              <div className="h-8 bg-slate-100 rounded animate-pulse" />
+              <div className="h-8 bg-slate-100 rounded animate-pulse" />
+            </div>
+          )}
+
+          {error && (
+            <div className="border border-red-200 bg-red-50 text-red-700 rounded p-4 flex items-center justify-between">
+              <span>Error: {error}</span>
+              <Button onClick={load} variant="destructive" size="sm">Retry</Button>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead>Vendor</TableHead>
+                      <TableHead>Project</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Due Date</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payments.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{p.vendorName || p.vendorId}</TableCell>
+                        <TableCell>{p.projectName || "-"}</TableCell>
+                        <TableCell className="capitalize">{p.paymentType.replace("_", " ")}</TableCell>
+                        <TableCell>{formatDate(p.dueDate)}</TableCell>
+                        <TableCell className="text-right font-semibold">฿{fmt(p.amount)}</TableCell>
+                        <TableCell>
+                          <Badge variant={p.status === "paid" ? "default" : p.status === "overdue" ? "destructive" : "secondary"}>
+                            {p.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate" title={p.description || ""}>
+                          {p.description || "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
+                              <Edit2 className="w-4 h-4 text-blue-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => remove(p.id)}>
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {payments.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                          No payments found.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
+          <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+            <DialogContent className="sm:max-w-[700px]">
+              <DialogHeader>
+                <DialogTitle>{editing ? "Edit Payment" : "Add Payment"}</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Vendor ID *</label>
+                    <Input
+                      value={form.vendorId || ""}
+                      onChange={(e) => setForm({ ...form, vendorId: e.target.value })}
+                      placeholder="UUID"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Project ID</label>
+                    <Input
+                      value={form.projectId || ""}
+                      onChange={(e) => setForm({ ...form, projectId: e.target.value })}
+                      placeholder="UUID (Optional)"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Payment Type *</label>
+                    <Input
+                      value={form.paymentType || ""}
+                      onChange={(e) => setForm({ ...form, paymentType: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Due Date *</label>
+                    <Input
+                      type="date"
+                      value={form.dueDate}
+                      onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Amount *</label>
+                    <Input
+                      type="number"
+                      value={form.amount}
+                      onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Status</label>
+                    <Input
+                      value={form.status || "pending"}
+                      onChange={(e) => setForm({ ...form, status: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium mb-1 block">Description</label>
+                    <Input
+                      value={form.description || ""}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium mb-1 block">Notes</label>
+                    <Input
+                      value={form.notes || ""}
+                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+                <Button onClick={save} disabled={saving}>
+                  {saving ? "Saving..." : "Save"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
-      )}
+      </PermissionGuard>
     </div>
   );
 }

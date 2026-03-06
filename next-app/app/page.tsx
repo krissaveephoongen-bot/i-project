@@ -5,6 +5,10 @@ import {
   AlertTriangle,
   Receipt,
   Download,
+  Users,
+  CreditCard,
+  Trophy,
+  FileText
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +23,8 @@ import {
   getDashboardKPI,
   getDashboardFinancials,
   getDashboardTeamLoad,
-  getDashboardProjects
+  getDashboardProjects,
+  getDashboardVendorMetrics
 } from "@/app/lib/data-service";
 import { KpiCard } from "@/components/dashboard/KpiCard"; 
 
@@ -34,6 +39,7 @@ export default async function ExecutiveDashboard() {
   
   const financialData = await getDashboardFinancials();
   const teamLoadData = await getDashboardTeamLoad();
+  const vendorMetrics = await getDashboardVendorMetrics();
 
   return (
     <PageTransition>
@@ -74,6 +80,33 @@ export default async function ExecutiveDashboard() {
               title="คาดการณ์การวางบิล (เดือนนี้)"
               value={`฿${(kpiData.billingForecast / 1000000).toFixed(1)}M`}
               icon={Receipt}
+            />
+          </div>
+
+          {/* Vendor Section */}
+          <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">สถานะเวนเดอร์ (Vendor Overview)</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6">
+             <KpiCard
+              title="จำนวนเวนเดอร์"
+              value={vendorMetrics.totalVendors.toString()}
+              icon={Users}
+            />
+             <KpiCard
+              title="รอชำระเงิน"
+              value={`฿${(vendorMetrics.pendingPaymentsAmount / 1000).toFixed(1)}k`}
+              icon={CreditCard}
+              alert={vendorMetrics.pendingPaymentsAmount > 50000}
+            />
+             <KpiCard
+              title="Top Vendor"
+              value={vendorMetrics.topVendorName}
+              subtext={`Spending: ฿${(vendorMetrics.topVendorSpend / 1000).toFixed(1)}k`}
+              icon={Trophy}
+            />
+             <KpiCard
+              title="สัญญา Active"
+              value={vendorMetrics.activeContracts.toString()}
+              icon={FileText}
             />
           </div>
 

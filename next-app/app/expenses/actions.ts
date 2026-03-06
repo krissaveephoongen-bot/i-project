@@ -14,11 +14,59 @@ const expenseSchema = z.object({
   category: z.string().min(1, "Category is required"),
   description: z.string().optional(),
   receiptUrl: z.string().optional().or(z.literal("")), // Simplified: URL validation can be tricky with empty strings
+  details: z.any().optional(),
+  approverId: z.string().uuid().optional(),
 });
 
 export type ExpenseInput = z.infer<typeof expenseSchema>;
 
-export async function createExpenseAction(input: any) { // Use any to bypass strict type check for now, validate manually or with zod
+export async function getProjectsSimpleAction() {
+  const supabase = createClient(cookies());
+  // Try with admin client fallback if RLS hides projects
+  const { data: { user } } = await supabase.auth.getUser();
+  let clientToUse = supabase;
+  
+  if (user) {
+     const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+     if (profile && ["admin", "manager"].includes(profile.role)) {
+         clientToUse = createAdminClient();
+     }
+  }
+
+  const { data, error } = await clientToUse
+    .from("projects")
+    .select("id, name")
+    .order("name");
+    
+  if (error) return { error: "Failed to fetch projects" };
+  return { data };
+}
+
+export async function getUsersSimpleAction() {
+  const supabase = createClient(cookies());
+  let clientToUse = supabase;
+  
+  // Usually users list is public-ish or requires auth.
+  // Admin fallback if needed.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+     const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+     if (profile && ["admin", "manager"].includes(profile.role)) {
+         clientToUse = createAdminClient();
+     }
+  }
+
+  const { data, error } = await clientToUse
+    .from("users")
+    .select("id, name, role")
+    .eq("status", "active")
+    .order("name");
+
+  if (error) return { error: "Failed to fetch users" };
+  return { data };
+}
+
+export async function createExpenseAction(input: ExpenseInput) {
   const result = expenseSchema.safeParse(input);
   if (!result.success) {
     return { error: result.error.errors[0].message };
@@ -26,7 +74,7 @@ export async function createExpenseAction(input: any) { // Use any to bypass str
 
   const supabase = createClient(cookies());
   
-  const payload = {
+  const payload: any = {
     user_id: input.userId,
     project_id: input.projectId,
     task_id: input.taskId || null,
@@ -39,6 +87,15 @@ export async function createExpenseAction(input: any) { // Use any to bypass str
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
+
+  // Include details if present (for Memo/Travel)
+  if (input.details) {
+    payload.details = input.details;
+  }
+  
+  if (input.approverId) {
+    payload.approver_id = input.approverId; // For Memo
+  }
 
   const { data, error } = await supabase
     .from("expenses")

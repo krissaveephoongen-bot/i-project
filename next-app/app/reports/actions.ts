@@ -192,7 +192,7 @@ export async function getResourcesReportAction() {
   const { data: users } = await supabase
     .from("users")
     .select("id, name, role, department")
-    .eq("is_active", true);
+    .eq("isActive", true);
 
   // Calculate workload from active tasks
   // This is expensive, so we might want to use a view or optimized query
@@ -255,5 +255,49 @@ export async function getInsightsReportAction(year?: number, month?: number, foc
         }
       ]
     }
+  };
+}
+
+// ============================================================================
+// VENDOR REPORT
+// ============================================================================
+
+export async function getVendorReportAction() {
+  const supabase = createClient(cookies());
+
+  // 1. Fetch Vendors
+  const { data: vendors } = await supabase.from("vendors").select("*").order("name");
+  
+  // 2. Fetch Payments Summary (Paid vs Pending)
+  const { data: payments } = await supabase.from("vendor_payments").select("amount, status, vendorId");
+  
+  // 3. Aggregate Data
+  const totalPaid = (payments || []).filter(p => p.status === 'paid').reduce((sum, p) => sum + Number(p.amount||0), 0);
+  const totalPending = (payments || []).filter(p => p.status === 'pending').reduce((sum, p) => sum + Number(p.amount||0), 0);
+  
+  const vendorStats = (vendors || []).map(v => {
+    const vPayments = (payments || []).filter(p => p.vendorId === v.id);
+    const paid = vPayments.filter(p => p.status === 'paid').reduce((sum, p) => sum + Number(p.amount||0), 0);
+    const pending = vPayments.filter(p => p.status === 'pending').reduce((sum, p) => sum + Number(p.amount||0), 0);
+    return {
+      id: v.id,
+      name: v.name,
+      type: v.type,
+      category: v.category,
+      paid,
+      pending,
+      total: paid + pending,
+      rating: v.overallRating
+    };
+  });
+
+  return {
+    summary: {
+      totalVendors: vendors?.length || 0,
+      totalPaid,
+      totalPending,
+      totalCommitment: totalPaid + totalPending
+    },
+    vendors: vendorStats.sort((a, b) => b.total - a.total)
   };
 }

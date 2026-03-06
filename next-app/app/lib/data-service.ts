@@ -78,7 +78,116 @@ export interface SunburstNode {
   meta?: any;
 }
 
+export interface VendorMetrics {
+  totalVendors: number;
+  activeContracts: number;
+  pendingPaymentsAmount: number;
+  topVendorName: string;
+  topVendorSpend: number;
+}
+
+export interface VendorPaymentSummary {
+  id: string;
+  vendorName: string;
+  amount: number;
+  dueDate: string;
+  status: string;
+}
+
 // --- Dashboard Functions ---
+
+export async function getDashboardVendorMetrics(): Promise<VendorMetrics> {
+  const supabase = await getSafeSupabase();
+  const adminSupabase = createAdminClient();
+
+  try {
+    // 1. Total Vendors
+    const { count: totalVendors } = await supabase
+      .from("vendors")
+      .select("*", { count: "exact", head: true });
+
+    // 2. Active Contracts
+    const { count: activeContracts } = await supabase
+      .from("vendor_contracts")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "active");
+
+    // 3. Pending Payments
+    const { data: pendingPayments } = await supabase
+      .from("vendor_payments")
+      .select("amount")
+      .eq("status", "pending");
+    
+    const pendingAmount = (pendingPayments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    // 4. Top Vendor by Spend (from expense_items or payments)
+    // Using vendor_payments for simplicity
+    const { data: payments } = await supabase
+      .from("vendor_payments")
+      .select("vendorId, amount")
+      .eq("status", "paid");
+      
+    const vendorSpend: Record<string, number> = {};
+    (payments || []).forEach((p: any) => {
+      vendorSpend[p.vendorId] = (vendorSpend[p.vendorId] || 0) + Number(p.amount || 0);
+    });
+    
+    let topVendorId = "";
+    let maxSpend = 0;
+    for (const [vid, amount] of Object.entries(vendorSpend)) {
+      if (amount > maxSpend) {
+        maxSpend = amount;
+        topVendorId = vid;
+      }
+    }
+    
+    let topVendorName = "None";
+    if (topVendorId) {
+      const { data: v } = await supabase.from("vendors").select("name").eq("id", topVendorId).single();
+      if (v) topVendorName = v.name;
+    }
+
+    return {
+      totalVendors: totalVendors || 0,
+      activeContracts: activeContracts || 0,
+      pendingPaymentsAmount: pendingAmount,
+      topVendorName,
+      topVendorSpend: maxSpend
+    };
+  } catch (error) {
+    console.error("Error fetching vendor metrics:", error);
+    return {
+      totalVendors: 0,
+      activeContracts: 0,
+      pendingPaymentsAmount: 0,
+      topVendorName: "Error",
+      topVendorSpend: 0
+    };
+  }
+}
+
+export async function getDashboardVendorPayments(): Promise<VendorPaymentSummary[]> {
+  const supabase = await getSafeSupabase();
+  try {
+    const { data } = await supabase
+      .from("vendor_payments")
+      .select("id, amount, dueDate, status, vendors(name)")
+      .eq("status", "pending")
+      .order("dueDate", { ascending: true })
+      .limit(5);
+
+    return (data || []).map((p: any) => ({
+      id: p.id,
+      vendorName: p.vendors?.name || "Unknown",
+      amount: Number(p.amount),
+      dueDate: p.dueDate,
+      status: p.status
+    }));
+  } catch (error) {
+    console.error("Error fetching vendor payments:", error);
+    return [];
+  }
+}
 
 export async function getDashboardKPI(): Promise<KpiData> {
   const supabase = await getSafeSupabase();

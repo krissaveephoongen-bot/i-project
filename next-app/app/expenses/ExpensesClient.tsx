@@ -419,6 +419,23 @@ export default function ExpensesClient({
                   <Truck className="h-4 w-4" /> {labels.viewTravel}
                 </Button>
               </Link>
+              <Link href="/expenses/vendor-items">
+                <Button variant="outline" className="gap-2">
+                  <List className="h-4 w-4" /> Vendor Items
+                </Button>
+              </Link>
+              <Link href="/expenses/vendor-payments">
+                <Button variant="outline" className="gap-2">
+                  <DollarSign className="h-4 w-4" /> Vendor Payments
+                </Button>
+              </Link>
+              {isAdminOrManager && (
+                <Link href="/admin/vendors">
+                  <Button variant="outline" className="gap-2">
+                    <LayoutGrid className="h-4 w-4" /> Vendors
+                  </Button>
+                </Link>
+              )}
               <Button
                 onClick={() => handleOpenModal()}
                 className="gap-2 bg-blue-600 hover:bg-blue-700"
