@@ -7,8 +7,9 @@ if (!connectionString) {
 }
 
 // Create postgres connection with configuration options
+// Using "require" for SSL mode is critical for Supabase in production/preview
 export const sql = postgres(connectionString, {
-  ssl: { rejectUnauthorized: false },
+  ssl: 'require', 
   max: 10, // Maximum number of connections in the pool
   idle_timeout: 20, // Close idle connections after 20 seconds
   connect_timeout: 10, // Connection timeout in seconds
