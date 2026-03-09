@@ -43,47 +43,74 @@ export async function GET(req: NextRequest) {
     const clientIds = Array.from(
       new Set(list.map((p: any) => p.client_id).filter(Boolean)),
     );
-    const { data: managers } = managerIds.length
-      ? await supabaseAdmin.from("users").select("id,name").in("id", managerIds)
-      : { data: [] };
-    const { data: clients } = clientIds.length
-      ? await supabaseAdmin
-          .from("clients")
-          .select("id,name")
-          .in("id", clientIds)
-      : { data: [] };
+    const ids = list.map((p) => p.id);
+
+    // Parallel fetch auxiliary data
+    const [managersRes, clientsRes, milestonesRes, risksRes, snapsRes] = await Promise.all([
+        // Managers
+        managerIds.length
+            ? supabaseAdmin.from("users").select("id,name").in("id", managerIds)
+            : Promise.resolve({ data: [] }),
+        // Clients
+        clientIds.length
+            ? supabaseAdmin.from("clients").select("id,name").in("id", clientIds)
+            : Promise.resolve({ data: [] }),
+        // Milestones (try project_id first, handle fallback if needed logic inside map later?)
+        // Actually for simplicity in Promise.all, we might need to handle the fallback logic differently or inside the promise.
+        // Let's wrap complex logic in async IIFEs
+        (async () => {
+            if (!ids.length) return { data: [] };
+            const mRes1 = await supabaseAdmin.from("milestones").select("*").in("project_id", ids as any);
+            if (!mRes1.error) return mRes1;
+            
+            // Fallback
+            const msg = `${mRes1.error.message || ""}`;
+            if (msg.includes("Could not find the") || msg.includes("schema cache")) {
+                return await supabaseAdmin.from("milestones").select("*").in("projectId", ids as any);
+            }
+            throw mRes1.error;
+        })(),
+        // Risks
+        (async () => {
+            if (!ids.length) return { data: [] };
+            const rRes1 = await supabaseAdmin.from("risks").select("*").in("project_id", ids as any);
+            if (!rRes1.error) return rRes1;
+
+            // Fallback
+            const msg = `${rRes1.error.message || ""}`;
+            if (msg.includes("Could not find the") || msg.includes("schema cache")) {
+                 return await supabaseAdmin.from("risks").select("*").in("projectId", ids as any);
+            }
+            throw rRes1.error;
+        })(),
+        // Snapshots
+        (async () => {
+            if (!ids.length) return { data: [] };
+            const since = new Date();
+            since.setDate(since.getDate() - 30);
+            const sinceStr = since.toISOString().slice(0, 10);
+            return await supabaseAdmin
+                .from("spi_cpi_daily_snapshot")
+                .select("projectId,date,spi")
+                .in("projectId", ids)
+                .gte("date", sinceStr);
+        })()
+    ]);
+
+    const managers = managersRes.data || [];
+    const clients = clientsRes.data || [];
+    const milestones = milestonesRes.data || [];
+    const risks = risksRes.data || [];
+    const snaps = snapsRes.data || [];
+
     const managersMap: Record<string, any> = {};
     const clientsMap: Record<string, any> = {};
-    for (const m of managers || []) managersMap[m.id] = m;
-    for (const c of clients || []) clientsMap[c.id] = c;
+    for (const m of managers) managersMap[m.id] = m;
+    for (const c of clients) clientsMap[c.id] = c;
 
-    const ids = list.map((p) => p.id);
-    let milestones: any[] = [];
-    if (ids.length) {
-      const mRes1 = await supabaseAdmin
-        .from("milestones")
-        .select("*")
-        .in("project_id", ids as any);
-      if (!mRes1.error) {
-        milestones = mRes1.data || [];
-      } else {
-        const msg = `${mRes1.error.message || ""}`;
-        if (
-          msg.includes("Could not find the") ||
-          msg.includes("schema cache")
-        ) {
-          const mRes2 = await supabaseAdmin
-            .from("milestones")
-            .select("*")
-            .in("projectId", ids as any);
-          milestones = mRes2.data || [];
-        } else {
-          throw mRes1.error;
-        }
-      }
-    }
     const budgetByProject: Record<string, number> = {};
     for (const p of list) budgetByProject[p.id] = Number(p.budget || 0);
+    
     // Pre-process milestones for all projects
     const milestonesByProject: Record<string, any[]> = {};
     const overdueCounts: Record<string, number> = {};
@@ -91,7 +118,7 @@ export async function GET(req: NextRequest) {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    for (const m of milestones || []) {
+    for (const m of milestones) {
       const pid = m.project_id ?? m.projectId;
       if (!milestonesByProject[pid]) milestonesByProject[pid] = [];
       milestonesByProject[pid].push(m);
@@ -113,7 +140,7 @@ export async function GET(req: NextRequest) {
     }
 
     const linesByProject: Record<string, any[]> = {};
-    for (const m of milestones || []) {
+    for (const m of milestones) {
       const pid = m.project_id ?? m.projectId;
       const budget = budgetByProject[pid] || 0;
       const pct = Number(m.percentage ?? m.progress ?? 0);
@@ -145,18 +172,8 @@ export async function GET(req: NextRequest) {
         paid: monthly[m].paid,
       }));
 
-    const since = new Date();
-    since.setDate(since.getDate() - 30);
-    const sinceStr = since.toISOString().slice(0, 10);
-    const { data: snaps } = ids.length
-      ? await supabaseAdmin
-          .from("spi_cpi_daily_snapshot")
-          .select("projectId,date,spi")
-          .in("projectId", ids)
-          .gte("date", sinceStr)
-      : { data: [] };
     const spiByDate: Record<string, { sum: number; count: number }> = {};
-    for (const s of snaps || []) {
+    for (const s of snaps) {
       const d = s.date;
       spiByDate[d] = spiByDate[d] || { sum: 0, count: 0 };
       spiByDate[d].sum += Number(s.spi || 1);
@@ -170,35 +187,11 @@ export async function GET(req: NextRequest) {
       }));
 
     // Risk Aggregation
-    let risks: any[] = [];
-    if (ids.length) {
-      const rRes1 = await supabaseAdmin
-        .from("risks")
-        .select("*")
-        .in("projectId", ids as any);
-      if (!rRes1.error) {
-        risks = rRes1.data || [];
-      } else {
-        const msg = `${rRes1.error.message || ""}`;
-        if (
-          msg.includes("Could not find the") ||
-          msg.includes("schema cache")
-        ) {
-          const rRes2 = await supabaseAdmin
-            .from("risks")
-            .select("*")
-            .in("project_id", ids as any);
-          risks = rRes2.data || [];
-        } else {
-          throw rRes1.error;
-        }
-      }
-    }
     const risksByProject: Record<
       string,
       { high: number; medium: number; low: number }
     > = {};
-    for (const r of risks || []) {
+    for (const r of risks) {
       const pid = r.projectId ?? r.project_id;
       if (!risksByProject[pid])
         risksByProject[pid] = { high: 0, medium: 0, low: 0 };
@@ -226,9 +219,8 @@ export async function GET(req: NextRequest) {
 
       const riskCounts = risksByProject[p.id] || { high: 0, medium: 0, low: 0 };
 
-      console.log(
-        `Project ${p.id}: budget=${budget}, progress=${progress}, actual=${actual}, ev=${ev}, cpi=${cpi}`,
-      );
+      // Optional logging for debug
+      // console.log(`Project ${p.id}: ...`);
 
       return {
         id: p.id,
@@ -250,10 +242,11 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(
-      { rows, cashflow, spiTrend, spiSnaps: snaps || [] },
+      { rows, cashflow, spiTrend, spiSnaps: snaps },
       { status: 200, headers },
     );
   } catch (e: any) {
+    console.error("Dashboard API Error:", e);
     return NextResponse.json(
       {
         rows: [],

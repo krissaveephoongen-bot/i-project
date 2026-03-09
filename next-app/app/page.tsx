@@ -33,16 +33,22 @@ import RecentActivitiesCard from "./dashboard/components/RecentActivitiesCard";
 // --- MAIN PAGE COMPONENT (SERVER) ---
 
 export default async function ExecutiveDashboard() {
-  const kpiData = await getDashboardKPI();
-  
-  // Use unified API to ensure Portfolio Health Matrix uses existing projects
-  // Direct call to data service (Server-side)
-  const projects = await getDashboardProjects();
-  
-  const financialData = await getDashboardFinancials();
-  const teamLoadData = await getDashboardTeamLoad();
-  const vendorMetrics = await getDashboardVendorMetrics();
-  const recentActivities = await getRecentActivities();
+  // Parallel data fetching for better performance
+  const [
+    kpiData,
+    projects,
+    financialData,
+    teamLoadData,
+    vendorMetrics,
+    recentActivities
+  ] = await Promise.all([
+    getDashboardKPI(),
+    getDashboardProjects(),
+    getDashboardFinancials(),
+    getDashboardTeamLoad(),
+    getDashboardVendorMetrics(),
+    getRecentActivities()
+  ]);
 
   return (
     <PageTransition>
@@ -60,6 +66,7 @@ export default async function ExecutiveDashboard() {
             </Button>
           </div>
 
+          {/* Main KPI Section */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6">
             <KpiCard
               title="มูลค่าพอร์ตโฟลิโอรวม"
@@ -113,6 +120,7 @@ export default async function ExecutiveDashboard() {
             />
           </div>
 
+          {/* Charts & Matrix Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="lg:col-span-2 space-y-6">
               <PortfolioHealthMatrix projects={projects} />
