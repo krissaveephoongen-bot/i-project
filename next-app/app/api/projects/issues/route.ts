@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
     const {
       project_id,
       risk_id,
-      risk_id,
       title,
       priority,
       status,
@@ -51,13 +50,11 @@ export async function POST(request: NextRequest) {
     } = body;
     const supabase = createClient(cookies());
     const { data, error } = await supabase
-    const { data, error } = await supabase
       .from("issues")
       .insert([
         {
           risk_id: risk_id || null,
           project_id,
-          risk_id: risk_id || null,
           title,
           priority: priority || "Medium",
           status: status || "Open",
