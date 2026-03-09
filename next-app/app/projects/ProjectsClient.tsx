@@ -19,7 +19,7 @@ import {
   CheckCircle,
   Download,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import {
   PermissionGuard,
@@ -30,7 +30,7 @@ import { Permission } from "../lib/auth";
 import { usePermissions } from "../hooks/usePermissions";
 import { logProjectAction } from "../lib/audit";
 
-import { Button } from "../components/ui/button"; // Correct case
+import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import {
   Card,
@@ -46,25 +46,23 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../components/ui/dialog"; // Keep if custom or standard
+} from "../components/ui/dialog";
 import { Progress } from "../components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { DataTable } from "../components/data-table";
 import { ProfessionalFilter } from "@/components/ProfessionalFilter";
 import { EmptyState } from "@/components/ui/empty-state";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   createProjectAction,
   updateProjectAction,
   deleteProjectAction,
 } from "./actions";
 import {
-  getProjects,
   Project as ProjectType,
 } from "../lib/projects";
 import ProjectSheet from "../components/ProjectSheet";
-import { User as UserType } from "../users/actions";
 import { ColumnDef } from "@tanstack/react-table";
 import { clsx } from "clsx";
 import { toast } from "react-hot-toast";
@@ -98,12 +96,34 @@ interface ProjectsClientProps {
   initialManagers: ProjectManager[];
 }
 
+// Helper to safely format date
+const safeFormatDate = (dateString: string | null | undefined, formatStr: string = "d MMM yyyy") => {
+  if (!dateString) return "-";
+  try {
+    const date = new Date(dateString);
+    if (!isValid(date)) return "-";
+    return format(date, formatStr, { locale: th });
+  } catch (e) {
+    console.error("Date formatting error:", e);
+    return "-";
+  }
+};
+
 export default function ProjectsClient({
-  initialProjects,
-  initialManagers,
+  initialProjects = [],
+  initialManagers = [],
 }: ProjectsClientProps) {
   const queryClient = useQueryClient();
-  const { userId, userName, userRole } = usePermissions();
+  // Safe permission hook usage
+  let permissions = { userId: "", userName: "", userRole: "" };
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    permissions = usePermissions();
+  } catch (e) {
+    console.warn("usePermissions failed", e);
+  }
+  const { userId, userName, userRole } = permissions;
+  
   const router = useRouter();
 
   // State management
@@ -122,27 +142,12 @@ export default function ProjectsClient({
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [assignedOnly, setAssignedOnly] = useState(false);
 
-  // React Query for data fetching (with initial data)
-  const {
-    data: projectsData,
-    isLoading: isLoadingProjects,
-    error: projectsError,
-  } = useQuery<ProjectType[]>({
-    queryKey: ["projects"],
-    queryFn: async () => {
-      // Client-side refetch logic
-      return await getProjects();
-    },
-    initialData: initialProjects,
-  });
-
+  // Use initial data directly since we don't have client-side fetching setup in this component properly 
+  // (the original code used useQuery with initialData but getProjects was async)
+  const projectsData = initialProjects;
+  
   // Managers might be static or fetched
-  const { data: managersData } = useQuery<ProjectManager[]>({
-    queryKey: ["managers"],
-    queryFn: async () => initialManagers,
-    initialData: initialManagers,
-    enabled: false,
-  });
+  const managersData = initialManagers;
 
   // Derived filters from project data to ensure all options are available
   const availableStatuses = useMemo(() => {
@@ -173,7 +178,7 @@ export default function ProjectsClient({
         ...project,
         riskLevel,
         statusColor: getStatusColor(project.status),
-        daysRemaining: Math.abs(daysRemaining),
+        daysRemaining: isNaN(daysRemaining) ? 0 : Math.abs(daysRemaining),
         isOverdue,
       };
     });
@@ -190,11 +195,11 @@ export default function ProjectsClient({
       }
       const matchesSearch =
         !searchTerm ||
-        project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.manager_name
-          ?.toLowerCase()
+        (project.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.manager_name || "")
+          .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        project.code?.toLowerCase().includes(searchTerm.toLowerCase());
+        (project.code || "").toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus =
         statusFilter === "all" || project.status === statusFilter;
@@ -224,14 +229,19 @@ export default function ProjectsClient({
     }
     try {
       const res = await fetch(`/api/saved-views?pageKey=projects&userId=${encodeURIComponent(userId)}&includeGlobal=1`, { cache: "no-store" });
-      const json = await res.json();
-      const views = (json?.views || []).map((v: any) => ({
-        id: v.id,
-        name: v.name,
-        cfg: v.filters,
-      }));
-      setSavedViews(views);
-      if (views.length && !selectedView) setSelectedView(views[0].name);
+      if (res.ok) {
+        const json = await res.json();
+        const views = (json?.views || []).map((v: any) => ({
+          id: v.id,
+          name: v.name,
+          cfg: v.filters,
+        }));
+        setSavedViews(views);
+        if (views.length && !selectedView) setSelectedView(views[0].name);
+      } else {
+         // Fallback to local storage
+         throw new Error("API failed");
+      }
     } catch {
       try {
         const raw = localStorage.getItem("projects_saved_views") || "[]";
@@ -370,9 +380,9 @@ export default function ProjectsClient({
         <div className="flex items-center space-x-3">
           <Avatar className="h-9 w-9 border-2 border-background shadow-sm">
             <AvatarImage
-              src={`https://api.dicebear.com/7.x/initials/svg?seed=${row.original.name}`}
+              src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(row.original.name || "Project")}`}
             />
-            <AvatarFallback>{row.original.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{(row.original.name || "P").charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
             <Link
@@ -442,11 +452,10 @@ export default function ProjectsClient({
       accessorKey: "endDate",
       header: "กำหนดส่ง",
       cell: ({ row }) => {
-        if (!row.original.endDate)
-          return <span className="text-muted-foreground text-xs">-</span>;
-
-        const dueDate = new Date(row.original.endDate);
         const isOverdue = row.original.isOverdue;
+        const dateStr = safeFormatDate(row.original.endDate, "d MMM yyyy");
+
+        if (dateStr === "-") return <span className="text-muted-foreground text-xs">-</span>;
 
         return (
           <div
@@ -459,7 +468,7 @@ export default function ProjectsClient({
           >
             <Calendar className="h-3.5 w-3.5" />
             <span className="text-sm">
-              {format(dueDate, "d MMM yyyy", { locale: th })}
+              {dateStr}
             </span>
           </div>
         );
@@ -540,6 +549,7 @@ export default function ProjectsClient({
           `Created new project: ${result.data.name}`,
           { name: result.data.name, budget: result.data.budget, managerId: result.data.manager_id },
         );
+        router.refresh();
       }
     },
   });
@@ -569,6 +579,7 @@ export default function ProjectsClient({
         `Updated project details`,
         updatedFields,
       );
+      router.refresh();
     },
   });
 
@@ -591,6 +602,7 @@ export default function ProjectsClient({
         `Deleted project`,
         {},
       );
+      router.refresh();
     },
     onError: (error: any) => {
       toast.error(`❌ ลบไม่สำเร็จ: ${error?.message || "เกิดข้อผิดพลาด"}`);
@@ -610,17 +622,6 @@ export default function ProjectsClient({
   const handleDeleteProject = async (id: string) => {
     await deleteProjectMutation.mutateAsync(id);
   };
-
-  if (projectsError) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center text-destructive">
-          <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
-          <p>Error loading projects</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -872,9 +873,9 @@ export default function ProjectsClient({
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
                           <AvatarImage
-                            src={`https://api.dicebear.com/7.x/initials/svg?seed=${project.name}`}
+                            src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(project.name || "P")}`}
                           />
-                          <AvatarFallback>{project.name.charAt(0)}</AvatarFallback>
+                          <AvatarFallback>{(project.name || "P").charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>
                           <CardTitle className="text-base font-semibold leading-tight">
@@ -919,7 +920,7 @@ export default function ProjectsClient({
                           project.isOverdue ? "text-destructive" : "text-foreground"
                         )}>
                           <Calendar className="h-3.5 w-3.5" />
-                          {project.endDate ? format(new Date(project.endDate), "d MMM yy", { locale: th }) : "-"}
+                          {safeFormatDate(project.endDate, "d MMM yy")}
                         </div>
                       </div>
                     </div>
@@ -1047,6 +1048,9 @@ function calculateRiskLevel(
 
   if (project.endDate) {
     const daysRemaining = calculateDaysRemaining(project);
+    // Handle NaN (invalid date) safely
+    if (isNaN(daysRemaining)) return "Medium";
+    
     if (daysRemaining < 0) riskScore += 2;
     else if (daysRemaining < 7) riskScore += 1;
   }
@@ -1059,15 +1063,20 @@ function calculateRiskLevel(
 
 function calculateDaysRemaining(project: ProjectType): number {
   if (!project.endDate) return Infinity;
-  const endDate = new Date(project.endDate);
-  const today = new Date();
-  return Math.ceil(
-    (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  try {
+    const endDate = new Date(project.endDate);
+    if (!isValid(endDate)) return NaN;
+    const today = new Date();
+    return Math.ceil(
+      (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
+  } catch {
+    return NaN;
+  }
 }
 
 function getStatusColor(status: string): string {
-  switch (status.toLowerCase()) {
+  switch ((status || "").toLowerCase()) {
     case "completed":
       return "default";
     case "active":
@@ -1086,7 +1095,7 @@ function getStatusColor(status: string): string {
 function getRiskVariant(
   risk: string,
 ): "default" | "secondary" | "destructive" | "outline" {
-  switch (risk.toLowerCase()) {
+  switch ((risk || "").toLowerCase()) {
     case "low":
       return "secondary";
     case "medium":
