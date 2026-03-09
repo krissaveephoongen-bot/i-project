@@ -7,27 +7,7 @@ import { Project } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProjectsPage() {
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
-
-  // Custom Auth: Check for auth_token cookie
-  const authToken = cookieStore.get("auth_token")?.value;
-  let customUser: any = null;
-
-  if (authToken) {
-    const adminClient = createAdminClient();
-    const { data: user } = await adminClient
-      .from("users")
-      .select("id, role, name, email")
-      .eq("id", authToken)
-      .single();
-    if (user) {
-      customUser = user;
-    }
-  }
-
-  // Fetch Projects with fallback
+async function fetchProjects(supabase: any, customUser: any) {
   let projectsData: any[] = [];
   let projectsError: any = null;
 
@@ -67,7 +47,9 @@ export default async function ProjectsPage() {
     }
 
     // If Admin/Manager (from either auth system), use Admin Client to bypass RLS
-    if (["admin", "manager"].includes(roleClaim)) {
+    // For now, allowing all authenticated users to fetch via admin client as fallback
+    // to ensure data visibility if RLS is strict/broken
+    if (user) {
       const adminSupabase = createAdminClient();
       const adminRes = await adminSupabase
         .from("projects")
@@ -80,37 +62,80 @@ export default async function ProjectsPage() {
       } else if (adminRes.error) {
         projectsError = adminRes.error;
       }
-    } else if (user) {
-        // If regular user (employee), try fetching via Admin Client but maybe filtered?
-        // Or just let them see what RLS allows (which failed earlier)
-        // But since RLS failed (anon), maybe we need to impersonate or just fetch all if logic permits
-        // For now, let's try fetching all if they are at least logged in, 
-        // assuming the UI will filter or it's an internal tool.
-        // OR: Fetch projects they are member of?
-        // Let's stick to the original logic: Only admin/manager got fallback.
-        // But if RLS is strict, employees see nothing.
-        // Let's allow fetching all for now to verify functionality, similar to admin.
-        // Or better: fetch projects where they are manager?
-        
-        // For verify purpose, let's use Admin Client for all authenticated users if RLS failed
-        const adminSupabase = createAdminClient();
-        const adminRes = await adminSupabase
-            .from("projects")
-            .select(`*`)
-            .order("created_at", { ascending: false });
-        if (adminRes.data) {
-            projectsData = adminRes.data;
-            projectsError = null;
-        }
+    }
+  }
+  
+  return { data: projectsData, error: projectsError };
+}
+
+async function fetchManagers(supabase: any) {
+  let managersData: any[] = [];
+  let managersError: any = null;
+
+  // Try fetching all users (as potential managers)
+  const managersRes = await supabase
+    .from("users")
+    .select("id, name, email, role, avatar_url")
+    .order("name");
+
+  if (managersRes.data && managersRes.data.length > 0) {
+    managersData = managersRes.data;
+  } else {
+    managersError = managersRes.error;
+    // Fallback to Admin Client
+    const adminSupabase = createAdminClient();
+    const adminManagersRes = await adminSupabase
+      .from("users")
+      .select("id, name, email, role, avatar_url")
+      .order("name");
+    
+    if (adminManagersRes.data) {
+      managersData = adminManagersRes.data;
+      managersError = null;
+    } else {
+      managersError = adminManagersRes.error;
+    }
+  }
+  
+  return { data: managersData, error: managersError };
+}
+
+export default async function ProjectsPage() {
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
+
+  // Custom Auth: Check for auth_token cookie
+  const authToken = cookieStore.get("auth_token")?.value;
+  let customUser: any = null;
+
+  if (authToken) {
+    const adminClient = createAdminClient();
+    const { data: user } = await adminClient
+      .from("users")
+      .select("id, role, name, email")
+      .eq("id", authToken)
+      .single();
+    if (user) {
+      customUser = user;
     }
   }
 
-  if (projectsError) {
-    console.error("Error fetching projects:", projectsError);
+  // Parallel Fetching
+  const [projectsResult, managersResult] = await Promise.all([
+    fetchProjects(supabase, customUser),
+    fetchManagers(supabase)
+  ]);
+
+  if (projectsResult.error) {
+    console.error("Error fetching projects:", projectsResult.error);
+  }
+  
+  if (managersResult.error) {
+    console.error("Error fetching managers:", managersResult.error);
   }
 
   // Transform projects to match expected type
-  const projects: Project[] = (projectsData || []).map((p: any) => ({
+  const projects: Project[] = (projectsResult.data || []).map((p: any) => ({
     id: p.id,
     code: p.code || p.project_code || "",
     name: p.name,
@@ -130,38 +155,7 @@ export default async function ProjectsPage() {
     description: p.description,
   }));
 
-  // Fetch Managers with fallback
-  let managersData: any[] = [];
-  let managersError: any = null;
-
-  const managersRes = await supabase
-    .from("users")
-    .select("id, name, email, role, avatar_url")
-    .order("name");
-
-  if (managersRes.data && managersRes.data.length > 0) {
-    managersData = managersRes.data;
-  } else {
-    managersError = managersRes.error;
-    const adminSupabase = createAdminClient();
-    const adminManagersRes = await adminSupabase
-      .from("users")
-      .select("id, name, email, role, avatar_url")
-      .order("name");
-    
-    if (adminManagersRes.data) {
-      managersData = adminManagersRes.data;
-      managersError = null;
-    } else {
-      managersError = adminManagersRes.error;
-    }
-  }
-
-  if (managersError) {
-    console.error("Error fetching managers:", managersError);
-  }
-
-  const managers = (managersData || []).map((m: any) => ({
+  const managers = (managersResult.data || []).map((m: any) => ({
     id: m.id,
     name: m.name,
     email: m.email,
