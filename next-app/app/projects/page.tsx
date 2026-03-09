@@ -137,7 +137,6 @@ export default async function ProjectsPage() {
   const managersRes = await supabase
     .from("users")
     .select("id, name, email, role, avatar_url")
-    .in("role", ["admin", "manager"])
     .order("name");
 
   if (managersRes.data && managersRes.data.length > 0) {
@@ -148,7 +147,6 @@ export default async function ProjectsPage() {
     const adminManagersRes = await adminSupabase
       .from("users")
       .select("id, name, email, role, avatar_url")
-      .in("role", ["admin", "manager"])
       .order("name");
     
     if (adminManagersRes.data) {

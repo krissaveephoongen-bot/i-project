@@ -156,6 +156,9 @@ export default function ProjectsClient({
   }, [projectsData]);
 
   const availableManagers = useMemo(() => {
+    if (managersData && managersData.length > 0) {
+      return managersData.map(m => ({ value: m.id, label: m.name }));
+    }
     const managers = new Map();
     projectsData?.forEach(p => {
       if (p.managerId && p.manager_name) {
@@ -163,7 +166,7 @@ export default function ProjectsClient({
       }
     });
     return Array.from(managers.entries()).map(([id, name]) => ({ value: id, label: name }));
-  }, [projectsData]);
+  }, [projectsData, managersData]);
 
   // Enhanced projects with computed fields
   const enhancedProjects: EnhancedProject[] = useMemo(() => {
