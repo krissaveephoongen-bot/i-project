@@ -12,7 +12,12 @@ const tabs = [
     label: "Overview",
     path: (id: string) => `/projects/${id}/overview`,
   },
-  { key: "plan", label: "Plan", path: (id: string) => `/projects/${id}/tasks` },
+  {
+    key: "contract",
+    label: "Contract",
+    path: (id: string) => `/projects/${id}/contract`,
+  },
+  { key: "plan", label: "Tasks (WBS)", path: (id: string) => `/projects/${id}/tasks` },
   {
     key: "cost-sheet",
     label: "Cost Sheet",
@@ -28,18 +33,18 @@ const tabs = [
     label: "Billing",
     path: (id: string) => `/projects/${id}/milestones`,
   },
-  { key: "risk", label: "Risk", path: (id: string) => `/projects/${id}/risks` },
+  { key: "risk", label: "Risks & Issues", path: (id: string) => `/projects/${id}/risks` },
+  {
+    key: "delivery",
+    label: "Delivery",
+    path: (id: string) => `/projects/${id}/delivery`,
+  },
   {
     key: "docs",
-    label: "Documents",
+    label: "Docs",
     path: (id: string) => `/projects/${id}/documents`,
   },
   { key: "team", label: "Team", path: (id: string) => `/projects/${id}/team` },
-  {
-    key: "closure",
-    label: "Closure",
-    path: (id: string) => `/projects/${id}/closure`,
-  },
 ];
 
 export default function ProjectTabs({
@@ -51,8 +56,8 @@ export default function ProjectTabs({
   const pathname = usePathname();
   const id = params?.id || "";
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 mb-4 flex items-center justify-between gap-2">
-      <div className="flex gap-2 overflow-x-auto">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 mb-4 flex items-center justify-between gap-2 overflow-hidden">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
         {tabs.map((t) => {
           const href = t.path(id);
           const active = pathname?.startsWith(href);
@@ -61,10 +66,10 @@ export default function ProjectTabs({
               key={t.key}
               href={href}
               className={clsx(
-                "px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap",
+                "px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
                 active
-                  ? "bg-[#2563EB] text-white"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200",
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900",
               )}
             >
               {t.label}
@@ -73,15 +78,16 @@ export default function ProjectTabs({
         })}
       </div>
       {children && <div className="flex gap-2 shrink-0">{children}</div>}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => window.open("/stakeholders", "_blank")}
-        className="gap-2"
-      >
-        <Users className="w-4 h-4" />
-        Stakeholders
-      </Button>
+      <div className="hidden md:block border-l border-slate-200 pl-2 ml-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => window.open("/stakeholders", "_blank")}
+          className="gap-2 text-slate-500"
+        >
+          <Users className="w-4 h-4" />
+        </Button>
+      </div>
     </div>
   );
 }
