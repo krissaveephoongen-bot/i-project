@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/app/lib/supabaseClient";
 import bcrypt from "bcryptjs";
+import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
@@ -197,6 +198,15 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch {}
+
+    // Set cookie for server-side auth
+    const cookieStore = cookies();
+    cookieStore.set("auth_token", user.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+    });
 
     return NextResponse.json({
       user: responseUser,
