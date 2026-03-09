@@ -22,7 +22,7 @@ import FinancialChartCard from "@/app/components/dashboard-widgets/FinancialChar
 import DashboardFilters from "@/app/components/dashboard-widgets/DashboardFilters";
 import PortfolioHealthCard from "@/app/components/dashboard-widgets/PortfolioHealthCard";
 import RecentActivitiesCard from "@/app/components/dashboard-widgets/RecentActivitiesCard";
-import { KpiCard } from "@/app/components/dashboard/KpiCard"; // Use existing generic card
+import { KpiCard } from "@/app/components/dashboard-widgets/KpiCard"; // Use existing generic card
 
 // Types
 import type { 
