@@ -19,6 +19,11 @@ const tabs = [
   },
   { key: "plan", label: "Tasks (WBS)", path: (id: string) => `/projects/${id}/tasks` },
   {
+    key: "procurement",
+    label: "Procurement",
+    path: (id: string) => `/projects/${id}/procurement`,
+  },
+  {
     key: "cost-sheet",
     label: "Cost Sheet",
     path: (id: string) => `/projects/${id}/cost-sheet`,
