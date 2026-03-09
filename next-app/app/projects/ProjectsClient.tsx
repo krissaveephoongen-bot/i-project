@@ -167,9 +167,9 @@ export default function ProjectsClient({
 
   // Enhanced projects with computed fields
   const enhancedProjects: EnhancedProject[] = useMemo(() => {
-    if (!projectsData) return [];
+    if (!projectsData || !Array.isArray(projectsData)) return [];
 
-    return projectsData.map((project) => {
+    return projectsData.filter(p => p && p.id).map((project) => {
       const riskLevel = calculateRiskLevel(project);
       const daysRemaining = calculateDaysRemaining(project);
       const isOverdue = daysRemaining < 0;

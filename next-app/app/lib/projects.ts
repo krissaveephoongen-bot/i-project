@@ -23,6 +23,7 @@ export interface Project {
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
+  manager_name?: string | null;
   manager?: {
     name: string;
     email: string;
