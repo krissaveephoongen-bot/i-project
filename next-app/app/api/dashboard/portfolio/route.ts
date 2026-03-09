@@ -19,6 +19,13 @@ export async function GET(req: NextRequest) {
           cashflow: [],
           spiTrend: [],
           spiSnaps: [],
+          vendorMetrics: {
+             totalVendors: 0,
+             activeContracts: 0,
+             pendingPaymentsAmount: 0,
+             topVendorName: "None",
+             topVendorSpend: 0
+          },
           error: "admin client missing",
         },
         { status: 200, headers },
@@ -46,7 +53,7 @@ export async function GET(req: NextRequest) {
     const ids = list.map((p) => p.id);
 
     // Parallel fetch auxiliary data
-    const [managersRes, clientsRes, milestonesRes, risksRes, snapsRes] = await Promise.all([
+    const [managersRes, clientsRes, milestonesRes, risksRes, snapsRes, vendorRes] = await Promise.all([
         // Managers
         managerIds.length
             ? supabaseAdmin.from("users").select("id,name").in("id", managerIds)
@@ -55,9 +62,7 @@ export async function GET(req: NextRequest) {
         clientIds.length
             ? supabaseAdmin.from("clients").select("id,name").in("id", clientIds)
             : Promise.resolve({ data: [] }),
-        // Milestones (try project_id first, handle fallback if needed logic inside map later?)
-        // Actually for simplicity in Promise.all, we might need to handle the fallback logic differently or inside the promise.
-        // Let's wrap complex logic in async IIFEs
+        // Milestones
         (async () => {
             if (!ids.length) return { data: [] };
             const mRes1 = await supabaseAdmin.from("milestones").select("*").in("project_id", ids as any);
@@ -94,6 +99,44 @@ export async function GET(req: NextRequest) {
                 .select("projectId,date,spi")
                 .in("projectId", ids)
                 .gte("date", sinceStr);
+        })(),
+        // Vendor Metrics
+        (async () => {
+             const [vCount, cCount, pPending, pPaid] = await Promise.all([
+                 supabaseAdmin.from("vendors").select("*", { count: "exact", head: true }),
+                 supabaseAdmin.from("vendor_contracts").select("*", { count: "exact", head: true }).eq("status", "active"),
+                 supabaseAdmin.from("vendor_payments").select("amount").eq("status", "pending"),
+                 supabaseAdmin.from("vendor_payments").select("vendorId, amount").eq("status", "paid")
+             ]);
+             
+             const pendingAmount = (pPending.data || []).reduce((s, p) => s + Number(p.amount||0), 0);
+             
+             // Top Vendor
+             const vendorSpend: Record<string, number> = {};
+             (pPaid.data || []).forEach((p: any) => {
+                 vendorSpend[p.vendorId] = (vendorSpend[p.vendorId] || 0) + Number(p.amount || 0);
+             });
+             let topVendorId = "";
+             let maxSpend = 0;
+             for (const [vid, amount] of Object.entries(vendorSpend)) {
+                 if (amount > maxSpend) {
+                     maxSpend = amount;
+                     topVendorId = vid;
+                 }
+             }
+             let topVendorName = "None";
+             if (topVendorId) {
+                 const { data: v } = await supabaseAdmin.from("vendors").select("name").eq("id", topVendorId).single();
+                 if (v) topVendorName = v.name;
+             }
+
+             return {
+                 totalVendors: vCount.count || 0,
+                 activeContracts: cCount.count || 0,
+                 pendingPaymentsAmount: pendingAmount,
+                 topVendorName,
+                 topVendorSpend: maxSpend
+             };
         })()
     ]);
 
@@ -102,6 +145,7 @@ export async function GET(req: NextRequest) {
     const milestones = milestonesRes.data || [];
     const risks = risksRes.data || [];
     const snaps = snapsRes.data || [];
+    const vendorMetrics = vendorRes;
 
     const managersMap: Record<string, any> = {};
     const clientsMap: Record<string, any> = {};
@@ -219,9 +263,6 @@ export async function GET(req: NextRequest) {
 
       const riskCounts = risksByProject[p.id] || { high: 0, medium: 0, low: 0 };
 
-      // Optional logging for debug
-      // console.log(`Project ${p.id}: ...`);
-
       return {
         id: p.id,
         name: p.name,
@@ -242,7 +283,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(
-      { rows, cashflow, spiTrend, spiSnaps: snaps },
+      { rows, cashflow, spiTrend, spiSnaps: snaps, vendorMetrics },
       { status: 200, headers },
     );
   } catch (e: any) {
@@ -253,6 +294,13 @@ export async function GET(req: NextRequest) {
         cashflow: [],
         spiTrend: [],
         spiSnaps: [],
+        vendorMetrics: {
+             totalVendors: 0,
+             activeContracts: 0,
+             pendingPaymentsAmount: 0,
+             topVendorName: "None",
+             topVendorSpend: 0
+        },
         error: e?.message || "error",
       },
       { status: 200, headers },

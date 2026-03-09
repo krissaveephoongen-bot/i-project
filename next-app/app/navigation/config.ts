@@ -10,6 +10,9 @@ import {
   Briefcase,
   UserCheck,
   CreditCard,
+  Activity,
+  Server,
+  Database
 } from "lucide-react";
 
 export type NavChild = {
@@ -61,6 +64,7 @@ export function getAppNavigation(t: (key: string, def?: string) => string): NavS
         { name: t("navigation.timesheet"), href: "/timesheet", icon: Calendar, roles: ["admin", "manager", "member"] },
         {
           name: t("navigation.expenses"),
+          href: "/expenses",
           icon: CreditCard,
           roles: ["admin", "manager", "member"],
           children: [
@@ -72,14 +76,11 @@ export function getAppNavigation(t: (key: string, def?: string) => string): NavS
           ],
         },
         { name: t("navigation.sales"), href: "/sales", icon: FolderKanban, roles: ["admin", "manager"] },
-        {
-          name: t("navigation.approvals"),
-          icon: UserCheck,
-          roles: ["admin", "manager"],
-          children: [
-            { name: t("approvals.timesheets"), href: "/approvals/timesheets", icon: Calendar },
-            { name: t("approvals.expenses"), href: "/approvals/expenses", icon: Briefcase },
-          ],
+        { 
+          name: t("navigation.approvals"), 
+          href: "/approvals", 
+          icon: UserCheck, 
+          roles: ["admin", "manager"] 
         },
         { name: t("navigation.stakeholders"), href: "/stakeholders", icon: Users, roles: ["admin", "manager"] },
         { name: "Resources", href: "/resources", icon: Users, roles: ["admin", "manager"] },
@@ -93,13 +94,14 @@ export function getAppNavigation(t: (key: string, def?: string) => string): NavS
           icon: Settings,
           roles: ["admin"],
           children: [
-            { name: t("navigation.users"), href: "/users", icon: Users },
-            { name: "ประเภทกิจกรรม", href: "/admin/activities", icon: FileText },
-            { name: "Cost Codes", href: "/admin/cost-codes", icon: FileText },
-            { name: "System Health", href: "/admin/health", icon: BarChart3 },
-            { name: "Vendors", href: "/admin/vendors", icon: Users },
+            { name: "Overview", href: "/admin", icon: LayoutDashboard },
+            { name: t("navigation.users"), href: "/admin/users", icon: Users },
             { name: "Project Assignment", href: "/admin/project-assign", icon: Users },
             { name: "Timesheet Management", href: "/admin/timesheets", icon: Calendar },
+            { name: "Vendors", href: "/admin/vendors", icon: Users },
+            { name: "ประเภทกิจกรรม", href: "/admin/activities", icon: FileText },
+            { name: "Cost Codes", href: "/admin/cost-codes", icon: FileText },
+            { name: "System Health", href: "/admin/health", icon: Activity },
           ],
         },
       ],
@@ -110,10 +112,11 @@ export function getAppNavigation(t: (key: string, def?: string) => string): NavS
 export function getAdminMenu() {
   return [
     { label: "Overview", href: "/admin", icon: LayoutDashboard },
-    { label: "Approval Status", href: "/admin/approvals", icon: CheckSquare },
     { label: "Users", href: "/admin/users", icon: Users },
-    { label: "System Logs", href: "/admin/logs", icon: BarChart3 },
-    { label: "Settings", href: "/admin/settings", icon: Settings },
-    { label: "Maintenance", href: "/admin/maintenance", icon: FileText },
+    { label: "Assignments", href: "/admin/project-assign", icon: Briefcase },
+    { label: "Timesheets", href: "/admin/timesheets", icon: Calendar },
+    { label: "Vendors", href: "/admin/vendors", icon: Users },
+    { label: "System Health", href: "/admin/health", icon: Server },
+    { label: "Dev Tools", href: "/admin", icon: Database }, // Point to dashboard where tools are
   ];
 }
