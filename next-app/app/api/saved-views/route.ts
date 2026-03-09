@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const pageKey = searchParams.get("pageKey") || "";
     const userId = searchParams.get("userId") || "";
+    const includeGlobal = searchParams.get("includeGlobal") === "1";
     if (!supabase) return NextResponse.json({ views: [] }, { status: 200 });
     if (!pageKey || !userId)
       return NextResponse.json({ views: [] }, { status: 200 });
@@ -20,6 +21,27 @@ export async function GET(req: NextRequest) {
       .order("updatedAt", { ascending: false });
 
     if (error) throw error;
+
+    if (includeGlobal) {
+      const { data: globals, error: gErr } = await supabase
+        .from("saved_views")
+        .select("*")
+        .eq("pageKey", pageKey)
+        .eq("userId", "*")
+        .order("updatedAt", { ascending: false });
+      if (gErr) {
+        return NextResponse.json({ views: data || [] }, { status: 200 });
+      }
+      const merged = [...(globals || []), ...(data || [])]
+        .filter(Boolean)
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.updatedAt || 0).getTime() -
+            new Date(a.updatedAt || 0).getTime(),
+        );
+      return NextResponse.json({ views: merged }, { status: 200 });
+    }
+
     return NextResponse.json({ views: data || [] }, { status: 200 });
   } catch (e: any) {
     return NextResponse.json(

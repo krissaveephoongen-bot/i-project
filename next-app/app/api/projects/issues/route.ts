@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/app/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -13,6 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const supabase = createClient(cookies());
     const { data, error } = await supabase
       .from("issues")
       .select("*")
@@ -38,6 +40,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       project_id,
+      risk_id,
+      risk_id,
       title,
       priority,
       status,
@@ -45,12 +49,15 @@ export async function POST(request: NextRequest) {
       assigned_to,
       due_date,
     } = body;
-
+    const supabase = createClient(cookies());
+    const { data, error } = await supabase
     const { data, error } = await supabase
       .from("issues")
       .insert([
         {
+          risk_id: risk_id || null,
           project_id,
+          risk_id: risk_id || null,
           title,
           priority: priority || "Medium",
           status: status || "Open",
@@ -59,8 +66,6 @@ export async function POST(request: NextRequest) {
           due_date,
         },
       ])
-      .select()
-      .single();
 
     if (error) {
       // console.warn('Failed to create issue:', error.message);
@@ -84,6 +89,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, updatedFields } = body;
 
+    const supabase = createClient(cookies());
     const { data, error } = await supabase
       .from("issues")
       .update(updatedFields)
@@ -115,6 +121,7 @@ export async function DELETE(request: NextRequest) {
   if (!id)
     return NextResponse.json({ error: "ID is required" }, { status: 400 });
 
+  const supabase = createClient(cookies());
   const { error } = await supabase.from("issues").delete().eq("id", id);
 
   if (error) {

@@ -7,6 +7,7 @@ import I18nProvider from "./components/I18nProvider";
 import DataSyncProvider from "./components/DataSyncProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import WalkthroughProvider from "./components/walkthrough/WalkthroughProvider";
 
 export const metadata: Metadata = {
   title: "i-project - ระบบจัดการโครงการ",
@@ -27,7 +28,9 @@ export default function RootLayout({
         <I18nProvider>
           <Providers>
             <AuthProvider>
-              <ProtectedLayout>{children}</ProtectedLayout>
+              <WalkthroughProvider>
+                <ProtectedLayout>{children}</ProtectedLayout>
+              </WalkthroughProvider>
             </AuthProvider>
           </Providers>
         </I18nProvider>

@@ -523,6 +523,38 @@ export default function ProjectMilestonesPage() {
                       </button>
                       <button
                         onClick={async () => {
+                          const today = new Date().toISOString();
+                          const res = await updateMilestoneAction(milestone.id, { invoice_date: today, status: "In Progress" });
+                          if (res.data) {
+                            setMilestones((prev) =>
+                              prev.map((m) =>
+                                m.id === milestone.id ? { ...m, status: "In Progress", invoice_date: today } : m,
+                              ),
+                            );
+                          }
+                        }}
+                        className="ml-2 text-sm text-purple-600 hover:text-purple-700 font-medium"
+                      >
+                        Invoice
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const today = new Date().toISOString();
+                          const res = await updateMilestoneAction(milestone.id, { receipt_date: today, status: "Paid" });
+                          if (res.data) {
+                            setMilestones((prev) =>
+                              prev.map((m) =>
+                                m.id === milestone.id ? { ...m, status: "Paid", receipt_date: today } : m,
+                              ),
+                            );
+                          }
+                        }}
+                        className="ml-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                      >
+                        Receive
+                      </button>
+                      <button
+                        onClick={async () => {
                           const res = await updateMilestoneAction(milestone.id, { status: "Approved" });
                           if (res.data) {
                             setMilestones((prev) =>
@@ -538,11 +570,12 @@ export default function ProjectMilestonesPage() {
                       </button>
                       <button
                         onClick={async () => {
-                          const res = await updateMilestoneAction(milestone.id, { status: "Paid" });
+                          const today = new Date().toISOString();
+                          const res = await updateMilestoneAction(milestone.id, { status: "Paid", receipt_date: today });
                           if (res.data) {
                             setMilestones((prev) =>
                               prev.map((m) =>
-                                m.id === milestone.id ? { ...m, status: "Paid" } : m,
+                                m.id === milestone.id ? { ...m, status: "Paid", receipt_date: today } : m,
                               ),
                             );
                           }

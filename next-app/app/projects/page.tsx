@@ -16,15 +16,7 @@ export default async function ProjectsPage() {
   let projectsError: any = null;
 
   // 1. Try User Session
-  const res = await supabase
-    .from("projects")
-    .select(`
-      *,
-      users!projects_manager_id_fkey (
-        name
-      )
-    `)
-    .order("created_at", { ascending: false });
+  const res = await supabase.from("projects").select(`*`).order("created_at", { ascending: false });
   
   if (res.data && res.data.length > 0) {
     projectsData = res.data;
@@ -32,27 +24,33 @@ export default async function ProjectsPage() {
     projectsError = res.error;
     // 2. Fallback to Admin Client (only for admin/manager)
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-         const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
-         if (profile && ["admin", "manager"].includes(profile.role)) {
-             const adminSupabase = createAdminClient();
-             const adminRes = await adminSupabase
-              .from("projects")
-              .select(`
-                *,
-                users!projects_manager_id_fkey (
-                  name
-                )
-              `)
-              .order("created_at", { ascending: false });
-            
-            if (adminRes.data) {
-              projectsData = adminRes.data;
-              projectsError = null; // Clear error if fallback succeeds
-            } else if (adminRes.error) {
-              projectsError = adminRes.error;
-            }
-         }
+    let roleClaim = String(
+      // prefer auth metadata if present
+      (user as any)?.app_metadata?.role ||
+        (user as any)?.user_metadata?.role ||
+        "",
+    ).toLowerCase();
+    if (!roleClaim && user) {
+      const { data: profile } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      roleClaim = String(profile?.role || "").toLowerCase();
+    }
+    if (["admin", "manager"].includes(roleClaim)) {
+      const adminSupabase = createAdminClient();
+      const adminRes = await adminSupabase
+        .from("projects")
+        .select(`*`)
+        .order("created_at", { ascending: false });
+
+      if (adminRes.data) {
+        projectsData = adminRes.data;
+        projectsError = null; // Clear error if fallback succeeds
+      } else if (adminRes.error) {
+        projectsError = adminRes.error;
+      }
     }
   }
 
@@ -77,7 +75,7 @@ export default async function ProjectsPage() {
     category: p.category,
     createdAt: p.created_at,
     updatedAt: p.updated_at,
-    manager_name: p.users?.name || null,
+    manager_name: p.manager_name || p.users?.name || null,
     description: p.description,
   }));
 

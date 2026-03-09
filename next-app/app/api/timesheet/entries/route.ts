@@ -25,14 +25,16 @@ export async function GET(request: NextRequest) {
     const cookieStore = cookies();
     const supabase = createClient(cookieStore);
 
-    // Query time_entries (using snake_case columns)
+    // Query time_entries
     let q = supabase
       .from("time_entries")
       .select("*")
-      .eq("user_id", user_id)
       .gte("date", start)
       .lte("date", end);
 
+    if (user_id !== "*") {
+      q = q.eq("user_id", user_id);
+    }
     if (projects.length > 0) {
       q = q.in("project_id", projects);
     }
@@ -129,6 +131,7 @@ export async function PUT(request: NextRequest) {
       description,
       activity_type,
       billable,
+      status,
     } = body || {};
 
     if (!id) {
@@ -149,6 +152,7 @@ export async function PUT(request: NextRequest) {
     if (typeof activity_type !== "undefined") payload.work_type = activity_type;
     if (typeof billable !== "undefined")
       payload.billable_hours = billable ? Number(hours || 0) : 0;
+    if (typeof status !== "undefined") payload.status = status;
 
     const { data, error } = await supabase
       .from("time_entries")

@@ -84,6 +84,18 @@ export async function getProjectOverview(projectId: string) {
     .from("expenses")
     .select("amount, status")
     .eq("project_id", projectId);
+  
+  // Health Policy
+  let policy: any = null;
+  try {
+    const { data: policies } = await clientToUse
+      .from("saved_views")
+      .select("filters")
+      .eq("pageKey", `health-policy:${projectId}`)
+      .order("updatedAt", { ascending: false })
+      .limit(1);
+    policy = (policies || [])[0]?.filters || null;
+  } catch {}
 
   // Calculations
   const totalTasks = tasks?.length || 0;
@@ -93,11 +105,44 @@ export async function getProjectOverview(projectId: string) {
   let earnedValue = 0;
   let plannedValue = 0;
 
-  tasks?.forEach((t: any) => {
-    const w = t.weight || 1;
+  const statusToPercent = (status: any) => {
+    const s = String(status || "").toLowerCase();
+    if (s === "completed") return 100;
+    if (s === "in_progress") return 50;
+    return 0; // pending/todo
+  };
+  const hasHierarchy = Array.isArray(tasks) && tasks.some((x: any) => x?.parent_id || x?.parentId);
+  const parentIds = new Set<string>(
+    (tasks || [])
+      .map((x: any) => String(x.parent_id || x.parentId || ""))
+      .filter((v) => v && v !== "null" && v !== "undefined"),
+  );
+  const leaves = hasHierarchy
+    ? (tasks || []).filter((t: any) => !parentIds.has(String(t.id)))
+    : (tasks || []);
+
+  leaves.forEach((t: any) => {
+    const w = Number(t.weight || 1);
     totalWeight += w;
-    earnedValue += w * (t.progress_actual || 0);
-    plannedValue += w * (t.progress_plan || 0);
+    const ratioFromHours =
+      typeof t.actual_hours === "number" &&
+      typeof t.estimated_hours === "number" &&
+      t.estimated_hours > 0
+        ? Math.min(100, (t.actual_hours / t.estimated_hours) * 100)
+        : null;
+    const pa =
+      ratioFromHours !== null
+        ? ratioFromHours
+        : typeof t.progress_actual === "number" &&
+          !Number.isNaN(t.progress_actual)
+        ? t.progress_actual
+        : statusToPercent(t.status);
+    const pp =
+      typeof t.progress_plan === "number" && !Number.isNaN(t.progress_plan)
+        ? t.progress_plan
+        : 0;
+    earnedValue += w * pa;
+    plannedValue += w * pp;
   });
 
   const progressActual = totalWeight > 0 ? (earnedValue / totalWeight) : 0;
@@ -131,6 +176,7 @@ export async function getProjectOverview(projectId: string) {
       actualCost,
       committedCost,
       remainingBudget,
-    }
+    },
+    policy,
   };
 }

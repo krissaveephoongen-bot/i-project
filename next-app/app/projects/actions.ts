@@ -26,11 +26,14 @@ export const taskSchema = z.object({
   projectId: z.string().uuid("Invalid Project ID"),
   milestoneId: z.string().uuid().optional().nullable(),
   assignedTo: z.string().uuid().optional().nullable(),
+  parentId: z.string().uuid().optional().nullable(),
   startDate: z.string().datetime().optional().nullable(),
   endDate: z.string().datetime().optional().nullable(),
   weight: z.number().min(0).max(100).default(1),
   progressPlan: z.number().min(0).max(100).default(0),
   progressActual: z.number().min(0).max(100).default(0),
+  estimatedHours: z.number().min(0).optional().nullable(),
+  actualHours: z.number().min(0).optional().nullable(),
 });
 
 export type ProjectInput = z.infer<typeof projectSchema>;
@@ -151,10 +154,12 @@ export async function createTaskAction(input: TaskInput) {
       priority: input.priority,
       project_id: input.projectId, // DB column: project_id
       milestone_id: input.milestoneId,
-      assignee_id: input.assignedTo, // Fixed: DB column is assignee_id
+      assigned_to: input.assignedTo,
+      parent_id: input.parentId || null,
       start_date: input.startDate,
       end_date: input.endDate,
-      // weight: input.weight, // Columns missing in DB
+      estimated_hours: input.estimatedHours,
+      actual_hours: input.actualHours,
       // progress_plan: input.progressPlan,
       // progress_actual: input.progressActual,
     })
@@ -189,12 +194,33 @@ export async function updateTaskAction(id: string, input: Partial<TaskInput>) {
   if (input.priority !== undefined) updates.priority = input.priority;
   if (input.projectId !== undefined) updates.project_id = input.projectId;
   if (input.milestoneId !== undefined) updates.milestone_id = input.milestoneId;
-  if (input.assignedTo !== undefined) updates.assignee_id = input.assignedTo; // Fixed
+  if (input.assignedTo !== undefined) updates.assigned_to = input.assignedTo;
+  if (input.parentId !== undefined) updates.parent_id = input.parentId;
   if (input.startDate !== undefined) updates.start_date = input.startDate;
   if (input.endDate !== undefined) updates.end_date = input.endDate;
+  if (input.estimatedHours !== undefined) updates.estimated_hours = input.estimatedHours;
+  if (input.actualHours !== undefined) updates.actual_hours = input.actualHours;
   // if (input.weight !== undefined) updates.weight = input.weight;
   // if (input.progressPlan !== undefined) updates.progress_plan = input.progressPlan;
   // if (input.progressActual !== undefined) updates.progress_actual = input.progressActual;
+  // Derive status from hours when provided (advanced step)
+  if (
+    typeof input.actualHours !== "undefined" ||
+    typeof input.estimatedHours !== "undefined"
+  ) {
+    const est = typeof input.estimatedHours === "number" ? input.estimatedHours : undefined;
+    const act = typeof input.actualHours === "number" ? input.actualHours : undefined;
+    if (typeof act === "number") {
+      if (typeof est === "number" && est > 0) {
+        if (act >= est) updates.status = "completed";
+        else if (act > 0) updates.status = "in_progress";
+        else updates.status = "pending";
+      } else {
+        // Without estimate, base on actual only
+        updates.status = act > 0 ? "in_progress" : "pending";
+      }
+    }
+  }
   
   updates.updated_at = new Date().toISOString();
 

@@ -34,16 +34,25 @@ import PageTransition from "@/app/components/PageTransition";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import TaskForm from "@/app/components/TaskForm";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/app/components/ui/dialog";
+import {
   getTasksAction,
   createTaskAction,
   updateTaskAction,
   deleteTaskAction,
-  getProjectsForDropdown,
+  getProjectsWithCounts,
   getUsersForDropdown,
   getMilestonesForDropdown,
 } from "./actions";
 import { toast } from "react-hot-toast";
 import { Task } from "../../lib/tasks";
+import { ScrollArea } from "@/app/components/ui/scroll-area";
+import { Progress } from "@/app/components/ui/progress";
+import { Badge } from "@/app/components/ui/badge";
 
 export default function TasksPage() {
   const sp = useSearchParams();
@@ -57,6 +66,7 @@ export default function TasksPage() {
     id: string;
     title: string;
   } | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string>("");
 
   const labels = {
     title: language === "th" ? "งาน" : "Tasks",
@@ -77,14 +87,14 @@ export default function TasksPage() {
 
   // Fetch tasks with real API
   const tasksQuery = useQuery({
-    queryKey: ["tasks", query],
-    queryFn: () => getTasksAction({ q: query }),
+    queryKey: ["tasks", query, projectFilter],
+    queryFn: () => getTasksAction({ q: query, projectId: projectFilter || undefined }),
   });
 
-  // Fetch projects for dropdown
+  // Fetch projects for sidebar (with counts)
   const projectsQuery = useQuery({
-    queryKey: ["projects"],
-    queryFn: () => getProjectsForDropdown(),
+    queryKey: ["projectsWithCounts"],
+    queryFn: () => getProjectsWithCounts(),
   });
 
   // Fetch users for assignee dropdown
@@ -265,166 +275,226 @@ export default function TasksPage() {
               <Button
                 onClick={() => handleOpenModal()}
                 className="gap-2 bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+                id="add-task-button"
               >
                 <Plus className="h-4 w-4" /> {labels.addNew}
               </Button>
             </PermissionGuard>
           </div>
 
-          {/* Task List Card */}
-          <Card className="shadow-sm border-slate-200 w-full">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>
-                    {language === "th" ? "งานทั้งหมด" : "All Tasks"}
-                  </CardTitle>
-                  <p className="text-sm text-slate-500 mt-1">
-                    {tasks.length}{" "}
-                    {language === "th" ? "งานที่พบ" : "tasks found"}
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
+          {/* Master–Detail: Sidebar (Projects) + Tasks */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Sidebar: Projects */}
+            <Card className="shadow-sm border-slate-200 order-2 lg:order-1" id="tour-projects-sidebar">
+              <CardHeader className="pb-2">
+                <CardTitle>{language === "th" ? "โครงการ" : "Projects"}</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[520px]">
+                  <div className="flex flex-col">
+                    <button
+                      onClick={() => setProjectFilter("")}
+                      className={`text-left px-4 py-3 border-b hover:bg-slate-50 ${projectFilter === "" ? "bg-blue-50 text-blue-700" : "text-slate-700"}`}
+                    >
+                      {language === "th" ? "ทุกโครงการ" : "All projects"}
+                    </button>
+                    {projects.map((p: any) => (
+                      <button
+                        key={p.id}
+                        onClick={() => setProjectFilter(p.id)}
+                        className={`text-left px-4 py-3 border-b hover:bg-slate-50 ${projectFilter === p.id ? "bg-blue-50 text-blue-700" : "text-slate-700"}`}
+                        title={p.name}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate">{p.name}</span>
+                          <Badge variant="secondary">
+                            {(p.open ?? 0)}/{(p.total ?? 0)}
+                          </Badge>
+                        </div>
+                        <div className="mt-1 text-[11px] text-slate-500">
+                          T:{p.counts?.todo ?? 0} • I:{p.counts?.in_progress ?? 0} • P:{p.counts?.pending ?? 0} • C:{p.counts?.completed ?? 0}
+                        </div>
+                        <div className="mt-2 px-1 flex items-center gap-2">
+                          <Progress
+                            value={Number(p.progress) || 0}
+                            className="flex-1"
+                            indicatorClassName={
+                              (Number(p.progress) || 0) >= (Number(p.progressPlan) || 0)
+                                ? "bg-emerald-500"
+                                : (Number(p.progress) || 0) >= Math.min(80, Number(p.progressPlan) || 0)
+                                ? "bg-amber-500"
+                                : "bg-rose-500"
+                            }
+                          />
+                          <span className="text-[11px] text-slate-600 w-16 text-right">
+                            {Math.round(Number(p.progress) || 0)}% / {Math.round(Number(p.progressPlan) || 0)}%
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
 
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-t border-slate-200">
-                    <tr>
-                      <th className="text-left py-3 px-6 text-sm font-medium text-slate-600 w-1/3">
-                        {labels.taskName}
-                      </th>
-                      <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">
-                        {labels.project}
-                      </th>
-                      <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">
-                        {labels.assignee}
-                      </th>
-                      <th className="text-center py-3 px-6 text-sm font-medium text-slate-600">
-                        {labels.status}
-                      </th>
-                      <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">
-                        {labels.dueDate}
-                      </th>
-                      <th className="text-right py-3 px-6 text-sm font-medium text-slate-600">
-                        {labels.actions}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {tasks.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="py-12 px-6 text-center text-slate-500"
-                        >
-                          {labels.noTasks}
-                        </td>
-                      </tr>
-                    ) : (
-                      tasks.map((task) => (
-                        <tr
-                          key={task.id}
-                          className="hover:bg-slate-50 transition-colors"
-                        >
-                          <td className="py-3 px-6">
-                            <div className="font-medium text-slate-900">
-                              {task.title}
-                            </div>
-                            {task.description && (
-                              <div className="text-xs text-slate-500 truncate max-w-[200px]">
-                                {task.description}
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-3 px-6 text-sm">
-                            {task.projects ? (
-                              <a
-                                href={`/projects/${task.projects.id}`}
-                                className="text-blue-600 hover:underline"
-                              >
-                                {task.projects.name}
-                              </a>
-                            ) : (
-                              "-"
-                            )}
-                          </td>
-                          <td className="py-3 px-6 text-sm text-slate-600">
-                            {task.assigned_user?.name ||
-                              (language === "th"
-                                ? "ไม่ได้มอบหมาย"
-                                : "Unassigned")}
-                          </td>
-                          <td className="py-3 px-6 text-sm text-center">
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 capitalize">
-                              {task.status}
-                            </span>
-                          </td>
-                          <td className="py-3 px-6 text-sm text-slate-600">
-                            {task.dueDate
-                              ? new Date(task.dueDate).toLocaleDateString(
-                                  "th-TH",
-                                  {
-                                    month: "short",
-                                    day: "numeric",
-                                  },
-                                )
-                              : "-"}
-                          </td>
-                          <td className="py-3 px-6 text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuLabel>
-                                  {labels.actions}
-                                </DropdownMenuLabel>
-                                <DropdownMenuItem
-                                  onClick={() => handleOpenModal(task)}
-                                >
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  {labels.edit}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-red-600 cursor-pointer"
-                                  onClick={() => handleDeleteClick(task)}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  {labels.delete}
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </td>
+            {/* Detail: Tasks */}
+            <div className="lg:col-span-3 order-1 lg:order-2">
+              <Card className="shadow-sm border-slate-200 w-full" id="tasks-table">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>
+                        {projectFilter
+                          ? (projects.find((p: any) => p.id === projectFilter)?.name || labels.title)
+                          : (language === "th" ? "งานทั้งหมด" : "All Tasks")}
+                      </CardTitle>
+                      <p className="text-sm text-slate-500 mt-1">
+                        {tasks.length} {language === "th" ? "งานที่พบ" : "tasks found"}
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-slate-50 border-t border-slate-200">
+                        <tr>
+                          <th className="text-left py-3 px-6 text-sm font-medium text-slate-600 w-1/3">
+                            {labels.taskName}
+                          </th>
+                          <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">
+                            {labels.project}
+                          </th>
+                          <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">
+                            {labels.assignee}
+                          </th>
+                          <th className="text-center py-3 px-6 text-sm font-medium text-slate-600">
+                            {labels.status}
+                          </th>
+                          <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">
+                            {labels.dueDate}
+                          </th>
+                          <th className="text-right py-3 px-6 text-sm font-medium text-slate-600">
+                            {labels.actions}
+                          </th>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {tasks.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="py-12 px-6 text-center text-slate-500">
+                              {labels.noTasks}
+                            </td>
+                          </tr>
+                        ) : (
+                          tasks.map((task) => (
+                            <tr key={task.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="py-3 px-6">
+                                <div className="font-medium text-slate-900">{task.title}</div>
+                                {task.description && (
+                                  <div className="text-xs text-slate-500 truncate max-w-[200px]">
+                                    {task.description}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-3 px-6 text-sm">
+                                {task.projects ? (
+                                  <a
+                                    href={`/projects/${task.projects.id}`}
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    {task.projects.name}
+                                  </a>
+                                ) : (
+                                  "-"
+                                )}
+                              </td>
+                              <td className="py-3 px-6 text-sm text-slate-600">
+                                {task.assigned_user?.name ||
+                                  (language === "th" ? "ไม่ได้มอบหมาย" : "Unassigned")}
+                              </td>
+                              <td className="py-3 px-6 text-sm text-center">
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
+                                    task.status === "completed"
+                                      ? "bg-emerald-100 text-emerald-700"
+                                      : task.status === "in_progress"
+                                      ? "bg-blue-100 text-blue-700"
+                                      : task.status === "pending"
+                                      ? "bg-amber-100 text-amber-700"
+                                      : "bg-slate-100 text-slate-700"
+                                  }`}
+                                >
+                                  {task.status}
+                                </span>
+                              </td>
+                              <td className="py-3 px-6 text-sm text-slate-600">
+                                {task.dueDate
+                                  ? new Date(task.dueDate).toLocaleDateString("th-TH", {
+                                      month: "short",
+                                      day: "numeric",
+                                    })
+                                  : "-"}
+                              </td>
+                              <td className="py-3 px-6 text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuLabel>{labels.actions}</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => handleOpenModal(task)}>
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      {labels.edit}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-red-600 cursor-pointer"
+                                      onClick={() => handleDeleteClick(task)}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      {labels.delete}
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
 
-          {/* Task Form Modal */}
-          <TaskForm
-            task={editingTask}
-            isOpen={isModalOpen}
-            onClose={() => {
-              setIsModalOpen(false);
-              setEditingTask(null);
-            }}
-            onSave={handleSaveTask}
-            projects={projects}
-            users={users}
-            milestones={milestones.map((m: any) => ({
-              id: m.id,
-              title: m.name || m.title || "",
-            }))}
-          />
+        {/* Task Form Modal */}
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingTask ? labels.edit : labels.addNew}</DialogTitle>
+            </DialogHeader>
+            <TaskForm
+              task={editingTask}
+              projectId={projectFilter || undefined}
+              onClose={() => {
+                setIsModalOpen(false);
+                setEditingTask(null);
+              }}
+              onSave={handleSaveTask}
+              projects={projects}
+              users={users}
+              milestones={milestones.map((m: any) => ({
+                id: m.id,
+                title: m.name || m.title || "",
+              }))}
+            />
+          </DialogContent>
+        </Dialog>
 
           {/* Delete Confirmation Modal */}
           {deleteConfirm && (

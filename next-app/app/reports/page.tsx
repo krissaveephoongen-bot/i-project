@@ -111,39 +111,45 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <Tabs defaultValue="executive" className="space-y-6">
+          <Tabs defaultValue="executive" className="space-y-6" id="reports-tabs">
             <TabsList className="bg-slate-100 p-1 rounded-lg flex-wrap h-auto">
               <TabsTrigger
+                id="reports-tab-executive"
                 value="executive"
                 className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
               >
                 <LayoutDashboard className="h-4 w-4" /> Executive
               </TabsTrigger>
               <TabsTrigger
+                id="reports-tab-projects"
                 value="projects"
                 className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
               >
                 <Briefcase className="h-4 w-4" /> Projects
               </TabsTrigger>
               <TabsTrigger
+                id="reports-tab-financial"
                 value="financial"
                 className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
               >
                 <DollarSign className="h-4 w-4" /> Financial
               </TabsTrigger>
               <TabsTrigger
+                id="reports-tab-resources"
                 value="resources"
                 className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
               >
                 <Users className="h-4 w-4" /> Resources
               </TabsTrigger>
               <TabsTrigger
+                id="reports-tab-insights"
                 value="insights"
                 className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
               >
                 <PieChart className="h-4 w-4" /> Insights
               </TabsTrigger>
               <TabsTrigger
+                id="reports-tab-vendors"
                 value="vendors"
                 className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
               >

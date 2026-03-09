@@ -39,10 +39,63 @@ const USE_MOCK = false;
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  if (context !== undefined) return context;
+  const fallback: AuthContextType = {
+    user: null,
+    profile: null,
+    loading: false,
+    signIn: async (email: string, password: string, rememberMe = false) => {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, rememberMe }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error?.error || "Login failed");
+      }
+      const data = await response.json();
+      if (rememberMe) {
+        localStorage.setItem("auth_token", data.token);
+        localStorage.setItem("remembered_email", email);
+      } else {
+        sessionStorage.setItem("auth_token", data.token);
+        localStorage.removeItem("remembered_email");
+      }
+    },
+    signUp: async (email, password, name, role = "employee") => {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, name, role }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error?.error || "Register failed");
+      }
+      const data = await response.json();
+      localStorage.setItem("auth_token", data.token);
+    },
+    signOut: async () => {
+      try {
+        await fetch("/api/auth/logout", { method: "POST" });
+      } catch {}
+      localStorage.removeItem("auth_token");
+      sessionStorage.removeItem("auth_token");
+    },
+    forgotPassword: async (email: string) => {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error?.error || "Failed to send password reset email");
+      }
+    },
+  };
+  return fallback;
 }
 
 export default function AuthProvider({

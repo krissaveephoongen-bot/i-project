@@ -46,6 +46,15 @@ export default function EditRiskPage() {
   const [title, setTitle] = useState<string>(risk?.name || risk?.title || "");
   const [severity, setSeverity] = useState<string>(risk?.severity || "Medium");
   const [status, setStatus] = useState<string>(risk?.status || "Open");
+  const [owner, setOwner] = useState<string>((risk as any)?.owner || "");
+  const [targetDate, setTargetDate] = useState<string>(
+    (risk as any)?.target_date
+      ? new Date((risk as any).target_date).toISOString().split("T")[0]
+      : "",
+  );
+  const [actionPlan, setActionPlan] = useState<string>(
+    (risk as any)?.action_plan || "",
+  );
 
   const save = async (patch: any) => {
     const res = await fetch(`${API_BASE}/api/projects/risks/`, {
@@ -150,6 +159,32 @@ export default function EditRiskPage() {
               <option value="Closed">Closed</option>
             </select>
           </label>
+          <label className="block">
+            <span className="text-sm text-slate-600">Owner</span>
+            <input
+              value={owner}
+              onChange={(e) => setOwner(e.target.value)}
+              className="mt-1 w-full border rounded px-3 py-2"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm text-slate-600">Target Date</span>
+            <input
+              type="date"
+              value={targetDate}
+              onChange={(e) => setTargetDate(e.target.value)}
+              className="mt-1 w-full border rounded px-3 py-2"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm text-slate-600">Action Plan</span>
+            <textarea
+              value={actionPlan}
+              onChange={(e) => setActionPlan(e.target.value)}
+              className="mt-1 w-full border rounded px-3 py-2"
+              rows={3}
+            />
+          </label>
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
@@ -157,7 +192,18 @@ export default function EditRiskPage() {
             >
               กลับ
             </Button>
-            <Button onClick={() => save({ title, severity, status })}>
+            <Button
+              onClick={() =>
+                save({
+                  title,
+                  severity,
+                  status,
+                  owner,
+                  target_date: targetDate || null,
+                  action_plan: actionPlan || null,
+                })
+              }
+            >
               บันทึก
             </Button>
           </div>

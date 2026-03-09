@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -68,6 +68,14 @@ import { User as UserType } from "../users/actions";
 import { ColumnDef } from "@tanstack/react-table";
 import { clsx } from "clsx";
 import { toast } from "react-hot-toast";
+import { Switch } from "../components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 
 // Enhanced Project type with derived data
 interface EnhancedProject extends ProjectType {
@@ -103,12 +111,16 @@ export default function ProjectsClient({
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ProjectType | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [savedViews, setSavedViews] = useState<Array<{ id?: string; name: string; cfg: any }>>([]);
+  const [selectedView, setSelectedView] = useState<string>("");
+  const [viewScope, setViewScope] = useState<"personal" | "global">("personal");
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [managerFilter, setManagerFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [assignedOnly, setAssignedOnly] = useState(false);
 
   // React Query for data fetching (with initial data)
   const {
@@ -170,6 +182,12 @@ export default function ProjectsClient({
   // Filtered projects
   const filteredProjects = useMemo(() => {
     return enhancedProjects.filter((project) => {
+      if (assignedOnly && userName) {
+        const byManager =
+          (project.manager_name || "").toLowerCase() ===
+          (userName || "").toLowerCase();
+        if (!byManager) return false;
+      }
       const matchesSearch =
         !searchTerm ||
         project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -195,7 +213,114 @@ export default function ProjectsClient({
     statusFilter,
     managerFilter,
     priorityFilter,
+    assignedOnly,
+    userName,
   ]);
+
+  const loadSavedViews = async () => {
+    if (!userId) {
+      setSavedViews([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/saved-views?pageKey=projects&userId=${encodeURIComponent(userId)}&includeGlobal=1`, { cache: "no-store" });
+      const json = await res.json();
+      const views = (json?.views || []).map((v: any) => ({
+        id: v.id,
+        name: v.name,
+        cfg: v.filters,
+      }));
+      setSavedViews(views);
+      if (views.length && !selectedView) setSelectedView(views[0].name);
+    } catch {
+      try {
+        const raw = localStorage.getItem("projects_saved_views") || "[]";
+        const arr = JSON.parse(raw);
+        setSavedViews(Array.isArray(arr) ? arr : []);
+      } catch {
+        setSavedViews([]);
+      }
+    }
+  };
+
+  const saveCurrentView = async () => {
+    const name = window.prompt("ตั้งชื่อมุมมองที่บันทึก");
+    if (!name) return;
+    const cfg = {
+      searchTerm,
+      statusFilter,
+      managerFilter,
+      priorityFilter,
+      viewMode,
+      assignedOnly,
+    };
+    try {
+      if (userId) {
+        const existing = savedViews.find(v => v.name === name);
+        const res = await fetch("/api/saved-views", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: existing?.id,
+            userId: viewScope === "global" ? "*" : userId,
+            pageKey: "projects",
+            name,
+            filters: cfg,
+          }),
+        });
+        const json = await res.json();
+        if (!json?.ok) throw new Error(json?.error || "save failed");
+      } else {
+        const next = savedViews.filter(v => v.name !== name).concat([{ name, cfg }]);
+        localStorage.setItem("projects_saved_views", JSON.stringify(next));
+      }
+      await loadSavedViews();
+      setSelectedView(name);
+    } catch {
+      const next = savedViews.filter(v => v.name !== name).concat([{ name, cfg }]);
+      localStorage.setItem("projects_saved_views", JSON.stringify(next));
+      setSavedViews(next);
+      setSelectedView(name);
+    }
+  };
+
+  const applyView = (name: string) => {
+    setSelectedView(name);
+    const v = savedViews.find(v => v.name === name);
+    if (!v) return;
+    const cfg = v.cfg || {};
+    setSearchTerm(cfg.searchTerm ?? "");
+    setStatusFilter(cfg.statusFilter ?? "all");
+    setManagerFilter(cfg.managerFilter ?? "all");
+    setPriorityFilter(cfg.priorityFilter ?? "all");
+    setViewMode(cfg.viewMode ?? "grid");
+    setAssignedOnly(!!cfg.assignedOnly);
+  };
+
+  const deleteView = async () => {
+    if (!selectedView) return;
+    try {
+      const v = savedViews.find(v => v.name === selectedView);
+      if (userId && v?.id) {
+        await fetch(`/api/saved-views?id=${encodeURIComponent(v.id)}&userId=${encodeURIComponent(userId)}`, { method: "DELETE" });
+      } else {
+        const next = savedViews.filter(v => v.name !== selectedView);
+        localStorage.setItem("projects_saved_views", JSON.stringify(next));
+      }
+      await loadSavedViews();
+      setSelectedView("");
+    } catch {
+      const next = savedViews.filter(v => v.name !== selectedView);
+      localStorage.setItem("projects_saved_views", JSON.stringify(next));
+      setSavedViews(next);
+      setSelectedView("");
+    }
+  };
+
+  useEffect(() => {
+    loadSavedViews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   // Filter options
   const filterOptions = [
@@ -501,7 +626,7 @@ export default function ProjectsClient({
     <div className="space-y-6">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
+        <div id="projects-header">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
             รายการโครงการ
           </h1>
@@ -509,15 +634,57 @@ export default function ProjectsClient({
             จัดการและติดตามโครงการทั้งหมดของคุณได้ที่นี่
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Select value={selectedView} onValueChange={applyView}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Saved views" />
+              </SelectTrigger>
+              <SelectContent>
+                {savedViews.length === 0 ? (
+                  <SelectItem value="" disabled>ไม่มีมุมมองที่บันทึก</SelectItem>
+                ) : (
+                  savedViews.map(v => (
+                    <SelectItem key={v.name} value={v.name}>{v.name}</SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {["admin", "manager"].includes((userRole || "").toLowerCase()) && (
+              <Select value={viewScope} onValueChange={(v: any) => setViewScope(v)}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Scope" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="personal">ส่วนตัว</SelectItem>
+                  <SelectItem value="global">สำหรับทุกคน</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            <Button variant="outline" onClick={saveCurrentView}>
+              บันทึกมุมมอง
+            </Button>
+            <Button variant="ghost" onClick={deleteView} disabled={!selectedView}>
+              ลบมุมมอง
+            </Button>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg border bg-white">
+            <span className="text-sm text-muted-foreground">Assigned to me</span>
+            <Switch
+              checked={assignedOnly}
+              onCheckedChange={setAssignedOnly}
+              aria-label="แสดงเฉพาะโครงการที่ฉันรับผิดชอบ"
+            />
+          </div>
           <CanCreateProjects>
-            <Button onClick={handleCreateProject} className="gap-2">
+            <Button id="create-project-button" onClick={handleCreateProject} className="gap-2">
               <Plus className="h-4 w-4" />
               สร้างโครงการใหม่
             </Button>
           </CanCreateProjects>
           <Button
             variant="outline"
+            id="export-projects-button"
             onClick={() => {
               const rows = filteredProjects || [];
               const header = [
@@ -639,7 +806,7 @@ export default function ProjectsClient({
       </div>
 
       {/* Main Content */}
-      <Card>
+      <Card id="projects-list-card">
         <CardHeader>
           <CardTitle>รายชื่อโครงการ</CardTitle>
           <CardDescription>ค้นหาและกรองข้อมูลโครงการ</CardDescription>

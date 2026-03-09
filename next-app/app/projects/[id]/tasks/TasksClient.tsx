@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
   Circle,
@@ -67,8 +68,45 @@ export default function TasksClient({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [progressOpen, setProgressOpen] = useState<{ id: string; value: number; status: string } | null>(null);
+  const [parentOpen, setParentOpen] = useState<{ id: string; parentId: string | null } | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [statusQuery, setStatusQuery] = useState<string>("all");
+  const [assigneeQuery, setAssigneeQuery] = useState<string>("");
+  const [milestoneQuery, setMilestoneQuery] = useState<string>("");
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const s = searchParams?.get("status") || "all";
+    const a = searchParams?.get("assignee") || "";
+    const m = searchParams?.get("milestone") || "";
+    setStatusQuery(s);
+    setAssigneeQuery(a);
+    setMilestoneQuery(m);
+    // sync list filter button highlight
+    setFilter((s as any) || "all");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const pushQuery = (patch: Partial<{ status: string; assignee: string; milestone: string }>) => {
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    if (typeof patch.status !== "undefined") {
+      if (!patch.status || patch.status === "all") params.delete("status");
+      else params.set("status", patch.status);
+    }
+    if (typeof patch.assignee !== "undefined") {
+      if (!patch.assignee) params.delete("assignee");
+      else params.set("assignee", patch.assignee);
+    }
+    if (typeof patch.milestone !== "undefined") {
+      if (!patch.milestone) params.delete("milestone");
+      else params.set("milestone", patch.milestone);
+    }
+    router.push(`?${params.toString()}`);
+  };
 
   // Create/Update Handler
   const handleSaveTask = async (data: any) => {
@@ -135,6 +173,69 @@ export default function TasksClient({
     setIsSheetOpen(true);
   };
 
+  const createRiskFromTask = async (task: Task) => {
+    try {
+      const res = await fetch("/api/projects/risks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project_id: projectId,
+          title: `Task: ${task.title}`,
+          severity: "Medium",
+          status: "Open",
+        }),
+      });
+      const json = await res.json();
+      if (!json?.id) {
+        toast.error("บันทึกความเสี่ยงไม่สำเร็จ");
+        return;
+      }
+      toast.success("บันทึกความเสี่ยงจากงานนี้แล้ว");
+    } catch {
+      toast.error("บันทึกความเสี่ยงไม่สำเร็จ");
+    }
+  };
+
+  const openParent = (task: Task) => {
+    setParentOpen({ id: task.id, parentId: (task as any).parentId || null });
+  };
+
+  const saveParent = async () => {
+    if (!parentOpen) return;
+    const { id, parentId } = parentOpen;
+    // Prevent setting parent to itself or its descendants
+    if (parentId && parentId === id) {
+      toast.error("ไม่สามารถตั้ง Parent เป็นตัวเองได้");
+      return;
+    }
+    if (parentId && isDescendant(parentId, id)) {
+      toast.error("ไม่สามารถตั้ง Parent เป็นลูกหลานของงานนี้ได้");
+      return;
+    }
+    const res = await updateTaskAction(id, { parentId: parentId || null } as any);
+    if (res?.error) {
+      toast.error("ปรับโครงสร้างงานไม่สำเร็จ");
+      return;
+    }
+    setTasks(prev => prev.map(t => t.id === id ? ({ ...t, parentId: parentId || null } as any) : t));
+    toast.success("อัปเดตโครงสร้างงานสำเร็จ");
+    setParentOpen(null);
+  };
+
+  const isDescendant = (candidateId: string, ancestorId: string) => {
+    // Walk up from candidateId to root; if we meet ancestorId then candidate is descendant of ancestor
+    const byId: Record<string, any> = {};
+    tasks.forEach(t => { byId[t.id] = t; });
+    let cur: any = byId[candidateId];
+    const guard = new Set<string>();
+    while (cur && cur.parentId && !guard.has(cur.parentId)) {
+      if (cur.parentId === ancestorId) return true;
+      guard.add(cur.parentId);
+      cur = byId[cur.parentId];
+    }
+    return false;
+  };
+
   const deleteTask = async (id: string) => {
     try {
       const result = await deleteTaskAction(id);
@@ -167,6 +268,26 @@ export default function TasksClient({
       toast.error("Failed to update status");
       // Revert if needed, but for now simple toast
     }
+  };
+
+  const openProgress = (task: Task) => {
+    setProgressOpen({ id: task.id, value: task.progressActual || 0, status: task.status });
+  };
+
+  const saveProgress = async () => {
+    if (!progressOpen) return;
+    const { id, value } = progressOpen;
+    const status =
+      value >= 100 ? "completed" : value <= 0 ? "pending" : "in_progress";
+    // optimistic
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+    const res = await updateTaskAction(id, { status });
+    if (res.error) {
+      toast.error("บันทึกความคืบหน้าไม่สำเร็จ");
+      return;
+    }
+    toast.success("บันทึกความคืบหน้าสำเร็จ");
+    setProgressOpen(null);
   };
 
   // CSV Upload Logic (Simplified)
@@ -291,6 +412,81 @@ export default function TasksClient({
               </div>
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
+              {/* Root drop zone */}
+              <div
+                className={`hidden md:flex items-center px-3 py-2 border rounded text-xs ${hoverId === "__root__" ? "bg-blue-50 border-blue-300" : "bg-white"}`}
+                onDragOver={(e) => { e.preventDefault(); setHoverId("__root__"); }}
+                onDragLeave={() => setHoverId(null)}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  const src = e.dataTransfer.getData("text/plain") || dragId;
+                  setHoverId(null);
+                  if (!src) return;
+                  if (tasks.find(t => t.id === src && !(t as any).parentId)) return; // already root
+                  const res = await updateTaskAction(src, { parentId: null } as any);
+                  if ((res as any)?.error) {
+                    toast.error("ตั้งค่าเป็น Root ไม่สำเร็จ");
+                    return;
+                  }
+                  setTasks(prev => prev.map(t => t.id === src ? ({ ...t, parentId: null } as any) : t));
+                  toast.success("ตั้งค่าเป็น Root แล้ว");
+                  setDragId(null);
+                }}
+              >
+                ปล่อยที่นี่เพื่อตั้งเป็น Root
+              </div>
+              {/* Filters: Status / Assignee / Milestone (sync URL) */}
+              <select
+                className="px-2 py-1 border rounded text-sm"
+                value={statusQuery}
+                onChange={(e) => {
+                  setStatusQuery(e.target.value);
+                  pushQuery({ status: e.target.value });
+                }}
+              >
+                <option value="all">สถานะ: ทั้งหมด</option>
+                <option value="completed">เสร็จสิ้น</option>
+                <option value="in_progress">กำลังดำเนินการ</option>
+                <option value="pending">รอดำเนินการ</option>
+                <option value="todo">ต้องทำ</option>
+              </select>
+              <select
+                className="px-2 py-1 border rounded text-sm"
+                value={assigneeQuery}
+                onChange={(e) => {
+                  setAssigneeQuery(e.target.value);
+                  pushQuery({ assignee: e.target.value });
+                }}
+              >
+                <option value="">ผู้รับผิดชอบ: ทั้งหมด</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+              <select
+                className="px-2 py-1 border rounded text-sm"
+                value={milestoneQuery}
+                onChange={(e) => {
+                  setMilestoneQuery(e.target.value);
+                  pushQuery({ milestone: e.target.value });
+                }}
+              >
+                <option value="">ไมล์สโตน: ทั้งหมด</option>
+                {milestones.map(m => (
+                  <option key={m.id} value={m.id}>{m.title}</option>
+                ))}
+              </select>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setStatusQuery("all");
+                  setAssigneeQuery("");
+                  setMilestoneQuery("");
+                  pushQuery({ status: "all", assignee: "", milestone: "" });
+                }}
+              >
+                ล้างตัวกรอง
+              </Button>
               <Button onClick={openCreateSheet} className="gap-2 flex-1 md:flex-none">
                 <Plus className="w-4 h-4" /> เพิ่มงาน
               </Button>
@@ -362,10 +558,35 @@ export default function TasksClient({
                 filteredTasks.map((task) => (
                   <Card
                     key={task.id}
-                    className="overflow-hidden hover:shadow-md transition-all cursor-pointer border-l-4 border-l-transparent hover:border-l-primary"
+                    className={`overflow-hidden hover:shadow-md transition-all cursor-pointer border-l-4 border-l-transparent hover:border-l-primary ${hoverId === task.id ? "ring-2 ring-blue-300" : ""}`}
                     onClick={() => toggleExpand(task.id)}
+                    draggable
+                    onDragStart={(e) => {
+                      setDragId(task.id);
+                      try { e.dataTransfer.setData("text/plain", task.id); } catch {}
+                    }}
+                    onDragOver={(e) => { e.preventDefault(); setHoverId(task.id); }}
+                    onDragLeave={() => setHoverId((h) => (h === task.id ? null : h))}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      const src = e.dataTransfer.getData("text/plain") || dragId;
+                      setHoverId(null);
+                      if (!src || src === task.id) return;
+                      if (isDescendant(task.id, src)) {
+                        toast.error("ไม่สามารถย้ายไปยังลูกหลานของตัวเองได้");
+                        return;
+                      }
+                      const res = await updateTaskAction(src, { parentId: task.id } as any);
+                      if ((res as any)?.error) {
+                        toast.error("ย้ายงานไม่สำเร็จ");
+                        return;
+                      }
+                      setTasks(prev => prev.map(t => t.id === src ? ({ ...t, parentId: task.id } as any) : t));
+                      toast.success("ย้ายงานสำเร็จ");
+                      setDragId(null);
+                    }}
                   >
-                    <div className="p-4 flex items-center gap-4">
+                    <div className={`p-4 flex items-center gap-4 ${task.parentId ? "pl-8" : ""}`}>
                       {expandedTasks.includes(task.id) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                       <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                         <div className="col-span-6 flex items-center gap-3">
@@ -382,6 +603,9 @@ export default function TasksClient({
                             {translateStatus(task.status)}
                           </Badge>
                           <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openProgress(task); }}>บันทึกความคืบหน้า</Button>
+                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); createRiskFromTask(task); }}>บันทึกความเสี่ยง</Button>
+                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openParent(task); }}>ตั้ง Parent</Button>
                             <Button size="sm" onClick={(e) => { e.stopPropagation(); openEditSheet(task); }}>แก้ไข</Button>
                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(task.id); }}>
                               <Trash2 className="w-4 h-4 text-destructive" />
@@ -419,6 +643,78 @@ export default function TasksClient({
         users={users}
         milestones={milestones}
       />
+      {/* Quick Progress Modal */}
+      {progressOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-sm">
+            <CardHeader><CardTitle>บันทึกความคืบหน้า</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">ความคืบหน้าจริง</span>
+                  <span className="text-sm font-medium">{progressOpen.value}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={progressOpen.value}
+                  onChange={(e) => setProgressOpen(p => p ? { ...p, value: Number(e.target.value) } : p)}
+                  className="w-full"
+                />
+                <div className="grid grid-cols-4 gap-2">
+                  {[0,25,50,75,100].map(v => (
+                    <Button key={v} variant="outline" onClick={() => setProgressOpen(p => p ? ({ ...p, value: v }) : p)}>{v}%</Button>
+                  ))}
+                </div>
+                <div className="mt-2">
+                  <label className="text-sm text-muted-foreground">สถานะ</label>
+                  <select
+                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    value={progressOpen.status}
+                    onChange={(e) => setProgressOpen(p => p ? ({ ...p, status: e.target.value }) : p)}
+                  >
+                    <option value="pending">รอดำเนินการ</option>
+                    <option value="in_progress">กำลังดำเนินการ</option>
+                    <option value="completed">เสร็จสิ้น</option>
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setProgressOpen(null)}>ยกเลิก</Button>
+                  <Button onClick={saveProgress}>บันทึก</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      {/* Set Parent Modal */}
+      {parentOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-sm">
+            <CardHeader><CardTitle>ตั้งงานแม่ (Parent)</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <label className="text-sm text-muted-foreground">เลือกงานแม่</label>
+                <select
+                  className="w-full px-3 py-2 border rounded"
+                  value={parentOpen.parentId || ""}
+                  onChange={(e) => setParentOpen(p => p ? ({ ...p, parentId: e.target.value || null }) : p)}
+                >
+                  <option value="">— ไม่มี —</option>
+                  {tasks.filter(t => t.id !== parentOpen.id).map(t => (
+                    <option key={t.id} value={t.id}>{t.title}</option>
+                  ))}
+                </select>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setParentOpen(null)}>ยกเลิก</Button>
+                  <Button onClick={saveParent}>บันทึก</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       
       {/* Delete Confirmation */}
       {deleteConfirmId && (

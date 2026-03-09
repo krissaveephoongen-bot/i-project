@@ -68,7 +68,7 @@ export class TaskService {
         comments:comments(*, user:users(id, name, email))
       `,
       )
-      .eq("assignee_id", assigneeId)
+      .eq("assigned_to", assigneeId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -152,7 +152,7 @@ export class TaskService {
 
   // Assign task to user
   static async assignTask(id: string, assigneeId: string): Promise<Task> {
-    return this.updateTask(id, { assignee_id: assigneeId });
+    return this.updateTask(id, { assigned_to: assigneeId } as any);
   }
 
   // Update task hours

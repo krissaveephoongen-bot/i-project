@@ -62,6 +62,18 @@ export async function updateMilestoneAction(id: string, input: Partial<Milestone
   if (input.status !== undefined) updates.status = input.status;
   if (input.dueDate !== undefined) updates.due_date = input.dueDate;
   if (input.note !== undefined) updates.notes = input.note;
+  // Extended date fields for state machine
+  const extra: any = input as any;
+  if (extra.invoice_date !== undefined) updates.invoice_date = extra.invoice_date;
+  if (extra.receipt_date !== undefined) updates.receipt_date = extra.receipt_date;
+  if (extra.plan_received_date !== undefined) updates.plan_received_date = extra.plan_received_date;
+  // Auto-derive dates from status if not provided
+  if (input.status === "In Progress" && !updates.invoice_date) {
+    updates.invoice_date = new Date().toISOString();
+  }
+  if (input.status === "Paid" && !updates.receipt_date) {
+    updates.receipt_date = new Date().toISOString();
+  }
 
   const { data, error } = await supabase
     .from("milestones")
@@ -78,6 +90,16 @@ export async function updateMilestoneAction(id: string, input: Partial<Milestone
   if (data?.project_id) {
     revalidatePath(`/projects/${data.project_id}`);
   }
+  // Audit log (best-effort)
+  try {
+    await supabase.from("milestone_audit").insert({
+      milestone_id: id,
+      project_id: data?.project_id || null,
+      event: "update",
+      payload: updates,
+      created_at: new Date().toISOString(),
+    });
+  } catch {}
   return { data };
 }
 

@@ -66,7 +66,7 @@ export default function TimesheetApprovalsPage() {
         ]}
       />
       <div className="container mx-auto px-6 py-8 pt-24">
-        <Card>
+        <Card id="approvals-timesheets-card">
           <CardContent className="p-0">
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <div>
@@ -77,7 +77,7 @@ export default function TimesheetApprovalsPage() {
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full" id="approvals-timesheets-table">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="text-left py-3 px-6 text-sm font-medium text-slate-600">

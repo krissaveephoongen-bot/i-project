@@ -46,9 +46,11 @@ export default function TaskForm({
     priority: "medium",
     dueDate: "",
     estimatedHours: "",
+    actualHours: "",
     projectId: projectId || "",
     milestoneId: "",
     assignedTo: "",
+    parentId: "",
     weight: "1",
   });
 
@@ -59,8 +61,10 @@ export default function TaskForm({
     priority: language === "th" ? "ลำดับความสำคัญ" : "Priority",
     dueDate: language === "th" ? "วันครบกำหนด" : "Due Date",
     estimatedHours: language === "th" ? "ชั่วโมงที่ประเมิน" : "Estimated Hours",
+    actualHours: language === "th" ? "ชั่วโมงที่ใช้จริง" : "Actual Hours",
     project: language === "th" ? "โครงการ" : "Project",
     milestone: language === "th" ? "ระยะงาน" : "Milestone",
+    parentTask: language === "th" ? "งานแม่ (ถ้ามี)" : "Parent Task (optional)",
     assignee: language === "th" ? "ผู้รับผิดชอบ" : "Assignee",
     save: language === "th" ? "บันทึก" : "Save",
     cancel: language === "th" ? "ยกเลิก" : "Cancel",
@@ -97,9 +101,11 @@ export default function TaskForm({
           ? new Date(task.endDate).toISOString().split("T")[0]
           : "",
         estimatedHours: task.estimatedHours?.toString() || "",
+        actualHours: task.actualHours?.toString() || "",
         projectId: task.projectId || projectId || "",
         milestoneId: task.milestoneId || "",
         assignedTo: task.assignedTo || "",
+        parentId: (task as any).parentId || "",
         weight: task.weight?.toString() || "1",
       });
     } else {
@@ -110,9 +116,11 @@ export default function TaskForm({
         priority: "medium",
         dueDate: "",
         estimatedHours: "",
+        actualHours: "",
         projectId: projectId || "",
         milestoneId: "",
         assignedTo: "",
+        parentId: "",
         weight: "1",
       });
     }
@@ -147,6 +155,9 @@ export default function TaskForm({
         projectId: formData.projectId,
         milestoneId: formData.milestoneId || undefined,
         assignedTo: formData.assignedTo || undefined,
+        parentId: formData.parentId || undefined,
+        estimatedHours: formData.estimatedHours ? Number(formData.estimatedHours) : undefined,
+        actualHours: formData.actualHours ? Number(formData.actualHours) : undefined,
       };
 
       await onSave(payload);
@@ -336,6 +347,45 @@ export default function TaskForm({
               setFormData({ ...formData, weight: e.target.value })
             }
             placeholder="1"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">{labels.parentTask}</label>
+        <Input
+          value={formData.parentId}
+          onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
+          placeholder={language === "th" ? "ระบุ Task ID ถ้ามี" : "Enter Parent Task ID (optional)"}
+        />
+      </div>
+
+      {/* Effort (Quantity-Based) */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">{labels.estimatedHours}</label>
+          <Input
+            type="number"
+            min="0"
+            step="0.1"
+            value={formData.estimatedHours}
+            onChange={(e) =>
+              setFormData({ ...formData, estimatedHours: e.target.value })
+            }
+            placeholder="เช่น 40"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">{labels.actualHours}</label>
+          <Input
+            type="number"
+            min="0"
+            step="0.1"
+            value={formData.actualHours}
+            onChange={(e) =>
+              setFormData({ ...formData, actualHours: e.target.value })
+            }
+            placeholder="เช่น 12"
           />
         </div>
       </div>

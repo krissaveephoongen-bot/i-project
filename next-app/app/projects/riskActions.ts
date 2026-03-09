@@ -11,6 +11,9 @@ const riskSchema = z.object({
   impact: z.number().min(1).max(5),
   likelihood: z.number().min(1).max(5),
   severity: z.string().optional(),
+  owner: z.string().optional(),
+  targetDate: z.string().optional(),
+  actionPlan: z.string().optional(),
 });
 
 const issueSchema = z.object({
@@ -20,6 +23,7 @@ const issueSchema = z.object({
   status: z.enum(["Open", "In Progress", "Resolved", "Closed"]),
   assignedTo: z.string().optional(),
   dueDate: z.string().optional(),
+  riskId: z.string().uuid().optional(),
 });
 
 export type RiskInput = z.infer<typeof riskSchema>;
@@ -42,6 +46,9 @@ export async function createRiskAction(input: RiskInput) {
       impact: input.impact,
       likelihood: input.likelihood,
       severity: input.severity || "Medium",
+      owner: input.owner || null,
+      target_date: input.targetDate || null,
+      action_plan: input.actionPlan || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -68,6 +75,9 @@ export async function updateRiskAction(id: string, input: Partial<RiskInput>) {
   if (input.impact !== undefined) updates.impact = input.impact;
   if (input.likelihood !== undefined) updates.likelihood = input.likelihood;
   if (input.severity !== undefined) updates.severity = input.severity;
+  if (input.owner !== undefined) updates.owner = input.owner;
+  if (input.targetDate !== undefined) updates.target_date = input.targetDate;
+  if (input.actionPlan !== undefined) updates.action_plan = input.actionPlan;
 
   const { data, error } = await supabase
     .from("risks")
@@ -121,6 +131,7 @@ export async function createIssueAction(input: IssueInput) {
     .from("issues")
     .insert({
       project_id: input.projectId,
+      risk_id: input.riskId || null,
       title: input.title,
       priority: input.priority,
       status: input.status,

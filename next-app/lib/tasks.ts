@@ -20,6 +20,7 @@ export interface Task {
   weight?: number; // mapped from weight, changed to number | undefined to satisfy components
   progressPlan?: number; // mapped from progress_plan
   progressActual?: number; // mapped from progress_actual
+  parentId?: string | null; // mapped from parent_id
   
   phase?: string | null; // Added for KanbanCard compatibility
   

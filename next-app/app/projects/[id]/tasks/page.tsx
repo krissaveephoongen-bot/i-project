@@ -12,8 +12,10 @@ export const metadata = {
 
 export default async function ProjectTasksPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams?: { status?: string; assignee?: string; milestone?: string };
 }) {
   const projectId = params.id;
   const cookieStore = cookies();
@@ -27,15 +29,24 @@ export default async function ProjectTasksPage({
     .single();
 
   // 2. Fetch Tasks
-  const { data: tasksData } = await supabase
+  let tq = supabase
     .from("tasks")
     .select(`
       *,
       assigned_user:users(id, name),
       projects:projects(id, name)
     `)
-    .eq("project_id", projectId)
-    .order("created_at", { ascending: false });
+    .eq("project_id", projectId) as any;
+  if (searchParams?.status) {
+    tq = tq.eq("status", searchParams.status);
+  }
+  if (searchParams?.assignee) {
+    tq = tq.eq("assigned_to", searchParams.assignee);
+  }
+  if (searchParams?.milestone) {
+    tq = tq.eq("milestone_id", searchParams.milestone);
+  }
+  const { data: tasksData } = await tq.order("created_at", { ascending: false });
 
   // 3. Fetch Users (for assignment dropdown)
   const { data: usersData } = await supabase
@@ -68,6 +79,7 @@ export default async function ProjectTasksPage({
     startDate: t.start_date,
     endDate: t.end_date,
     dueDate: t.end_date, // Map for compatibility
+    parentId: t.parent_id || null,
     projects: t.projects ? { id: t.projects.id, name: t.projects.name } : undefined,
     assigned_user: t.assigned_user ? { id: t.assigned_user.id, name: t.assigned_user.name } : undefined,
     assigned_to: t.assigned_user?.name || "Unassigned", // Display name

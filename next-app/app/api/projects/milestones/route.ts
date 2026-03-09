@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/app/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 import { firstOk, PROJECT_ID_COLUMNS } from "../../_lib/supabaseCompat";
 
 export async function GET(request: NextRequest) {
@@ -12,6 +13,7 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+    const supabase = createClient(cookies());
     let res: any = null;
     for (const orderCol of ["due_date", "dueDate"]) {
       res = await firstOk(PROJECT_ID_COLUMNS, (col) =>

@@ -36,7 +36,7 @@ export interface Task {
   assigned_user?: { id: string; name: string };
 }
 
-export async function getTasksAction(params?: { q?: string }) {
+export async function getTasksAction(params?: { q?: string; projectId?: string }) {
   const supabase = createClient(cookies());
   
   const buildQuery = (client: any) => {
@@ -48,6 +48,9 @@ export async function getTasksAction(params?: { q?: string }) {
 
     if (params?.q) {
       q = q.ilike("title", `%${params.q}%`);
+    }
+    if (params?.projectId) {
+      q = q.eq("project_id", params.projectId);
     }
     return q;
   };
@@ -222,4 +225,73 @@ export async function getMilestonesForDropdown() {
   }
 
   return (data || []).map((m: any) => ({ id: m.id, title: m.title, name: m.title }));
+}
+
+// Projects with task counts for sidebar
+export async function getProjectsWithCounts() {
+  const supabase = createClient(cookies());
+  // 1) Base projects
+  const { data: projects } = await supabase
+    .from("projects")
+    .select("id, name, progress, progress_plan")
+    .neq("status", "Cancelled")
+    .neq("is_archived", true)
+    .order("name");
+
+  const list = projects || [];
+  if (list.length === 0) return [];
+
+  const ids = list.map((p: any) => p.id);
+
+  // Helper to fetch tasks statuses limited to given projects
+  const fetchTasksStatuses = async (client: any) => {
+    const { data } = await client
+      .from("tasks")
+      .select("project_id, status")
+      .in("project_id", ids);
+    return data || [];
+  };
+
+  // 2) Try with user session (RLS)
+  let tasks = await fetchTasksStatuses(supabase);
+
+  // 3) Fallback to admin if user is admin/manager
+  if (tasks.length === 0) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+      if (profile && ["admin", "manager"].includes(profile.role)) {
+        const admin = createAdminClient();
+        tasks = await fetchTasksStatuses(admin);
+      }
+    }
+  }
+
+  // 4) Reduce counts per project
+  const counts: Record<string, { total: number; open: number; by: Record<string, number> }> = {};
+  ids.forEach((id: string) => {
+    counts[id] = { total: 0, open: 0, by: { todo: 0, in_progress: 0, pending: 0, completed: 0 } };
+  });
+
+  tasks.forEach((t: any) => {
+    const pid = t.project_id;
+    const st = t.status || "";
+    if (!counts[pid]) {
+      counts[pid] = { total: 0, open: 0, by: { todo: 0, in_progress: 0, pending: 0, completed: 0 } };
+    }
+    counts[pid].total += 1;
+    if (st !== "completed") counts[pid].open += 1;
+    if (st in counts[pid].by) counts[pid].by[st] += 1;
+  });
+
+  // 5) Compose response
+  return list.map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    total: counts[p.id]?.total || 0,
+    open: counts[p.id]?.open || 0,
+    progress: Number(p.progress) || 0,
+    progressPlan: Number(p.progress_plan) || Number(p.progressPlan) || 0,
+    counts: counts[p.id]?.by || { todo: 0, in_progress: 0, pending: 0, completed: 0 },
+  }));
 }

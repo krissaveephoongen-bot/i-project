@@ -501,12 +501,13 @@ export default function TimesheetPage() {
             </Button>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap" id="timesheet-actions">
             {canEdit && (
               <Button
                 variant={isEditing ? "secondary" : "outline"}
                 onClick={() => setIsEditing(!isEditing)}
                 className="gap-2 rounded-xl"
+                id="timesheet-edit-toggle"
               >
                 {isEditing ? (
                   <X className="h-4 w-4" />
@@ -521,6 +522,7 @@ export default function TimesheetPage() {
               <Button
                 onClick={() => router.push("/timesheet/record")}
                 className="gap-2 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg shadow-green-600/20"
+                id="timesheet-add-entry"
               >
                 <Plus className="h-4 w-4" /> เพิ่มรายการใหม่
               </Button>
@@ -530,6 +532,7 @@ export default function TimesheetPage() {
               <Button
                 onClick={() => setConfirmSubmit(true)}
                 className="gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20"
+                id="timesheet-submit"
               >
                 <Send className="h-4 w-4" /> ส่งอนุมัติ
               </Button>
@@ -538,7 +541,7 @@ export default function TimesheetPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="monthly" className="w-full">
+        <Tabs defaultValue="monthly" className="w-full" id="timesheet-tabs">
           <TabsList className="grid w-full md:w-[450px] grid-cols-3 bg-slate-100 rounded-xl p-1">
             <TabsTrigger
               value="monthly"

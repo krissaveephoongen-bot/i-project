@@ -5,24 +5,10 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  LayoutDashboard,
-  FolderKanban,
-  Calendar,
-  Users,
-  Settings,
-  LogOut,
-  HelpCircle,
-  ChevronDown,
-  BarChart3,
-  CheckSquare,
-  FileText,
-  Briefcase,
-  UserCheck,
-  CreditCard,
-} from "lucide-react";
+import { LogOut, HelpCircle, ChevronDown, Settings, Users } from "lucide-react";
 import { clsx } from "clsx";
 import { useAuth } from "./AuthProvider";
+import { getAppNavigation } from "@/app/navigation/config";
 
 // --- Helper Components ---
 
@@ -138,148 +124,7 @@ export default function Sidebar({
     {},
   );
 
-  // --- Role-based Navigation Structure ---
-  const navStructure = [
-    {
-      title: t("navigation.analytics", "ANALYTICS"),
-      items: [
-        {
-          name: t("navigation.dashboard"),
-          href: "/",
-          icon: LayoutDashboard,
-          roles: ["admin", "manager", "member"],
-        },
-        {
-          name: t("navigation.reports"),
-          href: "/reports",
-          icon: BarChart3,
-          roles: ["admin", "manager"],
-        },
-      ],
-    },
-    {
-      title: t("navigation.workspace", "WORKSPACE"),
-      items: [
-        {
-          name: t("navigation.projects"),
-          href: "/projects",
-          icon: FolderKanban,
-          roles: ["admin", "manager", "member"],
-          children: [
-            {
-              name: t("navigation.allProjects", "All Projects"),
-              href: "/projects",
-              icon: FolderKanban,
-            },
-            {
-              name: "Weekly Activities",
-              href: "/projects/weekly-activities",
-              icon: Calendar,
-            },
-          ],
-        },
-        {
-          name: t("navigation.clients"),
-          href: "/clients",
-          icon: Users,
-          roles: ["admin", "manager"],
-        },
-        {
-          name: t("navigation.tasks"),
-          href: "/tasks",
-          icon: CheckSquare,
-          roles: ["admin", "manager", "member"],
-        },
-        {
-          name: t("navigation.timesheet"),
-          href: "/timesheet",
-          icon: Calendar,
-          roles: ["admin", "manager", "member"],
-        },
-        {
-          name: t("navigation.expenses"),
-          icon: CreditCard,
-          roles: ["admin", "manager", "member"],
-          children: [
-            { name: "All Expenses", href: "/expenses", icon: CreditCard },
-            { name: "Memo Expenses", href: "/expenses/memo", icon: FileText },
-            {
-              name: "Travel Expenses",
-              href: "/expenses/travel",
-              icon: FolderKanban,
-            },
-            {
-              name: "Vendor Items",
-              href: "/expenses/vendor-items",
-              icon: FileText,
-            },
-            {
-              name: "Vendor Payments",
-              href: "/expenses/vendor-payments",
-              icon: CreditCard,
-            },
-          ],
-        },
-        {
-          name: t("navigation.sales"),
-          href: "/sales",
-          icon: FolderKanban,
-          roles: ["admin", "manager"],
-        },
-        {
-          name: t("navigation.approvals"),
-          icon: UserCheck,
-          roles: ["admin", "manager"],
-          children: [
-            {
-              name: t("approvals.timesheets"),
-              href: "/approvals/timesheets",
-              icon: Calendar,
-            },
-            {
-              name: t("approvals.expenses"),
-              href: "/approvals/expenses",
-              icon: Briefcase,
-            },
-          ],
-        },
-        {
-          name: t("navigation.stakeholders"),
-          href: "/stakeholders",
-          icon: Users,
-          roles: ["admin", "manager"],
-        },
-        {
-          name: "Resources",
-          href: "/resources",
-          icon: Users,
-          roles: ["admin", "manager"],
-        },
-      ],
-    },
-    {
-      title: t("navigation.admin_section", "ADMIN"),
-      items: [
-        {
-          name: t("navigation.admin"),
-          icon: Settings,
-          roles: ["admin"],
-          children: [
-            { name: t("navigation.users"), href: "/users", icon: Users },
-            {
-              name: "ประเภทกิจกรรม",
-              href: "/admin/activities",
-              icon: FileText,
-            },
-            { name: "Cost Codes", href: "/admin/cost-codes", icon: FileText },
-            { name: "System Health", href: "/admin/health", icon: BarChart3 },
-            { name: "Vendors", href: "/admin/vendors", icon: Users },
-            // { name: 'Activity Logs', href: '/admin/logs', icon: FileText }, // Hidden
-          ],
-        },
-      ],
-    },
-  ];
+  const navStructure = getAppNavigation(t);
 
   const handleToggleExpand = (name: string) => {
     setExpandedItems((prev: Record<string, boolean>) => ({

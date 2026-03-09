@@ -37,6 +37,8 @@ import {
 import { Badge } from "@/app/components/ui/badge";
 import { Progress } from "@/app/components/ui/progress";
 import ProjectDetailReport from "@/app/components/ProjectDetailReport";
+import { Calendar, User } from "lucide-react";
+import HealthPolicyForm from "@/app/components/HealthPolicyForm";
 
 export default function ProjectOverviewPage() {
   const { id } = useParams() as { id?: string };
@@ -119,6 +121,67 @@ export default function ProjectOverviewPage() {
     (t: any) => (t.status || "").toLowerCase() === "todo",
   ).length;
 
+  const policy = (overview as any)?.policy || {};
+  const health = (() => {
+    const end = p?.endDate ? new Date(p.endDate) : null;
+    const overdue = end ? end.getTime() < Date.now() : false;
+    const overdueDays = end ? Math.ceil((Date.now() - end.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    const riskCount = (risks || []).length || 0;
+    const severityScore = (risks || []).reduce((acc: number, r: any) => {
+      const s = String(r.severity || "").toLowerCase();
+      if (s === "high" || s === "critical") return acc + 2;
+      if (s === "medium") return acc + 1;
+      return acc;
+    }, 0);
+    const progress = Number(p?.progress || 0);
+    const budget = Number(summary?.totalBudget || p?.budget || 0);
+    const actualCost = Number(summary?.actualCost || 0);
+    const plan = Number(p?.progressPlan || 0);
+    const EV = (budget * progress) / 100;
+    const PV = (budget * plan) / 100;
+    const AC = actualCost;
+    const SPI = PV > 0 ? EV / PV : null;
+    const CPI = AC > 0 ? EV / AC : null;
+    let level: "ดี" | "ปานกลาง" | "เสี่ยง" | "วิกฤต" = "ดี";
+    const reasons: string[] = [];
+    const spiMin = typeof policy.spiMin === "number" ? policy.spiMin : 1;
+    const cpiMin = typeof policy.cpiMin === "number" ? policy.cpiMin : 1;
+    const overdueWarnDays = typeof policy.overdueWarnDays === "number" ? policy.overdueWarnDays : 1;
+    const overdueCriticalDays = typeof policy.overdueCriticalDays === "number" ? policy.overdueCriticalDays : 7;
+    const riskCountWarn = typeof policy.riskCountWarn === "number" ? policy.riskCountWarn : 3;
+    const riskCountCritical = typeof policy.riskCountCritical === "number" ? policy.riskCountCritical : 5;
+    const riskSeverityScoreWarn = typeof policy.riskSeverityScoreWarn === "number" ? policy.riskSeverityScoreWarn : 2;
+    const riskSeverityScoreCritical = typeof policy.riskSeverityScoreCritical === "number" ? policy.riskSeverityScoreCritical : 4;
+    if (overdue) {
+      if (overdueDays >= overdueCriticalDays) {
+        level = "วิกฤต";
+      } else if (overdueDays >= overdueWarnDays) {
+        level = "เสี่ยง";
+      }
+      reasons.push(`เกินกำหนด ${overdueDays} วัน`);
+    }
+    if (progress < 30) {
+      level = level === "ดี" ? "ปานกลาง" : level;
+      reasons.push("ความคืบหน้า < 30%");
+    }
+    if (severityScore >= riskSeverityScoreCritical || riskCount >= riskCountCritical) {
+      level = "วิกฤต";
+      reasons.push("ความเสี่ยงสูง/จำนวนมาก");
+    } else if (severityScore >= riskSeverityScoreWarn || riskCount >= riskCountWarn) {
+      level = level === "ดี" ? "เสี่ยง" : level;
+      reasons.push("ความเสี่ยงปานกลาง");
+    }
+    if (SPI !== null && SPI < spiMin) {
+      level = level === "วิกฤต" ? level : "เสี่ยง";
+      reasons.push(`SPI ต่ำ (${SPI.toFixed(2)})`);
+    }
+    if (CPI !== null && CPI < cpiMin) {
+      level = "วิกฤต";
+      reasons.push(`CPI ต่ำ (${CPI.toFixed(2)})`);
+    }
+    return { level, reasons, overdue, overdueDays, progress, riskCount, SPI, CPI };
+  })();
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-slate-50/50">
@@ -171,10 +234,59 @@ export default function ProjectOverviewPage() {
             </Button>
           </ProjectTabs>
 
+          {/* Meta Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">ผู้รับผิดชอบ</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-foreground">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  <span>{team.find((m: any) => (m.role || '').toLowerCase() === 'project manager')?.name || 'ไม่ระบุ'}</span>
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  <span>{team.find((m: any) => (m.role || '').toLowerCase() === 'account manager')?.name || 'ไม่ระบุ'}</span>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">ช่วงเวลาโครงการ</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-foreground">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span>{p?.startDate ? new Date(p.startDate).toLocaleDateString('th-TH') : '-'}</span>
+                  <span className="text-muted-foreground">ถึง</span>
+                  <span>{p?.endDate ? new Date(p.endDate).toLocaleDateString('th-TH') : '-'}</span>
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  สถานะ: <span className="font-medium text-foreground">{p?.status || '-'}</span>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">งบประมาณ</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-foreground">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <span>฿{Number(summary?.totalBudget || p?.budget || 0).toLocaleString()}</span>
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  คงเหลือ: <span className="font-medium text-foreground">฿{Number(summary?.remainingBudget || 0).toLocaleString()}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div id="project-detail-report">
           <ProjectDetailReport
             title={p?.name}
             progressActual={Number(p?.progress || 0)}
-            progressPlan={Number(p?.progressPlan || 0)}
             accountManager={
               team.find(
                 (m: any) => (m.role || "").toLowerCase() === "account manager",
@@ -229,6 +341,7 @@ export default function ProjectOverviewPage() {
               receiptDate: m.receiptDate || m.receipt_date,
             }))}
           />
+          </div>
 
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -305,8 +418,136 @@ export default function ProjectOverviewPage() {
             </Card>
           </div>
 
+          {/* Project Health + Timeline */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader>
+                <CardTitle>สุขภาพโครงการ</CardTitle>
+                <CardDescription>ภาพรวมความเสี่ยงและความคืบหน้า</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Badge
+                    variant={
+                      health.level === "ดี"
+                        ? "secondary"
+                        : health.level === "ปานกลาง"
+                        ? "default"
+                        : "destructive"
+                    }
+                  >
+                    {health.level}
+                  </Badge>
+                </div>
+                <div className="text-sm text-slate-700">
+                  <div>ความคืบหน้า: {health.progress}%</div>
+                  <div>จำนวนความเสี่ยง: {health.riskCount}</div>
+                  <div>
+                    SPI:{" "}
+                    {health.SPI !== null && health.SPI !== undefined
+                      ? health.SPI.toFixed(2)
+                      : "-"}{" "}
+                    • CPI:{" "}
+                    {health.CPI !== null && health.CPI !== undefined
+                      ? health.CPI.toFixed(2)
+                      : "-"}
+                  </div>
+                  {health.reasons.length > 0 && (
+                    <ul className="list-disc pl-5 mt-2 text-slate-600">
+                      {health.reasons.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader>
+                <CardTitle>ไทม์ไลน์</CardTitle>
+                <CardDescription>กิจกรรมล่าสุด</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  ...(milestones || []).map((m: any) => ({
+                    type: "ไมล์สโตน",
+                    title: m.title || m.name,
+                    date: m.actualDate || m.actual_date || m.dueDate || m.due_date,
+                  })),
+                  ...(tasks || []).map((t: any) => ({
+                    type: "งาน",
+                    title: t.title,
+                    date: t.end_date || t.due_date || t.start_date,
+                  })),
+                  ...(documents || []).map((d: any) => ({
+                    type: "เอกสาร",
+                    title: d.name,
+                    date: d.uploaded_at || d.modified,
+                  })),
+                ]
+                  .filter((e) => !!e.date)
+                  .sort(
+                    (a: any, b: any) =>
+                      new Date(b.date).getTime() - new Date(a.date).getTime(),
+                  )
+                  .slice(0, 8)
+                  .map((e: any, idx: number) => (
+                    <div key={idx} className="flex items-center gap-3 text-sm">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="font-medium text-slate-900">{e.title}</div>
+                        <div className="text-xs text-slate-500">
+                          {e.type} •{" "}
+                          {new Date(e.date).toLocaleDateString("th-TH", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                {((milestones || []).length === 0 &&
+                  (tasks || []).length === 0 &&
+                  (documents || []).length === 0) && (
+                  <div className="text-sm text-slate-500">ยังไม่มีเหตุการณ์</div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <HealthPolicyForm projectId={id} />
+
+          {/* Billing Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">ไมล์สโตนทั้งหมด</CardTitle>
+              </CardHeader>
+              <CardContent><div className="text-2xl font-semibold">{billing.total}</div></CardContent>
+            </Card>
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">ออกใบแจ้งหนี้แล้ว</CardTitle>
+              </CardHeader>
+              <CardContent><div className="text-2xl font-semibold">{billing.invoiced}</div></CardContent>
+            </Card>
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">รับชำระแล้ว</CardTitle>
+              </CardHeader>
+              <CardContent><div className="text-2xl font-semibold">{billing.received}</div></CardContent>
+            </Card>
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">ครบกำหนดใน 7 วัน</CardTitle>
+              </CardHeader>
+              <CardContent><div className="text-2xl font-semibold">{billing.dueSoon}</div></CardContent>
+            </Card>
+          </div>
+
           {/* S-Curve Chart */}
-          <Card className="col-span-full shadow-sm border-slate-200">
+          <Card className="col-span-full shadow-sm border-slate-200" id="scurve-card">
             <CardHeader>
               <CardTitle>กราฟความคืบหน้า (S-Curve)</CardTitle>
               <CardDescription>
@@ -315,6 +556,65 @@ export default function ProjectOverviewPage() {
             </CardHeader>
             <CardContent className="p-0">
               <SCurveChart tasks={tasks} />
+            </CardContent>
+          </Card>
+
+          {/* Milestone Roll-up */}
+          <Card className="shadow-sm border-slate-200">
+            <CardHeader>
+              <CardTitle>ความคืบหน้าตามไมล์สโตน</CardTitle>
+              <CardDescription>คิดจากงานที่ผูกกับแต่ละไมล์สโตน</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(() => {
+                const byId: Record<string, { title: string; w: number; ev: number }> = {};
+                (milestones || []).forEach((m: any) => {
+                  byId[m.id] = { title: m.title || m.name || "Milestone", w: 0, ev: 0 };
+                });
+                const statusToPercent = (s: any) => {
+                  const x = String(s || "").toLowerCase();
+                  if (x === "completed") return 100;
+                  if (x === "in_progress") return 50;
+                  return 0;
+                };
+                (tasks || []).forEach((t: any) => {
+                  const mid = t.milestone_id || t.milestoneId;
+                  if (!mid || !byId[mid]) return;
+                  const w = Number(t.weight || 1);
+                  const pa =
+                    typeof t.progress_actual === "number" && !Number.isNaN(t.progress_actual)
+                      ? t.progress_actual
+                      : typeof t.actual_hours === "number" &&
+                        typeof t.estimated_hours === "number" &&
+                        t.estimated_hours > 0
+                      ? Math.min(100, (t.actual_hours / t.estimated_hours) * 100)
+                      : statusToPercent(t.status);
+                  byId[mid].w += w;
+                  byId[mid].ev += w * pa;
+                });
+                const arr = Object.entries(byId).map(([id, v]) => ({
+                  id,
+                  title: v.title,
+                  progress: v.w > 0 ? Math.round((v.ev / v.w) * 10) / 10 : 0,
+                }));
+                if (arr.length === 0) {
+                  return <div className="text-sm text-slate-500">ยังไม่มีข้อมูลไมล์สโตน</div>;
+                }
+                return arr.map((m) => (
+                  <div key={m.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-700">{m.title}</span>
+                      <span className="text-slate-600">{m.progress}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 rounded-full"
+                        style={{ width: `${m.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                ));
+              })()}
             </CardContent>
           </Card>
 
@@ -393,7 +693,7 @@ export default function ProjectOverviewPage() {
 
           {/* Risk & Milestones */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 w-full bg-white">
+            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 w-full bg-white" id="risks-card">
               <CardHeader className="border-b border-slate-100 pb-4">
                 <CardTitle className="flex items-center gap-2 text-slate-900">
                   <div className="p-2 bg-red-100/80 rounded-lg">
@@ -435,7 +735,7 @@ export default function ProjectOverviewPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 w-full bg-white">
+            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 w-full bg-white" id="milestones-card">
               <CardHeader className="border-b border-slate-100 pb-4">
                 <CardTitle className="flex items-center gap-2 text-slate-900">
                   <div className="p-2 bg-blue-100/80 rounded-lg">

@@ -98,16 +98,19 @@ export async function getProjectsReportAction(includeInternal: boolean = false) 
 
   let query = supabase
     .from("projects")
-    .select("id, name, status, progress, progressPlan, budget, spent, category, spi, riskLevel")
+    .select("id, name, status, progress, progress_plan:progressPlan, budget, spent, category, spi, risk_level:riskLevel")
     .neq("status", "Cancelled")
-    .neq("isArchived", true);
+    .neq("is_archived", true);
 
   if (!includeInternal) {
     // Assuming 'Internal' category exists or filter by some logic
     // query = query.neq("category", "Internal");
   }
 
-  const { data: projects } = await query.order("name");
+  const { data: projects, error } = await query.order("name");
+  if (error) {
+    console.error("getProjectsReportAction", error);
+  }
   const all = (projects || []).map((p: any) => ({
     id: p.id,
     name: p.name,

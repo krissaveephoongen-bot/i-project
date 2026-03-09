@@ -2,25 +2,11 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import {
-  Users,
-  Activity,
-  Settings,
-  Database,
-  LayoutDashboard,
-  ShieldAlert,
-  CheckSquare,
-} from "lucide-react";
+import { Users, Settings, ShieldAlert } from "lucide-react";
 import Header from "@/app/components/Header";
+import { getAdminMenu } from "@/app/navigation/config";
 
-const MENU_ITEMS = [
-  { label: "Overview", href: "/admin", icon: LayoutDashboard },
-  { label: "Approval Status", href: "/admin/approvals", icon: CheckSquare },
-  { label: "Users", href: "/admin/users", icon: Users },
-  { label: "System Logs", href: "/admin/logs", icon: Activity },
-  { label: "Settings", href: "/admin/settings", icon: Settings },
-  { label: "Maintenance", href: "/admin/maintenance", icon: Database },
-];
+const MENU_ITEMS = getAdminMenu();
 
 export default function AdminLayout({
   children,
