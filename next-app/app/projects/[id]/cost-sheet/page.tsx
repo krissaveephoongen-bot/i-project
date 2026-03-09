@@ -37,6 +37,7 @@ import type {
   ExpenseItem,
   CostCodeCatalog,
 } from "@/app/projects/cost-sheet/types";
+import { Activity } from "lucide-react";
 
 export default function ProjectCostSheetPage() {
   const params = useParams();
@@ -50,6 +51,9 @@ export default function ProjectCostSheetPage() {
     "Draft" | "Submitted" | "ManagerApproved" | "FinalApproved"
   >("Draft");
   const [roleRates, setRoleRates] = useState<any[]>([]);
+  
+  // New: Actuals
+  const [actuals, setActuals] = useState({ laborCost: 0, totalHours: 0 });
 
   const totals = useMemo(() => {
     const laborCalc = labor.reduce((sum, l) => {
@@ -111,7 +115,11 @@ export default function ProjectCostSheetPage() {
           })),
         );
         setStatus(json?.sheet?.status || "Draft");
-        // Role rates fetch kept separate or move to action if needed
+        
+        if (json?.actuals) {
+          setActuals(json.actuals);
+        }
+        
       } catch (e: any) {
         toast.error(e?.message || "โหลดข้อมูลไม่สำเร็จ");
       } finally {
@@ -209,6 +217,54 @@ export default function ProjectCostSheetPage() {
 
       <div className="pt-24 px-6 pb-12 max-w-7xl mx-auto space-y-6">
         <ProjectTabs />
+        
+        {/* Actual vs Planned Summary */}
+        <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-400" />
+                  Real-time Cost Monitoring
+                </h3>
+                <p className="text-slate-400 text-sm mt-1">เปรียบเทียบต้นทุนจริง (จาก Timesheet) กับงบประมาณที่ตั้งไว้</p>
+              </div>
+              
+              <div className="flex gap-8">
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Actual Labor Cost</p>
+                  <p className="text-3xl font-bold text-emerald-400">
+                    ฿{actuals.laborCost.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {actuals.totalHours.toLocaleString()} Hours Logged
+                  </p>
+                </div>
+                <div className="w-px bg-slate-700 h-12 self-center hidden md:block" />
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Planned Labor Cost</p>
+                  <p className="text-3xl font-bold">
+                    ฿{totals.labor.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Budget Limit
+                  </p>
+                </div>
+                <div className="w-px bg-slate-700 h-12 self-center hidden md:block" />
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Variance</p>
+                  <p className={`text-3xl font-bold ${totals.labor - actuals.laborCost < 0 ? 'text-red-400' : 'text-blue-400'}`}>
+                    ฿{(totals.labor - actuals.laborCost).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Remaining Budget
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex items-center justify-between">
           <div className="text-sm text-slate-600">
             สถานะ: <span className="font-medium">{status}</span>
@@ -236,7 +292,7 @@ export default function ProjectCostSheetPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-slate-500">
-                Total Project Cost
+                Total Project Cost (Planned)
               </CardTitle>
             </CardHeader>
             <CardContent>

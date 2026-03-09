@@ -138,6 +138,16 @@ model Project {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime
 
+  // Contract Information
+  contractNo        String?
+  contractStartDate DateTime?
+  contractEndDate   DateTime?
+  contractValue     Decimal?
+  penaltyDailyRate  Decimal?
+  maxPenaltyPercent Decimal?
+  warrantyMonths    Int?
+  warrantyTerms     String?
+
   managerId    String?
   clientId     String?
   manager      User?         @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)

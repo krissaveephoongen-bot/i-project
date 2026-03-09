@@ -127,6 +127,16 @@ model Project {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime? @updatedAt @map("updated_at")
 
+  // Contract Information
+  contractNo        String?   @map("contract_no")
+  contractStartDate DateTime? @map("contract_start_date")
+  contractEndDate   DateTime? @map("contract_end_date")
+  contractValue     Decimal?  @map("contract_value")
+  penaltyDailyRate  Decimal?  @map("penalty_daily_rate")
+  maxPenaltyPercent Decimal?  @map("max_penalty_percent")
+  warrantyMonths    Int?      @map("warranty_months")
+  warrantyTerms     String?   @map("warranty_terms")
+
   contacts     Contact[]
   expenses     Expense[]
   vendorContracts VendorContract[]

@@ -126,12 +126,17 @@ export default function ExecutiveDashboard() {
           filteredProjects.length
         : 1;
 
+    const completedCount = filteredProjects.filter(
+      (p) => (p.status || "").toLowerCase() === "completed"
+    ).length;
+
     return {
       budget: totalBudget,
       committed: totalCommitted,
       actual: totalActual,
       remaining: totalRemaining,
       avgSpi,
+      completedCount,
     };
   }, [filteredProjects]);
 

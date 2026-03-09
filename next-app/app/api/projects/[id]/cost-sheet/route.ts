@@ -21,7 +21,7 @@ export async function GET(
         { status: 500 },
       );
 
-    // Fetch latest cost sheet header
+    // 1. Fetch latest cost sheet header
     const { data: sheets, error: shErr } = await supabase
       .from("project_cost_sheets")
       .select("*")
@@ -32,7 +32,7 @@ export async function GET(
       return NextResponse.json({ message: shErr.message }, { status: 500 });
     const sheet = (sheets || [])[0] || null;
 
-    // Fetch items if sheet exists
+    // 2. Fetch items if sheet exists
     let items: any[] = [];
     if (sheet) {
       const { data: it, error: itErr } = await supabase
@@ -45,15 +45,60 @@ export async function GET(
       items = it || [];
     }
 
-    // Cost code catalog (for expense standardization)
+    // 3. Cost code catalog
     const { data: codes } = await supabase
       .from("cost_code_catalog")
       .select("*")
       .eq("is_active", true)
       .order("code", { ascending: true });
 
+    // 4. Calculate Actual Labor Cost from Timesheets
+    // This is the "Heart" of the system: Real-time cost aggregation
+    const { data: timeEntries, error: timeErr } = await supabase
+      .from("time_entries")
+      .select("hours, userId") // Note: Assuming 'userId' is the column name, verify if it's user_id
+      .eq("projectId", projectId)
+      .eq("status", "approved"); // Only count approved hours
+
+    let actualLaborCost = 0;
+    let actualHours = 0;
+
+    if (!timeErr && timeEntries && timeEntries.length > 0) {
+      // Get unique user IDs to fetch rates
+      const userIds = Array.from(new Set(timeEntries.map((t: any) => t.userId)));
+      
+      // Fetch users with their hourly rates
+      // Assuming 'users' table has 'hourly_rate' or similar. 
+      // If not, we might need to fallback to a default or role-based rate.
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, hourly_rate")
+        .in("id", userIds);
+
+      const userRateMap: Record<string, number> = {};
+      (users || []).forEach((u: any) => {
+        userRateMap[u.id] = Number(u.hourly_rate || 0);
+      });
+
+      // Sum up cost
+      timeEntries.forEach((t: any) => {
+        const hrs = Number(t.hours || 0);
+        const rate = userRateMap[t.userId] || 0;
+        actualHours += hrs;
+        actualLaborCost += hrs * rate;
+      });
+    }
+
     return NextResponse.json(
-      { sheet, items, catalog: codes || [] },
+      { 
+        sheet, 
+        items, 
+        catalog: codes || [],
+        actuals: {
+          laborCost: actualLaborCost,
+          totalHours: actualHours
+        }
+      },
       { status: 200 },
     );
   } catch (e: any) {
@@ -127,14 +172,14 @@ export async function POST(
       type: it.type, // 'labor' | 'expense'
       level: it.level ?? null,
       position: it.position ?? null,
-      project_role: it.projectRole ?? null,
-      daily_rate: it.dailyRate ?? null,
-      hourly_rate: it.hourlyRate ?? null,
-      planned_project_mandays: it.plannedProjectMandays ?? null,
-      planned_project_manhours: it.plannedProjectManhours ?? null,
-      planned_warranty_mandays: it.plannedWarrantyMandays ?? null,
-      planned_warranty_manhours: it.plannedWarrantyManhours ?? null,
-      cost_code: it.costCode ?? null,
+      project_role: it.project_role ?? null,
+      daily_rate: it.daily_rate ?? null,
+      hourly_rate: it.hourly_rate ?? null,
+      planned_project_mandays: it.planned_project_mandays ?? null,
+      planned_project_manhours: it.planned_project_manhours ?? null,
+      planned_warranty_mandays: it.planned_warranty_mandays ?? null,
+      planned_warranty_manhours: it.planned_warranty_manhours ?? null,
+      cost_code: it.cost_code ?? null,
       description: it.description ?? null,
       amount: it.amount ?? null, // left as provided (PM-managed)
       remark: it.remark ?? null,
