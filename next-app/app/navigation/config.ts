@@ -98,6 +98,8 @@ export function getAppNavigation(t: (key: string, def?: string) => string): NavS
             { name: "Cost Codes", href: "/admin/cost-codes", icon: FileText },
             { name: "System Health", href: "/admin/health", icon: BarChart3 },
             { name: "Vendors", href: "/admin/vendors", icon: Users },
+            { name: "Project Assignment", href: "/admin/project-assign", icon: Users },
+            { name: "Timesheet Management", href: "/admin/timesheets", icon: Calendar },
           ],
         },
       ],
