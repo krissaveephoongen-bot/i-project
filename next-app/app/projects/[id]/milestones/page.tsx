@@ -64,22 +64,23 @@ export default function ProjectMilestonesPage() {
       try {
         setLoading(true);
         const res = await fetch(
-          `${API_BASE}/api/projects/milestones?projectId=${projectId}`,
+          `${API_BASE}/api/milestones?projectId=${projectId}`,
         );
         if (!res.ok) throw new Error("fetch failed");
-        const rows = await res.json();
+        const json = await res.json();
+        const rows = json.data || []; // Handle standardized API response
         setDbProjectId(projectId);
         const mapped = (rows || []).map((r: any) => ({
           id: r.id,
           title: r.title,
-          percentage: Number(r.percentage || 0),
+          percentage: Number(r.percentage || r.progress || 0),
           amount: r.amount != null ? Number(r.amount) : undefined,
           status: r.status || "Pending",
-          due_date: r.due_date || null,
-          actual_date: r.actual_date || null,
-          invoice_date: r.invoice_date || null,
-          plan_received_date: r.plan_received_date || null,
-          receipt_date: r.receipt_date || null,
+          due_date: r.dueDate || r.due_date || null,
+          actual_date: r.actualDate || r.actual_date || null,
+          invoice_date: r.invoiceDate || r.invoice_date || null,
+          plan_received_date: r.planReceivedDate || r.plan_received_date || null,
+          receipt_date: r.receiptDate || r.receipt_date || null,
           conditions: [],
         }));
         setMilestones(mapped);

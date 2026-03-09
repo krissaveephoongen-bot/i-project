@@ -1,14 +1,8 @@
-import { ok, err } from "../_lib/db";
 import { NextRequest } from "next/server";
-import { supabase } from "@/app/lib/supabaseClient";
+import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import redis from "@/lib/redis";
-import {
-  firstOk,
-  isSchemaColumnError,
-  MILESTONE_ID_COLUMNS,
-  PROJECT_ID_COLUMNS,
-} from "../_lib/supabaseCompat";
 import crypto from "node:crypto";
+import { apiResponse, apiError, toCamelCase } from "@/app/lib/api-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -22,89 +16,36 @@ export async function GET(req: NextRequest) {
     const assignedTo = u.searchParams.get("assignedTo");
     const milestoneId = u.searchParams.get("milestoneId");
 
-    // Create cache key based on filters
+    // Cache key
     const cacheKey = `tasks:${JSON.stringify({ q, status, priority, projectId, assignedTo, milestoneId })}`;
-
-    // Try to get from Redis cache first
     const cachedTasks = await redis.get(cacheKey);
 
     if (cachedTasks) {
-      console.log("Cache hit for tasks:", cacheKey);
-      return ok(JSON.parse(cachedTasks), 200);
+      return apiResponse(JSON.parse(cachedTasks));
     }
 
-    console.log("Cache miss for tasks, fetching from database");
+    let query = supabaseAdmin
+      .from("tasks")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-    const projectCols = projectId ? PROJECT_ID_COLUMNS : ([] as any);
-    const milestoneCols = milestoneId ? MILESTONE_ID_COLUMNS : ([] as any);
-    const assignedCols = assignedTo
-      ? (["assigned_to", "assignedTo", "assignedto"] as const)
-      : ([] as any);
+    if (q) query = query.ilike("title", `%${q}%`);
+    if (status) query = query.eq("status", status);
+    if (priority) query = query.eq("priority", priority);
+    if (projectId) query = query.eq("project_id", projectId);
+    if (milestoneId) query = query.eq("milestone_id", milestoneId);
+    if (assignedTo) query = query.eq("assigned_to", assignedTo);
 
-    const run = (pCol?: string, mCol?: string, aCol?: string) => {
-      let query: any = supabase
-        .from("tasks")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (q) query = query.ilike("title", `%${q}%`);
-      if (status) query = query.eq("status", status);
-      if (priority) query = query.eq("priority", priority);
-      if (projectId && pCol) query = query.eq(pCol, projectId);
-      if (milestoneId && mCol) query = query.eq(mCol, milestoneId);
-      if (assignedTo && aCol) query = query.eq(aCol, assignedTo);
-      return query;
-    };
+    const { data, error } = await query;
 
-    let data: any = null;
-    let error: any = null;
-    if (projectId || milestoneId || assignedTo) {
-      const pList = projectId
-        ? (projectCols as readonly string[])
-        : [undefined];
-      const mList = milestoneId
-        ? (milestoneCols as readonly string[])
-        : [undefined];
-      const aList = assignedTo
-        ? (assignedCols as readonly string[])
-        : [undefined];
-
-      let last: any = null;
-      outer: for (const pCol of pList) {
-        for (const mCol of mList) {
-          for (const aCol of aList) {
-            const res = await run(pCol, mCol, aCol);
-            last = res;
-            if (!res.error) {
-              data = res.data;
-              error = null;
-              break outer;
-            }
-            if (!isSchemaColumnError(res.error)) {
-              data = res.data;
-              error = res.error;
-              break outer;
-            }
-          }
-        }
-      }
-      if (error == null && data == null && last) {
-        data = last.data;
-        error = last.error;
-      }
-    } else {
-      const res = await run();
-      data = res.data;
-      error = res.error;
-    }
     if (error) throw error;
 
-    // Cache the tasks for 2 minutes (shorter cache for frequently changing data)
-    await redis.set(cacheKey, JSON.stringify(data || []), { EX: 120 });
-    console.log("Cached tasks for 2 minutes:", cacheKey);
+    const camelData = toCamelCase(data || []);
+    await redis.set(cacheKey, JSON.stringify(camelData), { EX: 120 });
 
-    return ok(data || [], 200);
+    return apiResponse(camelData);
   } catch (e: any) {
-    return err(e?.message || "error", 500);
+    return apiError(e?.message || "error", 500);
   }
 }
 
@@ -123,99 +64,39 @@ export async function POST(req: NextRequest) {
       assignedTo,
     } = body;
 
-    if (!title) return err("Title is required", 400);
-    if (!projectId) return err("Project is required", 400);
+    if (!title) return apiError("Title is required", 400);
+    if (!projectId) return apiError("Project is required", 400);
 
     const nowIso = new Date().toISOString();
     const id = crypto.randomUUID();
-    const opts: Array<[string, any]> = [];
-    if (dueDate) opts.push(["due_date", dueDate]);
-    if (estimatedHours != null)
-      opts.push(["estimated_hours", Number(estimatedHours) || 0]);
-    if (milestoneId) opts.push(["milestone_id", milestoneId]);
-    if (assignedTo) opts.push(["assigned_to", assignedTo]);
 
-    const buildVariants = (pairs: Array<[string, any]>) => {
-      const all: any = {};
-      for (const [k, v] of pairs) all[k] = v;
-      const singles = pairs.map(([k, v]) => ({ [k]: v }));
-      return [all, ...singles, {}];
-    };
-
-    const snakeVariants = buildVariants(opts);
-    const camelVariants = buildVariants(
-      opts.map(
-        ([k, v]) =>
-          [
-            k === "due_date"
-              ? "dueDate"
-              : k === "estimated_hours"
-                ? "estimatedHours"
-                : k === "milestone_id"
-                  ? "milestoneId"
-                  : k === "assigned_to"
-                    ? "assignedTo"
-                    : k,
-            v,
-          ] as [string, any],
-      ),
-    );
-
-    const snakeBase: any = {
+    const payload = {
       id,
       title,
       description,
       status,
       priority,
       project_id: projectId,
+      milestone_id: milestoneId || null,
+      assigned_to: assignedTo || null,
+      due_date: dueDate || null,
+      estimated_hours: Number(estimatedHours) || 0,
+      created_by: "system", // Should ideally be user ID from session
       created_at: nowIso,
       updated_at: nowIso,
     };
-    const snakeBaseWithCreatedBy: any = { ...snakeBase, created_by: "system" };
 
-    const camelBase: any = {
-      id,
-      title,
-      description,
-      status,
-      priority,
-      projectId,
-      created_at: nowIso,
-      updated_at: nowIso,
-    };
-    const camelBaseWithCreatedBy: any = { ...camelBase, createdBy: "system" };
+    const { data, error } = await supabaseAdmin
+      .from("tasks")
+      .insert([payload])
+      .select()
+      .single();
 
-    let data: any = null;
-    let error: any = null;
-    const bases: any[] = [
-      snakeBase,
-      snakeBaseWithCreatedBy,
-      camelBase,
-      camelBaseWithCreatedBy,
-    ];
-    for (const base of bases) {
-      const variants = base.project_id != null ? snakeVariants : camelVariants;
-      for (const extra of variants) {
-        const p = { ...base, ...extra };
-        const res = await supabase.from("tasks").insert([p]).select().single();
-        data = res.data;
-        error = res.error;
-        if (!error) break;
-        const msg = `${error.message || ""}`;
-        if (msg.includes("Could not find the") || msg.includes("schema cache"))
-          continue;
-        break;
-      }
-      if (!error) break;
-    }
     if (error) throw error;
 
-    // Invalidate all tasks cache after creating a new task
     await redis.delPattern("tasks:*");
-    console.log("Invalidated all tasks cache after POST");
-
-    return ok(data, 201);
+    return apiResponse(toCamelCase(data), 201);
   } catch (e: any) {
-    return err(e?.message || "error", 500);
+    return apiError(e?.message || "error", 500);
   }
 }

@@ -1,38 +1,37 @@
-import { ok, err } from "../../_lib/db";
 import { NextRequest } from "next/server";
-import { supabase } from "@/app/lib/supabaseClient";
+import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import redis from "@/lib/redis";
-import { firstOk, TASK_ID_COLUMNS } from "../../_lib/supabaseCompat";
+import { apiResponse, apiError, toCamelCase } from "@/app/lib/api-utils";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("tasks")
       .select("*")
       .eq("id", id)
       .single();
 
     if (error) throw error;
-    return ok(data, 200);
+    return apiResponse(toCamelCase(data));
   } catch (e: any) {
-    return err(e?.message || "error", 500);
+    return apiError(e?.message || "error", 500);
   }
 }
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
     const body = await req.json();
+    const nowIso = new Date().toISOString();
 
-    // Protect fields
-    const allowed = [
+    const allowed = new Set([
       "title",
       "description",
       "status",
@@ -43,8 +42,8 @@ export async function PUT(
       "assignedTo",
       "projectId",
       "milestoneId",
-    ];
-    const nowIso = new Date().toISOString();
+    ]);
+
     const toSnake: Record<string, string> = {
       dueDate: "due_date",
       estimatedHours: "estimated_hours",
@@ -53,92 +52,72 @@ export async function PUT(
       projectId: "project_id",
       milestoneId: "milestone_id",
     };
-    const snakePayload: any = { updated_at: nowIso };
-    const camelPayload: any = { updatedAt: nowIso };
-    for (const k of allowed) {
-      if (!(k in body)) continue;
-      const v = (body as any)[k];
-      camelPayload[k] = v;
-      snakePayload[toSnake[k] ?? k] = v;
+
+    const payload: any = {};
+    for (const k of Object.keys(body)) {
+      if (!allowed.has(k)) continue;
+      payload[toSnake[k] ?? k] = body[k];
+    }
+    payload.updated_at = nowIso;
+
+    if (Object.keys(payload).length === 1) {
+      return apiError("No valid fields to update", 400);
     }
 
-    let data: any = null;
-    let error: any = null;
-    for (const p of [snakePayload, camelPayload]) {
-      const res = await supabase
-        .from("tasks")
-        .update(p)
-        .eq("id", id)
-        .select()
-        .single();
-      data = res.data;
-      error = res.error;
-      if (!error) break;
-      const msg = `${error.message || ""}`;
-      if (msg.includes("Could not find the") || msg.includes("schema cache"))
-        continue;
-      break;
-    }
+    const { data, error } = await supabaseAdmin
+      .from("tasks")
+      .update(payload)
+      .eq("id", id)
+      .select()
+      .single();
+
     if (error) throw error;
 
-    // Invalidate all tasks cache after updating a task
     await redis.delPattern("tasks:*");
-    console.log("Invalidated all tasks cache after PUT");
-
-    return ok(data, 200);
+    return apiResponse(toCamelCase(data));
   } catch (e: any) {
-    return err(e?.message || "error", 500);
+    return apiError(e?.message || "error", 500);
   }
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
-    // Check for existing timesheet entries referencing this task
-    const res = await firstOk(TASK_ID_COLUMNS, (col) =>
-      supabase.from("time_entries").select("id").eq(col, id).limit(1),
-    );
-    const entries = (res as any).data;
-    const entriesErr = (res as any).error;
+
+    // Check dependencies
+    const { data: entries, error: entriesErr } = await supabaseAdmin
+      .from("time_entries")
+      .select("id")
+      .eq("task_id", id)
+      .limit(1);
+
     if (entriesErr) throw entriesErr;
 
-    if ((entries || []).length > 0) {
-      // Soft deactivate task to preserve data integrity (Single Source of Truth)
-      let updErr: any = null;
-      for (const p of [
-        { status: "inactive", updated_at: new Date().toISOString() },
-        { status: "inactive", updatedAt: new Date().toISOString() },
-      ]) {
-        const { error } = await supabase
-          .from("tasks")
-          .update(p as any)
-          .eq("id", id);
-        if (!error) {
-          updErr = null;
-          break;
-        }
-        updErr = error;
-        const msg = `${error.message || ""}`;
-        if (msg.includes("Could not find the") || msg.includes("schema cache"))
-          continue;
-        break;
-      }
-      if (updErr) throw updErr;
-      return ok({ success: true, mode: "soft_inactive" }, 200);
-    } else {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
+    if (entries && entries.length > 0) {
+      // Soft Delete
+      const { error } = await supabaseAdmin
+        .from("tasks")
+        .update({ status: "inactive", updated_at: new Date().toISOString() })
+        .eq("id", id);
+      
       if (error) throw error;
-
-      // Invalidate all tasks cache after deleting a task
+      return apiResponse({ mode: "soft_inactive" });
+    } else {
+      // Hard Delete
+      const { error } = await supabaseAdmin
+        .from("tasks")
+        .delete()
+        .eq("id", id);
+      
+      if (error) throw error;
+      
       await redis.delPattern("tasks:*");
-      console.log("Invalidated all tasks cache after DELETE");
-
-      return ok({ success: true, mode: "deleted" }, 200);
+      return apiResponse({ mode: "deleted" });
     }
   } catch (e: any) {
-    return err(e?.message || "error", 500);
+    return apiError(e?.message || "error", 500);
   }
 }
