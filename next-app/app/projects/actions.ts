@@ -160,8 +160,9 @@ export async function createTaskAction(input: TaskInput) {
       end_date: input.endDate,
       estimated_hours: input.estimatedHours,
       actual_hours: input.actualHours,
-      // progress_plan: input.progressPlan,
-      // progress_actual: input.progressActual,
+      progress_plan: input.progressPlan,
+      progress_actual: input.progressActual,
+      weight: input.weight,
     })
     .select()
     .single();
@@ -200,9 +201,9 @@ export async function updateTaskAction(id: string, input: Partial<TaskInput>) {
   if (input.endDate !== undefined) updates.end_date = input.endDate;
   if (input.estimatedHours !== undefined) updates.estimated_hours = input.estimatedHours;
   if (input.actualHours !== undefined) updates.actual_hours = input.actualHours;
-  // if (input.weight !== undefined) updates.weight = input.weight;
-  // if (input.progressPlan !== undefined) updates.progress_plan = input.progressPlan;
-  // if (input.progressActual !== undefined) updates.progress_actual = input.progressActual;
+  if (input.weight !== undefined) updates.weight = input.weight;
+  if (input.progressPlan !== undefined) updates.progress_plan = input.progressPlan;
+  if (input.progressActual !== undefined) updates.progress_actual = input.progressActual;
   // Derive status from hours when provided (advanced step)
   if (
     typeof input.actualHours !== "undefined" ||

@@ -136,6 +136,7 @@ model Project {
   maxPenaltyPercent Decimal?  @map("max_penalty_percent")
   warrantyMonths    Int?      @map("warranty_months")
   warrantyTerms     String?   @map("warranty_terms")
+  deliveryStatus    Json?     @map("delivery_status")
 
   contacts     Contact[]
   expenses     Expense[]

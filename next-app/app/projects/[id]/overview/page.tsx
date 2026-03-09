@@ -182,6 +182,35 @@ export default function ProjectOverviewPage() {
     return { level, reasons, overdue, overdueDays, progress, riskCount, SPI, CPI };
   })();
 
+  const billing = (() => {
+    const ms = milestones || [];
+    const total = ms.reduce((sum: number, m: any) => sum + Number(m.amount || 0), 0);
+    const invoiced = ms
+      .filter((m: any) => m.invoiceDate || m.invoice_date)
+      .reduce((sum: number, m: any) => sum + Number(m.amount || 0), 0);
+    const received = ms
+      .filter((m: any) => m.receiptDate || m.receipt_date)
+      .reduce((sum: number, m: any) => sum + Number(m.amount || 0), 0);
+    
+    const now = Date.now();
+    const next7Days = now + 7 * 24 * 60 * 60 * 1000;
+    const dueSoon = ms
+      .filter((m: any) => {
+        const d = m.dueDate || m.due_date;
+        if (!d) return false;
+        const t = new Date(d).getTime();
+        return t >= now && t <= next7Days && !(m.receiptDate || m.receipt_date);
+      })
+      .reduce((sum: number, m: any) => sum + Number(m.amount || 0), 0);
+
+    return {
+      total: `฿${total.toLocaleString()}`,
+      invoiced: `฿${invoiced.toLocaleString()}`,
+      received: `฿${received.toLocaleString()}`,
+      dueSoon: `฿${dueSoon.toLocaleString()}`,
+    };
+  })();
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-slate-50/50">

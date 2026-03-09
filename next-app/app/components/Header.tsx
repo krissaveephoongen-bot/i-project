@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, ChevronRight, Home, Menu, Sparkles } from "lucide-react";
+import { Search, ChevronRight, Home, Menu, Sparkles, ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -11,6 +11,7 @@ import { useSidebar } from "./SidebarContext";
 import { buildBreadcrumbs } from "@/app/navigation/breadcrumbs";
 import { createClient as createBrowserSupabase } from "@/utils/supabase/client";
 import { useWalkthrough } from "./walkthrough/WalkthroughProvider";
+import { Button } from "@/app/components/ui/button";
 
 interface HeaderProps {
   title?: string;
@@ -26,6 +27,9 @@ export default function Header({ title, breadcrumbs }: HeaderProps) {
   const autoCrumbs = breadcrumbs && breadcrumbs.length > 0 ? breadcrumbs : buildBreadcrumbs(pathname, t);
   const [dynamicCrumbs, setDynamicCrumbs] = useState<{ label: string; href?: string }[] | null>(null);
   const { start } = useWalkthrough();
+
+  // Back button logic: Show if not on root dashboard or root projects list (unless deep in hierarchy)
+  const showBackButton = pathname !== "/" && pathname !== "/projects";
 
   useEffect(() => {
     setDynamicCrumbs(null);
@@ -227,7 +231,7 @@ export default function Header({ title, breadcrumbs }: HeaderProps) {
       className="fixed top-0 right-0 left-0 lg:left-[260px] h-[64px] bg-background border-b border-border flex items-center justify-between px-4 lg:px-6 z-40"
       role="banner"
     >
-      {/* Left: Mobile menu + Breadcrumbs */}
+      {/* Left: Mobile menu + Back + Breadcrumbs */}
       <div className="flex items-center gap-2 text-sm">
         {/* Mobile hamburger */}
         <button
@@ -237,6 +241,19 @@ export default function Header({ title, breadcrumbs }: HeaderProps) {
         >
           <Menu className="w-5 h-5" />
         </button>
+
+        {/* Back Button */}
+        {showBackButton && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden md:flex h-8 w-8 text-muted-foreground hover:text-foreground"
+            onClick={() => router.back()}
+            title="Go Back"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+        )}
 
         {crumbsToRender && crumbsToRender.length > 0 ? (
           <nav aria-label="Breadcrumb">
