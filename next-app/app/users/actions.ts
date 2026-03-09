@@ -65,7 +65,13 @@ export async function getUsers(params?: {
     }
 
     // Status filtering logic
-    // if (params?.status && params.status !== "all") { ... }
+    if (params?.status && params.status !== "all") {
+      if (params.status === "active") {
+        q = q.eq("is_active", true);
+      } else if (params.status === "inactive") {
+        q = q.eq("is_active", false);
+      }
+    }
 
     return q;
   };

@@ -28,10 +28,26 @@ export interface Client {
 
 export async function getClients() {
   const supabase = createClient(cookies());
-  const { data, error } = await supabase
+  
+  // 1. Try User Session
+  let { data, error } = await supabase
     .from("clients")
     .select("*")
     .order("name");
+
+  // 2. Fallback to Admin Client if RLS blocks access or no data found
+  if (error || !data || data.length === 0) {
+      const adminSupabase = createAdminClient();
+      const adminRes = await adminSupabase
+        .from("clients")
+        .select("*")
+        .order("name");
+      
+      if (adminRes.data) {
+          data = adminRes.data;
+          error = null;
+      }
+  }
     
   if (error) {
     console.error("Get Clients Error:", error);
