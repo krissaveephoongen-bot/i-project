@@ -59,7 +59,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
     (typeof window !== "undefined" ? window.location.pathname : "");
 
   // Public routes that don't require authentication
-  const publicRoutes = ["/staff/login", "/vendor/login"];
+  const publicRoutes = ["/login"];
 
   useEffect(() => {
     if (!loading) {
@@ -67,11 +67,10 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
       const isPublicRoute = publicRoutes.includes(normalizedPathname);
 
       if (!user && !isPublicRoute) {
-        router.push("/staff/login");
+        router.push("/login");
       } else if (
         user &&
-        (normalizedPathname === "/staff/login" ||
-          normalizedPathname === "/vendor/login")
+        normalizedPathname === "/login"
       ) {
         router.push("/");
       }

@@ -11,7 +11,7 @@ test.describe('Authentication', () => {
     // Check if we're on the dashboard or login page
     const currentUrl = page.url();
 
-    if (currentUrl.includes('/staff/login') || currentUrl.includes('/vendor/login')) {
+    if (currentUrl.includes('/login')) {
       // If redirected to login, perform login
       await page.fill('input[type="email"]', 'jakgrits.ph@appworks.co.th');
       await page.fill('input[type="password"]', 'AppWorks@123!');

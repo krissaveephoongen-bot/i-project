@@ -48,12 +48,12 @@ describe("ProtectedLayout", () => {
       </ProtectedLayout>,
     );
 
-    expect(mockRouter.push).toHaveBeenCalledWith("/staff/login");
+    expect(mockRouter.push).toHaveBeenCalledWith("/login");
   });
 
   it("should render children on public routes for unauthenticated users", () => {
     (useAuth as jest.Mock).mockReturnValue({ user: null, loading: false });
-    (usePathname as jest.Mock).mockReturnValue("/staff/login");
+    (usePathname as jest.Mock).mockReturnValue("/login");
 
     render(
       <ProtectedLayout>
@@ -70,7 +70,7 @@ describe("ProtectedLayout", () => {
       user: { name: "Test User" },
       loading: false,
     });
-    (usePathname as jest.Mock).mockReturnValue("/staff/login");
+    (usePathname as jest.Mock).mockReturnValue("/login");
 
     render(
       <ProtectedLayout>

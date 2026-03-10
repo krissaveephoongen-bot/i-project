@@ -1,7 +1,12 @@
 import { createClient } from "./utils/supabase/middleware";
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  // Redirect old staff/vendor login routes to unified login
+  if (request.nextUrl.pathname === "/staff/login" || request.nextUrl.pathname === "/vendor/login") {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   return createClient(request);
 }
 

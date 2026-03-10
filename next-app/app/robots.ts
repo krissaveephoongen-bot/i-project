@@ -14,8 +14,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           "/api/",
           "/admin",
-          "/staff/login",
-          "/vendor/login",
+          "/login",
           "/settings",
           "/profile",
         ],
