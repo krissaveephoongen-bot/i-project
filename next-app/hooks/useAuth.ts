@@ -51,3 +51,19 @@ export function useAuth() {
     signOut,
   };
 }
+
+/**
+ * @deprecated Use useAuth() instead - it now handles all authentication types
+ * Provided for backward compatibility
+ */
+export function useVendorAuth() {
+  return useAuth();
+}
+
+/**
+ * @deprecated Use useAuth() instead - it now handles all authentication types
+ * Provided for backward compatibility
+ */
+export function useStaffAuth() {
+  return useAuth();
+}
