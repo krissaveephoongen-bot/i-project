@@ -8,252 +8,291 @@ import { useTranslation } from "react-i18next";
 import { LogOut, HelpCircle, ChevronDown, Settings, Users } from "lucide-react";
 import { clsx } from "clsx";
 import { useAuth } from "./AuthProvider";
-import { getAppNavigation } from "@/app/navigation/config";
+import { useNavigation } from "@/hooks/useNavigation";
+import CollapsibleMenuSection from "./CollapsibleMenuSection";
+import CommandPalette from "./CommandPalette";
 
 // --- Helper Components ---
 
 interface NavItemProps {
-  item: {
-    name: string;
-    href?: string;
-    icon: React.ComponentType<{ className?: string }>;
-    roles: string[];
-    children?: {
-      name: string;
-      href: string;
-      icon: React.ComponentType<{ className?: string }>;
-    }[];
-  };
-  isActive: boolean;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
-  onNavigate?: () => void;
+    item: {
+        name: string;
+        href?: string;
+        icon: React.ComponentType<{ className?: string }>;
+        roles: string[];
+        children?: {
+            name: string;
+            href: string;
+            icon: React.ComponentType<{ className?: string }>;
+        }[];
+    };
+    isActive: boolean;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
+    onNavigate?: () => void;
 }
 
 const NavItem = ({
-  item,
-  isActive,
-  isExpanded,
-  onToggleExpand,
-  onNavigate,
+    item,
+    isActive,
+    isExpanded,
+    onToggleExpand,
+    onNavigate,
 }: NavItemProps) => {
-  const isParent = !!item.children;
-  const currentPathname = usePathname();
+    const isParent = !!item.children;
+    const currentPathname = usePathname();
 
-  const handleClick = (e: React.MouseEvent) => {
-    if (isParent) {
-      e.preventDefault();
-      onToggleExpand();
-    } else if (onNavigate) {
-      onNavigate();
-    }
-  };
+    const handleClick = (e: React.MouseEvent) => {
+        if (isParent) {
+            e.preventDefault();
+            onToggleExpand();
+        } else if (onNavigate) {
+            onNavigate();
+        }
+    };
 
-  return (
-    <li>
-      <Link
-        href={item.href || "#"}
-        onClick={handleClick}
-        aria-expanded={isParent ? isExpanded : undefined}
-        aria-current={isActive ? "page" : undefined}
-        className={clsx(
-          "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          isActive
-            ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
-            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200",
-          isParent && "justify-between",
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <item.icon className="w-5 h-5 flex-shrink-0" />
-          <span>{item.name}</span>
-        </div>
-        {isParent && (
-          <ChevronDown
-            className={clsx(
-              "w-4 h-4 transition-transform duration-200",
-              isExpanded && "rotate-180",
-            )}
-            aria-hidden="true"
-          />
-        )}
-      </Link>
-      {isParent && isExpanded && (
-        <ul className="pl-7 pt-2 space-y-1" role="group">
-          {item.children!.map((child) => (
-            <li key={child.name}>
-              <Link
-                href={child.href}
-                onClick={onNavigate}
-                aria-current={
-                  currentPathname === child.href ? "page" : undefined
-                }
+    return (
+        <li>
+            <Link
+                href={item.href || "#"}
+                onClick={handleClick}
+                aria-expanded={isParent ? isExpanded : undefined}
+                aria-current={isActive ? "page" : undefined}
                 className={clsx(
-                  "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  currentPathname === child.href
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-slate-500 hover:text-slate-900 dark:text-slate-500 dark:hover:text-slate-300",
+                    "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    isActive
+                        ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200",
+                    isParent && "justify-between",
                 )}
-              >
-                <child.icon className="w-5 h-5 flex-shrink-0" />
-                <span>{child.name}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </li>
-  );
+            >
+                <div className="flex items-center gap-3">
+                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    <span>{item.name}</span>
+                </div>
+                {isParent && (
+                    <ChevronDown
+                        className={clsx(
+                            "w-4 h-4 transition-transform duration-200",
+                            isExpanded && "rotate-180",
+                        )}
+                        aria-hidden="true"
+                    />
+                )}
+            </Link>
+            {isParent && isExpanded && (
+                <ul className="pl-7 pt-2 space-y-1" role="group">
+                    {item.children!.map((child) => (
+                        <li key={child.name}>
+                            <Link
+                                href={child.href}
+                                onClick={onNavigate}
+                                aria-current={
+                                    currentPathname === child.href ? "page" : undefined
+                                }
+                                className={clsx(
+                                    "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                                    currentPathname === child.href
+                                        ? "text-blue-600 dark:text-blue-400"
+                                        : "text-slate-500 hover:text-slate-900 dark:text-slate-500 dark:hover:text-slate-300",
+                                )}
+                            >
+                                <child.icon className="w-5 h-5 flex-shrink-0" />
+                                <span>{child.name}</span>
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </li>
+    );
 };
 
 // --- Main Sidebar Component ---
 
 interface SidebarProps {
-  isMobile?: boolean;
-  onNavigate?: () => void;
+    isMobile?: boolean;
+    onNavigate?: () => void;
 }
 
 export default function Sidebar({
-  isMobile = false,
-  onNavigate,
+    isMobile = false,
+    onNavigate,
 }: SidebarProps) {
-  const { t } = useTranslation();
-  const pathname = usePathname() ?? "";
-  const { user, signOut } = useAuth() || {};
-  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
-    {},
-  );
+    const { t } = useTranslation();
+    const { user, signOut } = useAuth() || {};
+    const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
+        {},
+    );
 
-  const navStructure = getAppNavigation(t);
+    const { navigation, userRole, pathname, useIsActive } = useNavigation(t);
 
-  const handleToggleExpand = (name: string) => {
-    setExpandedItems((prev: Record<string, boolean>) => ({
-      ...prev,
-      [name]: !prev[name],
-    }));
-  };
+    const handleToggleExpand = (name: string) => {
+        setExpandedItems((prev: Record<string, boolean>) => ({
+            ...prev,
+            [name]: !prev[name],
+        }));
+    };
 
-  const userRole = user?.role || "member";
+    return (
+        <aside
+            className={clsx(
+                "h-screen w-[260px] bg-background border-r border-border flex flex-col shadow-sm transition-colors duration-300",
+                !isMobile && "fixed left-0 top-0 z-50",
+            )}
+            role="navigation"
+            aria-label="เมนูหลัก"
+        >
+            {/* Logo Area */}
+            <div className="h-[64px] flex items-center px-6 border-b border-border">
+                <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <span className="text-white font-bold text-lg">P</span>
+                    </div>
+                    <span className="text-xl font-bold tracking-tight text-foreground">
+                        I-PROJECT
+                    </span>
+                </Link>
+            </div>
 
-  return (
-    <aside
-      className={clsx(
-        "h-screen w-[260px] bg-background border-r border-border flex flex-col shadow-sm transition-colors duration-300",
-        !isMobile && "fixed left-0 top-0 z-50",
-      )}
-      role="navigation"
-      aria-label="เมนูหลัก"
-    >
-      {/* Logo Area */}
-      <div className="h-[64px] flex items-center px-6 border-b border-border">
-        <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">P</span>
-          </div>
-          <span className="text-xl font-bold tracking-tight text-foreground">
-            I-PROJECT
-          </span>
-        </Link>
-      </div>
+            {/* Command Palette */}
+            <div className="px-4 pt-4">
+                <CommandPalette />
+            </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-4 px-4 overflow-y-auto" aria-label="เมนูนำทาง">
-        {navStructure.map((section) => (
-          <div key={section.title} className="mb-4">
-            <h3 className="px-4 py-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-              {section.title}
-            </h3>
-            <ul className="space-y-1" role="list">
-              {section.items
-                .filter((item) => item.roles.includes(userRole))
-                .map((item) => (
-                  <NavItem
-                    key={item.name}
-                    item={item}
-                    isActive={
-                      pathname === (item.href || "") ||
-                      ((item.href || "") !== "/" &&
-                        pathname.startsWith(item.href || ""))
+            {/* Navigation */}
+            <nav className="flex-1 py-4 px-4 overflow-y-auto" aria-label="เมนูนำทาง">
+                {navigation.map((section, idx) => {
+                    const isMainSection = section.title?.includes("MAIN");
+                    const isSecondarySection = section.title?.includes("WORKSPACE");
+                    const isAdminSection = section.title?.includes("ADMIN");
+
+                    const sectionContent = (
+                        <ul className="space-y-1" role="list">
+                            {section.items.map((item) => (
+                                <NavItem
+                                    key={item.name}
+                                    item={item}
+                                    isActive={useIsActive(item.href)}
+                                    isExpanded={expandedItems[item.name]}
+                                    onToggleExpand={() => handleToggleExpand(item.name)}
+                                    onNavigate={onNavigate}
+                                />
+                            ))}
+                        </ul>
+                    );
+
+                    // Main section always visible
+                    if (isMainSection) {
+                        return (
+                            <div key={section.title} className="mb-4">
+                                <h3 className="px-4 py-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                                    {section.title}
+                                </h3>
+                                {sectionContent}
+                            </div>
+                        );
                     }
-                    isExpanded={expandedItems[item.name]}
-                    onToggleExpand={() => handleToggleExpand(item.name)}
-                    onNavigate={onNavigate}
-                  />
-                ))}
-            </ul>
-          </div>
-        ))}
-      </nav>
 
-      {/* Bottom Area */}
-      <div className="p-4 border-t border-border space-y-2">
-        <Link
-          href="/settings"
-          onClick={onNavigate}
-          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Users className="w-5 h-5" aria-hidden="true" />
-          {t("navigation.profile")}
-        </Link>
+                    // Secondary menu collapsible
+                    if (isSecondarySection) {
+                        return (
+                            <CollapsibleMenuSection
+                                key={section.title}
+                                title={section.title || "Features"}
+                                defaultExpanded={false}
+                            >
+                                {sectionContent}
+                            </CollapsibleMenuSection>
+                        );
+                    }
 
-        <Link
-          href="/help"
-          onClick={onNavigate}
-          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <HelpCircle className="w-5 h-5" aria-hidden="true" />
-          {t("navigation.help")}
-        </Link>
+                    // Admin menu collapsible
+                    if (isAdminSection) {
+                        return (
+                            <CollapsibleMenuSection
+                                key={section.title}
+                                title={section.title || "Admin"}
+                                defaultExpanded={false}
+                            >
+                                {sectionContent}
+                            </CollapsibleMenuSection>
+                        );
+                    }
 
-        <div className="p-3 bg-muted/50 rounded-lg border border-border">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Image
-                src={
-                  user?.avatar ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "User")}&background=0284c7&color=fff`
-                }
-                alt={`รูปโปรไฟล์ของ ${user?.name || "ผู้ใช้"}`}
-                width={40}
-                height={40}
-                className="rounded-full ring-2 ring-background object-cover"
-                unoptimized={
-                  user?.avatar?.startsWith("https://ui-avatars.com") ||
-                  !user?.avatar
-                }
-              />
-              <span
-                className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full"
-                aria-label="ออนไลน์"
-              />
+                    return null;
+                })}
+            </nav>
+
+            {/* Bottom Area */}
+            <div className="p-4 border-t border-border space-y-2">
+                <Link
+                    href="/settings"
+                    onClick={onNavigate}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                    <Users className="w-5 h-5" aria-hidden="true" />
+                    {t("navigation.profile")}
+                </Link>
+
+                <Link
+                    href="/help"
+                    onClick={onNavigate}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                    <HelpCircle className="w-5 h-5" aria-hidden="true" />
+                    {t("navigation.help")}
+                </Link>
+
+                <div className="p-3 bg-muted/50 rounded-lg border border-border">
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <Image
+                                src={
+                                    user?.avatar ||
+                                    `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "User")}&background=0284c7&color=fff`
+                                }
+                                alt={`รูปโปรไฟล์ของ ${user?.name || "ผู้ใช้"}`}
+                                width={40}
+                                height={40}
+                                className="rounded-full ring-2 ring-background object-cover"
+                                unoptimized={
+                                    user?.avatar?.startsWith("https://ui-avatars.com") ||
+                                    !user?.avatar
+                                }
+                            />
+                            <span
+                                className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full"
+                                aria-label="ออนไลน์"
+                            />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">
+                                {user?.name || t("common.guest", "Guest User")}
+                            </p>
+                            <p className="text-xs text-muted-foreground capitalize truncate">
+                                {user?.role || t("common.noRole", "No Role")}
+                            </p>
+                        </div>
+                        <Link
+                            href="/settings"
+                            className="text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                            aria-label="ตั้งค่า"
+                        >
+                            <Settings className="w-5 h-5" aria-hidden="true" />
+                        </Link>
+                    </div>
+                </div>
+
+                <button
+                    onClick={signOut}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="ออกจากระบบ"
+                >
+                    <LogOut className="w-5 h-5" aria-hidden="true" />
+                    {t("navigation.logout")}
+                </button>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {user?.name || t("common.guest", "Guest User")}
-              </p>
-              <p className="text-xs text-muted-foreground capitalize truncate">
-                {user?.role || t("common.noRole", "No Role")}
-              </p>
-            </div>
-            <Link
-              href="/settings"
-              className="text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-              aria-label="ตั้งค่า"
-            >
-              <Settings className="w-5 h-5" aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
-
-        <button
-          onClick={signOut}
-          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="ออกจากระบบ"
-        >
-          <LogOut className="w-5 h-5" aria-hidden="true" />
-          {t("navigation.logout")}
-        </button>
-      </div>
-    </aside>
-  );
+        </aside>
+    );
 }

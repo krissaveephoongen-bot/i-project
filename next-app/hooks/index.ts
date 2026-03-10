@@ -1,5 +1,8 @@
 // Auth hooks
-export { useAuth, useStaffAuth } from "./useAuth";
+export { useAuth } from "./useAuth";
+
+// Navigation hooks
+export { useNavigation } from "./useNavigation";
 
 // Data hooks
 export { useProjects } from "./use-projects";

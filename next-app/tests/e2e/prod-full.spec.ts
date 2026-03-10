@@ -31,7 +31,7 @@ test.describe("Production Full Navigation and Data Validation", () => {
     };
 
     // Login
-    await page.goto(`${PROD_URL}/staff/login`, {
+    await page.goto(`${PROD_URL}/login`, {
       waitUntil: "domcontentloaded",
     });
     await page.waitForLoadState("networkidle");

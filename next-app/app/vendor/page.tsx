@@ -14,7 +14,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { useVendorAuth } from "../../hooks/useAuth";
+import { useAuth } from "@/app/components/AuthProvider";
 
 interface Task {
   id: string;
@@ -184,7 +184,7 @@ export default function VendorPortalPage() {
   );
   const router = useRouter();
 
-  const { user, signOut } = useVendorAuth();
+  const { user, signOut } = useAuth();
 
   // Use real database hooks
   const [tasks, setTasks] = useState<any[]>([]);
@@ -194,7 +194,7 @@ export default function VendorPortalPage() {
   // Check authentication
   useEffect(() => {
     if (!user) {
-      router.push("/vendor/login");
+      router.push("/login");
       return;
     }
   }, [user, router]);
@@ -210,7 +210,7 @@ export default function VendorPortalPage() {
 
   const handleLogout = () => {
     signOut();
-    router.push("/vendor/login");
+    router.push("/login");
   };
 
   const completedTasks =

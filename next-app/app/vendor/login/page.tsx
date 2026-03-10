@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, Eye, EyeOff, AlertCircle, Briefcase, Lock } from "lucide-react";
-import { useVendorAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/app/components/AuthProvider";
 import { Skeleton } from "@/app/components/ui/skeleton";
 
 export default function VendorLoginPage() {
@@ -14,7 +14,7 @@ export default function VendorLoginPage() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const { signIn, loading: authLoading } = useVendorAuth();
+  const { signIn, loading: authLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

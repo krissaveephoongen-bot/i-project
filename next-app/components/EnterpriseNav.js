@@ -39,7 +39,7 @@ export default function EnterpriseNav({ onShowHelp }) {
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("userRole");
     localStorage.removeItem("userEmail");
-    window.location.href = "/staff/login";
+    window.location.href = "/login";
   };
 
   const handleClickOutside = (e) => {

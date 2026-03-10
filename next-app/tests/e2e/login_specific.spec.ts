@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("Login with specific credentials", async ({ page }) => {
-  await page.goto("/staff/login");
+  await page.goto("/login");
 
   // Wait for the email input to be visible
   await page.waitForSelector('input[type="email"]');

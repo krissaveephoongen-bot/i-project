@@ -92,7 +92,7 @@ export default function StaffPortalPage() {
     const userData = localStorage.getItem("staffUser");
 
     if (!token || !userData) {
-      router.push("/staff/login");
+      router.push("/login");
       return;
     }
 
@@ -102,7 +102,7 @@ export default function StaffPortalPage() {
   const handleLogout = () => {
     localStorage.removeItem("staffToken");
     localStorage.removeItem("staffUser");
-    router.push("/staff/login");
+    router.push("/login");
   };
 
   const completedTasks =

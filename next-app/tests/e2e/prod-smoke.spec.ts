@@ -9,7 +9,7 @@ test.describe("Prod Smoke Test", () => {
     test.setTimeout(120000);
 
     // 1) Login
-    await page.goto(`${PROD_URL}/staff/login`, { waitUntil: "networkidle" });
+    await page.goto(`${PROD_URL}/login`, { waitUntil: "networkidle" });
 
     // Fill email using specific ID
     const emailInput = page.locator("#email");

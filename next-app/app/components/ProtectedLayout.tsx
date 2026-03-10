@@ -2,10 +2,11 @@
 
 import { useAuth } from "./AuthProvider";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import { SidebarProvider, useSidebar } from "./SidebarContext";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import PortalLayout from "./PortalLayout";
 import dynamic from "next/dynamic";
 
 const DataSyncProvider = dynamic(() => import("./DataSyncProvider"), {
@@ -32,7 +33,12 @@ function MobileSidebar() {
   );
 }
 
-function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+function AuthenticatedLayout({ children, isPortalView }: { children: React.ReactNode; isPortalView: boolean }) {
+  // Use portal layout for dashboard, sidebar layout for other pages
+  if (isPortalView) {
+    return <PortalLayout>{children}</PortalLayout>;
+  }
+
   return (
     <DataSyncProvider>
       <SidebarProvider>
@@ -60,6 +66,9 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   // Public routes that don't require authentication
   const publicRoutes = ["/login"];
+  
+  // Portal view routes (use portal layout instead of sidebar)
+  const isPortalView = pathname === "/" || pathname === "";
 
   useEffect(() => {
     if (!loading) {
@@ -85,7 +94,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   // Show main app layout for authenticated users
   if (user) {
-    return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
+    return <AuthenticatedLayout isPortalView={isPortalView}>{children}</AuthenticatedLayout>;
   }
 
   // Show loading spinner while checking authentication

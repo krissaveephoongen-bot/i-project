@@ -30,7 +30,9 @@ const pages = [
 
   // Staff pages
   { path: "/staff", name: "Staff" },
-  { path: "/staff/login", name: "Staff Login" },
+
+  // Login (unified)
+  { path: "/login", name: "Unified Login" },
 
   // Tasks
   { path: "/tasks", name: "Tasks" },
@@ -44,7 +46,6 @@ const pages = [
 
   // Vendor pages
   { path: "/vendor", name: "Vendor" },
-  { path: "/vendor/login", name: "Vendor Login" },
 
   // Approvals
   { path: "/approval", name: "Approval" },

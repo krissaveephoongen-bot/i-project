@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import PortalTile from "@/app/components/PortalTile";
 import PageTransition from "@/app/components/PageTransition";
+import { toast } from "react-hot-toast";
 
 interface PortalStats {
     projects?: { active: number; total: number };

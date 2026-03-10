@@ -20,7 +20,7 @@ test.describe("Timesheet Smoke", () => {
       if (!EMAIL || !PASSWORD) {
         throw new Error("Missing PW_EMAIL or PW_PASSWORD env for E2E login");
       }
-      await page.goto(`${BASE_URL}/staff/login`, { waitUntil: "networkidle" });
+      await page.goto(`${BASE_URL}/login`, { waitUntil: "networkidle" });
       await expect(page.locator("#email")).toBeVisible();
       await page.fill("#email", EMAIL);
       await expect(page.locator("#password")).toBeVisible();
@@ -33,7 +33,7 @@ test.describe("Timesheet Smoke", () => {
     // Navigate to /timesheet (retry login if redirected)
     const gotoTimesheet = async () => {
       await page.goto(`${BASE_URL}/timesheet`, { waitUntil: "networkidle" });
-      if (page.url().includes("/staff/login")) {
+      if (page.url().includes("/login")) {
         await doLogin();
         await page.goto(`${BASE_URL}/timesheet`, { waitUntil: "networkidle" });
       }
