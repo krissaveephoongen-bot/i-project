@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { createClient, createAdminClient } from "@/utils/supabase/server";
-import Header from "../components/Header";
+import PageContainer from "../components/PageContainer";
 import PageTransition from "../components/PageTransition";
 import ProjectsClient from "./ProjectsClient";
 import { Project } from "@/lib/projects";
@@ -165,18 +165,19 @@ export default async function ProjectsPage() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950/50">
-        <Header
-          title="โครงการ (Projects)"
-          breadcrumbs={[{ label: "แดชบอร์ด", href: "/" }, { label: "โครงการ" }]}
+      <PageContainer
+        title="Projects"
+        description="Manage all your projects, phases, and milestones"
+        breadcrumbs={[
+          { label: "Dashboard", href: "/" },
+          { label: "Projects" },
+        ]}
+      >
+        <ProjectsClient
+          initialProjects={projects}
+          initialManagers={managers}
         />
-        <div className="container mx-auto px-4 md:px-6 py-8 pt-24 max-w-[1600px]">
-          <ProjectsClient
-            initialProjects={projects}
-            initialManagers={managers}
-          />
-        </div>
-      </div>
+      </PageContainer>
     </PageTransition>
   );
 }

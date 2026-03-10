@@ -2,11 +2,8 @@
 
 import { useAuth } from "./AuthProvider";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import Sidebar from "./Sidebar";
-import { SidebarProvider, useSidebar } from "./SidebarContext";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import PortalLayout from "./PortalLayout";
+import { useEffect } from "react";
+import PortalLayoutFull from "./PortalLayoutFull";
 import dynamic from "next/dynamic";
 
 const DataSyncProvider = dynamic(() => import("./DataSyncProvider"), {
@@ -17,41 +14,11 @@ interface ProtectedLayoutProps {
   children: React.ReactNode;
 }
 
-function MobileSidebar() {
-  const { mobileOpen, setMobileOpen } = useSidebar();
-
-  return (
-    <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-      <SheetContent
-        side="left"
-        className="p-0 w-[260px]"
-        aria-label="เมนูนำทาง"
-      >
-        <Sidebar isMobile onNavigate={() => setMobileOpen(false)} />
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function AuthenticatedLayout({ children, isPortalView }: { children: React.ReactNode; isPortalView: boolean }) {
-  // Use portal layout for dashboard, sidebar layout for other pages
-  if (isPortalView) {
-    return <PortalLayout>{children}</PortalLayout>;
-  }
-
+function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+  // Wrap content with portal layout (now used for all authenticated pages)
   return (
     <DataSyncProvider>
-      <SidebarProvider>
-        {/* Desktop sidebar */}
-        <div className="hidden lg:block">
-          <Sidebar />
-        </div>
-
-        {/* Mobile sidebar (Sheet) */}
-        <MobileSidebar />
-
-        <main className="lg:ml-[260px] min-h-screen">{children}</main>
-      </SidebarProvider>
+      <PortalLayoutFull>{children}</PortalLayoutFull>
     </DataSyncProvider>
   );
 }
@@ -66,9 +33,6 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   // Public routes that don't require authentication
   const publicRoutes = ["/login"];
-  
-  // Portal view routes (use portal layout instead of sidebar)
-  const isPortalView = pathname === "/" || pathname === "";
 
   useEffect(() => {
     if (!loading) {
@@ -77,10 +41,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
       if (!user && !isPublicRoute) {
         router.push("/login");
-      } else if (
-        user &&
-        normalizedPathname === "/login"
-      ) {
+      } else if (user && normalizedPathname === "/login") {
         router.push("/");
       }
     }
@@ -94,7 +55,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   // Show main app layout for authenticated users
   if (user) {
-    return <AuthenticatedLayout isPortalView={isPortalView}>{children}</AuthenticatedLayout>;
+    return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
   }
 
   // Show loading spinner while checking authentication

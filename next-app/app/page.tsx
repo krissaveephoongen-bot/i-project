@@ -59,7 +59,7 @@ export default function PortalDashboard() {
 
     return (
         <PageTransition>
-            <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+            <div className="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 pb-12">
                 {/* Hero Section */}
                 <div className="relative px-4 sm:px-6 lg:px-8 pt-16 pb-20 overflow-hidden">
                     {/* Background elements */}
@@ -221,39 +221,6 @@ export default function PortalDashboard() {
                     </div>
                 </div>
 
-                {/* Stats Bar */}
-                <div className="border-t border-slate-700 bg-slate-900/50 backdrop-blur">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div>
-                                <p className="text-slate-400 text-sm">
-                                    Active Projects
-                                </p>
-                                <p className="text-3xl font-bold text-white flex items-center gap-2">
-                                    {stats.projects?.active || 0}
-                                    <ArrowUp className="w-5 h-5 text-green-400" />
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-slate-400 text-sm">
-                                    Total Portfolio Value
-                                </p>
-                                <p className="text-3xl font-bold text-white">
-                                    ฿ --
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-slate-400 text-sm">
-                                    System Health
-                                </p>
-                                <p className="text-3xl font-bold text-green-400 flex items-center gap-2">
-                                    100%
-                                    <TrendingUp className="w-5 h-5" />
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </PageTransition>
     );
