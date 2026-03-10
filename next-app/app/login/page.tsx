@@ -2,14 +2,14 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth/context';
+import { useAuth } from '@/app/components/AuthProvider';
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { signIn } = useAuth();
   
   const [formData, setFormData] = useState({
     email: '',
@@ -18,6 +18,7 @@ export default function LoginPage() {
   
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -28,7 +29,7 @@ export default function LoginPage() {
     
     // Clear error when user starts typing
     if (error) {
-      clearError();
+      setError(null);
     }
   };
 
@@ -36,17 +37,20 @@ export default function LoginPage() {
     e.preventDefault();
     
     if (!formData.email || !formData.password) {
+      setError('Email and password are required');
       return;
     }
 
     setIsSubmitting(true);
+    setError(null);
     
     try {
-      await login(formData.email, formData.password);
-      // Login successful - router will handle redirect in auth context
-    } catch (error) {
-      // Error is handled by auth context
-      console.error('Login failed:', error);
+      await signIn(formData.email, formData.password);
+      // Redirect will happen via auth context
+      router.push('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+      console.error('Login failed:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -156,10 +160,10 @@ export default function LoginPage() {
           <div>
             <button
               type="submit"
-              disabled={isSubmitting || isLoading}
+              disabled={isSubmitting}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting || isLoading ? (
+              {isSubmitting ? (
                 <>
                   <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
