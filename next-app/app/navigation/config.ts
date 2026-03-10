@@ -6,7 +6,6 @@ import {
   Settings,
   BarChart3,
   CheckSquare,
-  FileText,
   Briefcase,
   UserCheck,
   CreditCard,
@@ -18,72 +17,82 @@ import {
   LifeBuoy
 } from "lucide-react";
 
-export type NavChild = {
-  nameKey?: string;
-  name?: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-};
+import type { NavSection, AdminMenuItem, UserRole } from "./types";
+import { NAVIGATION_PATHS, SECTION_TITLES } from "./constants";
 
-export type NavItem = {
-  nameKey?: string;
-  name?: string;
-  href?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  roles: Array<"admin" | "manager" | "member">;
-  children?: NavChild[];
-};
-
-export type NavSection = {
-  titleKey?: string;
-  title?: string;
-  items: NavItem[];
-};
-
+/**
+ * Get main application navigation structure
+ * Filtered by user role
+ */
 export function getAppNavigation(t: (key: string, def?: string) => string): NavSection[] {
   return [
     {
       title: t("navigation.analytics", "ANALYTICS"),
       items: [
-        { name: t("navigation.dashboard"), href: "/", icon: LayoutDashboard, roles: ["admin", "manager", "member"] },
-        { name: t("navigation.reports"), href: "/reports", icon: BarChart3, roles: ["admin", "manager"] },
+        { 
+          name: t("navigation.dashboard"), 
+          href: NAVIGATION_PATHS.DASHBOARD, 
+          icon: LayoutDashboard, 
+          roles: ["admin", "manager", "member"] 
+        },
+        { 
+          name: t("navigation.reports"), 
+          href: NAVIGATION_PATHS.REPORTS, 
+          icon: BarChart3, 
+          roles: ["admin", "manager"] 
+        },
       ],
     },
     {
-      title: "OPERATIONS (LIFECYCLE)",
+      title: SECTION_TITLES.OPERATIONS,
       items: [
         {
           name: t("navigation.projects"),
-          href: "/projects",
+          href: NAVIGATION_PATHS.PROJECTS,
           icon: FolderKanban,
           roles: ["admin", "manager", "member"],
           children: [
-            { name: t("navigation.allProjects", "All Projects"), href: "/projects", icon: FolderKanban },
-            { name: "Weekly Activities", href: "/projects/weekly-activities", icon: Calendar },
+            { name: t("navigation.allProjects", "All Projects"), href: NAVIGATION_PATHS.PROJECTS, icon: FolderKanban },
+            { name: "Weekly Activities", href: NAVIGATION_PATHS.PROJECTS_WEEKLY, icon: Calendar },
           ],
         },
-        { name: t("navigation.tasks", "Execution (Tasks)"), href: "/tasks", icon: CheckSquare, roles: ["admin", "manager", "member"] },
-        { name: t("navigation.timesheet"), href: "/timesheet", icon: Calendar, roles: ["admin", "manager", "member"] },
+        { 
+          name: t("navigation.tasks", "Execution (Tasks)"), 
+          href: NAVIGATION_PATHS.TASKS, 
+          icon: CheckSquare, 
+          roles: ["admin", "manager", "member"] 
+        },
+        { 
+          name: t("navigation.timesheet"), 
+          href: NAVIGATION_PATHS.TIMESHEET, 
+          icon: Calendar, 
+          roles: ["admin", "manager", "member"] 
+        },
         {
           name: t("navigation.expenses", "Financials"),
-          href: "/expenses",
+          href: NAVIGATION_PATHS.EXPENSES,
           icon: CreditCard,
           roles: ["admin", "manager", "member"],
           children: [
-            { name: "Expenses Overview", href: "/expenses", icon: CreditCard },
-            { name: "Vendor Payments", href: "/expenses/vendor-payments", icon: CreditCard },
+            { name: "Expenses Overview", href: NAVIGATION_PATHS.EXPENSES, icon: CreditCard },
+            { name: "Vendor Payments", href: NAVIGATION_PATHS.EXPENSES_VENDOR, icon: CreditCard },
           ],
         },
-        { name: "Delivery & Cutover", href: "/delivery", icon: Truck, roles: ["admin", "manager"] },
+        { 
+          name: "Delivery & Cutover", 
+          href: NAVIGATION_PATHS.DELIVERY, 
+          icon: Truck, 
+          roles: ["admin", "manager"] 
+        },
         { 
           name: "Warranty & Support", 
-          href: "/warranty", 
+          href: NAVIGATION_PATHS.WARRANTY, 
           icon: ShieldCheck, 
           roles: ["admin", "manager", "member"],
           children: [
-            { name: "Dashboard", href: "/warranty", icon: LayoutDashboard },
-            { name: "SLA Tickets", href: "/warranty/tickets", icon: LifeBuoy },
-            { name: "PM Schedule", href: "/warranty/pm-schedule", icon: Calendar },
+            { name: "Dashboard", href: NAVIGATION_PATHS.WARRANTY, icon: LayoutDashboard },
+            { name: "SLA Tickets", href: NAVIGATION_PATHS.WARRANTY_TICKETS, icon: LifeBuoy },
+            { name: "PM Schedule", href: NAVIGATION_PATHS.WARRANTY_PM, icon: Calendar },
           ]
         },
       ],
@@ -91,14 +100,24 @@ export function getAppNavigation(t: (key: string, def?: string) => string): NavS
     {
       title: t("navigation.workspace", "WORKSPACE"),
       items: [
-        { name: t("navigation.clients"), href: "/clients", icon: Users, roles: ["admin", "manager"] },
+        { 
+          name: t("navigation.clients"), 
+          href: NAVIGATION_PATHS.CLIENTS, 
+          icon: Users, 
+          roles: ["admin", "manager"] 
+        },
         { 
           name: t("navigation.approvals"), 
-          href: "/approvals", 
+          href: NAVIGATION_PATHS.APPROVALS, 
           icon: UserCheck, 
           roles: ["admin", "manager"] 
         },
-        { name: "Resources", href: "/resources", icon: Users, roles: ["admin", "manager"] },
+        { 
+          name: "Resources", 
+          href: NAVIGATION_PATHS.RESOURCES, 
+          icon: Users, 
+          roles: ["admin", "manager"] 
+        },
       ],
     },
     {
@@ -108,18 +127,18 @@ export function getAppNavigation(t: (key: string, def?: string) => string): NavS
           name: "Master Data",
           icon: Database,
           roles: ["admin"],
-          href: "/admin/master-data",
+          href: NAVIGATION_PATHS.ADMIN_MASTER_DATA,
         },
         {
           name: t("navigation.admin"),
           icon: Settings,
           roles: ["admin"],
           children: [
-            { name: "Overview", href: "/admin", icon: LayoutDashboard },
-            { name: t("navigation.users"), href: "/admin/users", icon: Users },
-            { name: "Project Assignment", href: "/admin/project-assign", icon: Users },
-            { name: "Vendors", href: "/admin/vendors", icon: Users },
-            { name: "System Health", href: "/admin/health", icon: Activity },
+            { name: "Overview", href: NAVIGATION_PATHS.ADMIN, icon: LayoutDashboard },
+            { name: t("navigation.users"), href: NAVIGATION_PATHS.ADMIN_USERS, icon: Users },
+            { name: "Project Assignment", href: NAVIGATION_PATHS.ADMIN_ASSIGN, icon: Users },
+            { name: "Vendors", href: NAVIGATION_PATHS.ADMIN_VENDORS, icon: Users },
+            { name: "System Health", href: NAVIGATION_PATHS.ADMIN_HEALTH, icon: Activity },
           ],
         },
       ],
@@ -127,13 +146,27 @@ export function getAppNavigation(t: (key: string, def?: string) => string): NavS
   ];
 }
 
-export function getAdminMenu() {
+/**
+ * Get admin-specific menu items
+ * Used in admin dashboard sidebar
+ */
+export function getAdminMenu(): AdminMenuItem[] {
   return [
-    { label: "Overview", href: "/admin", icon: LayoutDashboard },
-    { label: "Master Data", href: "/admin/master-data", icon: Database },
-    { label: "Users", href: "/admin/users", icon: Users },
-    { label: "Assignments", href: "/admin/project-assign", icon: Briefcase },
-    { label: "Vendors", href: "/admin/vendors", icon: Users },
-    { label: "System Health", href: "/admin/health", icon: Server },
+    { label: "Overview", href: NAVIGATION_PATHS.ADMIN, icon: LayoutDashboard },
+    { label: "Master Data", href: NAVIGATION_PATHS.ADMIN_MASTER_DATA, icon: Database },
+    { label: "Users", href: NAVIGATION_PATHS.ADMIN_USERS, icon: Users },
+    { label: "Assignments", href: NAVIGATION_PATHS.ADMIN_ASSIGN, icon: Briefcase },
+    { label: "Vendors", href: NAVIGATION_PATHS.ADMIN_VENDORS, icon: Users },
+    { label: "System Health", href: NAVIGATION_PATHS.ADMIN_HEALTH, icon: Server },
   ];
+}
+
+/**
+ * Check if a user has permission to view a menu item
+ * @param userRole - The user's role
+ * @param allowedRoles - Roles that can access this item
+ * @returns true if user can access
+ */
+export function canAccessMenuItem(userRole: UserRole, allowedRoles: UserRole[]): boolean {
+  return allowedRoles.includes(userRole);
 }
