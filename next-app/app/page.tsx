@@ -59,21 +59,21 @@ export default function PortalDashboard() {
 
     return (
         <PageTransition>
-            <div className="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 pb-12">
+            <div className="bg-gradient-to-b from-white via-slate-50 to-blue-50 pb-12">
                 {/* Hero Section */}
                 <div className="relative px-4 sm:px-6 lg:px-8 pt-16 pb-20 overflow-hidden">
                     {/* Background elements */}
                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        <div className="absolute top-40 right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
-                        <div className="absolute bottom-40 left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
+                        <div className="absolute top-40 right-40 w-80 h-80 bg-blue-200/20 rounded-full blur-3xl" />
+                        <div className="absolute bottom-40 left-40 w-80 h-80 bg-purple-200/20 rounded-full blur-3xl" />
                     </div>
 
                     <div className="relative max-w-7xl mx-auto">
                         <div className="text-center mb-16">
-                            <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+                            <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">
                                 Welcome to I-PROJECT Portal
                             </h1>
-                            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+                            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
                                 Manage projects, track financials, and collaborate with your team.
                             </p>
                         </div>
@@ -85,7 +85,7 @@ export default function PortalDashboard() {
                                 title="Projects"
                                 description="Manage all your projects, phases, and milestones"
                                 href="/projects"
-                                icon={<FolderKanban className="w-6 h-6 text-blue-300" />}
+                                icon={<FolderKanban className="w-6 h-6 text-blue-600" />}
                                 badge="Core"
                                 badgeColor="blue"
                                 stats={
@@ -109,7 +109,7 @@ export default function PortalDashboard() {
                                 title="Tasks & Execution"
                                 description="Track tasks, WBS, and project execution status"
                                 href="/tasks"
-                                icon={<CheckSquare className="w-6 h-6 text-green-300" />}
+                                icon={<CheckSquare className="w-6 h-6 text-green-600" />}
                                 badge="Tracking"
                                 badgeColor="green"
                             />
@@ -118,7 +118,7 @@ export default function PortalDashboard() {
                                 title="Financials"
                                 description="Monitor budgets, expenses, and cash flow"
                                 href="/expenses"
-                                icon={<CreditCard className="w-6 h-6 text-yellow-300" />}
+                                icon={<CreditCard className="w-6 h-6 text-yellow-600" />}
                                 badge="Critical"
                                 badgeColor="yellow"
                             />
@@ -128,21 +128,21 @@ export default function PortalDashboard() {
                                 title="Timesheet"
                                 description="Record and approve team time entries"
                                 href="/timesheet"
-                                icon={<Calendar className="w-6 h-6 text-cyan-300" />}
+                                icon={<Calendar className="w-6 h-6 text-cyan-600" />}
                             />
 
                             <PortalTile
                                 title="Reports & Analytics"
                                 description="View insights, trends, and KPI dashboards"
                                 href="/reports"
-                                icon={<BarChart3 className="w-6 h-6 text-purple-300" />}
+                                icon={<BarChart3 className="w-6 h-6 text-purple-600" />}
                             />
 
                             <PortalTile
                                 title="Warranty & Support"
                                 description="Manage SLA tickets and preventive maintenance"
                                 href="/warranty"
-                                icon={<ShieldCheck className="w-6 h-6 text-red-300" />}
+                                icon={<ShieldCheck className="w-6 h-6 text-red-600" />}
                             />
 
                             {/* Workspace Features */}
@@ -150,21 +150,21 @@ export default function PortalDashboard() {
                                 title="Clients"
                                 description="Manage client information and contacts"
                                 href="/clients"
-                                icon={<Users className="w-6 h-6 text-blue-300" />}
+                                icon={<Users className="w-6 h-6 text-blue-600" />}
                             />
 
                             <PortalTile
                                 title="Approvals"
                                 description="Review and approve pending requests"
                                 href="/approvals"
-                                icon={<UserCheck className="w-6 h-6 text-green-300" />}
+                                icon={<UserCheck className="w-6 h-6 text-green-600" />}
                             />
 
                             <PortalTile
                                 title="Delivery & Cutover"
                                 description="Plan and track delivery milestones"
                                 href="/delivery"
-                                icon={<Truck className="w-6 h-6 text-orange-300" />}
+                                icon={<Truck className="w-6 h-6 text-orange-600" />}
                             />
                         </div>
 
@@ -175,8 +175,8 @@ export default function PortalDashboard() {
 
                         {/* Admin Section (collapsible) */}
                         <div className="mb-16">
-                            <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
-                                <Settings className="w-6 h-6 text-slate-400" />
+                            <h2 className="text-2xl font-bold text-slate-900 mb-8 flex items-center gap-3">
+                                <Settings className="w-6 h-6 text-slate-600" />
                                 Administration
                             </h2>
 
@@ -186,7 +186,7 @@ export default function PortalDashboard() {
                                     description="Manage system configurations and data"
                                     href="/admin/master-data"
                                     icon={
-                                        <Database className="w-6 h-6 text-slate-400" />
+                                        <Database className="w-6 h-6 text-slate-600" />
                                     }
                                 />
 
@@ -195,7 +195,7 @@ export default function PortalDashboard() {
                                     description="Manage users, roles, and permissions"
                                     href="/admin/users"
                                     icon={
-                                        <Users className="w-6 h-6 text-slate-400" />
+                                        <Users className="w-6 h-6 text-slate-600" />
                                     }
                                 />
 
@@ -204,7 +204,7 @@ export default function PortalDashboard() {
                                     description="Assign users to projects and teams"
                                     href="/admin/project-assign"
                                     icon={
-                                        <FolderKanban className="w-6 h-6 text-slate-400" />
+                                        <FolderKanban className="w-6 h-6 text-slate-600" />
                                     }
                                 />
 
@@ -213,7 +213,7 @@ export default function PortalDashboard() {
                                     description="Monitor system performance and logs"
                                     href="/admin/health"
                                     icon={
-                                        <Activity className="w-6 h-6 text-slate-400" />
+                                        <Activity className="w-6 h-6 text-slate-600" />
                                     }
                                 />
                             </div>

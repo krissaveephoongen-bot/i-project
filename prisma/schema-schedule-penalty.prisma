@@ -1,0 +1,485 @@
+// ============================================================================
+// SCHEDULE MANAGEMENT & PENALTY SYSTEM
+// Contract timeline, progress tracking, and penalty calculations
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum PenaltyType {
+  daily_rate          // Fixed amount per day late
+  percentage_contract // % of contract value per day
+  cumulative          // Escalating percentage
+  milestone_based     // Fixed amount per missed milestone
+  tiered              // Different rates for different delays
+}
+
+enum PenaltyStatus {
+  pending      // Delay identified, not yet applied
+  calculated   // Penalty amount calculated
+  disputed     // Customer/Vendor disputing
+  approved     // Ready to collect/pay
+  collected    // Paid or received
+  waived       // Forgiven/waived
+}
+
+enum ExtensionStatus {
+  requested
+  under_review
+  approved
+  rejected
+  accepted
+}
+
+enum ScheduleHealth {
+  on_track       // On or ahead of schedule
+  at_risk        // Behind but can recover
+  critical       // Significant delay, may miss deadline
+  off_track      // Already past deadline
+}
+
+// ============================================================================
+// PROJECT TIMELINE & SCHEDULE TRACKING
+// ============================================================================
+
+/// Project Schedule Master - All timeline data for a project
+model project_schedule {
+  id                    String          @id @default(cuid())
+  projectId             String          @unique
+  
+  // Original Contract Timeline
+  contractStartDate     DateTime
+  contractEndDate       DateTime
+  totalContractDays     Int             // Calculate contractEndDate - contractStartDate
+  
+  // Actual Progress
+  actualStartDate       DateTime?
+  currentProgress       Decimal         @default(0) @db.Decimal(5, 2) // %
+  forecastEndDate       DateTime?       // ETC based on current progress
+  
+  // Status
+  status                ScheduleHealth  @default(on_track)
+  daysAhead             Int             @default(0)
+  daysBehind            Int             @default(0)
+  remainingDays         Int
+  
+  // Key Dates
+  criticalMilestones    Int             @default(0) // Count of critical milestones
+  missedMilestones      Int             @default(0) // Count actually missed
+  
+  // Calculation
+  scheduledProgress     Decimal         @db.Decimal(5, 2) // What % should be done by today
+  scheduleVariancePercent Decimal       @db.Decimal(5, 2) // Actual % - Scheduled %
+  
+  // Risk Assessment
+  riskOfMissingDeadline Decimal         @db.Decimal(5, 2) // Probability 0-100%
+  
+  // Relations
+  project               projects        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestones            schedule_milestone[]
+  extensions            schedule_extension[]
+  penalties             contract_penalty[]
+  progressHistory       schedule_progress_history[]
+  
+  // Metadata
+  lastCalculated        DateTime        @default(now())
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([projectId, status])
+}
+
+/// Schedule Milestones - Key project dates within contract timeline
+model schedule_milestone {
+  id                    String          @id @default(cuid())
+  scheduleId            String
+  
+  // Milestone Definition
+  code                  String          // MS-001, MS-002...
+  name                  String
+  description           String?
+  sequenceNumber        Int
+  
+  // Dates
+  contractualDate       DateTime        // What contract says
+  plannedDate           DateTime?       // What we plan
+  actualDate            DateTime?       // When it actually happened
+  
+  // Status
+  status                String          @default("pending") // pending, completed, missed, waived
+  issCritical           Boolean         @default(false)
+  
+  // Deliverables
+  deliverables          String?         // What must be delivered
+  completionCriteria    String?         // How do we verify completion
+  
+  // Impact if Missed
+  penaltyIfMissed       Decimal?        @db.Decimal(15, 2)
+  
+  // Relations
+  schedule              project_schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@unique([scheduleId, code])
+  @@index([scheduleId, status])
+}
+
+/// Schedule Progress History - Accumulative tracking of progress over time
+model schedule_progress_history {
+  id                    String          @id @default(cuid())
+  scheduleId            String
+  
+  // Period
+  dataDate              DateTime        // Date this data captured
+  dayNumber             Int             // Day 1, 2, 3... from start
+  
+  // Actual Progress
+  actualProgress        Decimal         @db.Decimal(5, 2) // % complete
+  
+  // Expected Progress (by contract timeline)
+  expectedProgress      Decimal         @db.Decimal(5, 2) // What % should be done by this day
+  
+  // Variance
+  scheduleVariance      Decimal         @db.Decimal(5, 2) // Actual - Expected
+  variancePercentage    Decimal         @db.Decimal(5, 2) // (Actual - Expected) / Expected * 100
+  
+  // Trend Metrics
+  accumulativeVariance  Decimal         @db.Decimal(5, 2) // Running total variance
+  velocityTrend         String?         // improving, stable, declining
+  
+  // Health at this point
+  health                ScheduleHealth
+  
+  // ETC (Estimate to Complete)
+  forecastEndDate       DateTime?       // When will project actually finish at current rate
+  forecatedDaysLate     Int?            // Days after deadline at current rate
+  
+  // Relations
+  schedule              project_schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt             DateTime        @default(now())
+  
+  @@unique([scheduleId, dataDate])
+  @@index([scheduleId, dataDate])
+}
+
+// ============================================================================
+// SCHEDULE EXTENSIONS
+// ============================================================================
+
+/// Schedule Extensions - Track extension requests and approvals
+model schedule_extension {
+  id                    String          @id @default(cuid())
+  scheduleId            String
+  
+  // Extension Details
+  extensionNumber       Int             // 1st, 2nd, 3rd extension
+  requestedDays         Int             // How many days extension requested
+  approvedDays          Int?            // How many days actually approved
+  
+  // Dates
+  originalEndDate       DateTime        // Contract end date before extension
+  newEndDate            DateTime?       // New end date after extension
+  requestDate           DateTime
+  approvalDate          DateTime?
+  
+  // Reason
+  reason                String          // Why extension needed
+  
+  // Status
+  status                ExtensionStatus @default(requested)
+  
+  // Impact on Penalties
+  pendingPenalties      Decimal         @default(0) @db.Decimal(15, 2) // Penalties waived if approved
+  
+  // Approval
+  requestedBy           String          // User ID
+  approvedBy            String?         // User ID (if approved)
+  rejectionReason       String?
+  
+  // Notes
+  notes                 String?
+  
+  // Relations
+  schedule              project_schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([scheduleId, status])
+}
+
+// ============================================================================
+// PENALTY MANAGEMENT
+// ============================================================================
+
+/// Contract Penalty Structure - Template for how penalties are calculated
+model contract_penalty_structure {
+  id                    String          @id @default(cuid())
+  projectId             String?         @unique
+  
+  // Basic Setup
+  penaltyType           PenaltyType     @default(daily_rate)
+  totalContractValue    Decimal         @db.Decimal(15, 2)
+  
+  // Penalty Rates based on Type
+  
+  // For DAILY_RATE
+  dailyPenaltyAmount    Decimal?        @db.Decimal(12, 2) // Fixed $ per day
+  
+  // For PERCENTAGE_CONTRACT
+  dailyPenaltyPercent   Decimal?        @db.Decimal(5, 2)  // % of contract value per day
+  
+  // For CUMULATIVE (escalating)
+  tieredPenalties       Json?           // Array of { daysLate: 1-10, percent: 0.1 }, { daysLate: 11-20, percent: 0.2 }
+  
+  // For MILESTONE_BASED
+  milestoneStructure    Json?           // Array of { milestone: "MS-001", penaltyAmount: 10000 }
+  
+  // Caps & Limits
+  maxPenaltyPercent     Decimal         @default(10.0) @db.Decimal(5, 2) // Cap at X% of contract
+  maxPenaltyAmount      Decimal?        @db.Decimal(15, 2) // Absolute maximum penalty
+  
+  // Grace Periods
+  gracePeriodDays       Int             @default(0) // No penalty if late by less than this
+  
+  // Status
+  status                String          @default("active")
+  
+  // Relations
+  project               projects?       @relation(fields: [projectId], references: [id])
+  penalties             contract_penalty[]
+  
+  // Metadata
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+}
+
+/// Contract Penalties - Calculated penalties for schedule breaches
+model contract_penalty {
+  id                    String          @id @default(cuid())
+  scheduleId            String
+  structureId           String
+  
+  // Identification
+  penaltyNumber         String          @unique // PEN-2024-001
+  
+  // Period
+  startDate             DateTime        // First day of delay
+  endDate               DateTime?       // Last day of delay (if resolved)
+  
+  // Days Late
+  daysLate              Int
+  
+  // Penalty Calculation
+  penaltyType           PenaltyType
+  penaltyBasis          Decimal         @db.Decimal(15, 2) // What it's based on (contract value or daily rate)
+  calculationMethod     String          // How it was calculated (for audit)
+  penaltyAmount         Decimal         @db.Decimal(15, 2) // Final calculated amount
+  
+  // Breakdown (for transparency)
+  baseAmount            Decimal         @db.Decimal(15, 2)
+  adjustments           Json?           // Array of { type: "waiver", "grace_period", amount }
+  netPenalty            Decimal         @db.Decimal(15, 2) // After adjustments
+  
+  // Status
+  status                PenaltyStatus   @default(pending)
+  
+  // Approval & Application
+  approvedBy            String?
+  approvedDate          DateTime?
+  appliedDate           DateTime?       // When penalty was deducted/collected
+  
+  // Waiver/Adjustment
+  waivedAmount          Decimal         @default(0) @db.Decimal(15, 2)
+  waivedReason          String?
+  waivedBy              String?
+  waivedDate            DateTime?
+  
+  // Dispute
+  disputedBy            String?
+  disputeReason         String?
+  disputeDate           DateTime?
+  disputeResolution     String?
+  
+  // Notes
+  notes                 String?
+  
+  // Relations
+  schedule              project_schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  structure             contract_penalty_structure @relation(fields: [structureId], references: [id])
+  
+  // Metadata
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([scheduleId, status])
+  @@index([penaltyNumber])
+}
+
+// ============================================================================
+// PROJECT SCHEDULE COMPLIANCE METRICS
+// ============================================================================
+
+/// Schedule Compliance Summary - Overall view of schedule health
+model schedule_compliance {
+  id                    String          @id @default(cuid())
+  projectId             String          @unique
+  
+  // Contract Timeline
+  contractStartDate     DateTime
+  contractEndDate       DateTime
+  totalContractDays     Int
+  
+  // Actual vs Expected
+  currentDay            Int             // Days elapsed from start
+  currentProgress       Decimal         @db.Decimal(5, 2) // Actual % complete
+  expectedProgress      Decimal         @db.Decimal(5, 2) // What % should be done
+  progressVariance      Decimal         @db.Decimal(5, 2) // Actual - Expected
+  
+  // Key Metrics
+  schedulePerformanceIndex Decimal      @db.Decimal(5, 3) // Similar to EVM's SPI
+  // Formula: (Days Elapsed / Days Planned) / (% Complete / 100%)
+  // > 1.0 = Ahead of schedule
+  // < 1.0 = Behind schedule
+  
+  // Milestones
+  totalMilestones       Int
+  completedMilestones   Int
+  missedMilestones      Int
+  milestoneCompletionRate Decimal       @db.Decimal(5, 2) // %
+  
+  // Schedule Health Status
+  overallHealth         ScheduleHealth
+  daysAhead             Int             @default(0)
+  daysBehind            Int             @default(0)
+  remainingDays         Int
+  
+  // Forecast
+  forecastEndDate       DateTime?
+  forecastedDaysLate    Int?            // Will be X days late at current rate
+  probability           Decimal         @db.Decimal(5, 2) // % chance of meeting deadline
+  
+  // Penalties
+  totalPenalties        Decimal         @default(0) @db.Decimal(15, 2)
+  pendingPenalties      Decimal         @default(0) @db.Decimal(15, 2)
+  appliedPenalties      Decimal         @default(0) @db.Decimal(15, 2)
+  waivedPenalties       Decimal         @default(0) @db.Decimal(15, 2)
+  
+  // Risk Assessment
+  riskOfMissDeadline    Decimal         @db.Decimal(5, 2) // Probability 0-100%
+  recommendedAction     String?         // What should be done
+  
+  // Last Update
+  lastUpdated           DateTime        @default(now())
+  
+  // Relations
+  project               projects        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+}
+
+// ============================================================================
+// SCHEDULE RECOVERY PLANNING
+// ============================================================================
+
+/// Schedule Recovery Plan - Actions to recover schedule when behind
+model schedule_recovery_plan {
+  id                    String          @id @default(cuid())
+  projectId             String
+  
+  // Identification
+  planNumber            String          @unique // SRP-2024-001
+  
+  // Trigger
+  triggerDate           DateTime        // When recovery plan created
+  daysBehind            Int             // How far behind at trigger
+  
+  // Gap Analysis
+  requiredDaysToRecover Int             // How many days need to catch up
+  daysAvailable         Int             // Days remaining before deadline
+  
+  // Recovery Actions
+  actions               Json            // Array of { action, resource_impact, cost, timeline, owner }
+  /*
+    Example:
+    [
+      {
+        action: "Add 2 more developers",
+        resource_impact: "+2 FTE",
+        cost: 50000,
+        timeline: "Days 1-15",
+        owner: "PM"
+      },
+      {
+        action: "Work weekends on critical path",
+        resource_impact: "Overtime hours",
+        cost: 30000,
+        timeline: "Days 5-20",
+        owner: "Dev Lead"
+      }
+    ]
+  */
+  
+  // Expected Impact
+  recoveryDays          Int             // Days expected to recover
+  additionalCost        Decimal         @db.Decimal(15, 2)
+  riskLevel             String          // low, medium, high
+  successProbability    Decimal         @db.Decimal(5, 2) // %
+  
+  // Status
+  status                String          @default("draft") // draft, approved, in_progress, completed, abandoned
+  approvedBy            String?
+  approvalDate          DateTime?
+  
+  // Progress Tracking
+  actualRecoveredDays   Int             @default(0)
+  costActual            Decimal         @default(0) @db.Decimal(15, 2)
+  
+  // Notes
+  notes                 String?
+  
+  // Relations
+  project               projects        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([projectId, status])
+}
+
+// ============================================================================
+// EXTEND: Projects table additions
+// ============================================================================
+// Add these fields to existing projects model:
+//
+// model projects {
+//   // ... existing fields ...
+//   
+//   // Schedule & Timeline
+//   contractEndDate       DateTime?
+//   schedule              project_schedule?
+//   compliance            schedule_compliance?
+//   recoveryPlans         schedule_recovery_plan[]
+//   
+//   // Penalty Structure
+//   penaltyStructure      contract_penalty_structure?
+// }

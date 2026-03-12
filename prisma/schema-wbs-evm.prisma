@@ -1,0 +1,610 @@
+// ============================================================================
+// WBS & EVM (Earned Value Management) Schema Extension
+// Comprehensive project cost control and progress tracking
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS - Core EVM Data Types
+// ============================================================================
+
+enum WBSLevel {
+  project    // Level 0
+  phase      // Level 1
+  workpackage // Level 2
+  task       // Level 3
+  subtask    // Level 4 (optional)
+}
+
+enum ProgressMethod {
+  duration_based    // % Complete = Days Elapsed / Total Days
+  resource_based    // % Complete = Actual Hours / Planned Hours
+  deliverable_based // % Complete = Deliverables Done / Total Deliverables
+}
+
+enum CostCategory {
+  labor      // Resource hours @ rate
+  material   // Equipment, supplies, materials
+  equipment  // Tools, machinery rentals
+  overhead   // Indirect costs (% of direct)
+  contingency // Risk buffer (% of direct)
+  expense    // Actual spend/claims
+}
+
+enum PeriodType {
+  daily
+  weekly
+  monthly
+  quarterly
+}
+
+enum RiskLevel {
+  low
+  medium
+  high
+  critical
+}
+
+// ============================================================================
+// 1. WBS HIERARCHY - Project Structure
+// ============================================================================
+
+/// Work Breakdown Structure Root - Links to Projects
+model wbs_root {
+  id            String   @id @default(cuid())
+  projectId     String   @unique
+  baselineDate  DateTime @default(now())
+  isBaseline    Boolean  @default(false)
+  
+  // Relations
+  project       projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phases        wbs_phase[]
+  
+  // Metadata
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([projectId])
+}
+
+/// Phase Level (WBS Level 1)
+model wbs_phase {
+  id                String   @id @default(cuid())
+  wbsRootId         String
+  code              String
+  name              String
+  description       String?
+  sequenceNumber    Int      // 1, 2, 3...
+  
+  // Scheduling
+  plannedStartDate  DateTime
+  plannedEndDate    DateTime
+  actualStartDate   DateTime?
+  actualEndDate     DateTime?
+  
+  // Budget Allocation
+  allocatedBudget   Decimal  @db.Decimal(15, 2)
+  budgetPercent     Decimal  @db.Decimal(5, 2) // % of project budget
+  
+  // Progress Tracking
+  plannedProgress   Decimal  @default(0) @db.Decimal(5, 2) // %
+  actualProgress    Decimal  @default(0) @db.Decimal(5, 2) // %
+  
+  // Status
+  status            String   @default("planned") // planned, active, completed, on-hold
+  
+  // Relations
+  wbsRoot           wbs_root    @relation(fields: [wbsRootId], references: [id], onDelete: Cascade)
+  workpackages      wbs_workpackage[]
+  
+  // Metadata
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([wbsRootId, code])
+  @@index([wbsRootId, sequenceNumber])
+  @@index([status])
+}
+
+/// Work Package Level (WBS Level 2)
+model wbs_workpackage {
+  id                String   @id @default(cuid())
+  phaseId           String
+  code              String
+  name              String
+  description       String?
+  sequenceNumber    Int
+  
+  // Scheduling
+  plannedStartDate  DateTime
+  plannedEndDate    DateTime
+  actualStartDate   DateTime?
+  actualEndDate     DateTime?
+  
+  // Budget Allocation
+  allocatedBudget   Decimal  @db.Decimal(15, 2)
+  budgetPercent     Decimal  @db.Decimal(5, 2)
+  
+  // Progress Tracking
+  plannedProgress   Decimal  @default(0) @db.Decimal(5, 2) // %
+  actualProgress    Decimal  @default(0) @db.Decimal(5, 2) // %
+  progressMethod    ProgressMethod @default(duration_based)
+  
+  // Status
+  status            String   @default("planned")
+  
+  // Relations
+  phase             wbs_phase        @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  tasks             wbs_task[]
+  
+  // Metadata
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([phaseId, code])
+  @@index([phaseId, sequenceNumber])
+  @@index([status])
+}
+
+/// Task Level (WBS Level 3)
+model wbs_task {
+  id                String   @id @default(cuid())
+  workpackageId     String
+  code              String
+  name              String
+  description       String?
+  sequenceNumber    Int
+  
+  // Scheduling
+  plannedDuration   Int      // days
+  plannedStartDate  DateTime
+  plannedEndDate    DateTime
+  actualStartDate   DateTime?
+  actualEndDate     DateTime?
+  
+  // Progress Tracking
+  plannedProgress   Decimal  @default(0) @db.Decimal(5, 2) // %
+  actualProgress    Decimal  @default(0) @db.Decimal(5, 2) // %
+  progressMethod    ProgressMethod @default(resource_based)
+  
+  // Budget Allocation
+  allocatedBudget   Decimal  @db.Decimal(15, 2)
+  
+  // Resource Assignment
+  assignedUserId    String?
+  estimatedHours    Decimal  @db.Decimal(10, 2)
+  actualHours       Decimal  @default(0) @db.Decimal(10, 2)
+  
+  // Status & Risk
+  status            String   @default("planned")
+  riskLevel         RiskLevel @default(low)
+  
+  // Relations
+  workpackage       wbs_workpackage  @relation(fields: [workpackageId], references: [id], onDelete: Cascade)
+  assignedUser      users?           @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+  subtasks          wbs_subtask[]
+  taskCosts         task_cost_allocation[]
+  taskResources     task_resource_assignment[]
+  expenses          expenses[]
+  timesheets        timesheets[]
+  
+  // Metadata
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([workpackageId, code])
+  @@index([workpackageId, sequenceNumber])
+  @@index([assignedUserId])
+  @@index([status, riskLevel])
+}
+
+/// Subtask Level (WBS Level 4 - Optional)
+model wbs_subtask {
+  id                String   @id @default(cuid())
+  taskId            String
+  code              String
+  name              String
+  
+  // Scheduling
+  plannedDuration   Int      // days
+  actualDuration    Int?
+  
+  // Progress
+  actualProgress    Decimal  @default(0) @db.Decimal(5, 2) // %
+  
+  // Resource & Cost
+  estimatedHours    Decimal  @db.Decimal(10, 2)
+  actualHours       Decimal  @default(0) @db.Decimal(10, 2)
+  allocatedBudget   Decimal  @db.Decimal(15, 2)
+  
+  // Status
+  status            String   @default("planned")
+  
+  // Relations
+  task              wbs_task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([taskId, code])
+  @@index([taskId])
+}
+
+// ============================================================================
+// 2. COST ALLOCATION & BREAKDOWN
+// ============================================================================
+
+/// Detailed Cost Allocation per Task
+model task_cost_allocation {
+  id                String   @id @default(cuid())
+  taskId            String
+  category          CostCategory
+  
+  // Cost Components
+  planedCost        Decimal  @db.Decimal(12, 2) // BCWS component
+  actualCost        Decimal  @default(0) @db.Decimal(12, 2) // ACWP
+  committedCost     Decimal  @default(0) @db.Decimal(12, 2) // PO issued but not received
+  
+  // Details based on category
+  quantity          Decimal? @db.Decimal(10, 2)
+  unitPrice         Decimal? @db.Decimal(10, 2)
+  
+  // Metadata
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  // Relations
+  task              wbs_task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@index([taskId, category])
+}
+
+/// Resource Assignment to Tasks
+model task_resource_assignment {
+  id                String   @id @default(cuid())
+  taskId            String
+  userId            String
+  role              String   // "Developer", "QA", "PM", etc.
+  
+  // Work Assignment
+  allocatedHours    Decimal  @db.Decimal(10, 2)
+  actualHours       Decimal  @default(0) @db.Decimal(10, 2)
+  hourlyRate        Decimal  @db.Decimal(10, 2) // labor cost
+  
+  // Cost Calculation
+  plannedLaborCost  Decimal  @db.Decimal(12, 2) // allocatedHours * hourlyRate
+  actualLaborCost   Decimal  @default(0) @db.Decimal(12, 2)
+  
+  // Status
+  status            String   @default("active")
+  startDate         DateTime
+  endDate           DateTime?
+  
+  // Relations
+  task              wbs_task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user              users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([taskId, userId])
+  @@index([userId])
+}
+
+// ============================================================================
+// 3. EARNED VALUE MANAGEMENT (EVM) METRICS
+// ============================================================================
+
+/// Calculation Base: % Complete per Task
+/// Stores the completion status with timestamp for historical tracking
+model task_progress_entry {
+  id                String   @id @default(cuid())
+  taskId            String
+  progressPercent   Decimal  @db.Decimal(5, 2)
+  method            ProgressMethod
+  
+  // Supporting Data
+  completedItems    Int?     // for deliverable-based
+  totalItems        Int?     // for deliverable-based
+  completedHours    Decimal? @db.Decimal(10, 2) // for resource-based
+  notes             String?
+  
+  // Recorded By
+  recordedBy        String
+  recordedDate      DateTime @default(now())
+  
+  // Relations
+  task              wbs_task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user              users    @relation(fields: [recordedBy], references: [id])
+  
+  @@index([taskId, recordedDate])
+}
+
+/// EVM Snapshot: Period-based calculation storage
+/// Weekly/Monthly rollup of BCWS, BCWP, ACWP for each project level
+model evm_period_snapshot {
+  id                String   @id @default(cuid())
+  projectId         String
+  wbsLevel          WBSLevel
+  entityId          String   // Phase/WP/Task ID
+  periodType        PeriodType @default(monthly)
+  periodStart       DateTime
+  periodEnd         DateTime
+  
+  // ===== EARNED VALUE METRICS =====
+  // BCWS: Budget Cost of Work Scheduled
+  bcws              Decimal  @db.Decimal(15, 2) // planned cost for scheduled work
+  
+  // BCWP: Budget Cost of Work Performed
+  bcwp              Decimal  @db.Decimal(15, 2) // value of actual work done at budget rate
+  
+  // ACWP: Actual Cost of Work Performed
+  acwp              Decimal  @db.Decimal(15, 2) // true cost incurred
+  
+  // ===== PERFORMANCE INDICES =====
+  spi               Decimal? @db.Decimal(5, 3)  // Schedule Performance Index = BCWP / BCWS
+  cpi               Decimal? @db.Decimal(5, 3)  // Cost Performance Index = BCWP / ACWP
+  
+  // ===== VARIANCES =====
+  scheduleVariance  Decimal? @db.Decimal(15, 2) // SV = BCWP - BCWS
+  costVariance      Decimal? @db.Decimal(15, 2) // CV = BCWP - ACWP
+  
+  // ===== FORECAST =====
+  eac               Decimal? @db.Decimal(15, 2) // Estimate at Completion = BAC / CPI
+  etcCost           Decimal? @db.Decimal(15, 2) // Estimate to Complete = EAC - ACWP
+  vac               Decimal? @db.Decimal(15, 2) // Variance at Completion = BAC - EAC
+  
+  // ===== TREND INDICATORS =====
+  trendStatus       String? // "on-track", "at-risk", "critical"
+  
+  // Relations
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  calculatedAt      DateTime @default(now())
+  
+  @@unique([projectId, wbsLevel, entityId, periodStart])
+  @@index([projectId, periodStart])
+  @@index([spi, cpi]) // For quick risk filtering
+}
+
+// ============================================================================
+// 4. BASELINE & CHANGE CONTROL
+// ============================================================================
+
+/// Project Baseline: Frozen reference for variance analysis
+model project_baseline {
+  id                String   @id @default(cuid())
+  projectId         String
+  baselineNumber    Int      // Baseline 0, 1, 2...
+  baselineType      String   @default("performance") // performance, budget, schedule
+  
+  // Baseline Data (snapshot)
+  totalBudget       Decimal  @db.Decimal(15, 2)
+  totalDuration     Int      // days
+  baselineDate      DateTime
+  baselineSnapshot  Json     // JSON snapshot of all WBS + costs
+  
+  // Status
+  isActive          Boolean  @default(false)
+  approvedBy        String?
+  approvedDate      DateTime?
+  
+  // Relations
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt         DateTime  @default(now())
+  
+  @@unique([projectId, baselineNumber])
+  @@index([projectId, isActive])
+}
+
+/// Scope Change Request Log
+model change_request {
+  id                String   @id @default(cuid())
+  projectId         String
+  title             String
+  description       String
+  
+  // Impact Assessment
+  estimatedCostImpact    Decimal? @db.Decimal(15, 2)
+  estimatedScheduleImpact Int?     // days
+  affectedWBSElements    String[]  // JSON array of WBS IDs
+  
+  // Approval Workflow
+  status            String   @default("pending") // pending, approved, rejected, implemented
+  submittedBy       String
+  approvedBy        String?
+  approvalDate      DateTime?
+  rejectionReason   String?
+  
+  // Implementation
+  implementedDate   DateTime?
+  closeoutNotes     String?
+  
+  // Relations
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([projectId, status])
+}
+
+// ============================================================================
+// 5. PERIOD & REPORTING CONFIGURATION
+// ============================================================================
+
+/// Reporting Period Configuration per Project
+model reporting_period {
+  id                String   @id @default(cuid())
+  projectId         String   @unique
+  periodType        PeriodType @default(monthly)
+  
+  // Period Start Configuration
+  periodStartDay    Int      @default(1) // day of month for monthly, day of week for weekly
+  fiscalYearStart   String?  // e.g., "01-01"
+  
+  // Relations
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// ============================================================================
+// 6. COST CONTROL & COMMITMENT TRACKING
+// ============================================================================
+
+/// Purchase Orders / Commitments
+model project_commitment {
+  id                String   @id @default(cuid())
+  projectId         String
+  taskId            String?
+  
+  // PO Details
+  poNumber          String   @unique
+  vendor            String
+  description       String
+  
+  // Cost
+  poAmount          Decimal  @db.Decimal(15, 2)
+  category          CostCategory
+  
+  // Status
+  status            String   @default("issued") // issued, received, invoiced, paid
+  issuedDate        DateTime
+  expectedDelivery  DateTime?
+  actualDelivery    DateTime?
+  invoiceDate       DateTime?
+  paidDate          DateTime?
+  
+  // Relations
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task              wbs_task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  
+  // Metadata
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([projectId, status])
+  @@index([taskId])
+}
+
+// ============================================================================
+// 7. RISK & VARIANCE ANALYSIS
+// ============================================================================
+
+/// Risk Register with Cost/Schedule Impact
+model project_risk {
+  id                String   @id @default(cuid())
+  projectId         String
+  wbsTaskId         String?
+  
+  // Risk Definition
+  code              String
+  title             String
+  description       String
+  category          String   // Technical, Resource, External, Financial
+  
+  // Impact Assessment
+  probability       Decimal  @db.Decimal(3, 2) // 0.0 - 1.0
+  impactCost        Decimal? @db.Decimal(12, 2)
+  impactSchedule    Int?     // days
+  riskScore         Decimal? @db.Decimal(5, 2) // probability * impact
+  
+  // Mitigation
+  mitigationPlan    String?
+  owner             String?
+  
+  // Status
+  status            String   @default("identified") // identified, monitoring, mitigated, closed
+  
+  // Relations
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task              wbs_task? @relation(fields: [wbsTaskId], references: [id], onDelete: SetNull)
+  
+  // Metadata
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([projectId, riskScore])
+}
+
+// ============================================================================
+// 8. S-CURVE DATA FOR REPORTING
+// ============================================================================
+
+/// S-Curve: Cumulative values by period for visualization
+model scurve_data {
+  id                String   @id @default(cuid())
+  projectId         String
+  periodDate        DateTime // Start of period
+  
+  // Cumulative Values
+  cumulativeBcws    Decimal  @db.Decimal(15, 2)
+  cumulativeBcwp    Decimal  @db.Decimal(15, 2)
+  cumulativeAcwp    Decimal  @db.Decimal(15, 2)
+  
+  // Calculated %
+  plannedPercent    Decimal  @db.Decimal(5, 2) // cumBCWS / BAC * 100
+  earnedPercent     Decimal  @db.Decimal(5, 2) // cumBCWP / BAC * 100
+  actualPercent     Decimal  @db.Decimal(5, 2) // cumACWP / BAC * 100
+  
+  // Indices at this point
+  spi               Decimal  @db.Decimal(5, 3)
+  cpi               Decimal  @db.Decimal(5, 3)
+  
+  // Relations
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  calculatedAt      DateTime @default(now())
+  
+  @@unique([projectId, periodDate])
+  @@index([projectId])
+}
+
+// ============================================================================
+// EXTEND: Update existing Projects model
+// ============================================================================
+
+// Add these fields to the projects table:
+// model projects {
+//   // ... existing fields ...
+//   
+//   // EVM Fields
+//   bac                    Decimal  @db.Decimal(15, 2)  // Budget at Completion
+//   currentBcws            Decimal  @default(0) @db.Decimal(15, 2)
+//   currentBcwp            Decimal  @default(0) @db.Decimal(15, 2)
+//   currentAcwp            Decimal  @default(0) @db.Decimal(15, 2)
+//   currentSpi             Decimal  @default(1.00) @db.Decimal(5, 3)
+//   currentCpi             Decimal  @default(1.00) @db.Decimal(5, 3)
+//   
+//   // WBS Relations
+//   wbsRoot                wbs_root?
+//   baselineSnapshots      project_baseline[]
+//   changeRequests         change_request[]
+//   commitments            project_commitment[]
+//   risks                  project_risk[]
+//   evmSnapshots           evm_period_snapshot[]
+//   scurveData             scurve_data[]
+//   reportingPeriod        reporting_period?
+//   
+//   // Last Calculation
+//   lastEVMCalculation     DateTime?
+// }

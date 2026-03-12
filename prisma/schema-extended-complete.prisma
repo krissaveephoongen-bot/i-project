@@ -1,0 +1,763 @@
+// ============================================================================
+// EXTENDED PROJECT MANAGEMENT SCHEMA
+// Comprehensive system with WBS, EVM, Vendor, Customer, and Billing
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum InvoiceStatus {
+  draft
+  sent
+  viewed
+  partial_paid
+  paid
+  overdue
+  cancelled
+}
+
+enum BillingType {
+  fixed_price       // Single amount for entire project
+  time_and_material // Based on hours + materials
+  milestone_based   // Billing at project milestones
+  installment       // Multiple installments over time
+  hybrid            // Combination of above
+}
+
+enum PaymentTerms {
+  immediate         // Due immediately
+  net15            // Due in 15 days
+  net30            // Due in 30 days
+  net45            // Due in 45 days
+  net60            // Due in 60 days
+  custom           // Custom terms
+}
+
+enum InstallmentStatus {
+  scheduled
+  invoiced
+  partial_paid
+  fully_paid
+  overdue
+  cancelled
+}
+
+enum TaxType {
+  vat              // Value Added Tax
+  gst              // Goods & Services Tax
+  sales_tax        // Sales Tax
+  none
+}
+
+enum CustomerType {
+  enterprise
+  smb              // Small/Medium Business
+  startup
+  government
+  non_profit
+}
+
+enum VendorType {
+  supplier         // Raw materials, supplies
+  contractor       // Labor/Services
+  equipment        // Equipment rental/sale
+  outsourcer       // Outsourced services
+  consultant       // Consulting services
+}
+
+enum VendorRating {
+  poor
+  satisfactory
+  good
+  excellent
+}
+
+enum KpiCategory {
+  quality
+  timeliness
+  cost
+  communication
+  technical
+}
+
+// ============================================================================
+// CUSTOMER MANAGEMENT
+// ============================================================================
+
+/// Customer Profile - Updated with billing and contract info
+model customers {
+  id                String       @id @default(cuid())
+  
+  // Basic Info
+  name              String
+  customerType      CustomerType @default(enterprise)
+  contactPerson     String?
+  email             String
+  phone             String?
+  address           String?
+  city              String?
+  country           String?
+  taxId             String?      // VAT/Tax registration number
+  
+  // Billing Info
+  billingAddress    String?
+  billingCity       String?
+  billingCountry    String?
+  billingEmail      String?
+  
+  // Payment Terms
+  defaultPaymentTerms PaymentTerms @default(net30)
+  creditLimit       Decimal?     @db.Decimal(15, 2)
+  creditUsed        Decimal      @default(0) @db.Decimal(15, 2)
+  
+  // Credit Policy
+  creditRating      String?      // AAA, AA, A, BBB, etc.
+  
+  // Contact Info
+  notes             String?
+  
+  // Relations
+  projects          projects[]
+  contacts          customer_contacts[]
+  invoices          invoices[]
+  payments          customer_payments[]
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([customerType, creditRating])
+}
+
+/// Customer Contact Persons
+model customer_contacts {
+  id                String       @id @default(cuid())
+  customerId        String
+  name              String
+  title             String?
+  email             String
+  phone             String?
+  isPrimary         Boolean      @default(false)
+  role              String       // decision_maker, technical_contact, billing_contact
+  
+  // Relations
+  customer          customers    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([customerId])
+}
+
+// ============================================================================
+// VENDOR MANAGEMENT (Extended)
+// ============================================================================
+
+/// Vendor Profile - Comprehensive vendor information
+model vendors {
+  id                String       @id @default(cuid())
+  
+  // Basic Info
+  code              String       @unique
+  name              String
+  vendorType        VendorType   @default(supplier)
+  category          String?      // Electronics, Software, Construction, etc.
+  email             String
+  phone             String
+  address           String
+  city              String
+  country           String
+  
+  // Tax & Legal
+  taxId             String?
+  licenseNumber     String?
+  
+  // Contact & Relationship
+  primaryContact    String?
+  accountManager    String?
+  status            String       @default("active") // active, inactive, blacklisted
+  
+  // Payment Info
+  bankAccount       String?
+  bankName          String?
+  paymentTerms      PaymentTerms @default(net30)
+  creditLimit       Decimal?     @db.Decimal(12, 2)
+  
+  // Performance & Rating
+  overallRating     VendorRating @default(satisfactory)
+  totalProjects     Int          @default(0)
+  successfulProjects Int         @default(0)
+  averageDeliveryTime Int?       // days
+  onTimeDeliveryRate Decimal?    @db.Decimal(5, 2) // percentage
+  
+  // Metrics
+  totalSpent        Decimal      @default(0) @db.Decimal(15, 2)
+  averageOrderValue Decimal?     @db.Decimal(12, 2)
+  
+  notes             String?
+  
+  // Relations
+  contracts         vendor_contracts[]
+  payments          vendor_payments[]
+  invoices          vendor_invoices[]
+  kpiEvaluations    vendor_kpi_evaluations[]
+  expenseItems      expense_items[]
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([vendorType, status])
+  @@index([overallRating])
+}
+
+// ============================================================================
+// VENDOR CONTRACTS & PROCUREMENT
+// ============================================================================
+
+/// Vendor Contracts - Master agreement with vendor
+model vendor_contracts {
+  id                String       @id @default(cuid())
+  vendorId          String
+  projectId         String?
+  
+  // Contract Details
+  contractNumber    String       @unique
+  title             String
+  description       String?
+  contractType      String       // Framework, Project, Supply, Service, etc.
+  
+  // Dates & Duration
+  startDate         DateTime
+  endDate           DateTime?
+  autoRenewal       Boolean      @default(false)
+  
+  // Value & Terms
+  value             Decimal      @db.Decimal(15, 2)
+  currency          String       @default("THB")
+  paymentTerms      String?
+  paymentSchedule   Json?        // Structured payment schedule
+  
+  // Status
+  status            String       @default("draft") // draft, active, expired, terminated
+  signedDate        DateTime?
+  signedBy          String?      // User ID
+  
+  // Scope & Deliverables
+  scope             String?
+  deliverables      Json?        // Array of deliverable descriptions
+  milestones        Json?        // Milestone definitions
+  
+  notes             String?
+  
+  // Relations
+  vendor            vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  project           projects?    @relation(fields: [projectId], references: [id])
+  payments          vendor_payments[]
+  invoices          vendor_invoices[]
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([vendorId, status])
+  @@index([projectId])
+}
+
+/// Purchase Orders - Specific orders against contracts
+model purchase_orders {
+  id                String       @id @default(cuid())
+  vendorId          String
+  contractId        String?
+  projectId         String
+  
+  // PO Details
+  poNumber          String       @unique
+  description       String
+  
+  // Financial
+  amount            Decimal      @db.Decimal(15, 2)
+  currency          String       @default("THB")
+  
+  // Items breakdown
+  lineItems         Json         // Array of { description, qty, unit, unitPrice, total }
+  
+  // Dates
+  issuedDate        DateTime
+  expectedDelivery  DateTime
+  actualDelivery    DateTime?
+  
+  // Status Tracking
+  status            String       @default("issued") // issued, confirmed, received, invoiced, paid
+  
+  // Receiving & QC
+  receivedQuantity  Int?
+  qcStatus          String?      // passed, failed, partial
+  qcNotes           String?
+  
+  // Invoicing
+  invoiceNumber     String?
+  invoiceAmount     Decimal?     @db.Decimal(15, 2)
+  invoiceDate       DateTime?
+  
+  notes             String?
+  
+  // Relations
+  vendor            vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  contract          vendor_contracts? @relation(fields: [contractId], references: [id])
+  project           projects     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([vendorId, status])
+  @@index([projectId])
+  @@index([poNumber])
+}
+
+// ============================================================================
+// VENDOR INVOICING & PAYMENT
+// ============================================================================
+
+/// Vendor Invoices - From vendor to company
+model vendor_invoices {
+  id                String       @id @default(cuid())
+  vendorId          String
+  contractId        String?
+  projectId         String?
+  
+  // Invoice Details
+  invoiceNumber     String       @unique
+  invoiceDate       DateTime
+  dueDate           DateTime
+  
+  // Amount
+  subtotal          Decimal      @db.Decimal(15, 2)
+  tax               Decimal      @db.Decimal(15, 2)
+  totalAmount       Decimal      @db.Decimal(15, 2)
+  
+  // Description
+  description       String?
+  lineItems         Json?        // Detailed line items
+  
+  // Status
+  status            String       @default("received") // received, under_review, approved, paid, disputed, cancelled
+  
+  // Payment
+  paidAmount        Decimal      @default(0) @db.Decimal(15, 2)
+  paidDate          DateTime?
+  remainingAmount   Decimal      @db.Decimal(15, 2)
+  
+  // Approval
+  approvedBy        String?
+  approvedDate      DateTime?
+  
+  // Notes
+  notes             String?
+  
+  // Relations
+  vendor            vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  contract          vendor_contracts? @relation(fields: [contractId], references: [id])
+  project           projects?    @relation(fields: [projectId], references: [id])
+  payments          vendor_payments[]
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([vendorId, status])
+  @@index([dueDate, status])
+}
+
+/// Vendor Payments - Payment made to vendor
+model vendor_payments {
+  id                String       @id @default(cuid())
+  vendorId          String
+  contractId        String?
+  invoiceId         String?
+  projectId         String?
+  
+  // Payment Details
+  paymentDate       DateTime
+  amount            Decimal      @db.Decimal(15, 2)
+  currency          String       @default("THB")
+  
+  // Payment Info
+  paymentMethod     String       // bank_transfer, cheque, credit_card, cash
+  transactionId     String?      // Bank transaction ID
+  referenceNumber   String?
+  
+  // Status
+  status            String       @default("pending") // pending, processed, completed, failed, cancelled
+  
+  // Approval
+  approvedBy        String?
+  approvedDate      DateTime?
+  
+  notes             String?
+  
+  // Relations
+  vendor            vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  contract          vendor_contracts? @relation(fields: [contractId], references: [id])
+  invoice           vendor_invoices? @relation(fields: [invoiceId], references: [id])
+  project           projects?    @relation(fields: [projectId], references: [id])
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([vendorId, status])
+  @@index([paymentDate])
+}
+
+// ============================================================================
+// CUSTOMER INVOICING & BILLING
+// ============================================================================
+
+/// Billing Configuration per Project
+model project_billing {
+  id                String       @id @default(cuid())
+  projectId         String       @unique
+  customerId        String
+  
+  // Billing Setup
+  billingType       BillingType  @default(milestone_based)
+  totalBillingAmount Decimal     @db.Decimal(15, 2)
+  
+  // Terms
+  paymentTerms      PaymentTerms @default(net30)
+  currency          String       @default("THB")
+  taxType           TaxType      @default(vat)
+  taxRate           Decimal      @default(7.0) @db.Decimal(5, 2)
+  
+  // Billing Method
+  billingFrequency  String       // monthly, quarterly, milestone, custom
+  
+  // Discount
+  discountPercent   Decimal      @default(0) @db.Decimal(5, 2)
+  discountAmount    Decimal      @default(0) @db.Decimal(15, 2)
+  discountReason    String?
+  
+  // Status
+  status            String       @default("active")
+  
+  // Relations
+  project           projects     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  customer          customers    @relation(fields: [customerId], references: [id])
+  installments      billing_installments[]
+  invoices          invoices[]
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([projectId, customerId])
+}
+
+/// Billing Installments - Payment schedule breakdown
+model billing_installments {
+  id                String       @id @default(cuid())
+  billingId         String
+  
+  // Installment Details
+  installmentNumber Int          // 1st, 2nd, 3rd...
+  totalInstallments Int
+  
+  // Amount
+  amount            Decimal      @db.Decimal(15, 2)
+  percentOfTotal    Decimal      @db.Decimal(5, 2) // %
+  
+  // Milestone (if milestone-based)
+  milestoneId       String?
+  milestoneName     String?
+  
+  // Dates
+  scheduledDate     DateTime
+  dueDate           DateTime
+  actualPaymentDate DateTime?
+  
+  // Payment Status
+  status            InstallmentStatus @default(scheduled)
+  paidAmount        Decimal      @default(0) @db.Decimal(15, 2)
+  
+  // Invoicing
+  invoiced          Boolean      @default(false)
+  invoiceId         String?
+  
+  // Notes
+  notes             String?
+  
+  // Relations
+  billing           project_billing @relation(fields: [billingId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([billingId, status])
+  @@index([dueDate])
+}
+
+/// Customer Invoices - Sent to customer
+model invoices {
+  id                String       @id @default(cuid())
+  customerId        String
+  billingId         String?
+  projectId         String
+  
+  // Invoice Details
+  invoiceNumber     String       @unique
+  invoiceDate       DateTime
+  dueDate           DateTime
+  
+  // Amount Details
+  subtotal          Decimal      @db.Decimal(15, 2) // Before tax and discount
+  discountAmount    Decimal      @default(0) @db.Decimal(15, 2)
+  taxAmount         Decimal      @db.Decimal(15, 2)
+  totalAmount       Decimal      @db.Decimal(15, 2) // Final amount due
+  
+  // Line Items
+  lineItems         Json         // Array of { description, qty, unitPrice, amount }
+  notes             String?
+  
+  // Status
+  status            InvoiceStatus @default(draft)
+  
+  // Payment Tracking
+  paidAmount        Decimal      @default(0) @db.Decimal(15, 2)
+  remainingAmount   Decimal      @db.Decimal(15, 2)
+  paidDate          DateTime?
+  
+  // Payment Link
+  paymentLink       String?
+  paymentMethod     String?      // online, bank_transfer, cash, check
+  
+  // Dates
+  sentDate          DateTime?
+  viewedDate        DateTime?
+  approvedDate      DateTime?
+  
+  // Relations
+  customer          customers    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  billing           project_billing? @relation(fields: [billingId], references: [id])
+  project           projects     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  payments          customer_payments[]
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([customerId, status])
+  @@index([projectId])
+  @@index([dueDate])
+}
+
+/// Customer Payments - Payment received from customer
+model customer_payments {
+  id                String       @id @default(cuid())
+  customerId        String
+  invoiceId         String?
+  projectId         String
+  
+  // Payment Details
+  paymentDate       DateTime
+  amount            Decimal      @db.Decimal(15, 2)
+  
+  // Payment Reference
+  referenceNumber   String?
+  paymentMethod     String       // bank_transfer, cash, cheque, credit_card
+  transactionId     String?
+  
+  // Status
+  status            String       @default("recorded") // recorded, verified, reconciled
+  
+  // Notes
+  notes             String?
+  
+  // Relations
+  customer          customers    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoice           invoices?    @relation(fields: [invoiceId], references: [id])
+  project           projects     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([customerId, paymentDate])
+  @@index([invoiceId])
+}
+
+// ============================================================================
+// PROJECT FINANCIALS CONSOLIDATION
+// ============================================================================
+
+/// Project Financial Summary - Consolidated view
+model project_financials {
+  id                String       @id @default(cuid())
+  projectId         String       @unique
+  
+  // Revenue
+  totalBillingAmount Decimal     @db.Decimal(15, 2) // Contract value
+  totalInvoiced     Decimal      @default(0) @db.Decimal(15, 2)
+  totalCollected    Decimal      @default(0) @db.Decimal(15, 2)
+  pendingCollection Decimal      @db.Decimal(15, 2)
+  
+  // Cost
+  totalCost         Decimal      @default(0) @db.Decimal(15, 2)
+  laborCost         Decimal      @default(0) @db.Decimal(15, 2)
+  materialCost      Decimal      @default(0) @db.Decimal(15, 2)
+  equipmentCost     Decimal      @default(0) @db.Decimal(15, 2)
+  overheadCost      Decimal      @default(0) @db.Decimal(15, 2)
+  otherCost         Decimal      @default(0) @db.Decimal(15, 2)
+  
+  // Profit Analysis
+  grossProfit       Decimal      @db.Decimal(15, 2)
+  marginPercent     Decimal      @db.Decimal(5, 2)
+  netProfit         Decimal      @db.Decimal(15, 2)
+  roi               Decimal      @db.Decimal(5, 2) // Return on Investment %
+  
+  // Budget Status
+  budgetVariance    Decimal      @db.Decimal(15, 2)
+  budgetVariancePercent Decimal  @db.Decimal(5, 2)
+  
+  // Cash Flow
+  daysOverdue       Int          @default(0)
+  collectionRate    Decimal      @db.Decimal(5, 2) // % of invoices on time
+  averagePaymentDays Int?        // Avg days to collect
+  
+  // Last Update
+  lastUpdated       DateTime     @default(now())
+  
+  // Relations
+  project           projects     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+/// Expense Items with Vendor Info - Enhanced
+model expense_items {
+  id                String       @id @default(cuid())
+  expenseId         String
+  vendorId          String?
+  
+  // Item Details
+  category          String       // labor, material, equipment, overhead, contingency
+  subcategory       String?
+  description       String
+  quantity          Decimal      @db.Decimal(10, 2)
+  unitPrice         Decimal      @db.Decimal(12, 2)
+  totalPrice        Decimal      @db.Decimal(12, 2)
+  
+  // Cost Breakdown
+  baseCost          Decimal      @db.Decimal(12, 2)
+  markup            Decimal      @default(0) @db.Decimal(5, 2)
+  marginAmount      Decimal      @db.Decimal(12, 2)
+  finalPrice        Decimal      @db.Decimal(12, 2)
+  
+  // Vendor Info
+  vendorItemCode    String?
+  vendorInvoice     String?
+  
+  // Coding
+  projectCode       String?
+  taskCode          String?
+  
+  notes             String?
+  
+  // Relations
+  expense           expenses     @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  vendor            vendors?     @relation(fields: [vendorId], references: [id])
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([expenseId, category])
+  @@index([vendorId])
+}
+
+// ============================================================================
+// VENDOR KPI & PERFORMANCE
+// ============================================================================
+
+/// Vendor KPI Evaluations
+model vendor_kpi_evaluations {
+  id                String       @id @default(cuid())
+  vendorId          String
+  projectId         String?
+  evaluationPeriod  String       // e.g., "2024-Q1"
+  
+  // KPI Scores (1-10 scale)
+  qualityScore      Decimal      @db.Decimal(3, 1)
+  timelinessScore   Decimal      @db.Decimal(3, 1)
+  costScore         Decimal      @db.Decimal(3, 1)
+  communicationScore Decimal     @db.Decimal(3, 1)
+  technicalScore    Decimal      @db.Decimal(3, 1)
+  
+  // Overall
+  overallScore      Decimal      @db.Decimal(3, 1)
+  rating            VendorRating
+  
+  // Evaluation
+  evaluatorId       String
+  strengths         String?
+  weaknesses        String?
+  recommendations   String?
+  nextEvaluationDate DateTime?
+  
+  notes             String?
+  
+  // Relations
+  vendor            vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  project           projects?    @relation(fields: [projectId], references: [id])
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([vendorId, evaluationPeriod])
+}
+
+// ============================================================================
+// EXTEND: Projects table additions
+// ============================================================================
+// Add these fields to existing projects model:
+//
+// model projects {
+//   // ... existing WBS/EVM fields ...
+//   
+//   // Customer & Billing
+//   customerId              String?
+//   customer                customers?    @relation(fields: [customerId], references: [id])
+//   billing                 project_billing?
+//   financials              project_financials?
+//   invoices                invoices[]
+//   customerPayments        customer_payments[]
+//   
+//   // Vendor & Procurement
+//   contracts               vendor_contracts[]
+//   purchaseOrders          purchase_orders[]
+//   vendorInvoices          vendor_invoices[]
+//   vendorPayments          vendor_payments[]
+//   vendorEvaluations       vendor_kpi_evaluations[]
+//   
+//   // Project Dates
+//   completionDate          DateTime?
+//   
+//   // Relations
+//   manager                 users?        @relation(fields: [managerId], references: [id])
+// }

@@ -1,100 +1,173 @@
-import { NextRequest } from "next/server";
-import { ok, err } from "../../_lib/db";
-import { supabase } from "@/app/lib/supabaseClient";
-import { z } from "zod";
-import bcrypt from "bcryptjs";
+// API Routes for Users by ID
+// Uses the UserService for all database operations
 
-export async function PATCH(
+import { NextRequest, NextResponse } from 'next/server'
+import { userService } from '@/lib/services/user-service'
+import { z } from 'zod'
+
+export const dynamic = "force-dynamic";
+
+// GET /api/users/[id] - Get user by ID
+export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
   try {
-    const userId = params.id;
-    const body = await request.json();
-    const { updates } = body;
+    const { id } = params
 
-    if (!userId || !updates) {
-      return err("User ID and updates are required", 400);
+    const user = await userService.findWithRelations(id)
+    
+    if (!user) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'User not found',
+          message: `User with ID ${id} not found`
+        },
+        { status: 404 }
+      )
     }
 
+    return NextResponse.json({
+      success: true,
+      data: user
+    })
+  } catch (error) {
+    console.error(`GET /api/users/${params.id} error:`, error)
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to fetch user',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
+  }
+}
+
+// PATCH /api/users/[id] - Update user
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params
+    const body = await request.json()
+    
     const schema = z.object({
       name: z.string().min(1).optional(),
       email: z.string().email().optional(),
       role: z.enum(["admin", "manager", "employee"]).optional(),
-      status: z.enum(["active", "inactive"]).optional(),
-      employeeCode: z.number().int().nonnegative().optional(),
+      status: z.string().optional(),
+      employeeCode: z.string().optional(),
       phone: z.string().optional(),
       timezone: z.string().optional(),
       hourlyRate: z.number().optional(),
       isActive: z.boolean().optional(),
       isDeleted: z.boolean().optional(),
       password: z.string().min(6).optional(),
-    });
-    const parsed = schema.parse(updates);
-    const payload: any = {
-      updatedAt: new Date().toISOString(),
-    };
-    if (typeof parsed.name !== "undefined") payload.name = parsed.name;
-    if (typeof parsed.email !== "undefined") payload.email = parsed.email;
-    if (typeof parsed.role !== "undefined") payload.role = parsed.role;
-    if (typeof parsed.status !== "undefined") payload.status = parsed.status;
-    if (typeof parsed.employeeCode !== "undefined")
-      payload.employeeCode = String(parsed.employeeCode);
-    if (typeof parsed.phone !== "undefined") payload.phone = parsed.phone;
-    if (typeof parsed.timezone !== "undefined")
-      payload.timezone = parsed.timezone;
-    if (typeof parsed.hourlyRate !== "undefined")
-      payload.hourlyRate = parsed.hourlyRate;
-    if (typeof parsed.isActive !== "undefined")
-      payload.isActive = parsed.isActive;
-    if (typeof parsed.isDeleted !== "undefined")
-      payload.isDeleted = parsed.isDeleted;
-    if (typeof parsed.password !== "undefined") {
-      const hash = await bcrypt.hash(parsed.password, 10);
-      payload.password = hash;
-      payload.password_hash = hash;
-      payload.hashed_password = hash;
-    }
-    const { data, error } = await supabase
-      .from("users")
-      .update(payload)
-      .eq("id", userId)
-      .select(
-        "id,name,email,role,status,employeeCode,isActive,isDeleted,timezone,hourlyRate,updatedAt",
+    })
+    
+    const parsed = schema.parse(body)
+    
+    // Check if user exists
+    const existingUser = await userService.findById(id)
+    if (!existingUser) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'User not found',
+          message: `User with ID ${id} not found`
+        },
+        { status: 404 }
       )
-      .limit(1);
-    if (error) return err(error.message || "update failed", 500);
-    return ok(
-      { user: (data || [])[0] || {}, message: "User updated successfully" },
-      200,
-    );
+    }
+
+    // Check if email is being changed to an existing email
+    if (parsed.email && parsed.email !== existingUser.email) {
+      const emailExists = await userService.findByEmail(parsed.email)
+      if (emailExists) {
+        return NextResponse.json(
+          { 
+          success: false, 
+          error: 'Email already exists',
+          message: 'A user with this email address is already registered'
+        },
+          { status: 400 }
+        )
+      }
+    }
+
+    const user = await userService.update(id, parsed)
+
+    return NextResponse.json({
+      success: true,
+      data: user,
+      message: 'User updated successfully'
+    })
   } catch (error) {
-    return err("Internal server error", 500);
+    console.error(`PATCH /api/users/${params.id} error:`, error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Validation error',
+          message: error.errors[0]?.message || 'Invalid input data'
+        },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to update user',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
   }
 }
 
+// DELETE /api/users/[id] - Delete user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
   try {
-    const userId = params.id;
+    const { id } = params
 
-    if (!userId) {
-      return err("User ID is required", 400);
+    // Check if user exists
+    const existingUser = await userService.findById(id)
+    if (!existingUser) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'User not found',
+          message: `User with ID ${id} not found`
+        },
+        { status: 404 }
+      )
     }
 
-    const { error } = await supabase
-      .from("users")
-      .update({
-        isDeleted: true,
-        isActive: false,
-        updatedAt: new Date().toISOString(),
-      })
-      .eq("id", userId);
-    if (error) return err(error.message || "delete failed", 500);
-    return ok({ message: "User deleted successfully" }, 200);
+    // Soft delete user
+    const user = await userService.softDelete(id)
+
+    return NextResponse.json({
+      success: true,
+      data: user,
+      message: 'User deleted successfully'
+    })
   } catch (error) {
-    return err("Internal server error", 500);
+    console.error(`DELETE /api/users/${params.id} error:`, error)
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to delete user',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
   }
 }

@@ -1,253 +1,328 @@
-import { NextRequest } from "next/server";
-import { ok, err } from "../_lib/db";
-import { supabase } from "@/app/lib/supabaseClient";
-import crypto from "node:crypto";
-import bcrypt from "bcryptjs";
-import { z } from "zod";
-import redis from "@/lib/redis";
-import { isSchemaColumnError } from "../_lib/supabaseCompat";
+// API Routes for Users
+// Uses the UserService for all database operations
+
+import { NextRequest, NextResponse } from 'next/server'
+import { userService } from '@/lib/services/user-service'
+import { z } from 'zod'
+
+// Validation schemas
+const createUserSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  role: z.enum(['admin', 'manager', 'employee']).default('employee'),
+  department: z.string().optional(),
+  position: z.string().optional(),
+  employeeCode: z.string().optional(),
+  phone: z.string().optional(),
+  hourlyRate: z.number().optional(),
+})
+
+const updateUserSchema = z.object({
+  name: z.string().min(1, 'Name is required').optional(),
+  email: z.string().email('Invalid email format').optional(),
+  role: z.enum(['admin', 'manager', 'employee']).optional(),
+  department: z.string().optional(),
+  position: z.string().optional(),
+  employeeCode: z.string().optional(),
+  phone: z.string().optional(),
+  hourlyRate: z.number().optional(),
+  status: z.string().optional(),
+  isActive: z.boolean().optional(),
+})
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+// GET /api/users - Get all users
+export async function GET(request: NextRequest) {
   try {
-    const u = new URL(req.url);
-    const q = u.searchParams.get("q") || "";
-    const role = u.searchParams.get("role") || "";
-    const status = u.searchParams.get("status") || "";
-    const page = Number(u.searchParams.get("page") || 1);
-    const pageSize = Number(u.searchParams.get("pageSize") || 50);
+    const { searchParams } = new URL(request.url)
+    const search = searchParams.get('search') || ''
+    const role = searchParams.get('role') || ''
+    const page = searchParams.get('page') || '1'
+    const limit = searchParams.get('limit') || '10'
 
-    // Create cache key based on filters
-    const cacheKey = `users:${JSON.stringify({ q, role, status, page, pageSize })}`;
-
-    // Try to get from Redis cache first
-    const cached = await redis.get(cacheKey);
-
-    if (cached) {
-      console.log("Cache hit for users:", cacheKey);
-      return ok(JSON.parse(cached), 200);
+    // Build where clause
+    let where: any = {}
+    
+    if (role && typeof role === 'string') {
+      where.role = role
+    }
+    
+    if (search && typeof search === 'string') {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { employeeCode: { contains: search, mode: 'insensitive' } },
+        { department: { contains: search, mode: 'insensitive' } }
+      ]
     }
 
-    console.log("Cache miss for users, fetching from database");
+    where.isActive = true
+    where.isDeleted = false
 
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
+    const pagination = {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sortBy: 'name',
+      sortOrder: 'asc' as const
+    }
 
-    const orderCols = ["name", "created_at"] as const;
-    const statusModes = status
-      ? (["status", "is_active", "none"] as const)
-      : (["none"] as const);
-    const roleModes = role ? ([true, false] as const) : ([false] as const);
+    const result = await userService.findPaginated(pagination, {
+      where,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        department: true,
+        position: true,
+        employeeCode: true,
+        phone: true,
+        status: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    })
 
-    let rows: any[] = [];
-    let total = 0;
-    let lastErr: any = null;
+    return NextResponse.json({
+      success: true,
+      data: result.data,
+      pagination: result.pagination
+    })
+  } catch (error) {
+      console.error('GET /api/users error:', error)
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Failed to fetch users',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        },
+        { status: 500 }
+      )
+    }
+}
 
-    outer: for (const orderCol of orderCols) {
-      for (const statusMode of statusModes) {
-        for (const applyRole of roleModes) {
-          let query: any = supabase
-            .from("users")
-            .select("*", { count: "exact" });
-          if (q) query = query.or(`name.ilike.%${q}%,email.ilike.%${q}%`);
-          if (applyRole && role) query = query.eq("role", role);
-          if (status && statusMode === "status")
-            query = query.eq("status", status);
-          if (status && statusMode === "is_active")
-            query = query.eq(
-              "is_active",
-              String(status).toLowerCase() === "active",
-            );
-          query = query.order(orderCol as any, {
-            ascending: orderCol === "name",
-          });
-          const res = await query.range(from, to);
-          if (!res.error) {
-            rows = res.data || [];
-            total = res.count || 0;
-            lastErr = null;
-            break outer;
-          }
-          lastErr = res.error;
-          if (isSchemaColumnError(res.error)) continue;
-          break outer;
-        }
+// POST /api/users - Create new user
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    
+    // Validate input
+    const validatedData = createUserSchema.parse(body)
+
+    // Check if user already exists
+    const existingUser = await userService.findByEmail(validatedData.email)
+    if (existingUser) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'User with this email already exists',
+          message: 'A user with this email address is already registered'
+        },
+        { status: 400 }
+      )
+    }
+
+    // Check if employee code is unique (if provided)
+    if (validatedData.employeeCode) {
+      const existingEmployeeCode = await userService.findByEmployeeCode(validatedData.employeeCode)
+      if (existingEmployeeCode) {
+        return NextResponse.json(
+          { 
+          success: false, 
+          error: 'Employee code already exists',
+          message: 'An employee with this code is already registered'
+        },
+        { status: 400 }
+        )
       }
     }
-    if (lastErr) throw lastErr;
 
-    const mapped = (rows || []).map((r: any) => ({
-      id: r.id,
-      name: r.name ?? r.full_name ?? "",
-      email: r.email ?? "",
-      role: r.role ?? "employee",
-      status: r.status ?? (r.is_active === false ? "inactive" : "active"),
-      department: r.department ?? null,
-      position: r.position ?? null,
-      avatar: r.avatar ?? r.avatar_url ?? null,
-      phone: String(r.phone ?? "").replace(/[\r\n]+/g, ""),
-      timezone: r.timezone ?? null,
-      is_active: r.is_active ?? true,
-      is_deleted: r.is_deleted ?? false,
-      failed_login_attempts: r.failed_login_attempts ?? 0,
-      is_project_manager: r.is_project_manager ?? false,
-      is_supervisor: r.is_supervisor ?? false,
-      hourly_rate: Number(r.hourly_rate ?? r.hourlyRate ?? 0),
-      employee_code: r.employee_code ?? r.employeeCode ?? "",
-      created_at: r.created_at ?? null,
-      updated_at: r.updated_at ?? null,
-    }));
+    // Create user data with required fields
+    const userData = {
+      ...validatedData,
+      id: crypto.randomUUID(),
+      updatedAt: new Date()
+    }
 
-    await redis.set(
-      cacheKey,
-      JSON.stringify({ total: total || 0, rows: mapped || [] }),
-      { EX: 180 },
-    );
-    console.log("Cached users for 3 minutes:", cacheKey);
+    const user = await userService.create(userData)
 
-    return ok({ total: total || 0, rows: mapped || [] }, 200);
-  } catch (e: any) {
-    return err(e?.message || "failed", 500);
+    return NextResponse.json({
+      success: true,
+      data: user,
+      message: 'User created successfully'
+    }, { status: 201 })
+  } catch (error) {
+    console.error('POST /api/users error:', error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Validation error',
+          message: error.errors[0]?.message || 'Invalid input data'
+        },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to create user',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
   }
 }
 
-export async function POST(req: NextRequest) {
+// PUT /api/users - Update user
+export async function PUT(request: NextRequest) {
   try {
-    const body = await req.json();
-    const id = body.id || crypto.randomUUID();
-    const schema = z.object({
-      name: z.string().min(1),
-      email: z.string().email(),
-      role: z.enum(["admin", "manager", "employee"]).default("employee"),
-      status: z.enum(["active", "inactive"]).default("active"),
-      employee_code: z.number().int().nonnegative().default(0),
-    });
-    const parsed = schema.parse({
-      name: body.name,
-      email: body.email,
-      role: body.role,
-      status: body.status ?? (body.is_active === false ? "inactive" : "active"),
-      employee_code: Number(body.employee_code ?? 0),
-    });
-    const payload: any = {
-      id,
-      name: parsed.name,
-      email: parsed.email,
-      role: parsed.role,
-      status: parsed.status,
-      employee_code: String(parsed.employee_code),
-      is_active: parsed.status === "active",
-      is_deleted: false,
-      is_project_manager: false,
-      is_supervisor: false,
-      failed_login_attempts: 0,
-      timezone: body.timezone || "Asia/Bangkok",
-      hourly_rate: body.hourly_rate ?? 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    if (body.password) {
-      const hash = await bcrypt.hash(body.password, 10);
-      payload.password = hash;
-    }
-    const { data, error } = await supabase
-      .from("users")
-      .insert(payload)
-      .select(
-        "id,name,email,role,status,employee_code,is_active,is_deleted,failed_login_attempts,timezone,hourly_rate,created_at,updated_at",
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    
+    if (!id) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'ID is required',
+          message: 'User ID is required for update'
+        },
+        { status: 400 }
       )
-      .limit(1);
-    if (error) throw error;
-    const createdUser = (data || [])[0] || {};
-    try {
-      const prof = {
-        id: createdUser.id,
-        name: createdUser.name,
-        email: createdUser.email,
-        avatar_url: body.avatar ?? null,
-        role: createdUser.role,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      await supabase.from("profiles").insert(prof);
-    } catch {}
-    return ok(createdUser, 200);
-  } catch (e) {
-    return err((e as any)?.message || "create failed", 500);
-  }
-}
+    }
 
-export async function PUT(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { id, updatedFields = {} } = body || {};
-    if (!id) return err("id required", 400);
-    const payload: any = {
-      name: updatedFields.name,
-      email: updatedFields.email,
-      role: updatedFields.role,
-      status: updatedFields.status,
-      failed_login_attempts: updatedFields.failed_login_attempts,
-      timezone: updatedFields.timezone,
-      hourly_rate: updatedFields.hourly_rate,
-      updated_at: new Date().toISOString(),
-    };
-    if (updatedFields.password) {
-      const hash = await bcrypt.hash(updatedFields.password, 10);
-      payload.password = hash;
-    }
-    if (typeof updatedFields.is_active === "boolean")
-      payload.is_active = updatedFields.is_active;
-    if (typeof updatedFields.is_deleted === "boolean")
-      payload.is_deleted = updatedFields.is_deleted;
-    if (typeof updatedFields.employee_code !== "undefined")
-      payload.employee_code = String(updatedFields.employee_code);
-    const { data, error } = await supabase
-      .from("users")
-      .update(payload)
-      .eq("id", id)
-      .select(
-        "id,name,email,role,status,is_active,is_deleted,failed_login_attempts,timezone,hourly_rate,employee_code,created_at,updated_at",
+    const body = await request.json()
+    
+    // Validate input
+    const validatedData = updateUserSchema.parse(body)
+
+    // Check if user exists
+    const existingUser = await userService.findById(id)
+    if (!existingUser) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'User not found',
+          message: `User with ID ${id} not found`
+        },
+        { status: 404 }
       )
-      .limit(1);
-    if (error) throw error;
-    const updatedUser = (data || [])[0] || {};
-    try {
-      const profUpd: any = {};
-      if (typeof updatedFields.name !== "undefined")
-        profUpd.name = updatedFields.name;
-      if (typeof updatedFields.email !== "undefined")
-        profUpd.email = updatedFields.email;
-      if (typeof updatedFields.role !== "undefined")
-        profUpd.role = updatedFields.role;
-      if (Object.keys(profUpd).length > 0) {
-        profUpd.updated_at = new Date().toISOString();
-        await supabase.from("profiles").update(profUpd).eq("id", id);
+    }
+
+    // Check if email is being changed to an existing email
+    if (validatedData.email && validatedData.email !== existingUser.email) {
+      const emailExists = await userService.findByEmail(validatedData.email)
+      if (emailExists) {
+        return NextResponse.json(
+          { 
+          success: false, 
+          error: 'Email already exists',
+          message: 'A user with this email address is already registered'
+        },
+          { status: 400 }
+        )
       }
-    } catch {}
-    return ok(updatedUser, 200);
-  } catch (e) {
-    return err((e as any)?.message || "update failed", 500);
+    }
+
+    // Check if employee code is being changed to an existing one
+    if (validatedData.employeeCode && validatedData.employeeCode !== existingUser.employeeCode) {
+      const employeeCodeExists = await userService.findByEmployeeCode(validatedData.employeeCode)
+      if (employeeCodeExists) {
+        return NextResponse.json(
+          { 
+          success: false, 
+          error: 'Employee code already exists',
+          message: 'An employee with this code is already registered'
+        },
+          { status: 400 }
+        )
+      }
+    }
+
+    const user = await userService.update(id, validatedData)
+
+    return NextResponse.json({
+      success: true,
+      data: user,
+      message: 'User updated successfully'
+    })
+  } catch (error) {
+    console.error('PUT /api/users error:', error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Validation error',
+          message: error.errors[0]?.message || 'Invalid input data'
+        },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to update user',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
   }
 }
 
-export async function DELETE(req: NextRequest) {
+// DELETE /api/users - Delete user
+export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
-    if (!id) return err("id required", 400);
-    const { error } = await supabase
-      .from("users")
-      .update({
-        is_deleted: true,
-        is_active: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id);
-    if (error) throw error;
-    return ok({ ok: true }, 200);
-  } catch (e) {
-    return err((e as any)?.message || "delete failed", 500);
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'ID is required',
+          message: 'User ID is required for deletion'
+        },
+        { status: 400 }
+      )
+    }
+
+    // Check if user exists
+    const existingUser = await userService.findById(id)
+    if (!existingUser) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'User not found',
+          message: `User with ID ${id} not found`
+        },
+        { status: 404 }
+      )
+    }
+
+    // Soft delete user
+    const user = await userService.softDelete(id)
+
+    return NextResponse.json({
+      success: true,
+      data: user,
+      message: 'User deleted successfully'
+    })
+  } catch (error) {
+    console.error('DELETE /api/users error:', error)
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to delete user',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
   }
 }

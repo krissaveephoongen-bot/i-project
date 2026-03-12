@@ -13,7 +13,25 @@ export default async function ExpensesPage() {
   const supabase = createClient(cookieStore);
 
   // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
+  let user: any = null;
+  const { data: { user: sbUser } } = await supabase.auth.getUser();
+  user = sbUser;
+
+  // Fallback: Check for custom auth token
+  if (!user) {
+    const authToken = cookieStore.get("auth_token")?.value;
+    if (authToken) {
+      const adminClient = createAdminClient();
+      const { data: customUser } = await adminClient
+        .from("users")
+        .select("id, role, name, email")
+        .eq("id", authToken)
+        .single();
+      if (customUser) {
+        user = customUser;
+      }
+    }
+  }
 
   if (!user) {
     // Redirect or show login

@@ -1,451 +1,2289 @@
-datasource db {
-  provider = "postgresql"
-}
+// ============================================================================
+// COMPREHENSIVE PROJECT MANAGEMENT SCHEMA - MERGED VERSION
+// WBS, EVM, Schedule, Penalty, Timesheet, Vendor, Customer, Billing
+// ============================================================================
 
 generator client {
   provider = "prisma-client-js"
 }
 
-// enums exist in DB via migrations
-
-model User {
-    id                 String   @id @default(cuid())
-    objectId           String?  @map("object_id")
-    name               String
-    email              String   @unique
-    password           String?
-    role               String   @default("employee")
-    avatar             String?
-    department         String?
-    position           String?
-    employeeCode       String?  @map("employee_code")
-    hourlyRate         Decimal? @map("hourly_rate") @db.Decimal(10,2)
-    phone              String?
-    status             String   @default("active")
-    isActive           Boolean  @default(true) @map("is_active")
-    isDeleted          Boolean  @default(false) @map("is_deleted")
-    failedLoginAttempts Int     @default(0) @map("failed_login_attempts")
-    lastLogin          DateTime? @map("last_login")
-    lockedUntil        DateTime? @map("locked_until")
-    resetToken         String?  @map("reset_token")
-    resetTokenExpiry   DateTime? @map("reset_token_expiry")
-    isProjectManager   Boolean  @default(false) @map("is_project_manager")
-    isSupervisor       Boolean  @default(false) @map("is_supervisor")
-    notificationPreferences Json? @map("notification_preferences")
-    timezone           String   @default("Asia/Bangkok")
-    createdAt          DateTime @default(now()) @map("created_at")
-    updatedAt          DateTime? @updatedAt @map("updated_at")
-    
-    authTokens        AuthToken[]
-    sessions          Session[]
-    activityLogs      ActivityLog[]
-    notifications     Notification[]
-    expenses          Expense[]
-  
-    @@map("users")
-  }
-
-  model AuthToken {
-    id                String   @id @default(cuid())
-    userId            String   @map("user_id")
-    token             String   @unique
-    tokenType         String   @map("token_type") @default("access")
-    expiresAt         DateTime @map("expires_at")
-    revokedAt         DateTime? @map("revoked_at")
-    revokedReason     String?  @map("revoked_reason")
-    createdAt         DateTime @default(now()) @map("created_at")
-    updatedAt         DateTime? @updatedAt @map("updated_at")
-    
-    user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    
-    @@unique([userId, tokenType])
-    @@index([userId])
-    @@index([token])
-    @@index([expiresAt])
-    @@map("auth_tokens")
-  }
-
-  model Session {
-    id                String   @id @default(cuid())
-    userId            String   @map("user_id")
-    ipAddress         String?  @map("ip_address")
-    userAgent         String?  @map("user_agent")
-    lastActivity      DateTime @default(now()) @map("last_activity")
-    expiresAt         DateTime @map("expires_at")
-    createdAt         DateTime @default(now()) @map("created_at")
-    
-    user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    
-    @@unique([userId, id])
-    @@index([userId])
-    @@index([expiresAt])
-    @@map("sessions")
-  }
-
-  model ActivityLog {
-    id                String   @id @default(cuid())
-    entityType        String   @map("entity_type")
-    entityId          String   @map("entity_id")
-    action            String
-    description       String?
-    userId            String   @map("user_id")
-    changes           Json?
-    ipAddress         String?  @map("ip_address")
-    userAgent         String?  @map("user_agent")
-    createdAt         DateTime @default(now()) @map("created_at")
-    
-    user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    
-    @@index([userId])
-    @@index([entityType])
-    @@index([entityId])
-    @@index([createdAt])
-    @@map("activity_log")
-  }
-
-model Project {
-  id           String   @id @default(cuid())
-  name         String
-  code         String?
-  description  String?
-  status       String   @default("Planning")
-  progress     Int      @default(0)
-  progressPlan Int      @default(0)
-  spi          Decimal  @default(1.0) @db.Decimal(10,2)
-  riskLevel    String   @default("Low")
-  startDate    DateTime?
-  endDate      DateTime?
-  budget       Decimal? @db.Decimal(12,2)
-  spent        Decimal  @default(0) @db.Decimal(12,2)
-  remaining    Decimal  @default(0) @db.Decimal(12,2)
-  managerId    String?  @map("manager_id")
-  clientId     String?  @map("client_id")
-  hourlyRate   Decimal  @default(0) @map("hourly_rate") @db.Decimal(10,2)
-  priority     String   @default("medium")
-  category     String?
-  isArchived   Boolean  @default(false) @map("is_archived")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime? @updatedAt @map("updated_at")
-
-  // Contract Information
-  contractNo        String?   @map("contract_no")
-  contractStartDate DateTime? @map("contract_start_date")
-  contractEndDate   DateTime? @map("contract_end_date")
-  contractValue     Decimal?  @map("contract_value")
-  penaltyDailyRate  Decimal?  @map("penalty_daily_rate")
-  maxPenaltyPercent Decimal?  @map("max_penalty_percent")
-  warrantyMonths    Int?      @map("warranty_months")
-  warrantyTerms     String?   @map("warranty_terms")
-  deliveryStatus    Json?     @map("delivery_status")
-
-  contacts     Contact[]
-  expenses     Expense[]
-  vendorContracts VendorContract[]
-
-  @@map("projects")
+datasource db {
+  provider = "postgresql"
 }
 
-model Contact {
-  id          String  @id @default(cuid())
-  projectId   String?  @map("project_id")
-  name        String?
-  position    String?
-  email       String?
-  phone       String?
-  type        String?
-  isKeyPerson Boolean @default(false) @map("is_key_person")
+// ============================================================================
+// ENUMS - All Core Data Types
+// ============================================================================
 
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-
-  @@map("contacts")
+enum ActivityType {
+  create
+  update
+  delete
+  status_change
+  comment
+  attachment
 }
 
-model SalesPipeline {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime? @updatedAt @map("updated_at")
-
-  stages SalesStage[]
-  deals  SalesDeal[]
-
-  @@map("sales_pipelines")
+enum Status {
+  todo
+  in_progress
+  in_review
+  done
+  cancelled
+  on_hold
 }
 
-model SalesStage {
-  id          String   @id @default(cuid())
-  pipelineId  String?  @map("pipeline_id")
-  name        String
-  orderIndex  Int      @map("order_index")
-  probability Int      @default(0)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime? @updatedAt @map("updated_at")
-
-  pipeline SalesPipeline? @relation(fields: [pipelineId], references: [id])
-  deals    SalesDeal[]
-
-  @@map("sales_stages")
+enum Priority {
+  low
+  medium
+  high
+  urgent
 }
 
-model SalesDeal {
-  id         String   @id @default(cuid())
-  pipelineId String?  @map("pipeline_id")
-  stageId    String?  @map("stage_id")
-  name       String
-  amount     Decimal  @default(0) @db.Decimal(12,2)
-  currency   String   @default("THB")
-  ownerId    String?  @map("owner_id")
-  clientId   String?  @map("client_id")
-  clientOrg  String?  @map("client_org")
-  status     String   @default("open")
-  expectedCloseDate DateTime? @map("expected_close_date")
-  probability Int     @default(0)
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime? @updatedAt @map("updated_at")
-
-  pipeline SalesPipeline? @relation(fields: [pipelineId], references: [id])
-  stage    SalesStage?   @relation(fields: [stageId], references: [id])
-
-  @@map("sales_deals")
+enum ExpenseCategory {
+  equipment
+  software
+  consulting
+  travel
+  other
 }
 
-model SalesActivity {
-  id        String   @id @default(cuid())
-  dealId    String   @map("deal_id")
-  type      String
-  note      String?
-  userId    String?  @map("user_id")
-  createdAt DateTime @default(now()) @map("createdAt")
-
-  @@map("sales_activities")
+enum ExpenseStatus {
+  pending
+  approved
+  rejected
+  paid
 }
 
-model Timesheet {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  projectId String   @map("project_id")
-  date      DateTime
-  hours     Decimal  @db.Decimal(10,2)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime? @updatedAt @map("updated_at")
-
-  @@map("timesheets")
+enum WBSLevel {
+  project
+  phase
+  workpackage
+  task
+  subtask
 }
 
-model TimesheetSubmission {
-  id              String   @id @default(cuid())
-  userId          String   @map("user_id")
-  periodStartDate DateTime @map("period_start_date")
-  periodEndDate   DateTime? @map("period_end_date")
-  totalHours      Decimal   @map("total_hours") @db.Decimal(10,2)
-  status          String    @default("draft")
-  submittedAt     DateTime? @map("submitted_at")
-
-  @@map("timesheet_submissions")
+enum ProgressMethod {
+  duration_based
+  resource_based
+  deliverable_based
 }
 
-model TeamStructure {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  projectId String   @map("project_id")
-  isActive  Boolean? @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime? @updatedAt @map("updated_at")
-
-  @@map("team_structure")
-}
-model Task {
-  id          String   @id @default(cuid())
-  projectId   String?  @map("project_id")
-  name        String?
-  assignedTo  String?  @map("assigned_to")
-  status      String   @default("Pending")
-  phase       String?
-  weight      Decimal? @default(1) @db.Decimal(10,2)
-  progressPlan Decimal? @default(0) @map("progress_plan") @db.Decimal(5,2)
-  progressActual Decimal? @default(0) @map("progress_actual") @db.Decimal(5,2)
-  startDate   DateTime? @map("start_date")
-  endDate     DateTime? @map("end_date")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime? @updatedAt @map("updated_at")
-
-  @@map("tasks")
+enum CostCategory {
+  labor
+  material
+  equipment
+  overhead
+  contingency
+  expense
 }
 
-model Document {
-  id          String   @id @default(cuid())
-  projectId   String   @map("project_id")
-  name        String
-  url         String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime? @updatedAt @map("updated_at")
-
-  @@map("documents")
+enum PeriodType {
+  daily
+  weekly
+  monthly
+  quarterly
 }
 
-model Risk {
-  id          String   @id @default(cuid())
-  projectId   String?  @map("project_id")
-  name        String?
-  severity    String?
-  status      String   @default("Active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime? @updatedAt @map("updated_at")
-
-  @@map("risks")
+enum RiskLevel {
+  low
+  medium
+  high
+  critical
 }
 
-model Milestone {
-  id          String   @id @default(cuid())
-  projectId   String?  @map("project_id")
-  name        String?
-  percentage  Decimal  @db.Decimal(5,2)
-  amount      Decimal? @db.Decimal(12,2)
-  dueDate     DateTime? @map("due_date")
-  status      String   @default("Pending")
-  note        String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime? @updatedAt @map("updated_at")
-
-  @@map("milestones")
+enum PenaltyType {
+  daily_rate
+  percentage_contract
+  cumulative
+  milestone_based
+  tiered
 }
 
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  title     String
-  message   String
-  type      String   @default("info") // info, warning, success, error
-  isRead    Boolean  @default(false) @map("is_read")
-  link      String?
-  createdAt DateTime @default(now()) @map("created_at")
-
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("notifications")
+enum PenaltyStatus {
+  pending
+  calculated
+  disputed
+  approved
+  collected
+  waived
 }
 
-model Issue {
-  id          String   @id @default(cuid())
-  projectId   String   @map("project_id")
-  title       String
+enum ExtensionStatus {
+  requested
+  under_review
+  approved
+  rejected
+  accepted
+}
+
+enum ScheduleHealth {
+  on_track
+  at_risk
+  critical
+  off_track
+}
+
+enum InvoiceStatus {
+  draft
+  sent
+  viewed
+  partial_paid
+  paid
+  overdue
+  cancelled
+}
+
+enum BillingType {
+  fixed_price
+  time_and_material
+  milestone_based
+  installment
+  hybrid
+}
+
+enum PaymentTerms {
+  immediate
+  net15
+  net30
+  net45
+  net60
+  custom
+}
+
+enum InstallmentStatus {
+  scheduled
+  invoiced
+  partial_paid
+  fully_paid
+  overdue
+  cancelled
+}
+
+enum TaxType {
+  vat
+  gst
+  sales_tax
+  none
+}
+
+enum CustomerType {
+  enterprise
+  smb
+  startup
+  government
+  non_profit
+}
+
+enum VendorType {
+  supplier
+  contractor
+  equipment
+  outsourcer
+  consultant
+}
+
+enum VendorRating {
+  poor
+  satisfactory
+  good
+  excellent
+}
+
+enum KpiCategory {
+  quality
+  timeliness
+  cost
+  communication
+  technical
+}
+
+enum ContractType {
+  framework
+  project
+  supply
+  service
+  maintenance
+}
+
+enum ContractStatus {
+  draft
+  negotiation
+  signed
+  active
+  completed
+  terminated
+}
+
+enum VendorPaymentType {
+  advance
+  milestone
+  installment
+  final
+  retainage
+}
+
+enum PaymentStatus {
+  pending
+  partial
+  completed
+  overdue
+  cancelled
+}
+
+enum PaymentMethod {
+  bank_transfer
+  cash
+  cheque
+  credit_card
+  online
+}
+
+enum TimesheetEntryType {
+  project_task
+  non_project
+  leave
+}
+
+enum LeaveType {
+  vacation
+  sick
+  personal
+  unpaid
+  public_holiday
+  maternity
+  paternity
+  study
+}
+
+enum TimesheetStatus {
+  draft
+  submitted
+  under_review
+  approved
+  rejected
+  locked
+}
+
+enum TimeApprovalStatus {
+  pending
+  approved
+  rejected
+  appealed
+}
+
+// ============================================================================
+// CORE MODELS - Existing Base Models
+// ============================================================================
+
+model activity_log {
+  id          String       @id
+  entityType  String
+  entityId    String
+  type        ActivityType
+  action      String
   description String?
-  priority    String   @default("Medium") // Low, Medium, High, Critical
-  status      String   @default("Open") // Open, In Progress, Resolved, Closed
-  assignedTo  String?  @map("assigned_to")
-  reportedBy  String?  @map("reported_by")
-  dueDate     DateTime? @map("due_date")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime? @updatedAt @map("updated_at")
-
-  @@map("issues")
+  userId      String
+  projectId   String?
+  changes     Json?
+  createdAt   DateTime     @default(now())
+  users       users        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project     projects?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId])
 }
 
-// --- VENDOR MANAGEMENT ---
+model audit_logs {
+  id         String    @id
+  project_id String?
+  user_id    String?
+  event_type String
+  severity   String
+  details    String?
+  ip_address String?
+  user_agent String?
+  created_at DateTime  @default(now()) @db.Timestamp(6)
+  projects   projects? @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
 
-model Vendor {
-  id            String   @id @default(cuid())
-  name          String
-  code          String?  @unique
-  type          String
-  category      String
-  status        String   @default("active")
-  contactPerson String?  @map("contact_person")
+model budget_lines {
+  id                   String    @id
+  project_id           String
+  type                 String
+  amount               Decimal   @default(0) @db.Decimal
+  date                 DateTime? @db.Date
+  related_milestone_id String?
+  projects             projects  @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([project_id, date], map: "idx_budget_lines_project_date")
+}
+
+model budget_revisions {
+  id             String   @id
+  projectId      String
+  previousBudget Decimal  @db.Decimal(12, 2)
+  newBudget      Decimal  @db.Decimal(12, 2)
+  reason         String
+  changedBy      String
+  changedAt      DateTime @default(now())
+  users          users    @relation(fields: [changedBy], references: [id])
+  projects       projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model clients {
+  id        String     @id
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  taxId     String?
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime
+  projects  projects[]
+}
+
+model comments {
+  id        String   @id
+  taskId    String
+  projectId String?
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  tasks     tasks    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project   projects? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id])
+  
+  @@index([projectId])
+}
+
+model contacts {
+  id            String        @id
+  project_id    String
+  name          String?
+  position      String?
   email         String?
   phone         String?
-  website       String?
-  taxId         String?  @map("tax_id")
-  address       String?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime? @updatedAt @map("updated_at")
+  type          String?
+  is_key_person Boolean?      @default(false)
+  projects      projects      @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sales_deals   sales_deals[]
 
-  contracts     VendorContract[]
-  payments      VendorPayment[]
-  items         ExpenseItem[]
-
-  @@map("vendors")
+  @@index([project_id], map: "idx_contacts_project")
+  @@index([type], map: "idx_contacts_type")
 }
 
-model VendorContract {
-  id          String   @id @default(cuid())
-  vendorId    String   @map("vendor_id")
-  projectId   String?  @map("project_id")
+model documents {
+  id         String    @id
+  name       String
+  type       String?
+  size       String?
+  url        String?
+  projectId  String?
+  taskId     String?
+  uploadedBy String?
+  milestone  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime
+  projects   projects? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks      tasks?    @relation(fields: [taskId], references: [id])
+  users      users?    @relation(fields: [uploadedBy], references: [id])
+}
+
+model expenses {
+  id                               String          @id
+  date                             DateTime
+  projectId                        String
+  taskId                           String?
+  wbsTaskId                        String?
+  userId                           String
+  amount                           Decimal         @db.Decimal(12, 2)
+  category                         ExpenseCategory
+  description                      String
+  receiptUrl                       String?
+  status                           ExpenseStatus   @default(pending)
+  approvedBy                       String?
+  approvedAt                       DateTime?
+  notes                            String?
+  createdAt                        DateTime        @default(now())
+  updatedAt                        DateTime
+  rejectedReason                   String?
+  details                          Json?
+  approver_id                      String?
+  approverId                       String?
+  users_expenses_approvedByTousers users?          @relation("expenses_approvedByTousers", fields: [approvedBy], references: [id])
+  users_expenses_approverIdTousers users?          @relation("expenses_approverIdTousers", fields: [approverId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "expenses_approverid_fkey")
+  projects                         projects        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks                            tasks?          @relation(fields: [taskId], references: [id])
+  wbsTask                          wbs_task?       @relation("WBSTaskExpenses", fields: [wbsTaskId], references: [id])
+  users_expenses_userIdTousers     users           @relation("expenses_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+  expenseItems                     expense_items[]
+
+  @@index([status, date], map: "idx_expenses_status_date")
+  @@index([wbsTaskId])
+}
+
+model financial_data {
+  id        String   @id
+  month     DateTime @unique
+  revenue   Decimal  @default(0.00) @db.Decimal(15, 2)
+  cost      Decimal  @default(0.00) @db.Decimal(15, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model milestones {
+  id          String    @id
   title       String
-  status      String   @default("draft")
-  startDate   DateTime @map("start_date")
-  endDate     DateTime? @map("end_date")
-  value       Decimal  @db.Decimal(12,2)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime? @updatedAt @map("updated_at")
-
-  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  project     Project? @relation(fields: [projectId], references: [id])
-  payments    VendorPayment[]
-
-  @@map("vendor_contracts")
-}
-
-model VendorPayment {
-  id          String   @id @default(cuid())
-  vendorId    String   @map("vendor_id")
-  contractId  String?  @map("contract_id")
-  amount      Decimal  @db.Decimal(12,2)
-  dueDate     DateTime @map("due_date")
-  paidDate    DateTime? @map("paid_date")
-  status      String   @default("pending")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime? @updatedAt @map("updated_at")
-
-  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  contract    VendorContract? @relation(fields: [contractId], references: [id])
-
-  @@map("vendor_payments")
-}
-
-model Expense {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  projectId   String   @map("project_id")
-  taskId      String?  @map("task_id")
-  date        DateTime
-  amount      Decimal  @db.Decimal(12,2)
-  category    String
   description String?
-  receiptUrl  String?  @map("receipt_url")
-  status      String   @default("pending")
-  rejectedReason String? @map("rejected_reason")
-  details     Json?
-  approverId  String?  @map("approver_id")
-  approvedAt  DateTime? @map("approved_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime? @updatedAt @map("updated_at")
-
-  user        User     @relation(fields: [userId], references: [id])
-  project     Project  @relation(fields: [projectId], references: [id])
-  items       ExpenseItem[]
-
-  @@map("expenses")
+  dueDate     DateTime
+  amount      Decimal?  @db.Decimal(15, 2)
+  status      String    @default("pending")
+  progress    Int       @default(0)
+  projectId   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  name        String?
+  percentage  Decimal?  @default(0.00) @db.Decimal
+  projects    projects? @relation(fields: [projectId], references: [id])
+  tasks       tasks[]
 }
 
-model ExpenseItem {
-  id          String   @id @default(cuid())
-  expenseId   String   @map("expense_id")
-  vendorId    String?  @map("vendor_id")
-  description String
-  amount      Decimal  @db.Decimal(12,2)
-  category    String
-  subcategory String?
-  quantity    Decimal? @default(1) @db.Decimal(10,2)
-  unitPrice   Decimal? @map("unit_price") @db.Decimal(12,2)
-  vendorInvoice String? @map("vendor_invoice")
-  vendorItemCode String? @map("vendor_item_code")
-  notes       String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime? @updatedAt @map("updated_at")
+model project_members {
+  id        String   @id
+  projectId String
+  userId    String
+  role      String   @default("member")
+  joinedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  projects  projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
-  expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  vendor      Vendor?  @relation(fields: [vendorId], references: [id])
+model project_progress_history {
+  id        String   @id
+  projectId String
+  progress  Int
+  weekDate  DateTime
+  createdAt DateTime @default(now())
+  projects  projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
 
-  @@map("expense_items")
+model project_progress_snapshots {
+  id             String   @id
+  project_id     String
+  date           DateTime @db.Date
+  plan_percent   Decimal  @default(0) @db.Decimal
+  actual_percent Decimal  @default(0) @db.Decimal
+  spi            Decimal? @db.Decimal
+  projects       projects @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([project_id, date], map: "idx_project_progress_snapshots_project_date")
+}
+
+model projectassignee {
+  A        String
+  B        String
+  projects projects @relation("ProjectAssignees", fields: [A], references: [id], onDelete: Cascade, map: "_ProjectAssignee_A_fkey")
+  users    users    @relation("UserAssignedProjects", fields: [B], references: [id], onDelete: Cascade, map: "_ProjectAssignee_B_fkey")
+
+  @@id([A, B], map: "_ProjectAssignee_AB_pkey")
+  @@index([B], map: "_ProjectAssignee_B_index")
+}
+
+// ============================================================================
+// USERS MODEL - EXTENDED WITH TIMESHEET FIELDS
+// ============================================================================
+
+model users {
+  id                               String                   @id
+  username                         String?                  @unique
+  email                            String                   @unique
+  password                         String
+  name                             String?
+  name_th                          String?
+  avatar                           String?
+  role                             String                   @default("user")
+  department                       String?
+  position                         String?
+  phone                            String?
+  employee_code                    String?                  @unique
+  status                           String                   @default("active")
+  is_active                        Boolean                  @default(true)
+  is_deleted                       Boolean                  @default(false)
+  failed_login_attempts            Int                      @default(0)
+  
+  // Timesheet Fields
+  hourlyRate                       Decimal                  @default(0) @db.Decimal(10, 2)
+  weeklyCapacity                   Decimal                  @default(40) @db.Decimal(5, 2)
+  
+  // Metadata
+  createdAt                        DateTime                 @default(now())
+  updatedAt                        DateTime                 @updatedAt
+  
+  // Relations
+  activity_logs                    activity_log[]
+  audit_logs                       audit_logs[]
+  budget_revisions                 budget_revisions[]
+  comments                         comments[]
+  documents                        documents[]
+  expenses_approvedBy              expenses[]               @relation("expenses_approvedByTousers")
+  expenses_approverId              expenses[]               @relation("expenses_approverIdTousers")
+  expenses                         expenses[]               @relation("expenses_userIdTousers")
+  projects                         projects[]               @relation("ProjectManager")
+  project_members                  project_members[]
+  sales_deals                      sales_deals[]
+  tasks                            tasks[]                  @relation("TaskAssignee")
+  tasks_created                    tasks[]                  @relation("TaskCreator")
+  
+  // WBS & EVM Relations
+  wbsTasks                         wbs_task[]
+  evm_snapshots                    evm_period_snapshot[]    @relation("SnapshotCalculatedBy")
+  project_baselines                project_baseline[]       @relation("BaselineApprovedBy")
+  change_requests                  change_request[]         @relation("ChangeRequestSubmittedBy")
+  change_request_approvals         change_request[]         @relation("ChangeRequestApprovedBy")
+  project_risks                    project_risk[]           @relation("RiskOwner")
+  
+  // Schedule & Penalty Relations
+  schedule_extensions              schedule_extension[]     @relation("ExtensionRequestedBy")
+  schedule_extension_approvals     schedule_extension[]     @relation("ExtensionApprovedBy")
+  contract_penalties               contract_penalty[]       @relation("PenaltyApprovedBy")
+  penalty_disputes                 contract_penalty[]       @relation("PenaltyDisputedBy")
+  penalty_waivers                  contract_penalty[]       @relation("PenaltyWaivedBy")
+  
+  // Timesheet Relations
+  timeEntries                      time_entries[]           @relation("time_entries_userIdTousers")
+  timeEntriesAsApprover            time_entries[]           @relation("time_entries_approvedByTousers")
+  timeEntriesAsSubmitter           time_entries[]           @relation("time_entries_submittedByTousers")
+  timeEntryComments                time_entry_comments[]
+  leaveAllocations                 leave_allocations[]
+  leaveRequestsUser                leave_requests[]         @relation("leave_request_user")
+  leaveRequestsApprover            leave_requests[]         @relation("leave_request_approver")
+  dailySummaries                   daily_timesheet_summary[]
+  weeklySummaries                  weekly_timesheet_summary[]
+  timesheetStats                   timesheet_statistics?
+  timesheetSubmissionsUser         timesheet_submission[]   @relation("TimesheetSubmissionUser")
+  timesheetSubmissionsAsSubmitter  timesheet_submission[]   @relation("TimesheetSubmittedBy")
+  timesheetSubmissionsAsApprover   timesheet_submission[]   @relation("TimesheetApprovedBy")
+  
+  // Project Assignment Relations
+  assignedProjects                 projectassignee[]        @relation("UserAssignedProjects")
+  
+  // Vendor & Customer Relations
+  vendorEvaluations                vendor_kpi_evaluations[] @relation("EvaluatorId")
+  
+  @@index([role])
+  @@index([department])
+  @@index([employee_code])
+  @@index([status])
+}
+
+// ============================================================================
+// PROJECTS MODEL - EXTENDED WITH ALL RELATIONS
+// ============================================================================
+
+model projects {
+  id                         String                       @id
+  name                       String
+  code                       String?                      @unique
+  description                String?
+  status                     Status                       @default(todo)
+  progress                   Int                          @default(0)
+  progressPlan               Int                          @default(0)
+  spi                        Decimal                      @default(1.00) @db.Decimal(5, 2)
+  riskLevel                  String                       @default("low")
+  startDate                  DateTime?
+  endDate                    DateTime?
+  budget                     Decimal?                     @db.Decimal(12, 2)
+  spent                      Decimal                      @default(0.00) @db.Decimal(12, 2)
+  remaining                  Decimal                      @default(0.00) @db.Decimal(12, 2)
+  managerId                  String?
+  clientId                   String?
+  hourlyRate                 Decimal                      @default(0.00) @db.Decimal(10, 2)
+  
+  // EVM Fields (WBS & EVM)
+  bac                        Decimal?                     @db.Decimal(15, 2)
+  currentBcws                Decimal                      @default(0) @db.Decimal(15, 2)
+  currentBcwp                Decimal                      @default(0) @db.Decimal(15, 2)
+  currentAcwp                Decimal                      @default(0) @db.Decimal(15, 2)
+  currentSpi                 Decimal                      @default(1.00) @db.Decimal(5, 3)
+  currentCpi                 Decimal                      @default(1.00) @db.Decimal(5, 3)
+  lastEVMCalculation         DateTime?
+  
+  // Schedule & Timeline Fields
+  contractEndDate            DateTime?
+  
+  // Customer & Billing Fields
+  customerId                 String?
+  completionDate             DateTime?
+  
+  // Vendor & Procurement Fields
+  
+  createdAt                  DateTime                     @default(now())
+  updatedAt                  DateTime                     @updatedAt
+  
+  // Relations - Existing
+  manager                    users?                       @relation("ProjectManager", fields: [managerId], references: [id])
+  client                     clients?                     @relation(fields: [clientId], references: [id])
+  activities                 activity_log[]
+  audit_logs                 audit_logs[]
+  budget_lines               budget_lines[]
+  budget_revisions           budget_revisions[]
+  comments                   comments[]
+  contacts                   contacts[]
+  documents                  documents[]
+  expenses                   expenses[]
+  milestones                 milestones[]
+  project_members            project_members[]
+  project_progress_history   project_progress_history[]
+  project_progress_snapshots project_progress_snapshots[]
+  assignees                  projectassignee[]            @relation("ProjectAssignees")
+  sales_deals                sales_deals[]
+  tasks                      tasks[]                      @relation("ProjectTasks")
+  
+  // WBS & EVM Relations
+  wbsRoot                    wbs_root?
+  baselineSnapshots          project_baseline[]
+  changeRequests             change_request[]
+  commitments                project_commitment[]
+  risks                      project_risk[]
+  evmSnapshots               evm_period_snapshot[]
+  scurveData                 scurve_data[]
+  reportingPeriod            reporting_period?
+  
+  // Schedule & Penalty Relations
+  schedule                   project_schedule?
+  penaltyStructure           contract_penalty_structure?
+  compliance                 schedule_compliance?
+  recoveryPlans              schedule_recovery_plan[]
+  
+  // Timesheet Relations
+  timeEntries                time_entries[]
+  timesheetCosts             timesheet_cost[]            @relation("TimesheetCosts")
+  
+  // Customer & Billing Relations
+  customer                   customers?                   @relation(fields: [customerId], references: [id])
+  billing                    project_billing?
+  financials                 project_financials?
+  invoices                   invoices[]
+  customerPayments           customer_payments[]
+  
+  // Vendor & Procurement Relations
+  contracts                  vendor_contracts[]
+  purchaseOrders             purchase_orders[]
+  vendorInvoices             vendor_invoices[]
+  vendorPayments             vendor_payments[]
+  vendorEvaluations          vendor_kpi_evaluations[]
+
+  @@index([managerId])
+  @@index([clientId])
+  @@index([status])
+  @@index([customerId])
+}
+
+// ============================================================================
+// TASKS MODEL - EXTENDED WITH WBS & TIMESHEET
+// ============================================================================
+
+model tasks {
+  id                String   @id
+  projectId         String
+  title             String
+  description       String?
+  status            Status   @default(todo)
+  priority          Priority @default(medium)
+  progress          Int      @default(0)
+  startDate         DateTime?
+  dueDate           DateTime?
+  assigneeId        String?
+  createdBy         String?
+  milestoneId       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  project           projects @relation("ProjectTasks", fields: [projectId], references: [id], onDelete: Cascade)
+  assignee          users?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator           users?   @relation("TaskCreator", fields: [createdBy], references: [id])
+  milestone         milestones? @relation(fields: [milestoneId], references: [id])
+  
+  comments          comments[]
+  documents         documents[]
+  expenses          expenses[]
+  
+  // Timesheet Relations
+  timeEntries       time_entries[]
+  timesheetCosts    timesheet_cost[]                  @relation("TimesheetCosts")
+  
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([status])
+}
+
+// ============================================================================
+// WBS & EVM MODELS - Work Breakdown Structure
+// ============================================================================
+
+model wbs_root {
+  id            String   @id @default(cuid())
+  projectId     String   @unique
+  baselineDate  DateTime @default(now())
+  isBaseline    Boolean  @default(false)
+  
+  project       projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phases        wbs_phase[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([projectId])
+}
+
+model wbs_phase {
+  id                String   @id @default(cuid())
+  wbsRootId         String
+  code              String
+  name              String
+  description       String?
+  sequenceNumber    Int
+  
+  plannedStartDate  DateTime
+  plannedEndDate    DateTime
+  actualStartDate   DateTime?
+  actualEndDate     DateTime?
+  
+  allocatedBudget   Decimal  @db.Decimal(15, 2)
+  budgetPercent     Decimal  @db.Decimal(5, 2)
+  
+  plannedProgress   Decimal  @default(0) @db.Decimal(5, 2)
+  actualProgress    Decimal  @default(0) @db.Decimal(5, 2)
+  
+  status            String   @default("planned")
+  
+  wbsRoot           wbs_root    @relation(fields: [wbsRootId], references: [id], onDelete: Cascade)
+  workpackages      wbs_workpackage[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([wbsRootId, code])
+  @@index([wbsRootId, sequenceNumber])
+  @@index([status])
+}
+
+model wbs_workpackage {
+  id                String   @id @default(cuid())
+  phaseId           String
+  code              String
+  name              String
+  description       String?
+  sequenceNumber    Int
+  
+  plannedStartDate  DateTime
+  plannedEndDate    DateTime
+  actualStartDate   DateTime?
+  actualEndDate     DateTime?
+  
+  allocatedBudget   Decimal  @db.Decimal(15, 2)
+  budgetPercent     Decimal  @db.Decimal(5, 2)
+  
+  plannedProgress   Decimal  @default(0) @db.Decimal(5, 2)
+  actualProgress    Decimal  @default(0) @db.Decimal(5, 2)
+  progressMethod    ProgressMethod @default(duration_based)
+  
+  status            String   @default("planned")
+  
+  phase             wbs_phase        @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  tasks             wbs_task[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([phaseId, code])
+  @@index([phaseId, sequenceNumber])
+  @@index([status])
+}
+
+model wbs_task {
+  id                String   @id @default(cuid())
+  workpackageId     String
+  code              String
+  name              String
+  description       String?
+  sequenceNumber    Int
+  
+  plannedDuration   Int
+  plannedStartDate  DateTime
+  plannedEndDate    DateTime
+  actualStartDate   DateTime?
+  actualEndDate     DateTime?
+  
+  plannedProgress   Decimal  @default(0) @db.Decimal(5, 2)
+  actualProgress    Decimal  @default(0) @db.Decimal(5, 2)
+  progressMethod    ProgressMethod @default(resource_based)
+  
+  allocatedBudget   Decimal  @db.Decimal(15, 2)
+  
+  assignedUserId    String?
+  estimatedHours    Decimal  @db.Decimal(10, 2)
+  actualHours       Decimal  @default(0) @db.Decimal(10, 2)
+  
+  status            String   @default("planned")
+  riskLevel         RiskLevel @default(low)
+  
+  workpackage       wbs_workpackage  @relation(fields: [workpackageId], references: [id], onDelete: Cascade)
+  assignedUser      users?           @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+  subtasks          wbs_subtask[]
+  taskCosts         task_cost_allocation[]            @relation("TaskCosts")
+  taskResources     task_resource_assignment[]        @relation("TaskResources")
+  expenses          expenses[]                        @relation("WBSTaskExpenses")
+  timesheets        timesheets[]
+  timeEntries       time_entries[]
+  timesheetCosts    timesheet_cost[]                  @relation("TimesheetCosts")
+  project_commitments project_commitment[]
+  risks             project_risk[]                    @relation("ProjectRisks")
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([workpackageId, code])
+  @@index([workpackageId, sequenceNumber])
+  @@index([assignedUserId])
+  @@index([status, riskLevel])
+}
+
+model wbs_subtask {
+  id                String   @id @default(cuid())
+  taskId            String
+  code              String
+  name              String
+  
+  plannedDuration   Int
+  actualDuration    Int?
+  
+  actualProgress    Decimal  @default(0) @db.Decimal(5, 2)
+  
+  estimatedHours    Decimal  @db.Decimal(10, 2)
+  actualHours       Decimal  @default(0) @db.Decimal(10, 2)
+  allocatedBudget   Decimal  @db.Decimal(15, 2)
+  
+  status            String   @default("planned")
+  
+  task              wbs_task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([taskId, code])
+  @@index([taskId])
+}
+
+model task_cost_allocation {
+  id                String   @id @default(cuid())
+  taskId            String
+  category          CostCategory
+  
+  description       String?
+  plannedAmount     Decimal  @db.Decimal(15, 2)
+  actualAmount      Decimal  @default(0) @db.Decimal(15, 2)
+  variance          Decimal? @db.Decimal(15, 2)
+  
+  task              wbs_task @relation("TaskCosts", fields: [taskId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([taskId, category])
+  @@index([taskId])
+}
+
+model task_resource_assignment {
+  id                String   @id @default(cuid())
+  taskId            String
+  resourceName      String
+  resourceType      String
+  
+  quantity          Decimal  @db.Decimal(10, 2)
+  unitCost          Decimal  @db.Decimal(12, 2)
+  
+  plannedHours      Decimal  @db.Decimal(10, 2)
+  actualHours       Decimal  @default(0) @db.Decimal(10, 2)
+  
+  task              wbs_task @relation("TaskResources", fields: [taskId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([taskId])
+}
+
+model evm_period_snapshot {
+  id                String   @id @default(cuid())
+  projectId         String
+  periodStart       DateTime
+  periodEnd         DateTime
+  
+  wbsLevel          WBSLevel
+  entityId          String
+  
+  bac               Decimal? @db.Decimal(15, 2)
+  bcws              Decimal  @db.Decimal(15, 2)
+  bcwp              Decimal  @db.Decimal(15, 2)
+  acwp              Decimal  @db.Decimal(15, 2)
+  
+  spi               Decimal? @db.Decimal(5, 3)
+  cpi               Decimal? @db.Decimal(5, 3)
+  
+  scheduleVariance  Decimal? @db.Decimal(15, 2)
+  costVariance      Decimal? @db.Decimal(15, 2)
+  
+  eac               Decimal? @db.Decimal(15, 2)
+  etcCost           Decimal? @db.Decimal(15, 2)
+  vac               Decimal? @db.Decimal(15, 2)
+  
+  trendStatus       String?
+  
+  calculatedBy      String?
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user              users?   @relation("SnapshotCalculatedBy", fields: [calculatedBy], references: [id])
+  
+  calculatedAt      DateTime @default(now())
+  
+  @@unique([projectId, wbsLevel, entityId, periodStart])
+  @@index([projectId, periodStart])
+  @@index([spi, cpi])
+}
+
+model project_baseline {
+  id                String   @id @default(cuid())
+  projectId         String
+  baselineNumber    Int
+  baselineType      String   @default("performance")
+  
+  totalBudget       Decimal  @db.Decimal(15, 2)
+  totalDuration     Int
+  baselineDate      DateTime
+  baselineSnapshot  Json
+  
+  isActive          Boolean  @default(false)
+  approvedBy        String?
+  approvedDate      DateTime?
+  
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  approver          users?   @relation("BaselineApprovedBy", fields: [approvedBy], references: [id])
+  
+  createdAt         DateTime  @default(now())
+  
+  @@unique([projectId, baselineNumber])
+  @@index([projectId, isActive])
+}
+
+model change_request {
+  id                String   @id @default(cuid())
+  projectId         String
+  title             String
+  description       String
+  
+  estimatedCostImpact    Decimal? @db.Decimal(15, 2)
+  estimatedScheduleImpact Int?
+  affectedWBSElements    String[]
+  
+  status            String   @default("pending")
+  submittedBy       String
+  approvedBy        String?
+  approvalDate      DateTime?
+  rejectionReason   String?
+  
+  implementedDate   DateTime?
+  closeoutNotes     String?
+  
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  submitUser        users    @relation("ChangeRequestSubmittedBy", fields: [submittedBy], references: [id])
+  approveUser       users?   @relation("ChangeRequestApprovedBy", fields: [approvedBy], references: [id])
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([projectId, status])
+}
+
+model reporting_period {
+  id                String   @id @default(cuid())
+  projectId         String   @unique
+  periodType        PeriodType @default(monthly)
+  
+  periodStartDay    Int      @default(1)
+  fiscalYearStart   String?
+  
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model project_commitment {
+  id                String   @id @default(cuid())
+  projectId         String
+  taskId            String?
+  
+  poNumber          String   @unique
+  vendor            String
+  description       String
+  
+  poAmount          Decimal  @db.Decimal(15, 2)
+  category          CostCategory
+  
+  status            String   @default("issued")
+  issuedDate        DateTime
+  expectedDelivery  DateTime?
+  actualDelivery    DateTime?
+  invoiceDate       DateTime?
+  paidDate          DateTime?
+  
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task              wbs_task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([projectId, status])
+  @@index([taskId])
+}
+
+model project_risk {
+  id                String   @id @default(cuid())
+  projectId         String
+  wbsTaskId         String?
+  
+  code              String
+  title             String
+  description       String
+  category          String
+  
+  probability       Decimal  @db.Decimal(3, 2)
+  impactCost        Decimal? @db.Decimal(12, 2)
+  impactSchedule    Int?
+  riskScore         Decimal? @db.Decimal(5, 2)
+  
+  mitigationPlan    String?
+  owner             String?
+  
+  status            String   @default("identified")
+  
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task              wbs_task? @relation("ProjectRisks", fields: [wbsTaskId], references: [id], onDelete: SetNull)
+  riskOwner         users?   @relation("RiskOwner", fields: [owner], references: [id])
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([projectId, riskScore])
+}
+
+model scurve_data {
+  id                String   @id @default(cuid())
+  projectId         String
+  periodDate        DateTime
+  
+  cumulativeBcws    Decimal  @db.Decimal(15, 2)
+  cumulativeBcwp    Decimal  @db.Decimal(15, 2)
+  cumulativeAcwp    Decimal  @db.Decimal(15, 2)
+  
+  plannedPercent    Decimal  @db.Decimal(5, 2)
+  earnedPercent     Decimal  @db.Decimal(5, 2)
+  actualPercent     Decimal  @db.Decimal(5, 2)
+  
+  spi               Decimal  @db.Decimal(5, 3)
+  cpi               Decimal  @db.Decimal(5, 3)
+  
+  project           projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  calculatedAt      DateTime @default(now())
+  
+  @@unique([projectId, periodDate])
+  @@index([projectId])
+}
+
+// ============================================================================
+// SCHEDULE & PENALTY MODELS
+// ============================================================================
+
+model project_schedule {
+  id                    String          @id @default(cuid())
+  projectId             String          @unique
+  
+  contractStartDate     DateTime
+  contractEndDate       DateTime
+  totalContractDays     Int
+  
+  actualStartDate       DateTime?
+  currentProgress       Decimal         @default(0) @db.Decimal(5, 2)
+  forecastEndDate       DateTime?
+  
+  status                ScheduleHealth  @default(on_track)
+  daysAhead             Int             @default(0)
+  daysBehind            Int             @default(0)
+  remainingDays         Int
+  
+  criticalMilestones    Int             @default(0)
+  missedMilestones      Int             @default(0)
+  
+  scheduledProgress     Decimal         @db.Decimal(5, 2)
+  scheduleVariancePercent Decimal       @db.Decimal(5, 2)
+  
+  riskOfMissingDeadline Decimal         @db.Decimal(5, 2)
+  
+  project               projects        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestones            schedule_milestone[]
+  extensions            schedule_extension[]
+  penalties             contract_penalty[]
+  progressHistory       schedule_progress_history[]
+  
+  lastCalculated        DateTime        @default(now())
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([projectId, status])
+}
+
+model schedule_milestone {
+  id                    String          @id @default(cuid())
+  scheduleId            String
+  
+  code                  String
+  name                  String
+  description           String?
+  sequenceNumber        Int
+  
+  contractualDate       DateTime
+  plannedDate           DateTime?
+  actualDate            DateTime?
+  
+  status                String          @default("pending")
+  isCritical            Boolean         @default(false)
+  
+  deliverables          String?
+  completionCriteria    String?
+  
+  penaltyIfMissed       Decimal?        @db.Decimal(15, 2)
+  
+  schedule              project_schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@unique([scheduleId, code])
+  @@index([scheduleId, status])
+}
+
+model schedule_progress_history {
+  id                    String          @id @default(cuid())
+  scheduleId            String
+  
+  dataDate              DateTime
+  dayNumber             Int
+  
+  actualProgress        Decimal         @db.Decimal(5, 2)
+  expectedProgress      Decimal         @db.Decimal(5, 2)
+  
+  scheduleVariance      Decimal         @db.Decimal(5, 2)
+  variancePercentage    Decimal         @db.Decimal(5, 2)
+  
+  accumulativeVariance  Decimal         @db.Decimal(5, 2)
+  velocityTrend         String?
+  
+  health                ScheduleHealth
+  
+  forecastEndDate       DateTime?
+  forecatedDaysLate     Int?
+  
+  schedule              project_schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  
+  createdAt             DateTime        @default(now())
+  
+  @@unique([scheduleId, dataDate])
+  @@index([scheduleId, dataDate])
+}
+
+model schedule_extension {
+  id                    String          @id @default(cuid())
+  scheduleId            String
+  
+  extensionNumber       Int
+  requestedDays         Int
+  approvedDays          Int?
+  
+  originalEndDate       DateTime
+  newEndDate            DateTime?
+  requestDate           DateTime
+  approvalDate          DateTime?
+  
+  reason                String
+  
+  status                ExtensionStatus @default(requested)
+  
+  pendingPenalties      Decimal         @default(0) @db.Decimal(15, 2)
+  
+  requestedBy           String
+  approvedBy            String?
+  rejectionReason       String?
+  
+  notes                 String?
+  
+  schedule              project_schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  requester             users           @relation("ExtensionRequestedBy", fields: [requestedBy], references: [id])
+  approver              users?          @relation("ExtensionApprovedBy", fields: [approvedBy], references: [id])
+  
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([scheduleId, status])
+}
+
+model contract_penalty_structure {
+  id                    String          @id @default(cuid())
+  projectId             String?         @unique
+  
+  penaltyType           PenaltyType     @default(daily_rate)
+  totalContractValue    Decimal         @db.Decimal(15, 2)
+  
+  dailyPenaltyAmount    Decimal?        @db.Decimal(12, 2)
+  dailyPenaltyPercent   Decimal?        @db.Decimal(5, 2)
+  tieredPenalties       Json?
+  milestoneStructure    Json?
+  
+  maxPenaltyPercent     Decimal         @default(10.0) @db.Decimal(5, 2)
+  maxPenaltyAmount      Decimal?        @db.Decimal(15, 2)
+  
+  gracePeriodDays       Int             @default(0)
+  
+  status                String          @default("active")
+  
+  project               projects?       @relation(fields: [projectId], references: [id])
+  penalties             contract_penalty[]
+  
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+}
+
+model contract_penalty {
+  id                    String          @id @default(cuid())
+  scheduleId            String
+  structureId           String
+  
+  penaltyNumber         String          @unique
+  
+  startDate             DateTime
+  endDate               DateTime?
+  
+  daysLate              Int
+  
+  penaltyType           PenaltyType
+  penaltyBasis          Decimal         @db.Decimal(15, 2)
+  calculationMethod     String
+  penaltyAmount         Decimal         @db.Decimal(15, 2)
+  
+  baseAmount            Decimal         @db.Decimal(15, 2)
+  adjustments           Json?
+  netPenalty            Decimal         @db.Decimal(15, 2)
+  
+  status                PenaltyStatus   @default(pending)
+  
+  approvedBy            String?
+  approvedDate          DateTime?
+  appliedDate           DateTime?
+  
+  waivedAmount          Decimal         @default(0) @db.Decimal(15, 2)
+  waivedReason          String?
+  waivedBy              String?
+  waivedDate            DateTime?
+  
+  disputedBy            String?
+  disputeReason         String?
+  disputeDate           DateTime?
+  disputeResolution     String?
+  
+  notes                 String?
+  
+  schedule              project_schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  structure             contract_penalty_structure @relation(fields: [structureId], references: [id])
+  approver              users?          @relation("PenaltyApprovedBy", fields: [approvedBy], references: [id])
+  disputer              users?          @relation("PenaltyDisputedBy", fields: [disputedBy], references: [id])
+  waiver                users?          @relation("PenaltyWaivedBy", fields: [waivedBy], references: [id])
+  
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([scheduleId, status])
+  @@index([penaltyNumber])
+}
+
+model schedule_compliance {
+  id                    String          @id @default(cuid())
+  projectId             String          @unique
+  
+  contractStartDate     DateTime
+  contractEndDate       DateTime
+  totalContractDays     Int
+  
+  currentDay            Int
+  currentProgress       Decimal         @db.Decimal(5, 2)
+  expectedProgress      Decimal         @db.Decimal(5, 2)
+  progressVariance      Decimal         @db.Decimal(5, 2)
+  
+  schedulePerformanceIndex Decimal      @db.Decimal(5, 3)
+  
+  totalMilestones       Int
+  completedMilestones   Int
+  missedMilestones      Int
+  milestoneCompletionRate Decimal       @db.Decimal(5, 2)
+  
+  overallHealth         ScheduleHealth
+  daysAhead             Int             @default(0)
+  daysBehind            Int             @default(0)
+  remainingDays         Int
+  
+  forecastEndDate       DateTime?
+  forecastedDaysLate    Int?
+  probability           Decimal         @db.Decimal(5, 2)
+  
+  totalPenalties        Decimal         @default(0) @db.Decimal(15, 2)
+  pendingPenalties      Decimal         @default(0) @db.Decimal(15, 2)
+  appliedPenalties      Decimal         @default(0) @db.Decimal(15, 2)
+  waivedPenalties       Decimal         @default(0) @db.Decimal(15, 2)
+  
+  riskOfMissDeadline    Decimal         @db.Decimal(5, 2)
+  recommendedAction     String?
+  
+  lastUpdated           DateTime        @default(now())
+  
+  project               projects        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+}
+
+model schedule_recovery_plan {
+  id                    String          @id @default(cuid())
+  projectId             String
+  
+  planNumber            String          @unique
+  
+  triggerDate           DateTime
+  daysBehind            Int
+  
+  requiredDaysToRecover Int
+  daysAvailable         Int
+  
+  actions               Json
+  
+  recoveryDays          Int
+  additionalCost        Decimal         @db.Decimal(15, 2)
+  riskLevel             String
+  successProbability    Decimal         @db.Decimal(5, 2)
+  
+  status                String          @default("draft")
+  approvedBy            String?
+  approvalDate          DateTime?
+  
+  actualRecoveredDays   Int             @default(0)
+  costActual            Decimal         @default(0) @db.Decimal(15, 2)
+  
+  notes                 String?
+  
+  project               projects        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([projectId, status])
+}
+
+// ============================================================================
+// TIMESHEET MODELS
+// ============================================================================
+
+model timesheet_config {
+  id                    String    @id @default(cuid())
+  departmentId          String?
+  
+  standardWeeklyHours   Decimal   @default(40.0) @db.Decimal(5, 2)
+  dailyWorkHours        Decimal   @default(8.0) @db.Decimal(5, 2)
+  dayStartTime          String    @default("08:00")
+  dayEndTime            String    @default("17:00")
+  lunchBreakMinutes     Int       @default(60)
+  
+  allowConcurrentEntries Boolean  @default(false)
+  maxConcurrentEntries  Int       @default(2)
+  minimumEntryMinutes   Int       @default(15)
+  roundingMode          String    @default("nearest_15")
+  
+  requireDailyApproval  Boolean   @default(false)
+  requireWeeklyApproval Boolean   @default(true)
+  approvalDueDay        String    @default("friday")
+  lockPeriodDays        Int       @default(30)
+  
+  annualLeaveDays       Int       @default(20)
+  sickLeaveDays         Int       @default(10)
+  personalLeaveDays     Int       @default(3)
+  
+  isActive              Boolean   @default(true)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model time_entries {
+  id                    String          @id @default(cuid())
+  
+  userId                String
+  date                  DateTime        @db.Date
+  
+  entryType             TimesheetEntryType
+  
+  projectId             String?
+  taskId                String?
+  wbsTaskId             String?
+  
+  nonProjectActivityId  String?
+  
+  leaveRequestId        String?
+  leaveType             LeaveType?
+  
+  startTime             String
+  endTime               String?
+  breakMinutes          Int             @default(0)
+  totalMinutes          Int
+  hours                 Decimal         @db.Decimal(5, 2)
+  
+  description           String?
+  
+  billable              Boolean         @default(true)
+  chargeable            Boolean         @default(false)
+  chargeAmount          Decimal?        @db.Decimal(12, 2)
+  
+  isConcurrentEntry     Boolean         @default(false)
+  concurrentReason      String?
+  
+  status                TimesheetStatus @default(draft)
+  approvalStatus        TimeApprovalStatus @default(pending)
+  
+  submittedAt           DateTime?
+  submittedBy           String?
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectedReason        String?
+  
+  isLocked              Boolean         @default(false)
+  lockedAt              DateTime?
+  
+  user                  users           @relation("time_entries_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+  project               projects?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  task                  tasks?          @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  wbsTask               wbs_task?       @relation(fields: [wbsTaskId], references: [id], onDelete: SetNull)
+  nonProjectActivity    non_project_activity? @relation(fields: [nonProjectActivityId], references: [id])
+  leaveRequest          leave_requests? @relation(fields: [leaveRequestId], references: [id])
+  approver              users?          @relation("time_entries_approvedByTousers", fields: [approvedBy], references: [id])
+  submitter             users?          @relation("time_entries_submittedByTousers", fields: [submittedBy], references: [id])
+  comments              time_entry_comments[]
+  timesheetCost         timesheet_cost?
+  
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([userId, date])
+  @@index([status, approvalStatus])
+  @@index([projectId, date])
+  @@index([taskId, date])
+  @@index([wbsTaskId, date])
+  @@index([isConcurrentEntry])
+  @@unique([userId, date, projectId, taskId, startTime], map: "idx_time_entry_unique")
+}
+
+model time_entry_comments {
+  id                String    @id @default(cuid())
+  entryId           String
+  userId            String
+  
+  text              String
+  
+  entry             time_entries @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  user              users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([entryId])
+  @@index([userId])
+}
+
+model non_project_activity_category {
+  id                    String    @id @default(cuid())
+  code                  String    @unique
+  name                  String
+  description           String?
+  
+  isBillable            Boolean   @default(false)
+  requiresApproval      Boolean   @default(true)
+  isActive              Boolean   @default(true)
+  
+  activities            non_project_activity[]
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model non_project_activity {
+  id                    String    @id @default(cuid())
+  categoryId            String
+  
+  name                  String
+  description           String?
+  
+  allocatedFor          String?
+  
+  startDate             DateTime  @db.Date
+  endDate               DateTime  @db.Date
+  isRecurring           Boolean   @default(false)
+  recurringPattern      String?
+  
+  isActive              Boolean   @default(true)
+  
+  category              non_project_activity_category @relation(fields: [categoryId], references: [id])
+  timeEntries           time_entries[]
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([categoryId])
+}
+
+model timesheets {
+  id                    String    @id @default(cuid())
+  userId                String
+  weekStartDate         DateTime  @db.Date
+  weekEndDate           DateTime  @db.Date
+  
+  totalHours            Decimal   @db.Decimal(7, 2)
+  projectHours          Decimal   @db.Decimal(7, 2)
+  nonProjectHours       Decimal   @db.Decimal(7, 2)
+  
+  status                TimesheetStatus @default(draft)
+  
+  submittedAt           DateTime?
+  approvedAt            DateTime?
+  approvedBy            String?
+  
+  timeEntries           wbs_task[]
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@unique([userId, weekStartDate, weekEndDate])
+}
+
+model timesheet_submission {
+  id                    String    @id @default(cuid())
+  userId                String
+  weekStartDate         DateTime  @db.Date
+  weekEndDate           DateTime  @db.Date
+  
+  submittedAt           DateTime
+  submittedBy           String
+  approvedAt            DateTime?
+  approvedBy            String?
+  approverComments      String?
+  
+  user                  users     @relation("TimesheetSubmissionUser", fields: [userId], references: [id], onDelete: Cascade)
+  submitter             users?    @relation("TimesheetSubmittedBy", fields: [submittedBy], references: [id])
+  approver              users?    @relation("TimesheetApprovedBy", fields: [approvedBy], references: [id])
+  
+  createdAt             DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([submittedAt])
+}
+
+model leave_allocations {
+  id                    String    @id @default(cuid())
+  userId                String
+  year                  Int
+  
+  annualLeaveAllocated  Decimal   @db.Decimal(5, 2)
+  sickLeaveAllocated    Decimal   @db.Decimal(5, 2)
+  personalLeaveAllocated Decimal  @db.Decimal(5, 2)
+  unpaidLeaveAllocated  Decimal   @db.Decimal(5, 2)
+  
+  annualLeaveUsed       Decimal   @default(0) @db.Decimal(5, 2)
+  sickLeaveUsed         Decimal   @default(0) @db.Decimal(5, 2)
+  personalLeaveUsed     Decimal   @default(0) @db.Decimal(5, 2)
+  unpaidLeaveUsed       Decimal   @default(0) @db.Decimal(5, 2)
+  
+  annualLeaveRemaining  Decimal   @db.Decimal(5, 2)
+  sickLeaveRemaining    Decimal   @db.Decimal(5, 2)
+  personalLeaveRemaining Decimal  @db.Decimal(5, 2)
+  unpaidLeaveRemaining  Decimal   @db.Decimal(5, 2)
+  
+  isActive              Boolean   @default(true)
+  
+  user                  users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveRequests         leave_requests[]
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@unique([userId, year])
+  @@index([userId])
+}
+
+model leave_requests {
+  id                    String    @id @default(cuid())
+  allocationId          String
+  userId                String
+  
+  startDate             DateTime  @db.Date
+  endDate               DateTime  @db.Date
+  leaveDays             Decimal   @db.Decimal(5, 2)
+  leaveType             LeaveType
+  
+  reason                String?
+  notes                 String?
+  
+  status                String    @default("pending")
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectedReason        String?
+  
+  allocation            leave_allocations @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  user                  users     @relation("leave_request_user", fields: [userId], references: [id], onDelete: Cascade)
+  approver              users?    @relation("leave_request_approver", fields: [approvedBy], references: [id])
+  timeEntries           time_entries[]
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([allocationId])
+  @@index([userId])
+  @@index([status])
+  @@index([startDate, endDate])
+}
+
+model daily_timesheet_summary {
+  id                    String    @id @default(cuid())
+  userId                String
+  date                  DateTime  @db.Date
+  
+  projectHours          Decimal   @default(0) @db.Decimal(5, 2)
+  nonProjectHours       Decimal   @default(0) @db.Decimal(5, 2)
+  leaveHours            Decimal   @default(0) @db.Decimal(5, 2)
+  
+  billableHours         Decimal   @default(0) @db.Decimal(5, 2)
+  chargeableHours       Decimal   @default(0) @db.Decimal(5, 2)
+  
+  totalHours            Decimal   @default(0) @db.Decimal(5, 2)
+  
+  isValid               Boolean   @default(true)
+  validationMessage     String?
+  
+  isApproved            Boolean   @default(false)
+  
+  user                  users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model weekly_timesheet_summary {
+  id                    String    @id @default(cuid())
+  userId                String
+  weekStartDate         DateTime  @db.Date
+  weekEndDate           DateTime  @db.Date
+  
+  projectHours          Decimal   @default(0) @db.Decimal(7, 2)
+  nonProjectHours       Decimal   @default(0) @db.Decimal(7, 2)
+  leaveHours            Decimal   @default(0) @db.Decimal(7, 2)
+  overtimeHours         Decimal   @default(0) @db.Decimal(7, 2)
+  
+  billableHours         Decimal   @default(0) @db.Decimal(7, 2)
+  chargeableHours       Decimal   @default(0) @db.Decimal(7, 2)
+  
+  totalHours            Decimal   @default(0) @db.Decimal(7, 2)
+  expectedHours         Decimal   @default(0) @db.Decimal(7, 2)
+  variance              Decimal   @db.Decimal(7, 2)
+  
+  isApproved            Boolean   @default(false)
+  
+  user                  users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@unique([userId, weekStartDate, weekEndDate])
+  @@index([userId, weekStartDate])
+}
+
+model timesheet_statistics {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  
+  avgDailyHours         Decimal   @db.Decimal(5, 2)
+  avgProjectHoursPercent Decimal  @db.Decimal(5, 2)
+  avgBillableHoursPercent Decimal @db.Decimal(5, 2)
+  
+  punctualityScore      Decimal   @db.Decimal(5, 2)
+  completenessScore     Decimal   @db.Decimal(5, 2)
+  
+  lastCalculated        DateTime
+  
+  user                  users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model timesheet_cost {
+  id                    String    @id @default(cuid())
+  entryId               String    @unique
+  
+  hourlyRate            Decimal   @db.Decimal(10, 2)
+  hours                 Decimal   @db.Decimal(5, 2)
+  baseCost              Decimal   @db.Decimal(12, 2)
+  
+  overtimeMultiplier    Decimal   @default(1.0) @db.Decimal(3, 2)
+  finalCost             Decimal   @db.Decimal(12, 2)
+  
+  projectId             String?
+  taskId                String?
+  wbsTaskId             String?
+  
+  isIncludedInACWP      Boolean   @default(false)
+  acwpIncludedDate      DateTime?
+  
+  entry                 time_entries @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  project               projects? @relation("TimesheetCosts", fields: [projectId], references: [id])
+  task                  tasks?    @relation("TimesheetCosts", fields: [taskId], references: [id])
+  wbsTask               wbs_task? @relation("TimesheetCosts", fields: [wbsTaskId], references: [id])
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([projectId])
+  @@index([taskId])
+  @@index([wbsTaskId])
+  @@index([isIncludedInACWP])
+}
+
+// ============================================================================
+// CUSTOMER & BILLING MODELS
+// ============================================================================
+
+model customers {
+  id                String       @id @default(cuid())
+  
+  name              String
+  customerType      CustomerType @default(enterprise)
+  contactPerson     String?
+  email             String
+  phone             String?
+  address           String?
+  city              String?
+  country           String?
+  taxId             String?
+  
+  billingAddress    String?
+  billingCity       String?
+  billingCountry    String?
+  billingEmail      String?
+  
+  defaultPaymentTerms PaymentTerms @default(net30)
+  creditLimit       Decimal?     @db.Decimal(15, 2)
+  creditUsed        Decimal      @default(0) @db.Decimal(15, 2)
+  
+  creditRating      String?
+  
+  notes             String?
+  
+  projects          projects[]
+  contacts          customer_contacts[]
+  invoices          invoices[]
+  payments          customer_payments[]
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([customerType, creditRating])
+}
+
+model customer_contacts {
+  id                String       @id @default(cuid())
+  customerId        String
+  name              String
+  title             String?
+  email             String
+  phone             String?
+  isPrimary         Boolean      @default(false)
+  role              String
+  
+  customer          customers    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([customerId])
+}
+
+model project_billing {
+  id                String       @id @default(cuid())
+  projectId         String       @unique
+  
+  billingType       BillingType
+  totalBillingAmount Decimal     @db.Decimal(15, 2)
+  currency          String       @default("THB")
+  
+  paymentTerms      PaymentTerms
+  invoicingSchedule Json?
+  
+  discountPercent   Decimal      @default(0) @db.Decimal(5, 2)
+  taxType           TaxType      @default(vat)
+  taxPercent        Decimal      @default(7) @db.Decimal(5, 2)
+  
+  notes             String?
+  
+  project           projects     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  installments      billing_installment[]
+  invoices          invoices[]               @relation("ProjectInvoices")
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model billing_installment {
+  id                String       @id @default(cuid())
+  billingId         String
+  
+  installmentNumber Int
+  description       String?
+  
+  scheduledDate     DateTime
+  amount            Decimal      @db.Decimal(15, 2)
+  
+  status            InstallmentStatus @default(scheduled)
+  invoicedDate      DateTime?
+  paidDate          DateTime?
+  
+  billing           project_billing @relation(fields: [billingId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([billingId, status])
+}
+
+model invoices {
+  id                String       @id @default(cuid())
+  customerId        String
+  billingId         String?
+  projectId         String
+  
+  invoiceNumber     String       @unique
+  invoiceDate       DateTime
+  dueDate           DateTime
+  
+  subtotal          Decimal      @db.Decimal(15, 2)
+  discountAmount    Decimal      @default(0) @db.Decimal(15, 2)
+  taxAmount         Decimal      @db.Decimal(15, 2)
+  totalAmount       Decimal      @db.Decimal(15, 2)
+  
+  lineItems         Json
+  notes             String?
+  
+  status            InvoiceStatus @default(draft)
+  
+  paidAmount        Decimal      @default(0) @db.Decimal(15, 2)
+  remainingAmount   Decimal      @db.Decimal(15, 2)
+  paidDate          DateTime?
+  
+  paymentLink       String?
+  paymentMethod     String?
+  
+  sentDate          DateTime?
+  viewedDate        DateTime?
+  approvedDate      DateTime?
+  
+  customer          customers    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  billing           project_billing? @relation("ProjectInvoices", fields: [billingId], references: [id])
+  project           projects     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  payments          customer_payments[]
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([customerId, status])
+  @@index([projectId])
+  @@index([dueDate])
+}
+
+model customer_payments {
+  id                String       @id @default(cuid())
+  customerId        String
+  invoiceId         String?
+  projectId         String
+  
+  paymentDate       DateTime
+  amount            Decimal      @db.Decimal(15, 2)
+  
+  referenceNumber   String?
+  paymentMethod     String
+  transactionId     String?
+  
+  status            String       @default("recorded")
+  
+  notes             String?
+  
+  customer          customers    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoice           invoices?    @relation(fields: [invoiceId], references: [id])
+  project           projects     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([customerId, paymentDate])
+  @@index([invoiceId])
+}
+
+model project_financials {
+  id                String       @id @default(cuid())
+  projectId         String       @unique
+  
+  totalBillingAmount Decimal     @db.Decimal(15, 2)
+  totalInvoiced     Decimal      @default(0) @db.Decimal(15, 2)
+  totalCollected    Decimal      @default(0) @db.Decimal(15, 2)
+  pendingCollection Decimal      @db.Decimal(15, 2)
+  
+  totalCost         Decimal      @default(0) @db.Decimal(15, 2)
+  laborCost         Decimal      @default(0) @db.Decimal(15, 2)
+  materialCost      Decimal      @default(0) @db.Decimal(15, 2)
+  equipmentCost     Decimal      @default(0) @db.Decimal(15, 2)
+  overheadCost      Decimal      @default(0) @db.Decimal(15, 2)
+  otherCost         Decimal      @default(0) @db.Decimal(15, 2)
+  
+  grossProfit       Decimal      @db.Decimal(15, 2)
+  marginPercent     Decimal      @db.Decimal(5, 2)
+  netProfit         Decimal      @db.Decimal(15, 2)
+  roi               Decimal      @db.Decimal(5, 2)
+  
+  budgetVariance    Decimal      @db.Decimal(15, 2)
+  budgetVariancePercent Decimal  @db.Decimal(5, 2)
+  
+  daysOverdue       Int          @default(0)
+  collectionRate    Decimal      @db.Decimal(5, 2)
+  averagePaymentDays Int?
+  
+  lastUpdated       DateTime     @default(now())
+  
+  project           projects     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+// ============================================================================
+// VENDOR & PROCUREMENT MODELS
+// ============================================================================
+
+model vendors {
+  id                String       @id @default(cuid())
+  
+  code              String       @unique
+  name              String
+  vendorType        VendorType   @default(supplier)
+  category          String?
+  email             String
+  phone             String
+  address           String
+  city              String
+  country           String
+  
+  taxId             String?
+  licenseNumber     String?
+  
+  primaryContact    String?
+  accountManager    String?
+  status            String       @default("active")
+  
+  bankAccount       String?
+  bankName          String?
+  paymentTerms      PaymentTerms @default(net30)
+  creditLimit       Decimal?     @db.Decimal(12, 2)
+  
+  overallRating     VendorRating @default(satisfactory)
+  totalProjects     Int          @default(0)
+  successfulProjects Int         @default(0)
+  averageDeliveryTime Int?
+  onTimeDeliveryRate Decimal?    @db.Decimal(5, 2)
+  
+  totalSpent        Decimal      @default(0) @db.Decimal(15, 2)
+  averageOrderValue Decimal?     @db.Decimal(12, 2)
+  
+  notes             String?
+  
+  contracts         vendor_contracts[]
+  payments          vendor_payments[]
+  invoices          vendor_invoices[]
+  kpiEvaluations    vendor_kpi_evaluations[]
+  expenseItems      expense_items[]
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([vendorType, status])
+  @@index([overallRating])
+}
+
+model vendor_contracts {
+  id                String       @id @default(cuid())
+  vendorId          String
+  projectId         String?
+  
+  contractNumber    String       @unique
+  title             String
+  description       String?
+  contractType      ContractType
+  
+  startDate         DateTime
+  endDate           DateTime?
+  autoRenewal       Boolean      @default(false)
+  
+  value             Decimal      @db.Decimal(15, 2)
+  currency          String       @default("THB")
+  paymentTerms      String?
+  paymentSchedule   Json?
+  
+  status            ContractStatus @default(draft)
+  
+  signingDate       DateTime?
+  expiryDate        DateTime?
+  autoRenewalDate   DateTime?
+  
+  notes             String?
+  
+  vendor            vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  project           projects?    @relation(fields: [projectId], references: [id])
+  payments          vendor_payments[]
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([vendorId, status])
+  @@index([projectId])
+}
+
+model vendor_payments {
+  id                String           @id @default(cuid())
+  vendorId          String
+  contractId        String?
+  projectId         String?
+  
+  paymentType       VendorPaymentType
+  amount            Decimal          @db.Decimal(12, 2)
+  currency          String           @default("THB")
+  dueDate           DateTime
+  paidDate          DateTime?
+  
+  installmentNumber Int?
+  totalInstallments Int?
+  
+  status            PaymentStatus    @default(pending)
+  paymentMethod     PaymentMethod?
+  transactionId      String?
+  receiptUrl        String?
+  
+  approvedBy        String?
+  approvedAt        DateTime?
+  rejectedReason    String?
+  
+  description       String?
+  notes             String?
+  
+  vendor            vendors          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  contract          vendor_contracts? @relation(fields: [contractId], references: [id])
+  project           projects?        @relation(fields: [projectId], references: [id])
+  
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  @@index([vendorId, status])
+  @@index([dueDate, status])
+  @@index([projectId])
+}
+
+model vendor_invoices {
+  id                String       @id @default(cuid())
+  vendorId          String
+  projectId         String?
+  contractId        String?
+  
+  invoiceNumber     String       @unique
+  invoiceDate       DateTime
+  dueDate           DateTime
+  
+  amount            Decimal      @db.Decimal(15, 2)
+  currency          String       @default("THB")
+  
+  status            InvoiceStatus @default(draft)
+  
+  paidDate          DateTime?
+  paidAmount        Decimal      @default(0) @db.Decimal(15, 2)
+  
+  notes             String?
+  
+  vendor            vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  project           projects?    @relation(fields: [projectId], references: [id])
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([vendorId, status])
+  @@index([invoiceNumber])
+}
+
+model purchase_orders {
+  id                String       @id @default(cuid())
+  projectId         String
+  vendorId          String
+  
+  poNumber          String       @unique
+  description       String
+  
+  amount            Decimal      @db.Decimal(15, 2)
+  
+  status            String       @default("draft")
+  
+  issuedDate        DateTime?
+  expectedDelivery  DateTime?
+  actualDelivery    DateTime?
+  
+  notes             String?
+  
+  project           projects     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([projectId, status])
+}
+
+model expense_items {
+  id              String           @id @default(cuid())
+  expenseId       String
+  vendorId        String?
+  
+  category        ExpenseCategory
+  subcategory     String?
+  description     String
+  quantity        Decimal          @default(1) @db.Decimal(10, 2)
+  unitPrice       Decimal          @db.Decimal(12, 2)
+  totalPrice      Decimal          @db.Decimal(12, 2)
+  
+  baseCost        Decimal          @db.Decimal(12, 2)
+  markup          Decimal          @default(0) @db.Decimal(5, 2)
+  marginAmount    Decimal          @db.Decimal(12, 2)
+  finalPrice      Decimal          @db.Decimal(12, 2)
+  
+  vendorItemCode  String?
+  vendorInvoice   String?
+  
+  notes           String?
+  
+  expense         expenses         @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  vendor          vendors?         @relation(fields: [vendorId], references: [id])
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  @@index([expenseId])
+  @@index([vendorId])
+  @@index([category])
+}
+
+model vendor_kpi_evaluations {
+  id              String    @id @default(cuid())
+  vendorId        String
+  projectId       String?
+  evaluationPeriod String
+  
+  qualityScore    Decimal   @db.Decimal(3, 1)
+  timelinessScore Decimal   @db.Decimal(3, 1)
+  costScore       Decimal   @db.Decimal(3, 1)
+  communicationScore Decimal @db.Decimal(3, 1)
+  technicalScore  Decimal   @db.Decimal(3, 1)
+  
+  overallScore    Decimal   @db.Decimal(3, 1)
+  rating          VendorRating
+  
+  evaluatorId     String
+  strengths       String?
+  weaknesses      String?
+  recommendations String?
+  nextEvaluationDate DateTime?
+  
+  notes           String?
+  
+  vendor          vendors   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  project         projects? @relation(fields: [projectId], references: [id])
+  evaluator       users     @relation("EvaluatorId", fields: [evaluatorId], references: [id])
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([vendorId, evaluationPeriod])
+  @@index([projectId])
+  @@index([overallScore])
+}
+
+model vendor_kpi_criteria {
+  id              String    @id @default(cuid())
+  name            String
+  category        KpiCategory
+  description     String
+  weight          Decimal   @db.Decimal(3, 1) @default(1.0)
+  measurementUnit String?
+  targetValue     Decimal?  @db.Decimal(10, 2)
+  minValue        Decimal?  @db.Decimal(10, 2)
+  maxValue        Decimal?  @db.Decimal(10, 2)
+  
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([category])
+  @@index([isActive])
+}
+
+// ============================================================================
+// SALES & DEALS (Existing Models - Retained)
+// ============================================================================
+
+model sales_deals {
+  id            String   @id
+  project_id    String
+  contact_id    String
+  deal_value    Decimal? @db.Decimal
+  deal_status   String
+  expected_close DateTime?
+  created_at    DateTime @default(now())
+  projects      projects @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  contacts      contacts @relation(fields: [contact_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users         users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_id       String
+
+  @@index([project_id], map: "idx_sales_deals_project")
+  @@index([contact_id], map: "idx_sales_deals_contact")
 }

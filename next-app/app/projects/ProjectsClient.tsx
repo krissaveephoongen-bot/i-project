@@ -646,7 +646,7 @@ export default function ProjectsClient({
               </SelectTrigger>
               <SelectContent>
                 {savedViews.length === 0 ? (
-                  <SelectItem value="" disabled>ไม่มีมุมมองที่บันทึก</SelectItem>
+                  <SelectItem value="__empty__" disabled>ไม่มีมุมมองที่บันทึก</SelectItem>
                 ) : (
                   savedViews.map(v => (
                     <SelectItem key={v.name} value={v.name}>{v.name}</SelectItem>

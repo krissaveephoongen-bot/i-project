@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation';
 
-export default function Home() {
-  redirect("/projects/weekly-activities");
+export default function Page() {
+  // Redirect to dashboard
+  redirect('/dashboard');
 }

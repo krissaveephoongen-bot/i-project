@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,16 +16,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f8fafc;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #374151;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #1f2937;
 }
 
 /* Custom Utilities */
@@ -43,36 +45,138 @@
   .bg-background-slate {
     background-color: var(--background-slate);
   }
+
+  /* Standard text utilities */
+  .text-xs {
+    font-size: var(--font-size-xs);
+  }
+
+  .text-sm {
+    font-size: var(--font-size-sm);
+  }
+
+  .text-lg {
+    font-size: var(--font-size-lg);
+  }
+
+  .text-xl {
+    font-size: var(--font-size-xl);
+  }
+
+  .text-2xl {
+    font-size: var(--font-size-2xl);
+  }
+
+  .text-3xl {
+    font-size: var(--font-size-3xl);
+  }
+
+  .text-4xl {
+    font-size: var(--font-size-4xl);
+  }
+
+  .text-5xl {
+    font-size: var(--font-size-5xl);
+  }
+
+  /* Line height utilities */
+  .leading-tight {
+    line-height: var(--line-height-tight);
+  }
+
+  .leading-normal {
+    line-height: var(--line-height-normal);
+  }
+
+  .leading-relaxed {
+    line-height: var(--line-height-relaxed);
+  }
+
+  /* Base text styling */
+  body {
+    font-size: var(--font-size-base);
+    font-family: var(--font-family-primary);
+  }
+
+  h1 {
+    font-size: var(--font-size-4xl);
+    font-weight: 600;
+  }
+
+  h2 {
+    font-size: var(--font-size-3xl);
+    font-weight: 600;
+  }
+
+  h3 {
+    font-size: var(--font-size-2xl);
+    font-weight: 600;
+  }
+
+  h4 {
+    font-size: var(--font-size-xl);
+    font-weight: 500;
+  }
+
+  h5 {
+    font-size: var(--font-size-lg);
+    font-weight: 500;
+  }
+
+  h6 {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+  }
 }
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 0 0% 98%;
+    --foreground: 0 0% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 0 0% 20%;
+    --primary: 0 0% 20%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 0 0% 20%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 0 0% 20%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --ring: 0 0% 20%;
+    --chart-1: 0 0% 20%;
+    --chart-2: 0 0% 40%;
+    --chart-3: 0 0% 60%;
+    --chart-4: 0 0% 80%;
+    --chart-5: 0 0% 90%;
     --radius: 0.5rem;
+    
+    /* Font Family */
+    --font-family-primary: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    
+    /* Standard font sizes - more reasonable */
+    --font-size-xs: 0.75rem;    /* 12px */
+    --font-size-sm: 0.875rem;   /* 14px */
+    --font-size-base: 1rem;     /* 16px - standard base */
+    --font-size-lg: 1.125rem;   /* 18px */
+    --font-size-xl: 1.25rem;    /* 20px */
+    --font-size-2xl: 1.5rem;    /* 24px */
+    --font-size-3xl: 1.875rem;  /* 30px */
+    --font-size-4xl: 2.25rem;   /* 36px */
+    --font-size-5xl: 3rem;      /* 48px */
+    
+    /* Line heights for better readability */
+    --line-height-tight: 1.25;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.75;
   }
+  
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
@@ -107,5 +211,24 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-family-primary);
+    line-height: var(--line-height-normal);
+  }
+  
+  /* Better typography defaults */
+  p {
+    line-height: var(--line-height-relaxed);
+    margin-bottom: 1rem;
+  }
+  
+  /* Better form styling */
+  input, textarea, select {
+    font-family: var(--font-family-primary);
+  }
+  
+  /* Better button styling */
+  button {
+    font-family: var(--font-family-primary);
+    font-weight: 500;
   }
 }

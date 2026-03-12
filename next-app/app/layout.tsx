@@ -23,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="th" suppressHydrationWarning>
-      <body className="bg-background" suppressHydrationWarning>
+    <html lang="th" suppressHydrationWarning className="scroll-smooth">
+      <body className="bg-background font-sans text-foreground antialiased" suppressHydrationWarning>
         <I18nProvider>
           <Providers>
             <AuthProvider>

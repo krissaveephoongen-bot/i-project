@@ -185,6 +185,18 @@ export function ProfessionalFilter({
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filters.map((filter) => {
               const options = getFilterOptions(filter);
+              // Only render if we have options or are not loading
+              if (optionsLoading && filter.type === "dynamic") {
+                return (
+                  <div key={filter.key} className="space-y-2">
+                    <Label htmlFor={filter.key} className="text-sm font-medium">
+                      {filter.label}
+                    </Label>
+                    <div className="h-10 bg-muted rounded-md animate-pulse" />
+                  </div>
+                );
+              }
+              
               return (
                 <div key={filter.key} className="space-y-2">
                   <Label htmlFor={filter.key} className="text-sm font-medium">
@@ -193,7 +205,7 @@ export function ProfessionalFilter({
                   <Select
                     value={filter.value}
                     onValueChange={filter.onChange}
-                    disabled={optionsLoading}
+                    disabled={optionsLoading || (filter.type === "dynamic" && options.length === 0)}
                   >
                     <SelectTrigger id={filter.key} className="w-full">
                       <SelectValue
@@ -204,11 +216,12 @@ export function ProfessionalFilter({
                       <SelectItem value="all">
                         All {filter.label.toLowerCase()}
                       </SelectItem>
-                      {options.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
+                      {options.length > 0 &&
+                        options.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>

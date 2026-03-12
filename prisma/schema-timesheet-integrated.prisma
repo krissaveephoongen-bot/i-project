@@ -1,0 +1,572 @@
+// ============================================================================
+// TIMESHEET MANAGEMENT SYSTEM - INTEGRATED WITH PROJECT MANAGEMENT
+// Comprehensive time tracking for: Project Tasks, Non-Project Activities, Leave
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum TimesheetEntryType {
+  project_task        // Work on project tasks (billable/non-billable)
+  non_project         // Internal work (admin, training, meetings, etc.)
+  leave               // Approved leave (vacation, sick, etc.)
+}
+
+enum LeaveType {
+  vacation            // Annual leave
+  sick                // Sick leave
+  personal            // Personal leave
+  unpaid              // Unpaid leave
+  public_holiday      // Public holiday
+  maternity           // Maternity leave
+  paternity           // Paternity leave
+  study               // Study leave
+}
+
+enum TimesheetStatus {
+  draft               // Not yet submitted
+  submitted           // Submitted for approval
+  under_review        // Being reviewed
+  approved            // Approved
+  rejected            // Rejected by approver
+  locked              // Locked (period closed)
+}
+
+enum TimeApprovalStatus {
+  pending             // Awaiting approval
+  approved            // Approved
+  rejected            // Rejected
+  appealed            // Appealed/disputed
+}
+
+// ============================================================================
+// 1. TIMESHEET CONFIGURATION & SETUP
+// ============================================================================
+
+/// Timesheet Configuration per Organization/Department
+model timesheet_config {
+  id                    String    @id @default(cuid())
+  departmentId          String?   // Optional: per department config
+  
+  // Work Hour Setup
+  standardWeeklyHours   Decimal   @default(40.0) @db.Decimal(5, 2)
+  dailyWorkHours        Decimal   @default(8.0) @db.Decimal(5, 2)
+  dayStartTime          String    @default("08:00") // HH:mm format
+  dayEndTime            String    @default("17:00")
+  lunchBreakMinutes     Int       @default(60)
+  
+  // Entry Rules
+  allowConcurrentEntries Boolean  @default(false)
+  maxConcurrentEntries  Int       @default(2)
+  minimumEntryMinutes   Int       @default(15)
+  roundingMode          String    @default("nearest_15") // nearest_15, up, down
+  
+  // Approval
+  requireDailyApproval  Boolean   @default(false)
+  requireWeeklyApproval Boolean   @default(true)
+  approvalDueDay        String    @default("friday")
+  lockPeriodDays        Int       @default(30) // Lock entries after 30 days
+  
+  // Leave Allocation
+  annualLeaveDays       Int       @default(20)
+  sickLeaveDays         Int       @default(10)
+  personalLeaveDays     Int       @default(3)
+  
+  // Status
+  isActive              Boolean   @default(true)
+  
+  // Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+// ============================================================================
+// 2. TIME ENTRY - ENHANCED & INTEGRATED
+// ============================================================================
+
+/// Time Entry - Core timesheet record (Project Tasks + Non-Project + Leave)
+model time_entries {
+  id                    String          @id @default(cuid())
+  
+  // User & Date
+  userId                String
+  date                  DateTime        @db.Date
+  
+  // Entry Type Classification
+  entryType             TimesheetEntryType
+  
+  // === PROJECT TASK ENTRY ===
+  projectId             String?
+  taskId                String?
+  wbsTaskId             String?         // Link to WBS task for EVM
+  
+  // === NON-PROJECT ENTRY ===
+  nonProjectActivityId  String?         // Link to non-project activity
+  
+  // === LEAVE ENTRY ===
+  leaveRequestId        String?         // Link to leave request
+  leaveType             LeaveType?
+  
+  // Time Details
+  startTime             String          // HH:mm format
+  endTime               String?         // HH:mm format
+  breakMinutes          Int             @default(0)
+  totalMinutes          Int             // Calculated: (endTime - startTime) - breakMinutes
+  hours                 Decimal         @db.Decimal(5, 2) // totalMinutes / 60
+  
+  // Work Description
+  description           String?         // What was done
+  
+  // Billability & Chargeable
+  billable              Boolean         @default(true) // Should be billed to customer
+  chargeable            Boolean         @default(false) // Should be charged internally
+  chargeAmount          Decimal?        @db.Decimal(12, 2) // If chargeable
+  
+  // Parallel Work (Concurrent time entries)
+  isConcurrentEntry     Boolean         @default(false)
+  concurrentReason      String?         // Why parallel work
+  
+  // Status & Approval
+  status                TimesheetStatus @default(draft)
+  approvalStatus        TimeApprovalStatus @default(pending)
+  
+  // Approval Trail
+  submittedAt           DateTime?
+  submittedBy           String?         // User who submitted (may differ from entryUser)
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectedReason        String?
+  
+  // System Fields
+  isLocked              Boolean         @default(false) // Cannot edit after lock period
+  lockedAt              DateTime?
+  
+  // Relations
+  user                  users           @relation("time_entries_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+  project               projects?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  task                  tasks?          @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  wbsTask               wbs_task?       @relation(fields: [wbsTaskId], references: [id], onDelete: SetNull)
+  nonProjectActivity    non_project_activity? @relation(fields: [nonProjectActivityId], references: [id])
+  leaveRequest          leave_requests? @relation(fields: [leaveRequestId], references: [id])
+  approver              users?          @relation("time_entries_approvedByTousers", fields: [approvedBy], references: [id])
+  submitter             users?          @relation("time_entries_submittedByTousers", fields: [submittedBy], references: [id])
+  comments              time_entry_comments[]
+  
+  // Metadata
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([userId, date])
+  @@index([status, approvalStatus])
+  @@index([projectId, date])
+  @@index([taskId, date])
+  @@index([wbsTaskId, date])
+  @@index([isConcurrentEntry])
+  @@unique([userId, date, projectId, taskId, startTime], map: "idx_time_entry_unique")
+}
+
+/// Time Entry Comments - Track discussions about entries
+model time_entry_comments {
+  id                String    @id @default(cuid())
+  entryId           String
+  userId            String
+  
+  text              String
+  
+  // Relations
+  entry             time_entries @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  user              users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([entryId])
+  @@index([userId])
+}
+
+// ============================================================================
+// 3. NON-PROJECT ACTIVITIES
+// ============================================================================
+
+/// Non-Project Activity Categories
+model non_project_activity_category {
+  id                    String    @id @default(cuid())
+  code                  String    @unique // ADM-001, TRN-001, etc.
+  name                  String
+  description           String?
+  
+  // Configuration
+  isBillable            Boolean   @default(false)
+  requiresApproval      Boolean   @default(true)
+  isActive              Boolean   @default(true)
+  
+  // Relations
+  activities            non_project_activity[]
+  
+  // Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+/// Non-Project Activities - Internal work that doesn't belong to a project
+model non_project_activity {
+  id                    String    @id @default(cuid())
+  categoryId            String
+  
+  name                  String    // e.g., "Monthly Planning", "Team Training"
+  description           String?
+  
+  // Resource
+  allocatedFor          String?   // User ID or department
+  
+  // Timeline
+  startDate             DateTime  @db.Date
+  endDate               DateTime  @db.Date
+  isRecurring           Boolean   @default(false)
+  recurringPattern      String?   // daily, weekly, monthly
+  
+  // Status
+  isActive              Boolean   @default(true)
+  
+  // Relations
+  category              non_project_activity_category @relation(fields: [categoryId], references: [id])
+  timeEntries           time_entries[]
+  
+  // Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([categoryId])
+  @@index([allocatedFor])
+}
+
+// ============================================================================
+// 4. TIMESHEET SUBMISSION & APPROVAL
+// ============================================================================
+
+/// Timesheet Submission - Weekly/Monthly timesheet for approval
+model timesheet_submission {
+  id                    String          @id @default(cuid())
+  userId                String
+  
+  // Period
+  periodStartDate       DateTime        @db.Date
+  periodEndDate         DateTime        @db.Date
+  periodType            String          @default("weekly") // weekly, monthly
+  
+  // Summary
+  totalProjectHours     Decimal         @default(0) @db.Decimal(7, 2)
+  totalNonProjectHours  Decimal         @default(0) @db.Decimal(7, 2)
+  totalLeaveHours       Decimal         @default(0) @db.Decimal(7, 2)
+  totalOvertimeHours    Decimal         @default(0) @db.Decimal(7, 2)
+  totalBillableHours    Decimal         @default(0) @db.Decimal(7, 2)
+  totalHours            Decimal         @default(0) @db.Decimal(7, 2)
+  
+  // Status
+  status                TimesheetStatus @default(draft)
+  
+  // Approval
+  submittedAt           DateTime?
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectedReason        String?
+  
+  // Metadata
+  notes                 String?
+  
+  // Relations
+  user                  users           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approver              users?          @relation("timesheet_submission_approver", fields: [approvedBy], references: [id])
+  entries               time_entries[]  // Virtual relation via date range
+  
+  // Metadata
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@unique([userId, periodStartDate, periodEndDate], map: "idx_timesheet_submission_unique")
+  @@index([status])
+  @@index([userId, periodStartDate])
+}
+
+// ============================================================================
+// 5. LEAVE MANAGEMENT - INTEGRATED
+// ============================================================================
+
+/// Leave Allocation - Annual leave quota per employee
+model leave_allocations {
+  id                    String    @id @default(cuid())
+  userId                String
+  year                  Int       // Year of allocation
+  
+  // Allocations by type
+  annualLeaveDays       Decimal   @db.Decimal(5, 2) @default(0)
+  sickLeaveDays         Decimal   @db.Decimal(5, 2) @default(0)
+  personalLeaveDays     Decimal   @db.Decimal(5, 2) @default(0)
+  unpaidLeaveDays       Decimal   @db.Decimal(5, 2) @default(0)
+  
+  // Used
+  annualLeaveUsed       Decimal   @db.Decimal(5, 2) @default(0)
+  sickLeaveUsed         Decimal   @db.Decimal(5, 2) @default(0)
+  personalLeaveUsed     Decimal   @db.Decimal(5, 2) @default(0)
+  unpaidLeaveUsed       Decimal   @db.Decimal(5, 2) @default(0)
+  
+  // Remaining
+  annualLeaveRemaining  Decimal   @db.Decimal(5, 2)
+  sickLeaveRemaining    Decimal   @db.Decimal(5, 2)
+  personalLeaveRemaining Decimal  @db.Decimal(5, 2)
+  unpaidLeaveRemaining  Decimal   @db.Decimal(5, 2)
+  
+  // Status
+  isActive              Boolean   @default(true)
+  
+  // Relations
+  user                  users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveRequests         leave_requests[]
+  
+  // Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@unique([userId, year])
+  @@index([userId])
+}
+
+/// Leave Requests - Track leave applications and approvals
+model leave_requests {
+  id                    String    @id @default(cuid())
+  allocationId          String
+  userId                String
+  
+  // Leave Details
+  startDate             DateTime  @db.Date
+  endDate               DateTime  @db.Date
+  leaveDays             Decimal   @db.Decimal(5, 2) // Number of days
+  leaveType             LeaveType
+  
+  // Request Info
+  reason                String?
+  notes                 String?
+  
+  // Approval
+  status                String    @default("pending") // pending, approved, rejected, cancelled
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectedReason        String?
+  
+  // Relations
+  allocation            leave_allocations @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  user                  users     @relation("leave_request_user", fields: [userId], references: [id], onDelete: Cascade)
+  approver              users?    @relation("leave_request_approver", fields: [approvedBy], references: [id])
+  timeEntries           time_entries[]
+  
+  // Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([allocationId])
+  @@index([userId])
+  @@index([status])
+  @@index([startDate, endDate])
+}
+
+// ============================================================================
+// 6. TIMESHEET ANALYSIS & REPORTING
+// ============================================================================
+
+/// Daily Timesheet Summary - Aggregated daily view
+model daily_timesheet_summary {
+  id                    String    @id @default(cuid())
+  userId                String
+  date                  DateTime  @db.Date
+  
+  // Hours by type
+  projectHours          Decimal   @default(0) @db.Decimal(5, 2)
+  nonProjectHours       Decimal   @default(0) @db.Decimal(5, 2)
+  leaveHours            Decimal   @default(0) @db.Decimal(5, 2)
+  
+  // Billable
+  billableHours         Decimal   @default(0) @db.Decimal(5, 2)
+  chargeableHours       Decimal   @default(0) @db.Decimal(5, 2)
+  
+  // Total
+  totalHours            Decimal   @default(0) @db.Decimal(5, 2)
+  
+  // Validation
+  isValid               Boolean   @default(true) // Exceeds daily limit?
+  validationMessage     String?
+  
+  // Status
+  isApproved            Boolean   @default(false)
+  
+  // Relations
+  user                  users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+/// Weekly Timesheet Summary - Aggregated weekly view
+model weekly_timesheet_summary {
+  id                    String    @id @default(cuid())
+  userId                String
+  weekStartDate         DateTime  @db.Date
+  weekEndDate           DateTime  @db.Date
+  
+  // Hours by type
+  projectHours          Decimal   @default(0) @db.Decimal(7, 2)
+  nonProjectHours       Decimal   @default(0) @db.Decimal(7, 2)
+  leaveHours            Decimal   @default(0) @db.Decimal(7, 2)
+  overtimeHours         Decimal   @default(0) @db.Decimal(7, 2)
+  
+  // Billable
+  billableHours         Decimal   @default(0) @db.Decimal(7, 2)
+  chargeableHours       Decimal   @default(0) @db.Decimal(7, 2)
+  
+  // Total
+  totalHours            Decimal   @default(0) @db.Decimal(7, 2)
+  expectedHours         Decimal   @default(0) @db.Decimal(7, 2) // 40 hrs standard week
+  variance              Decimal   @db.Decimal(7, 2) // Over/under hours
+  
+  // Status
+  isApproved            Boolean   @default(false)
+  
+  // Relations
+  user                  users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@unique([userId, weekStartDate, weekEndDate])
+  @@index([userId, weekStartDate])
+}
+
+/// Timesheet Statistics - User time tracking metrics
+model timesheet_statistics {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  
+  // Metrics (calculated monthly/weekly)
+  avgDailyHours         Decimal   @db.Decimal(5, 2)
+  avgProjectHoursPercent Decimal  @db.Decimal(5, 2) // % of total
+  avgBillableHoursPercent Decimal @db.Decimal(5, 2) // % of total
+  
+  // Trends
+  punctualityScore      Decimal   @db.Decimal(5, 2) // 0-100: On-time submissions
+  completenessScore     Decimal   @db.Decimal(5, 2) // 0-100: All entries filled
+  
+  // Last updated
+  lastCalculated        DateTime
+  
+  // Relations
+  user                  users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+// ============================================================================
+// 7. COST TRACKING FROM TIMESHEET
+// ============================================================================
+
+/// Timesheet Cost - Labor cost calculation from timesheet
+model timesheet_cost {
+  id                    String    @id @default(cuid())
+  entryId               String    @unique
+  
+  // Cost Calculation
+  hourlyRate            Decimal   @db.Decimal(10, 2)
+  hours                 Decimal   @db.Decimal(5, 2)
+  baseCost              Decimal   @db.Decimal(12, 2) // hours * hourlyRate
+  
+  // Adjustments
+  overtimeMultiplier    Decimal   @default(1.0) @db.Decimal(3, 2) // 1.5 for overtime, 2.0 for weekends
+  finalCost             Decimal   @db.Decimal(12, 2) // baseCost * overtimeMultiplier
+  
+  // Allocation
+  projectId             String?
+  taskId                String?
+  wbsTaskId             String?   // Link to WBS for EVM
+  
+  // Status
+  isIncludedInACWP      Boolean   @default(false) // Has this cost been added to ACWP?
+  acwpIncludedDate      DateTime?
+  
+  // Relations
+  entry                 time_entries @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  project               projects? @relation(fields: [projectId], references: [id])
+  task                  tasks?    @relation(fields: [taskId], references: [id])
+  wbsTask               wbs_task? @relation(fields: [wbsTaskId], references: [id])
+  
+  // Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([projectId])
+  @@index([taskId])
+  @@index([wbsTaskId])
+  @@index([isIncludedInACWP])
+}
+
+// ============================================================================
+// EXTEND: Users table
+// ============================================================================
+// Add these fields to existing users model:
+//
+// model users {
+//   // ... existing fields ...
+//   
+//   // Timesheet Fields
+//   hourlyRate              Decimal @default(0) @db.Decimal(10, 2)
+//   weeklyCapacity          Decimal @default(40) @db.Decimal(5, 2) // Standard work hours per week
+//   timeEntries             time_entries[]
+//   timeEntriesAsApprover   time_entries[] @relation("time_entries_approvedByTousers")
+//   timeEntriesAsSubmitter  time_entries[] @relation("time_entries_submittedByTousers")
+//   leaveAllocations        leave_allocations[]
+//   leaveRequestsUser       leave_requests[] @relation("leave_request_user")
+//   leaveRequestsApprover   leave_requests[] @relation("leave_request_approver")
+//   dailySummaries          daily_timesheet_summary[]
+//   weeklySummaries         weekly_timesheet_summary[]
+//   timesheetStats          timesheet_statistics?
+//   timesheetSubmissions    timesheet_submission[]
+// }
+//
+// ============================================================================
+// EXTEND: Projects table
+// ============================================================================
+// Add these fields to existing projects model:
+//
+// model projects {
+//   // ... existing fields ...
+//   
+//   timeEntries             time_entries[]
+//   timesheetCosts          timesheet_cost[]
+// }
+//
+// ============================================================================
+// EXTEND: Tasks table
+// ============================================================================
+// Add these fields to existing tasks model:
+//
+// model tasks {
+//   // ... existing fields ...
+//   
+//   timeEntries             time_entries[]
+//   timesheetCosts          timesheet_cost[]
+// }

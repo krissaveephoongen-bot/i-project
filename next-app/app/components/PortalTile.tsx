@@ -40,8 +40,8 @@ export default function PortalTile({
                 className={clsx(
                     "group relative overflow-hidden rounded-xl border transition-all duration-300 hover:scale-105 cursor-pointer",
                     variant === "featured"
-                        ? "col-span-1 md:col-span-2 lg:col-span-2 bg-gradient-to-br from-blue-600/30 to-blue-500/20 border-blue-400/50 hover:from-blue-600/40 hover:to-blue-500/30 hover:border-blue-400"
-                        : "bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600"
+                        ? "col-span-1 md:col-span-2 lg:col-span-2 bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200 hover:from-blue-100 hover:to-blue-200 hover:border-blue-300"
+                        : "bg-white/70 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
                 )}
             >
                 {/* Gradient overlay */}
@@ -51,11 +51,11 @@ export default function PortalTile({
                     {/* Header */}
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-3 bg-slate-700/50 rounded-lg group-hover:bg-slate-700 transition-colors">
+                            <div className="p-3 bg-slate-200/50 rounded-lg group-hover:bg-slate-200 transition-colors">
                                 {icon}
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-white">
+                                <h3 className="text-lg font-semibold text-slate-900">
                                     {title}
                                 </h3>
                                 {badge && (
@@ -70,23 +70,23 @@ export default function PortalTile({
                                 )}
                             </div>
                         </div>
-                        <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors transform group-hover:translate-x-1" />
+                        <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors transform group-hover:translate-x-1" />
                     </div>
 
                     {/* Description */}
-                    <p className="text-slate-300 text-sm mb-4 flex-grow">
+                    <p className="text-slate-600 text-sm mb-4 flex-grow">
                         {description}
                     </p>
 
                     {/* Stats (optional) */}
                     {stats && stats.length > 0 && (
-                        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-700">
+                        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-200">
                             {stats.map((stat, idx) => (
                                 <div key={idx}>
-                                    <p className="text-xs text-slate-400">
+                                    <p className="text-xs text-slate-500">
                                         {stat.label}
                                     </p>
-                                    <p className="text-lg font-semibold text-white">
+                                    <p className="text-lg font-semibold text-slate-900">
                                         {stat.value}
                                     </p>
                                 </div>
