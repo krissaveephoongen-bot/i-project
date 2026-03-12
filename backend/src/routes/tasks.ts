@@ -66,6 +66,52 @@ const taskQuerySchema = z.object({
 // ============================================================
 
 /**
+ * GET /api/projects/:projectId/tasks/wbs
+ * Get all tasks hierarchically for WBS tree view
+ */
+router.get('/wbs/tree', async (req, res) => {
+  try {
+    const contextResult = await withProjectContext(req);
+    
+    if (contextResult.error) {
+      const status = contextResult.error.includes('No token') ? 401 : 
+                    contextResult.error.includes('Project context') ? 400 : 403;
+      return res.status(status).json(createErrorResponse(contextResult.error, status));
+    }
+
+    if (!contextResult.user.permissions.some((p: any) => p.name === 'projects.read')) {
+      return res.status(403).json(forbiddenResponse('Insufficient permissions'));
+    }
+
+    const projectId = contextResult.projectId!;
+    
+    // Fetch all tasks for the project
+    const allTasks = await db.select().from(tasks).where(eq(tasks.projectId, projectId));
+    
+    // Build hierarchical structure
+    const taskMap = new Map(allTasks.map(t => [t.id, { ...t, children: [] } as any]));
+    const roots: any[] = [];
+    
+    for (const task of allTasks) {
+      const node = taskMap.get(task.id)!;
+      if (task.parentTaskId && taskMap.has(task.parentTaskId)) {
+        taskMap.get(task.parentTaskId)!.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    }
+    
+    // Sort roots by WBS code
+    roots.sort((a, b) => (a.wbsCode || '').localeCompare(b.wbsCode || ''));
+    
+    return res.json(createSuccessResponse(roots, 'WBS tree retrieved successfully'));
+  } catch (error: any) {
+    console.error('Error fetching WBS tree:', error);
+    return res.status(500).json(createErrorResponse('Failed to fetch WBS tree', 500));
+  }
+});
+
+/**
  * GET /api/projects/:projectId/tasks
  * Get all tasks for a project with filtering and pagination
  */
