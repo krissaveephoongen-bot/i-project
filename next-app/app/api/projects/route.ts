@@ -1,48 +1,77 @@
 import { NextRequest, NextResponse } from "next/server";
+import { projectService } from "@/lib/services/project-service";
+import { apiResponse, apiError } from "@/app/lib/api-utils";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import redis from "@/lib/redis";
 import crypto from "node:crypto";
-import { apiResponse, apiError, toCamelCase } from "@/app/lib/api-utils";
 
 export const dynamic = "force-dynamic";
 
 // GET: List all projects
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    if (!supabaseAdmin) {
-      return apiError("Supabase is not configured", 500);
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search') || '';
+    const status = searchParams.get('status') || '';
+    const page = searchParams.get('page') || '1';
+    const limit = searchParams.get('limit') || '10';
+
+    // Build where clause
+    let where: any = {};
+    
+    if (status && typeof status === 'string') {
+      where.status = status;
+    }
+    
+    if (search && typeof search === 'string') {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { code: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ]
     }
 
-    const { data: projects, error } = await supabaseAdmin
-      .from("projects")
-      .select("*")
-      .order("name");
+    const pagination = {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sortBy: 'name',
+      sortOrder: 'asc' as const
+    };
 
-    if (error) {
-      throw error;
-    }
+    const result = await projectService.findPaginated(pagination, {
+      where,
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        description: true,
+        status: true,
+        progress: true,
+        start_date: true,
+        end_date: true,
+        budget: true,
+        spent: true,
+        client_id: true,
+        manager_id: true,
+        category: true,
+        is_archived: true,
+        created_at: true,
+        updated_at: true
+      }
+    });
 
-    // Transform field names to camelCase for consistency
-    const enrichedProjects = (projects || []).map((p: any) => ({
-      ...toCamelCase(p),
-      // Ensure specific fields are correctly mapped if auto-conversion fails or needs overrides
-      managerId: p.manager_id,
-      clientId: p.client_id,
-      startDate: p.start_date,
-      endDate: p.end_date,
-      hourlyRate: p.hourly_rate,
-      isArchived: p.is_archived,
-      warrantyStartDate: p.warranty_start_date,
-      warrantyEndDate: p.warranty_end_date,
-      closureChecklist: p.closure_checklist,
-    }));
-
-    return apiResponse(enrichedProjects);
+    return apiResponse({
+      data: result.data,
+      pagination: result.pagination
+    });
   } catch (e: any) {
     console.error("Projects API error:", e);
     return apiError(e?.message || "Internal server error", 500);
   }
 }
+
+// TODO: Implement POST, PUT, DELETE using projectService
+// For now, keeping the original Supabase-based implementation for complex operations
 
 // POST: Create a new project
 export async function POST(request: NextRequest) {

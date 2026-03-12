@@ -93,15 +93,25 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Feature routes
-app.use("/api/auth", authRoutes);
-app.use("/api/projects", projectRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/tasks", taskRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/expenses", expenseRoutes);
-app.use("/api/clients", clientRoutes);
-app.use("/api/filters", filterRoutes);
+// Feature routes with v1 prefix
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/projects", projectRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/tasks", taskRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
+app.use("/api/v1/expenses", expenseRoutes);
+app.use("/api/v1/clients", clientRoutes);
+app.use("/api/v1/filters", filterRoutes);
+
+// Health check with v1 prefix
+app.get("/api/v1/health", (req, res) => {
+  res.json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    version: "2.0.0"
+  });
+});
 
 // Root endpoint
 app.get("/", (req, res) => {
@@ -110,15 +120,15 @@ app.get("/", (req, res) => {
     version: "2.0.0",
     architecture: "Feature-based organization",
     endpoints: {
-      health: "/api/health",
-      auth: "/api/auth",
-      projects: "/api/projects",
-      users: "/api/users",
-      tasks: "/api/tasks",
-      dashboard: "/api/dashboard",
-      expenses: "/api/expenses",
-      clients: "/api/clients",
-      filters: "/api/filters",
+      health: "/api/v1/health",
+      auth: "/api/v1/auth",
+      projects: "/api/v1/projects",
+      users: "/api/v1/users",
+      tasks: "/api/v1/tasks",
+      dashboard: "/api/v1/dashboard",
+      expenses: "/api/v1/expenses",
+      clients: "/api/v1/clients",
+      filters: "/api/v1/filters",
     },
   });
 });

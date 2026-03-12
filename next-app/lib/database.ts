@@ -2,24 +2,20 @@
 // This file handles the Prisma client connection with proper error handling
 
 import { PrismaClient } from '@prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-import postgres from 'postgres'
 
 // Global variable to store the Prisma client instance
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Create PostgreSQL connection using postgres.js
-const connectionString = process.env.DATABASE_URL
-const postgresClient = postgres(connectionString || '')
-const adapter = new PrismaPg(postgresClient)
-
-// Create Prisma client with error handling
+// Create Prisma client with error handling - configured for production
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  adapter,
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   errorFormat: 'pretty',
+  // Add accelerateUrl for production deployment
+  ...(process.env.NODE_ENV === 'production' && {
+    accelerateUrl: process.env.DATABASE_URL
+  })
 })
 
 // Prevent creating multiple instances in development

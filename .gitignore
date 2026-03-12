@@ -107,3 +107,5 @@ server/.env
 .vercel
 
 /generated/prisma
+
+.env*.local

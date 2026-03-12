@@ -13,7 +13,7 @@ const createUserSchema = z.object({
   role: z.enum(['admin', 'manager', 'employee']).default('employee'),
   department: z.string().optional(),
   position: z.string().optional(),
-  employeeCode: z.string().optional(),
+  employee_code: z.string().optional(),
   phone: z.string().optional(),
   hourlyRate: z.number().optional(),
 })
@@ -24,7 +24,7 @@ const updateUserSchema = z.object({
   role: z.enum(['admin', 'manager', 'employee']).optional(),
   department: z.string().optional(),
   position: z.string().optional(),
-  employeeCode: z.string().optional(),
+  employee_code: z.string().optional(),
   phone: z.string().optional(),
   hourlyRate: z.number().optional(),
   status: z.string().optional(),
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
-        { employeeCode: { contains: search, mode: 'insensitive' } },
+        { employee_code: { contains: search, mode: 'insensitive' } },
         { department: { contains: search, mode: 'insensitive' } }
       ]
     }
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
         role: true,
         department: true,
         position: true,
-        employeeCode: true,
+        employee_code: true,
         phone: true,
         status: true,
         isActive: true,
@@ -126,8 +126,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if employee code is unique (if provided)
-    if (validatedData.employeeCode) {
-      const existingEmployeeCode = await userService.findByEmployeeCode(validatedData.employeeCode)
+    if (validatedData.employee_code) {
+      const existingEmployeeCode = await userService.findByEmployeeCode(validatedData.employee_code)
       if (existingEmployeeCode) {
         return NextResponse.json(
           { 
@@ -230,8 +230,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if employee code is being changed to an existing one
-    if (validatedData.employeeCode && validatedData.employeeCode !== existingUser.employeeCode) {
-      const employeeCodeExists = await userService.findByEmployeeCode(validatedData.employeeCode)
+    if (validatedData.employee_code && validatedData.employee_code !== existingUser.employee_code) {
+      const employeeCodeExists = await userService.findByEmployeeCode(validatedData.employee_code)
       if (employeeCodeExists) {
         return NextResponse.json(
           { 

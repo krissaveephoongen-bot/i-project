@@ -1,32 +1,24 @@
 import { NextResponse } from "next/server";
-import { userService } from "@/lib/services/user-service";
+import { prisma } from "@/lib/database";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // Test basic user service functionality
-    const result = await userService.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true
-      },
-      take: 5
-    });
-
+    // Test basic Prisma connection
+    const userCount = await prisma.users.count();
+    
     return NextResponse.json({
       success: true,
-      data: result,
-      count: result.length
+      userCount,
+      message: "Prisma connection working"
     });
   } catch (error) {
-    console.error("Debug users error:", error);
+    console.error("Prisma test error:", error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to fetch users",
+        error: "Prisma connection failed",
         message: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined
       },

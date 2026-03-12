@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import AuthProvider from "./components/AuthProvider";
-import ProtectedLayout from "./components/ProtectedLayout";
 import { Providers } from "./components/providers";
 import I18nProvider from "./components/I18nProvider";
-import DataSyncProvider from "./components/DataSyncProvider";
+import WalkthroughProvider from "./components/walkthrough/WalkthroughProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
-import WalkthroughProvider from "./components/walkthrough/WalkthroughProvider";
 
 export const metadata: Metadata = {
   title: "i-project - ระบบจัดการโครงการ",
@@ -25,15 +22,13 @@ export default function RootLayout({
   return (
     <html lang="th" suppressHydrationWarning className="scroll-smooth">
       <body className="bg-background font-sans text-foreground antialiased" suppressHydrationWarning>
-        <I18nProvider>
-          <Providers>
-            <AuthProvider>
-              <WalkthroughProvider>
-                <ProtectedLayout>{children}</ProtectedLayout>
-              </WalkthroughProvider>
-            </AuthProvider>
-          </Providers>
-        </I18nProvider>
+        <Providers>
+          <I18nProvider>
+            <WalkthroughProvider>
+              {children}
+            </WalkthroughProvider>
+          </I18nProvider>
+        </Providers>
         <SpeedInsights />
         <Analytics />
       </body>

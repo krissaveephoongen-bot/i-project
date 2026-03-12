@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/app/lib/supabaseClient";
+import { supabaseAdmin } from "@/lib/supabaseAdminClient";
 
 export const dynamic = "force-dynamic";
 
@@ -32,15 +32,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let userRow: any = null;
-    const { data: uRows } = await supabase
+    // Get user from database using token as user ID
+    const { data: userRow, error } = await supabaseAdmin
       .from("users")
       .select("*")
       .eq("id", token)
+      .eq("is_active", true)
+      .eq("is_deleted", false)
       .limit(1);
-    userRow = (uRows || [])[0] || null;
 
-    if (!userRow) {
+    if (error || !userRow || userRow.length === 0) {
       return NextResponse.json(
         {
           error: "Unauthorized",
@@ -51,34 +52,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const isActive =
-      userRow.isActive ?? userRow.isactive ?? userRow.is_active ?? true;
-    const isDeleted =
-      userRow.isDeleted ?? userRow.isdeleted ?? userRow.is_deleted ?? false;
-    if (!isActive || isDeleted) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-          message: "User inactive or deleted",
-          code: "USER_INACTIVE",
-        },
-        { status: 401 },
-      );
-    }
+    const user = userRow[0];
+    const { password, password_hash, hashed_password, ...userWithoutPassword } = user;
 
-    const { password, password_hash, hashed_password, ...userWithoutPassword } =
-      userRow;
-
-    // Load profile from public.profiles
+    // Try to load profile data
     let profileRow: any = null;
     try {
-      const { data: pRows } = await supabase
+      const { data: pRows } = await supabaseAdmin
         .from("profiles")
         .select("*")
-        .eq("id", userRow.id)
+        .eq("id", user.id)
         .limit(1);
       profileRow = (pRows || [])[0] || null;
-    } catch {}
+    } catch (profileError) {
+      console.warn("Profile query failed:", profileError);
+    }
 
     return NextResponse.json({
       user: userWithoutPassword,

@@ -144,6 +144,7 @@ export default function AuthProvider({
           } else {
             // Token invalid, remove it
             localStorage.removeItem("auth_token");
+            sessionStorage.removeItem("auth_token");
           }
         }
 

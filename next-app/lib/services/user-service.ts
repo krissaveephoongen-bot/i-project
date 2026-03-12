@@ -5,26 +5,26 @@ import { prisma } from '../database'
 import { BaseService, type BaseServiceOptions, type PaginationOptions, type PaginatedResult } from '../base-service'
 import type { users, Prisma } from '@prisma/client'
 
-type User = Prisma.usersGetPayload<{}>
+type User = users
 
 export type UserCreateInput = Prisma.usersUncheckedCreateInput
 export type UserUpdateInput = Prisma.usersUncheckedUpdateInput
 export type UserWhereInput = Prisma.usersWhereInput
 export type UserIncludeOptions = Prisma.usersInclude
 
-export interface UserWithRelations extends User {
+export interface UserWithRelations extends users {
   projects?: any[]
   tasks?: any[]
   project_members?: any[]
 }
 
-export class UserService extends BaseService<User, UserCreateInput, UserUpdateInput> {
+export class UserService extends BaseService<users, UserCreateInput, UserUpdateInput> {
   constructor() {
     super(prisma.users)
   }
 
   // Find user by email
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<users | null> {
     try {
       const result = await prisma.users.findUnique({
         where: { email }
@@ -36,21 +36,21 @@ export class UserService extends BaseService<User, UserCreateInput, UserUpdateIn
     }
   }
 
-  // Find user by username
-  async findByUsername(username: string): Promise<User | null> {
+  // Find user by employee code
+  async findByEmployeeCode(employeeCode: string): Promise<users | null> {
     try {
       const result = await prisma.users.findFirst({
-        where: { username }
+        where: { employee_code: employeeCode }
       })
       return result
     } catch (error) {
-      console.error(`Find by username failed:`, error)
-      throw new Error(`Failed to find user by username: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      console.error(`Find by employee code failed:`, error)
+      throw new Error(`Failed to find user by employee code: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
   // Get users with basic info only (for dropdown lists)
-  async getBasicUsers(where?: UserWhereInput): Promise<Pick<User, 'id' | 'name' | 'email' | 'role' | 'department' | 'position'>[]> {
+  async getBasicUsers(where?: UserWhereInput): Promise<Pick<users, 'id' | 'name' | 'email' | 'role' | 'department' | 'position'>[]> {
     try {
       const result = await prisma.users.findMany({
         where: {
@@ -76,9 +76,9 @@ export class UserService extends BaseService<User, UserCreateInput, UserUpdateIn
   }
 
   // Get users by role
-  async getUsersByRole(role: string, options?: BaseServiceOptions): Promise<User[]> {
+  async getUsersByRole(role: string, options?: BaseServiceOptions): Promise<users[]> {
     try {
-      const result = await prisma.user.findMany({
+      const result = await prisma.users.findMany({
         where: {
           role
         },
@@ -92,9 +92,9 @@ export class UserService extends BaseService<User, UserCreateInput, UserUpdateIn
   }
 
   // Get project managers
-  async getProjectManagers(): Promise<Pick<User, 'id' | 'name' | 'email' | 'department'>[]> {
+  async getProjectManagers(): Promise<Pick<users, 'id' | 'name' | 'email' | 'department'>[]> {
     try {
-      const result = await prisma.user.findMany({
+      const result = await prisma.users.findMany({
         where: {
           role: 'manager'
         },
@@ -118,40 +118,15 @@ export class UserService extends BaseService<User, UserCreateInput, UserUpdateIn
   // Get users with relations
   async findWithRelations(id: string): Promise<UserWithRelations | null> {
     try {
-      const result = await prisma.user.findUnique({
+      const result = await prisma.users.findUnique({
         where: { id },
         include: {
-          projects: {
-            select: {
-              id: true,
-              name: true,
-              status: true,
-              progress: true
-            }
-          },
-          tasks: {
-            select: {
-              id: true,
-              title: true,
-              status: true,
-              dueDate: true
-            }
-          },
-          project_members: {
-            select: {
-              id: true,
-              role: true,
-              projects: {
-                select: {
-                  id: true,
-                  name: true
-                }
-              }
-            }
-          }
+          projects: true,
+          tasks: true,
+          project_members: true
         }
       })
-      return result
+      return result as UserWithRelations
     } catch (error) {
       console.error(`Find with relations failed:`, error)
       throw new Error(`Failed to find user with relations: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -159,9 +134,9 @@ export class UserService extends BaseService<User, UserCreateInput, UserUpdateIn
   }
 
   // Update user status
-  async updateStatus(id: string, status: string): Promise<User> {
+  async updateStatus(id: string, status: string): Promise<users> {
     try {
-      const result = await prisma.user.update({
+      const result = await prisma.users.update({
         where: { id },
         data: { status }
       })
@@ -210,9 +185,7 @@ export class UserService extends BaseService<User, UserCreateInput, UserUpdateIn
       const result = await prisma.users.update({
         where: { id },
         data: {
-          lastLogin: new Date(),
-          failedLoginAttempts: 0,
-          lockedUntil: null
+          failed_login_attempts: 0
         }
       })
       return result
@@ -223,21 +196,22 @@ export class UserService extends BaseService<User, UserCreateInput, UserUpdateIn
   }
 
   // Increment failed login attempts
-  async incrementFailedLogin(id: string): Promise<users> {
+  async incrementFailedLogin(id: string): Promise<User> {
     try {
       const user = await this.findById(id)
       if (!user) throw new Error('User not found')
 
-      const failedAttempts = (user.failedLoginAttempts || 0) + 1
+      const failedAttempts = (user.failed_login_attempts || 0) + 1
       const maxAttempts = 5
       
       const updateData: any = {
-        failedLoginAttempts: failedAttempts
+        failed_login_attempts: failedAttempts
       }
 
       // Lock account after max attempts
       if (failedAttempts >= maxAttempts) {
-        updateData.lockedUntil = new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
+        // Note: locked_until field not available in current schema
+        // This would need to be added to the schema if account locking is required
       }
 
       const result = await prisma.users.update({
@@ -261,7 +235,7 @@ export class UserService extends BaseService<User, UserCreateInput, UserUpdateIn
               OR: [
                 { name: { contains: query, mode: 'insensitive' } },
                 { email: { contains: query, mode: 'insensitive' } },
-                { username: { contains: query, mode: 'insensitive' } },
+                { employee_code: { contains: query, mode: 'insensitive' } },
                 { department: { contains: query, mode: 'insensitive' } },
                 { position: { contains: query, mode: 'insensitive' } }
               ]

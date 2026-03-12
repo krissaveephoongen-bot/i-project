@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "next-app/package.json",
-      "use": "@vercel/next"
+      "use": "@vercel/next",
+      "config": {
+        "distDir": ".next"
+      }
     },
     {
       "src": "backend/package.json",
@@ -12,12 +15,22 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
+      "src": "/api/v1/(.*)",
       "dest": "/backend/src/index.ts"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/next-app/api/$1"
     },
     {
       "src": "/(.*)",
       "dest": "/next-app/$1"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/jobs/spi-cpi-snapshot",
+      "schedule": "0 0 * * *"
     }
   ]
 }
