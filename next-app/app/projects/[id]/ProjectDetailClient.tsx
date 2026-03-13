@@ -15,15 +15,14 @@ import {
   Trash2,
   Calendar,
   Clock,
- Activity,
- Award,
- BarChart3,
- PieChart,
- UserCheck,
- Briefcase,
- Star,
- ChevronRight,
- LucideIcon,
+  Activity,
+  Award,
+  BarChart3,
+  PieChart,
+  UserCheck,
+  Briefcase,
+  Star,
+  ChevronRight,
 } from "lucide-react";
 import Header from "../../components/Header";
 import { clsx } from "clsx";
@@ -411,9 +410,10 @@ export default function ProjectDetailClient({
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
           <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
             <div className="flex gap-1 px-6 overflow-x-auto">
-              {[                {
+              {[
+                {
                   id: "overview",
-                  label: "ภาพรวจ",
+                  label: "ภาพรวม",
                   icon: BarChart3,
                   href: `/projects/${project.id}`,
                 },
@@ -582,5 +582,6 @@ export default function ProjectDetailClient({
         </div>
       )}
     </div>
+  </div>
   );
 }
