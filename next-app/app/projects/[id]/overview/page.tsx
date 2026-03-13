@@ -24,7 +24,8 @@ import {
   Edit,
   Plus,
   FileText,
-} from "lucide-react";
+} from "lucide-react"
+import { getStatusDisplay, formatCurrency } from "../../statusUtils"
 
 // Shadcn UI
 import {
@@ -110,6 +111,7 @@ export default function ProjectOverviewPage() {
   const risks = overview?.risks || [];
   const summary = overview?.summary || {};
   const team = overview?.team || [];
+  const documents = (overview as any)?.documents || [];
 
   const completed = tasks.filter(
     (t: any) => (t.status || "").toLowerCase() === "completed",
@@ -226,7 +228,7 @@ export default function ProjectOverviewPage() {
             { label: "ภาพรวม" },
           ]}
         />
-        <div className="pt-24 px-6 pb-6 container mx-auto space-y-6 w-full max-w-full">
+        <div className="pt-24 px-4 sm:px-6 pb-6 container mx-auto space-y-6 w-full max-w-full">
           <ProjectTabs>
             <Button
               asChild
@@ -292,7 +294,7 @@ export default function ProjectOverviewPage() {
                   <span>{p?.endDate ? new Date(p.endDate).toLocaleDateString('th-TH') : '-'}</span>
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  สถานะ: <span className="font-medium text-foreground">{p?.status || '-'}</span>
+                  สถานะ: <span className="font-medium text-foreground">{getStatusDisplay(p?.status || '').label}</span>
                 </div>
               </CardContent>
             </Card>
@@ -373,76 +375,63 @@ export default function ProjectOverviewPage() {
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 bg-gradient-to-br from-blue-50/80 to-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-slate-600">
-                  ความคืบหน้าภาพรวม
-                </CardTitle>
-                <div className="p-2 bg-blue-100/80 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-blue-600" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="shadow-sm border-slate-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">ความคืบหน้า</p>
+                    <p className="text-2xl font-bold text-blue-600 mt-1">
+                      {Number(p?.progress || 0).toFixed(1)}%
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-blue-600">
-                  {Number(p?.progress || 0).toFixed(1)}%
-                </div>
-                <Progress
-                  value={Number(p?.progress || 0)}
-                  className="h-2 mt-3"
-                />
-                <p className="text-xs text-slate-500 mt-2">ความคืบหน้าจริง</p>
+                <Progress value={Number(p?.progress || 0)} className="h-1.5 mt-3" />
               </CardContent>
             </Card>
-
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 bg-gradient-to-br from-green-50/80 to-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-slate-600">
-                  งานที่เสร็จแล้ว
-                </CardTitle>
-                <div className="p-2 bg-green-100/80 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+            <Card className="shadow-sm border-slate-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">เสร็จแล้ว</p>
+                    <p className="text-2xl font-bold text-green-600 mt-1">{completed}</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-green-50 text-green-600">
+                    <CheckCircle className="h-5 w-5" />
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-600">
-                  {completed}
-                </div>
-                <p className="text-xs text-slate-500 mt-2">งานที่เสร็จสิ้น</p>
+                <p className="text-xs text-muted-foreground mt-2">งานที่เสร็จสิ้น</p>
               </CardContent>
             </Card>
-
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 bg-gradient-to-br from-cyan-50/80 to-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-slate-600">
-                  กำลังดำเนินการ
-                </CardTitle>
-                <div className="p-2 bg-cyan-100/80 rounded-lg">
-                  <Clock className="h-5 w-5 text-cyan-600" />
+            <Card className="shadow-sm border-slate-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">กำลังทำ</p>
+                    <p className="text-2xl font-bold text-cyan-600 mt-1">{inProgress}</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-cyan-50 text-cyan-600">
+                    <Clock className="h-5 w-5" />
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-cyan-600">
-                  {inProgress}
-                </div>
-                <p className="text-xs text-slate-500 mt-2">งานที่กำลังทำ</p>
+                <p className="text-xs text-muted-foreground mt-2">กำลังดำเนินการ</p>
               </CardContent>
             </Card>
-
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 bg-gradient-to-br from-amber-50/80 to-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-slate-600">
-                  รอดำเนินการ
-                </CardTitle>
-                <div className="p-2 bg-amber-100/80 rounded-lg">
-                  <Target className="h-5 w-5 text-amber-600" />
+            <Card className="shadow-sm border-slate-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">รอดำเนินการ</p>
+                    <p className="text-2xl font-bold text-amber-600 mt-1">{pending}</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-50 text-amber-600">
+                    <Target className="h-5 w-5" />
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-amber-600">
-                  {pending}
-                </div>
-                <p className="text-xs text-slate-500 mt-2">งานที่เหลือ</p>
+                <p className="text-xs text-muted-foreground mt-2">งานที่เหลือ</p>
               </CardContent>
             </Card>
           </div>
@@ -545,7 +534,7 @@ export default function ProjectOverviewPage() {
             </Card>
           </div>
 
-          <HealthPolicyForm projectId={id} />
+          <HealthPolicyForm projectId={id as string} />
 
           {/* Billing Summary */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -648,73 +637,36 @@ export default function ProjectOverviewPage() {
           </Card>
 
           {/* Budget Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 bg-gradient-to-br from-slate-50/80 to-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-slate-600">
-                  งบประมาณทั้งหมด
-                </CardTitle>
-                <div className="p-2 bg-slate-100/80 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-slate-600" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-slate-900">
-                  ฿{Number(summary?.totalBudget || 0).toLocaleString()}
-                </div>
-                <p className="text-xs text-slate-500 mt-2">งบประมาณอนุมัติ</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="shadow-sm border-slate-200">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">งบประมาณทั้งหมด</p>
+                <p className="text-xl font-bold text-foreground mt-1">
+                  {formatCurrency(Number(summary?.totalBudget || 0))}
+                </p>
               </CardContent>
             </Card>
-
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 bg-gradient-to-br from-purple-50/80 to-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-slate-600">
-                  ค่าใช้จ่ายผูกพัน
-                </CardTitle>
-                <div className="p-2 bg-purple-100/80 rounded-lg">
-                  <PieChart className="h-5 w-5 text-purple-600" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-purple-600">
-                  ฿{Number(summary?.committedCost || 0).toLocaleString()}
-                </div>
-                <p className="text-xs text-slate-500 mt-2">ค่าใช้จ่ายผูกพัน</p>
+            <Card className="shadow-sm border-slate-200">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">ค่าใช้จ่ายผูกพัน</p>
+                <p className="text-xl font-bold text-purple-600 mt-1">
+                  {formatCurrency(Number(summary?.committedCost || 0))}
+                </p>
               </CardContent>
             </Card>
-
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 bg-gradient-to-br from-red-50/80 to-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-slate-600">
-                  ค่าใช้จ่ายจริง
-                </CardTitle>
-                <div className="p-2 bg-red-100/80 rounded-lg">
-                  <PieChart className="h-5 w-5 text-red-600" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-red-600">
-                  ฿{Number(summary?.actualCost || 0).toLocaleString()}
-                </div>
-                <p className="text-xs text-slate-500 mt-2">ค่าใช้จ่ายจริง</p>
+            <Card className="shadow-sm border-slate-200">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">ค่าใช้จ่ายจริง</p>
+                <p className="text-xl font-bold text-red-600 mt-1">
+                  {formatCurrency(Number(summary?.actualCost || 0))}
+                </p>
               </CardContent>
             </Card>
-
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 bg-gradient-to-br from-green-50/80 to-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-slate-600">
-                  คงเหลือ
-                </CardTitle>
-                <div className="p-2 bg-green-100/80 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-600">
-                  ฿{Number(summary?.remainingBudget || 0).toLocaleString()}
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  คงเหลือจากงบประมาณ
+            <Card className="shadow-sm border-slate-200">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">คงเหลือ</p>
+                <p className="text-xl font-bold text-green-600 mt-1">
+                  {formatCurrency(Number(summary?.remainingBudget || 0))}
                 </p>
               </CardContent>
             </Card>
