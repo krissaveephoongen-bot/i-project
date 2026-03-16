@@ -85,8 +85,12 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     fetchDashboardData();
-  }, []);
+  }, [user]);
 
   const fetchDashboardData = async () => {
     try {

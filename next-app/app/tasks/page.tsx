@@ -108,10 +108,14 @@ export default function TasksPage() {
   const [form] = Form.useForm();
 
   useEffect(() => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     fetchTasks();
     fetchProjects();
     fetchUsers();
-  }, [currentPage, pageSize, searchText, statusFilter, priorityFilter, assignedToFilter, dateRange]);
+  }, [user, currentPage, pageSize, searchText, statusFilter, priorityFilter, assignedToFilter, projectFilter]);
 
   const fetchTasks = async () => {
     try {

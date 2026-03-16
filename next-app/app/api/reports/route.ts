@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "c:/Users/Jakgrits/project-mgnt/next-app/lib/supabaseAdminClient";
+import { supabaseAdmin } from "../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -50,14 +50,14 @@ export async function GET(request: NextRequest) {
 
     // Calculate overview statistics
     const totalProjects = projects.length;
-    const activeProjects = projects.filter(p => p.status === 'active').length;
-    const completedProjects = projects.filter(p => p.status === 'completed').length;
+    const activeProjects = projects.filter((p: any) => p.status === 'active').length;
+    const completedProjects = projects.filter((p: any) => p.status === 'completed').length;
     const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(t => t.status === 'completed').length;
-    const totalBudget = projects.reduce((sum, p) => sum + (p.budget_allocated || 0), 0);
-    const spentBudget = projects.reduce((sum, p) => sum + (p.budget_spent || 0), 0);
+    const completedTasks = tasks.filter((t: any) => t.status === 'completed').length;
+    const totalBudget = projects.reduce((sum: number, p: any) => sum + (p.budget_allocated || 0), 0);
+    const spentBudget = projects.reduce((sum: number, p: any) => sum + (p.budget_spent || 0), 0);
     const totalUsers = users.length;
-    const activeUsers = users.filter(u => {
+    const activeUsers = users.filter((u: any) => {
       if (!u.last_login_at) return false;
       const lastLogin = new Date(u.last_login_at);
       const thirtyDaysAgo = new Date();
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     // Prepare project reports
     const projectReports = await Promise.all(
-      projects.map(async (project) => {
+      projects.map(async (project: any) => {
         const [{ count: tasksCount }] = await supabaseAdmin
           .from("tasks")
           .select("id", { count: "exact" })
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
 
     // Prepare task reports
     const taskReports = await Promise.all(
-      tasks.map(async (task) => {
+      tasks.map(async (task: any) => {
         const [{ data: projectData }] = await supabaseAdmin
           .from("projects")
           .select("name")

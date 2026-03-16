@@ -102,8 +102,12 @@ export default function ProjectsPage() {
   const [form] = Form.useForm();
 
   useEffect(() => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     fetchProjects();
-  }, [currentPage, pageSize, searchText, statusFilter, priorityFilter, dateRange]);
+  }, [user, currentPage, pageSize, searchText, statusFilter, priorityFilter, dateRange]);
 
   const fetchProjects = async () => {
     try {

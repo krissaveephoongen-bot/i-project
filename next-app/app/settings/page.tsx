@@ -27,6 +27,7 @@ import {
   BellOutlined,
   GlobalOutlined,
   ClockCircleOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../components/AuthProvider";
 import { message } from "antd";
@@ -84,8 +85,12 @@ export default function SettingsPage() {
   const [form] = Form.useForm();
 
   useEffect(() => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     fetchUserSettings();
-  }, []);
+  }, [user]);
 
   const fetchUserSettings = async () => {
     try {

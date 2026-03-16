@@ -82,8 +82,12 @@ export default function ReportsPage() {
   const [reportType, setReportType] = useState<string>("overview");
 
   useEffect(() => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     fetchReportData();
-  }, [dateRange, reportType]);
+  }, [user, dateRange, reportType]);
 
   const fetchReportData = async () => {
     try {
