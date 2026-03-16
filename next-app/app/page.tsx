@@ -2,226 +2,428 @@
 
 import { useEffect, useState } from "react";
 import {
-    FolderKanban,
-    CheckSquare,
-    Calendar,
-    CreditCard,
-    BarChart3,
-    ShieldCheck,
-    Users,
-    UserCheck,
-    Truck,
-    Database,
-    Settings,
-    Activity,
-    ArrowUp,
-    TrendingUp,
-} from "lucide-react";
-import PortalTile from "@/app/components/PortalTile";
-import PageTransition from "@/app/components/PageTransition";
+  Layout,
+  Row,
+  Col,
+  Card,
+  Statistic,
+  Table,
+  Typography,
+  Space,
+  Badge,
+  Progress,
+  Avatar,
+  List,
+  Button,
+  message,
+} from "antd";
+import {
+  ProjectOutlined,
+  CheckSquareOutlined,
+  CalendarOutlined,
+  CreditCardOutlined,
+  BarChartOutlined,
+  UserOutlined,
+  ClockCircleOutlined,
+  TrophyOutlined,
+  RocketOutlined,
+} from "@ant-design/icons";
+import { useAuth } from "./components/AuthProvider";
+import { useRouter } from "next/navigation";
 
-interface PortalStats {
-    projects?: { active: number; total: number };
-    tasks?: { pending: number; total: number };
-    expenses?: { pending: number; total: number };
-    approvals?: { waiting: number };
+const { Header, Content } = Layout;
+const { Title, Text } = Typography;
+
+interface Project {
+  id: string;
+  name: string;
+  status: string;
+  progress: number;
+  priority: number;
+  start_date: string;
+  end_date: string;
+  budget_allocated: number;
+  budget_spent: number;
+  created_by: string;
 }
 
-export default function PortalDashboard() {
-    const [stats, setStats] = useState<PortalStats>({});
-    const [loading, setLoading] = useState(true);
+interface Task {
+  id: string;
+  title: string;
+  status: string;
+  priority: number;
+  due_date: string;
+  assigned_to: string;
+}
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const res = await fetch("/api/dashboard/portfolio");
-                if (res.ok) {
-                    const data = await res.json();
-                    setStats({
-                        projects: {
-                            active: data.rows?.filter(
-                                (p: any) =>
-                                    p.status?.toLowerCase() !== "completed"
-                            ).length || 0,
-                            total: data.rows?.length || 0,
-                        },
-                    });
-                }
-            } catch (error) {
-                console.error("Failed to load stats", error);
-            } finally {
-                setLoading(false);
-            }
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  created_at: string;
+  read: boolean;
+}
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [stats, setStats] = useState({
+    totalProjects: 0,
+    activeProjects: 0,
+    completedProjects: 0,
+    totalTasks: 0,
+    pendingTasks: 0,
+    completedTasks: 0,
+    totalBudget: 0,
+    spentBudget: 0,
+  });
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch projects
+      const projectsRes = await fetch("/api/projects");
+      if (projectsRes.ok) {
+        const projectsData = await projectsRes.json();
+        const projectsList = projectsData.data || [];
+        setProjects(projectsList);
+
+        // Calculate project stats
+        const totalProjects = projectsList.length;
+        const activeProjects = projectsList.filter((p: Project) => 
+          p.status !== 'completed' && p.status !== 'cancelled'
+        ).length;
+        const completedProjects = projectsList.filter((p: Project) => 
+          p.status === 'completed'
+        ).length;
+        const totalBudget = projectsList.reduce((sum: number, p: Project) => 
+          sum + (p.budget_allocated || 0), 0
+        );
+        const spentBudget = projectsList.reduce((sum: number, p: Project) => 
+          sum + (p.budget_spent || 0), 0
+        );
+
+        // Fetch tasks
+        const tasksRes = await fetch("/api/tasks");
+        if (tasksRes.ok) {
+          const tasksData = await tasksRes.json();
+          const tasksList = tasksData.data || [];
+          setTasks(tasksList);
+
+          // Calculate task stats
+          const totalTasks = tasksList.length;
+          const pendingTasks = tasksList.filter((t: Task) => 
+            t.status !== 'completed'
+          ).length;
+          const completedTasks = tasksList.filter((t: Task) => 
+            t.status === 'completed'
+          ).length;
+
+          setStats({
+            totalProjects,
+            activeProjects,
+            completedProjects,
+            totalTasks,
+            pendingTasks,
+            completedTasks,
+            totalBudget,
+            spentBudget,
+          });
+        }
+      }
+
+      // Fetch notifications
+      const notificationsRes = await fetch("/api/notifications?pageSize=5");
+      if (notificationsRes.ok) {
+        const notificationsData = await notificationsRes.json();
+        setNotifications(notificationsData.data || []);
+      }
+
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+      message.error("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const projectColumns = [
+    {
+      title: "Project Name",
+      dataIndex: "name",
+      key: "name",
+      render: (text: string, record: Project) => (
+        <Space>
+          <ProjectOutlined />
+          <Text strong>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => {
+        const statusConfig = {
+          active: { color: "processing", text: "Active" },
+          completed: { color: "success", text: "Completed" },
+          on_hold: { color: "warning", text: "On Hold" },
+          cancelled: { color: "error", text: "Cancelled" },
         };
+        const config = statusConfig[status as keyof typeof statusConfig] || { color: "default", text: status };
+        return <Badge status={config.color as any} text={config.text} />;
+      },
+    },
+    {
+      title: "Progress",
+      dataIndex: "progress",
+      key: "progress",
+      render: (progress: number) => (
+        <Progress 
+          percent={progress} 
+          size="small" 
+          status={progress === 100 ? "success" : "active"}
+        />
+      ),
+    },
+    {
+      title: "Priority",
+      dataIndex: "priority",
+      key: "priority",
+      render: (priority: number) => {
+        const priorityColors = ["#52c41a", "#1890ff", "#faad14", "#ff4d4f", "#722ed1"];
+        const priorityLabels = ["Low", "Normal", "Medium", "High", "Critical"];
+        return (
+          <Badge 
+            color={priorityColors[priority - 1]} 
+            text={priorityLabels[priority - 1]}
+          />
+        );
+      },
+    },
+    {
+      title: "Budget",
+      key: "budget",
+      render: (record: Project) => (
+        <Space direction="vertical" size="small">
+          <Text>฿{record.budget_allocated?.toLocaleString() || 0}</Text>
+          <Progress 
+            percent={record.budget_allocated ? 
+              Math.round((record.budget_spent || 0) / record.budget_allocated * 100) : 0
+            } 
+            size="small" 
+            showInfo={false}
+          />
+        </Space>
+      ),
+    },
+  ];
 
-        fetchStats();
-    }, []);
+  const taskColumns = [
+    {
+      title: "Task",
+      dataIndex: "title",
+      key: "title",
+      render: (text: string) => <Text strong>{text}</Text>,
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => {
+        const statusConfig = {
+          pending: { color: "warning", text: "Pending" },
+          in_progress: { color: "processing", text: "In Progress" },
+          completed: { color: "success", text: "Completed" },
+        };
+        const config = statusConfig[status as keyof typeof statusConfig] || { color: "default", text: status };
+        return <Badge status={config.color as any} text={config.text} />;
+      },
+    },
+    {
+      title: "Due Date",
+      dataIndex: "due_date",
+      key: "due_date",
+      render: (date: string) => (
+        <Space>
+          <ClockCircleOutlined />
+          <Text>{date ? new Date(date).toLocaleDateString() : "No due date"}</Text>
+        </Space>
+      ),
+    },
+  ];
 
-    return (
-        <PageTransition>
-            <div className="bg-gradient-to-b from-white via-slate-50 to-blue-50 pb-12">
-                {/* Hero Section */}
-                <div className="relative px-4 sm:px-6 lg:px-8 pt-16 pb-20 overflow-hidden">
-                    {/* Background elements */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        <div className="absolute top-40 right-40 w-80 h-80 bg-blue-200/20 rounded-full blur-3xl" />
-                        <div className="absolute bottom-40 left-40 w-80 h-80 bg-purple-200/20 rounded-full blur-3xl" />
-                    </div>
+  return (
+    <Layout className="min-h-screen bg-gray-50">
+      <Header className="bg-white shadow-sm px-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <Title level={3} className="mb-0 text-gray-800">
+              Dashboard
+            </Title>
+            <Text type="secondary">
+              Welcome back, {user?.name || "User"}
+            </Text>
+          </div>
+          <Space>
+            <Avatar icon={<UserOutlined />} />
+            <Text>{user?.email}</Text>
+          </Space>
+        </div>
+      </Header>
 
-                    <div className="relative max-w-7xl mx-auto">
-                        <div className="text-center mb-16">
-                            <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">
-                                Welcome to I-PROJECT Portal
-                            </h1>
-                            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-                                Manage projects, track financials, and collaborate with your team.
-                            </p>
-                        </div>
+      <Content className="p-6">
+        {/* Statistics Cards */}
+        <Row gutter={[16, 16]} className="mb-6">
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Total Projects"
+                value={stats.totalProjects}
+                prefix={<ProjectOutlined />}
+                valueStyle={{ color: "#1890ff" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Active Projects"
+                value={stats.activeProjects}
+                prefix={<RocketOutlined />}
+                valueStyle={{ color: "#52c41a" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Total Tasks"
+                value={stats.totalTasks}
+                prefix={<CheckSquareOutlined />}
+                valueStyle={{ color: "#faad14" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Completed Tasks"
+                value={stats.completedTasks}
+                prefix={<TrophyOutlined />}
+                valueStyle={{ color: "#722ed1" }}
+              />
+            </Card>
+          </Col>
+        </Row>
 
-                        {/* Main Features Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-                            {/* Primary Features */}
-                            <PortalTile
-                                title="Projects"
-                                description="Manage all your projects, phases, and milestones"
-                                href="/projects"
-                                icon={<FolderKanban className="w-6 h-6 text-blue-600" />}
-                                badge="Core"
-                                badgeColor="blue"
-                                stats={
-                                    stats.projects
-                                        ? [
-                                              {
-                                                  label: "Active",
-                                                  value: stats.projects.active,
-                                              },
-                                              {
-                                                  label: "Total",
-                                                  value: stats.projects.total,
-                                              },
-                                          ]
-                                        : undefined
-                                }
-                                variant="default"
-                            />
+        {/* Budget Overview */}
+        <Row gutter={[16, 16]} className="mb-6">
+          <Col xs={24} lg={12}>
+            <Card title="Budget Overview" extra={<Button type="link">View All</Button>}>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Statistic
+                    title="Total Budget"
+                    value={stats.totalBudget}
+                    prefix="฿"
+                    precision={2}
+                    valueStyle={{ color: "#1890ff" }}
+                  />
+                </Col>
+                <Col span={12}>
+                  <Statistic
+                    title="Spent Budget"
+                    value={stats.spentBudget}
+                    prefix="฿"
+                    precision={2}
+                    valueStyle={{ color: "#ff4d4f" }}
+                  />
+                </Col>
+              </Row>
+              <div className="mt-4">
+                <Text type="secondary">Budget Utilization</Text>
+                <Progress 
+                  percent={stats.totalBudget ? 
+                    Math.round((stats.spentBudget / stats.totalBudget) * 100) : 0
+                  } 
+                  status="active"
+                />
+              </div>
+            </Card>
+          </Col>
 
-                            <PortalTile
-                                title="Tasks & Execution"
-                                description="Track tasks, WBS, and project execution status"
-                                href="/tasks"
-                                icon={<CheckSquare className="w-6 h-6 text-green-600" />}
-                                badge="Tracking"
-                                badgeColor="green"
-                            />
+          <Col xs={24} lg={12}>
+            <Card title="Recent Notifications" extra={<Button type="link">View All</Button>}>
+              <List
+                dataSource={notifications}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      title={
+                        <Space>
+                          <Text strong={!item.read}>{item.title}</Text>
+                          {!item.read && <Badge dot />}
+                        </Space>
+                      }
+                      description={
+                        <Space direction="vertical" size="small">
+                          <Text type="secondary">{item.message}</Text>
+                          <Text type="secondary" style={{ fontSize: "12px" }}>
+                            {new Date(item.created_at).toLocaleString()}
+                          </Text>
+                        </Space>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            </Card>
+          </Col>
+        </Row>
 
-                            <PortalTile
-                                title="Financials"
-                                description="Monitor budgets, expenses, and cash flow"
-                                href="/expenses"
-                                icon={<CreditCard className="w-6 h-6 text-yellow-600" />}
-                                badge="Critical"
-                                badgeColor="yellow"
-                            />
+        {/* Projects Table */}
+        <Card 
+          title="Recent Projects" 
+          extra={<Button type="primary" onClick={() => router.push("/projects")}>View All</Button>}
+        >
+          <Table
+            columns={projectColumns}
+            dataSource={projects.slice(0, 5)}
+            rowKey="id"
+            loading={loading}
+            pagination={false}
+            scroll={{ x: 800 }}
+          />
+        </Card>
 
-                            {/* Secondary Features */}
-                            <PortalTile
-                                title="Timesheet"
-                                description="Record and approve team time entries"
-                                href="/timesheet"
-                                icon={<Calendar className="w-6 h-6 text-cyan-600" />}
-                            />
-
-                            <PortalTile
-                                title="Reports & Analytics"
-                                description="View insights, trends, and KPI dashboards"
-                                href="/reports"
-                                icon={<BarChart3 className="w-6 h-6 text-purple-600" />}
-                            />
-
-                            <PortalTile
-                                title="Warranty & Support"
-                                description="Manage SLA tickets and preventive maintenance"
-                                href="/warranty"
-                                icon={<ShieldCheck className="w-6 h-6 text-red-600" />}
-                            />
-
-                            {/* Workspace Features */}
-                            <PortalTile
-                                title="Clients"
-                                description="Manage client information and contacts"
-                                href="/clients"
-                                icon={<Users className="w-6 h-6 text-blue-600" />}
-                            />
-
-                            <PortalTile
-                                title="Approvals"
-                                description="Review and approve pending requests"
-                                href="/approvals"
-                                icon={<UserCheck className="w-6 h-6 text-green-600" />}
-                            />
-
-                            <PortalTile
-                                title="Delivery & Cutover"
-                                description="Plan and track delivery milestones"
-                                href="/delivery"
-                                icon={<Truck className="w-6 h-6 text-orange-600" />}
-                            />
-                        </div>
-
-                        {/* Divider */}
-                        <div className="mb-16">
-                            <div className="border-t border-slate-700" />
-                        </div>
-
-                        {/* Admin Section (collapsible) */}
-                        <div className="mb-16">
-                            <h2 className="text-2xl font-bold text-slate-900 mb-8 flex items-center gap-3">
-                                <Settings className="w-6 h-6 text-slate-600" />
-                                Administration
-                            </h2>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <PortalTile
-                                    title="Master Data"
-                                    description="Manage system configurations and data"
-                                    href="/admin/master-data"
-                                    icon={
-                                        <Database className="w-6 h-6 text-slate-600" />
-                                    }
-                                />
-
-                                <PortalTile
-                                    title="User Management"
-                                    description="Manage users, roles, and permissions"
-                                    href="/admin/users"
-                                    icon={
-                                        <Users className="w-6 h-6 text-slate-600" />
-                                    }
-                                />
-
-                                <PortalTile
-                                    title="Project Assignment"
-                                    description="Assign users to projects and teams"
-                                    href="/admin/project-assign"
-                                    icon={
-                                        <FolderKanban className="w-6 h-6 text-slate-600" />
-                                    }
-                                />
-
-                                <PortalTile
-                                    title="System Health"
-                                    description="Monitor system performance and logs"
-                                    href="/admin/health"
-                                    icon={
-                                        <Activity className="w-6 h-6 text-slate-600" />
-                                    }
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </PageTransition>
-    );
+        {/* Tasks Table */}
+        <Card 
+          title="Recent Tasks" 
+          extra={<Button type="primary" onClick={() => router.push("/tasks")}>View All</Button>}
+          className="mt-6"
+        >
+          <Table
+            columns={taskColumns}
+            dataSource={tasks.slice(0, 5)}
+            rowKey="id"
+            loading={loading}
+            pagination={false}
+            scroll={{ x: 600 }}
+          />
+        </Card>
+      </Content>
+    </Layout>
+  );
 }

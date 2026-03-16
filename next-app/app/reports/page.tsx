@@ -1,189 +1,506 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
-import EVMDashboard from "@/app/components/EVMDashboard";
-import { BarChart, TrendingUp, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Layout,
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Typography,
+  DatePicker,
+  Select,
+  Button,
+  Space,
+  Table,
+  Progress,
+  Tag,
+  Spin,
+} from "antd";
+import {
+  BarChartOutlined,
+  LineChartOutlined,
+  PieChartOutlined,
+  DownloadOutlined,
+  ReloadOutlined,
+  ProjectOutlined,
+  CheckSquareOutlined,
+  UserOutlined,
+  DollarOutlined,
+} from "@ant-design/icons";
+import { useAuth } from "../components/AuthProvider";
+import dayjs from "dayjs";
 
-// Mock EVM data - would be fetched from API
-const mockEVMData = [
-  { week: 1, date: "2026-01-06", plannedValue: 50000, earnedValue: 45000, actualCost: 48000 },
-  { week: 2, date: "2026-01-13", plannedValue: 100000, earnedValue: 95000, actualCost: 98000 },
-  { week: 3, date: "2026-01-20", plannedValue: 150000, earnedValue: 145000, actualCost: 142000 },
-  { week: 4, date: "2026-01-27", plannedValue: 200000, earnedValue: 190000, actualCost: 188000 },
-  { week: 5, date: "2026-02-03", plannedValue: 250000, earnedValue: 235000, actualCost: 240000 },
-  { week: 6, date: "2026-02-10", plannedValue: 300000, earnedValue: 280000, actualCost: 285000 },
-  { week: 7, date: "2026-02-17", plannedValue: 350000, earnedValue: 320000, actualCost: 330000 },
-  { week: 8, date: "2026-02-24", plannedValue: 400000, earnedValue: 360000, actualCost: 375000 },
-];
+const { Content } = Layout;
+const { Title, Text } = Typography;
+const { RangePicker } = DatePicker;
 
-const mockMetrics = {
-  spi: 0.9, // 90% Schedule Performance
-  cpi: 0.96, // 96% Cost Performance
-  sv: -40000, // Schedule Variance (negative = behind)
-  cv: -15000, // Cost Variance (negative = over budget)
-  eta: "April 15, 2026",
-  etcHours: 2400,
-};
+interface ReportData {
+  totalProjects: number;
+  activeProjects: number;
+  completedProjects: number;
+  totalTasks: number;
+  completedTasks: number;
+  totalBudget: number;
+  spentBudget: number;
+  totalUsers: number;
+  activeUsers: number;
+}
 
-const budgetAt = 1200000; // Total budget
+interface ProjectReport {
+  id: string;
+  name: string;
+  status: string;
+  progress: number;
+  budget_allocated: number;
+  budget_spent: number;
+  tasks_count: number;
+  completed_tasks: number;
+}
+
+interface TaskReport {
+  id: string;
+  title: string;
+  status: string;
+  priority: number;
+  assigned_to_name: string;
+  project_name: string;
+  due_date: string;
+  completed_at?: string;
+}
 
 export default function ReportsPage() {
-  const searchParams = useSearchParams();
-  const projectId = searchParams.get("projectId");
-  const [reportType, setReportType] = useState<"evm" | "resources" | "risks">("evm");
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(false);
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [projectReports, setProjectReports] = useState<ProjectReport[]>([]);
+  const [taskReports, setTaskReports] = useState<TaskReport[]>([]);
+  const [dateRange, setDateRange] = useState<any>(null);
+  const [reportType, setReportType] = useState<string>("overview");
+
+  useEffect(() => {
+    fetchReportData();
+  }, [dateRange, reportType]);
+
+  const fetchReportData = async () => {
+    try {
+      setLoading(true);
+      
+      const params = new URLSearchParams();
+      if (dateRange) {
+        params.append("startDate", dateRange[0].format("YYYY-MM-DD"));
+        params.append("endDate", dateRange[1].format("YYYY-MM-DD"));
+      }
+      if (reportType) {
+        params.append("type", reportType);
+      }
+
+      const response = await fetch(`/api/reports?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setReportData(data.overview);
+        setProjectReports(data.projects || []);
+        setTaskReports(data.tasks || []);
+      } else {
+        console.error("Failed to fetch report data");
+      }
+    } catch (error) {
+      console.error("Error fetching report data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportReport = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (dateRange) {
+        params.append("startDate", dateRange[0].format("YYYY-MM-DD"));
+        params.append("endDate", dateRange[1].format("YYYY-MM-DD"));
+      }
+      if (reportType) {
+        params.append("type", reportType);
+      }
+
+      const response = await fetch(`/api/reports/export?${params}`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `report-${reportType}-${dayjs().format("YYYY-MM-DD")}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    } catch (error) {
+      console.error("Error exporting report:", error);
+    }
+  };
+
+  const projectColumns = [
+    {
+      title: "Project Name",
+      dataIndex: "name",
+      key: "name",
+      render: (text: string) => (
+        <Space>
+          <ProjectOutlined />
+          <Text strong>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => {
+        const statusConfig = {
+          active: { color: "processing", text: "Active" },
+          completed: { color: "success", text: "Completed" },
+          on_hold: { color: "warning", text: "On Hold" },
+        };
+        const config = statusConfig[status as keyof typeof statusConfig] || { color: "default", text: status };
+        return <Tag color={config.color as any}>{config.text}</Tag>;
+      },
+    },
+    {
+      title: "Progress",
+      dataIndex: "progress",
+      key: "progress",
+      render: (progress: number) => (
+        <Progress 
+          percent={progress} 
+          size="small"
+          status={progress === 100 ? "success" : "active"}
+        />
+      ),
+    },
+    {
+      title: "Budget Utilization",
+      key: "budget_util",
+      render: (record: ProjectReport) => (
+        <div>
+          <Progress 
+            percent={record.budget_allocated ? 
+              Math.round((record.budget_spent || 0) / record.budget_allocated * 100) : 0
+            } 
+            size="small"
+            format={(percent) => `${percent}%`}
+          />
+          <div className="text-xs text-gray-500">
+            ฿{record.budget_spent?.toLocaleString() || 0} / ฿{record.budget_allocated?.toLocaleString() || 0}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "Tasks",
+      key: "tasks",
+      render: (record: ProjectReport) => (
+        <Space direction="vertical" size="small">
+          <div>Total: {record.tasks_count}</div>
+          <div>Completed: {record.completed_tasks}</div>
+          <Progress 
+            percent={record.tasks_count ? 
+              Math.round((record.completed_tasks || 0) / record.tasks_count * 100) : 0
+            } 
+            size="small"
+            showInfo={false}
+          />
+        </Space>
+      ),
+    },
+  ];
+
+  const taskColumns = [
+    {
+      title: "Task Title",
+      dataIndex: "title",
+      key: "title",
+      render: (text: string) => (
+        <Space>
+          <CheckSquareOutlined />
+          <Text>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => {
+        const statusConfig = {
+          pending: { color: "warning", text: "Pending" },
+          in_progress: { color: "processing", text: "In Progress" },
+          completed: { color: "success", text: "Completed" },
+        };
+        const config = statusConfig[status as keyof typeof statusConfig] || { color: "default", text: status };
+        return <Tag color={config.color as any}>{config.text}</Tag>;
+      },
+    },
+    {
+      title: "Priority",
+      dataIndex: "priority",
+      key: "priority",
+      render: (priority: number) => {
+        const priorityColors = ["green", "blue", "orange", "red", "purple"];
+        const priorityLabels = ["Low", "Normal", "Medium", "High", "Critical"];
+        return (
+          <Tag color={priorityColors[priority - 1] as any}>
+            {priorityLabels[priority - 1]}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: "Assigned To",
+      dataIndex: "assigned_to_name",
+      key: "assigned_to_name",
+      render: (text: string) => (
+        <Space>
+          <UserOutlined />
+          <Text>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Project",
+      dataIndex: "project_name",
+      key: "project_name",
+      render: (text: string) => (
+        <Tag color="blue">{text}</Tag>
+      ),
+    },
+    {
+      title: "Due Date",
+      dataIndex: "due_date",
+      key: "due_date",
+      render: (date: string) => (
+        <Text>{date ? dayjs(date).format("DD MMM YYYY") : "No due date"}</Text>
+      ),
+    },
+    {
+      title: "Completed Date",
+      dataIndex: "completed_at",
+      key: "completed_at",
+      render: (date: string) => (
+        <Text>{date ? dayjs(date).format("DD MMM YYYY") : "-"}</Text>
+      ),
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-          <p className="text-gray-600 mt-2">
-            Project performance metrics, KPIs, and trends
-          </p>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          {/* Report Type Tabs */}
-          <div className="flex items-center justify-between bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setReportType("evm")}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-                  reportType === "evm"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                <TrendingUp className="w-4 h-4" />
-                EVM Analytics
-              </button>
-              <button
-                onClick={() => setReportType("resources")}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-                  reportType === "resources"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                <BarChart className="w-4 h-4" />
-                Resource Analysis
-              </button>
+    <Layout className="min-h-screen bg-gray-50">
+      <Content className="p-6">
+        <Spin spinning={loading}>
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <Title level={2}>Reports & Analytics</Title>
+              <Space>
+                <Button 
+                  icon={<ReloadOutlined />} 
+                  onClick={fetchReportData}
+                >
+                  Refresh
+                </Button>
+                <Button 
+                  icon={<DownloadOutlined />} 
+                  onClick={exportReport}
+                  type="primary"
+                >
+                  Export
+                </Button>
+              </Space>
             </div>
 
-            <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-              <Download className="w-4 h-4" />
-              Export PDF
-            </button>
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <RangePicker
+                placeholder={["Start Date", "End Date"]}
+                onChange={setDateRange}
+                style={{ width: "100%" }}
+              />
+              <Select
+                placeholder="Select Report Type"
+                value={reportType}
+                onChange={setReportType}
+                style={{ width: "100%" }}
+              >
+                <Select.Option value="overview">Overview</Select.Option>
+                <Select.Option value="projects">Projects</Select.Option>
+                <Select.Option value="tasks">Tasks</Select.Option>
+                <Select.Option value="financial">Financial</Select.Option>
+                <Select.Option value="users">Users</Select.Option>
+              </Select>
+            </div>
           </div>
 
-          {/* Report Content */}
-          {reportType === "evm" && (
-            <EVMDashboard
-              projectName="จัดหารถครัวประกอบอาหารชนิด 6 ล้อ"
-              projectStatus="in_progress"
-              data={mockEVMData}
-              metrics={mockMetrics}
-              budgetAt={budgetAt}
-              scheduleAt={400000}
-            />
+          {/* Overview Statistics */}
+          {reportType === "overview" && reportData && (
+            <Row gutter={[16, 16]} className="mb-6">
+              <Col xs={24} sm={12} lg={6}>
+                <Card>
+                  <Statistic
+                    title="Total Projects"
+                    value={reportData.totalProjects}
+                    prefix={<ProjectOutlined />}
+                    valueStyle={{ color: "#1890ff" }}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} lg={6}>
+                <Card>
+                  <Statistic
+                    title="Active Projects"
+                    value={reportData.activeProjects}
+                    prefix={<BarChartOutlined />}
+                    valueStyle={{ color: "#52c41a" }}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} lg={6}>
+                <Card>
+                  <Statistic
+                    title="Total Tasks"
+                    value={reportData.totalTasks}
+                    prefix={<CheckSquareOutlined />}
+                    valueStyle={{ color: "#faad14" }}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} lg={6}>
+                <Card>
+                  <Statistic
+                    title="Completed Tasks"
+                    value={reportData.completedTasks}
+                    prefix={<LineChartOutlined />}
+                    valueStyle={{ color: "#722ed1" }}
+                  />
+                </Card>
+              </Col>
+            </Row>
           )}
 
-          {reportType === "resources" && (
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Resource Utilization</h2>
-              <div className="text-center py-12 text-gray-500">
-                <BarChart className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Resource analysis coming soon</p>
-              </div>
-            </div>
+          {/* Financial Overview */}
+          {reportType === "financial" && reportData && (
+            <Row gutter={[16, 16]} className="mb-6">
+              <Col xs={24} sm={12} lg={8}>
+                <Card>
+                  <Statistic
+                    title="Total Budget"
+                    value={reportData.totalBudget}
+                    prefix="฿"
+                    precision={2}
+                    valueStyle={{ color: "#1890ff" }}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Card>
+                  <Statistic
+                    title="Spent Budget"
+                    value={reportData.spentBudget}
+                    prefix="฿"
+                    precision={2}
+                    valueStyle={{ color: "#ff4d4f" }}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Card>
+                  <Statistic
+                    title="Budget Utilization"
+                    value={reportData.totalBudget ? 
+                      Math.round((reportData.spentBudget / reportData.totalBudget) * 100) : 0
+                    }
+                    suffix="%"
+                    valueStyle={{ 
+                      color: reportData.spentBudget > reportData.totalBudget ? "#ff4d4f" : "#52c41a" 
+                    }}
+                  />
+                </Card>
+              </Col>
+            </Row>
           )}
 
-          {/* Additional Insights */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Trend Analysis */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Trend Analysis</h3>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-600 mb-2">Schedule Trend</p>
-                  <p className="text-lg font-semibold text-red-600">
-                    Declining (-0.5% per week)
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Project is slipping further behind schedule
-                  </p>
-                </div>
+          {/* User Overview */}
+          {reportType === "users" && reportData && (
+            <Row gutter={[16, 16]} className="mb-6">
+              <Col xs={24} sm={12} lg={8}>
+                <Card>
+                  <Statistic
+                    title="Total Users"
+                    value={reportData.totalUsers}
+                    prefix={<UserOutlined />}
+                    valueStyle={{ color: "#1890ff" }}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Card>
+                  <Statistic
+                    title="Active Users"
+                    value={reportData.activeUsers}
+                    prefix={<UserOutlined />}
+                    valueStyle={{ color: "#52c41a" }}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Card>
+                  <Statistic
+                    title="User Activity Rate"
+                    value={reportData.totalUsers ? 
+                      Math.round((reportData.activeUsers / reportData.totalUsers) * 100) : 0
+                    }
+                    suffix="%"
+                    valueStyle={{ color: "#722ed1" }}
+                  />
+                </Card>
+              </Col>
+            </Row>
+          )}
 
-                <div className="border-t pt-4">
-                  <p className="text-sm text-gray-600 mb-2">Cost Trend</p>
-                  <p className="text-lg font-semibold text-red-600">
-                    Increasing (+2% per week)
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Cost growth is accelerating
-                  </p>
-                </div>
+          {/* Projects Table */}
+          {(reportType === "projects" || reportType === "overview") && (
+            <Card title="Project Performance" className="mb-6">
+              <Table
+                columns={projectColumns}
+                dataSource={projectReports}
+                rowKey="id"
+                pagination={{
+                  pageSize: 10,
+                  showSizeChanger: true,
+                  showQuickJumper: true,
+                }}
+                scroll={{ x: 1000 }}
+              />
+            </Card>
+          )}
 
-                <div className="border-t pt-4">
-                  <p className="text-sm text-gray-600 mb-2">Forecast at Completion</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    ฿1,285,000
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    +฿85,000 over initial budget
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Recommendations */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Recommendations</h3>
-              <div className="space-y-4">
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm font-medium text-yellow-900">
-                    📋 Increase team capacity
-                  </p>
-                  <p className="text-xs text-yellow-800 mt-1">
-                    Add resources to critical path to recover schedule
-                  </p>
-                </div>
-
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm font-medium text-yellow-900">
-                    💰 Review expenses
-                  </p>
-                  <p className="text-xs text-yellow-800 mt-1">
-                    Identify and eliminate non-essential costs
-                  </p>
-                </div>
-
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm font-medium text-yellow-900">
-                    ⚠️ Escalate risks
-                  </p>
-                  <p className="text-xs text-yellow-800 mt-1">
-                    Present findings to project sponsor for mitigation
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Data Quality Notice */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-900">
-              <strong>Note:</strong> EVM metrics are based on task progress updates and actual time logs. 
-              Ensure timesheets are submitted and tasks are regularly updated for accurate reporting.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+          {/* Tasks Table */}
+          {(reportType === "tasks" || reportType === "overview") && (
+            <Card title="Task Performance">
+              <Table
+                columns={taskColumns}
+                dataSource={taskReports}
+                rowKey="id"
+                pagination={{
+                  pageSize: 10,
+                  showSizeChanger: true,
+                  showQuickJumper: true,
+                }}
+                scroll={{ x: 1200 }}
+              />
+            </Card>
+          )}
+        </Spin>
+      </Content>
+    </Layout>
   );
 }

@@ -5,6 +5,9 @@ import I18nProvider from "./components/I18nProvider";
 import WalkthroughProvider from "./components/walkthrough/WalkthroughProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import AuthProvider from "./components/AuthProvider";
+import AntdProvider from "./components/AntdProvider";
+import { AntdRegistry } from "@ant-design/nextjs-registry";
 
 export const metadata: Metadata = {
   title: "i-project - ระบบจัดการโครงการ",
@@ -22,13 +25,19 @@ export default function RootLayout({
   return (
     <html lang="th" suppressHydrationWarning className="scroll-smooth">
       <body className="bg-background font-sans text-foreground antialiased" suppressHydrationWarning>
-        <Providers>
-          <I18nProvider>
-            <WalkthroughProvider>
-              {children}
-            </WalkthroughProvider>
-          </I18nProvider>
-        </Providers>
+        <AntdRegistry>
+          <AuthProvider>
+            <AntdProvider>
+              <Providers>
+                <I18nProvider>
+                  <WalkthroughProvider>
+                    {children}
+                  </WalkthroughProvider>
+                </I18nProvider>
+              </Providers>
+            </AntdProvider>
+          </AuthProvider>
+        </AntdRegistry>
         <SpeedInsights />
         <Analytics />
       </body>

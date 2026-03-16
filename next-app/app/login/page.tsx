@@ -3,7 +3,11 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/components/AuthProvider';
-import { Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react';
+import { Form, Input, Button, Checkbox, Alert, Card, Typography } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import Link from 'next/link';
+
+const { Title, Text } = Typography;
 
 export const dynamic = 'force-dynamic';
 
@@ -11,195 +15,123 @@ export default function LoginPage() {
   const router = useRouter();
   const { signIn } = useAuth();
   
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-  
-  const [showPassword, setShowPassword] = useState(false);
+  const [form] = Form.useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // Clear error when user starts typing
-    if (error) {
-      setError(null);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.email || !formData.password) {
-      setError('Email and password are required');
-      return;
-    }
-
+  const handleSubmit = async (values: { email: string; password: string; remember: boolean }) => {
     setIsSubmitting(true);
     setError(null);
     
     try {
-      await signIn(formData.email, formData.password);
-      // Redirect will happen via auth context
-      router.push('/');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-      console.error('Login failed:', err);
+      await signIn(values.email, values.password);
+      // Wait a moment for auth context to update
+      setTimeout(() => {
+        router.push('/');
+      }, 100);
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Lock className="h-6 w-6 text-white" />
-          </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Project Management System
-          </p>
-        </div>
-
-        {/* Login Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Enter your email"
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={togglePasswordVisibility}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-500" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-500" />
-                  )}
-                </button>
-              </div>
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full">
+        <Card className="shadow-lg">
+          <div className="text-center mb-8">
+            <Title level={2} className="text-blue-600">
+              I-PROJECT
+            </Title>
+            <Text type="secondary">
+              Sign in to your account
+            </Text>
           </div>
 
-          {/* Error Message */}
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <AlertCircle className="h-5 w-5 text-red-400" />
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
-                    Login failed
-                  </h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    {error}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <Alert
+              message="Login Error"
+              description={error}
+              type="error"
+              showIcon
+              closable
+              onClose={() => setError(null)}
+              className="mb-6"
+            />
           )}
 
-          {/* Submit Button */}
-          <div>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          <Form
+            form={form}
+            name="login"
+            onFinish={handleSubmit}
+            initialValues={{ remember: true }}
+            size="large"
+            layout="vertical"
+          >
+            <Form.Item
+              name="email"
+              label="Email"
+              rules={[
+                { required: true, message: 'Please input your email!' },
+                { type: 'email', message: 'Please enter a valid email!' }
+              ]}
             >
-              {isSubmitting ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Signing in...
-                </>
-              ) : (
-                'Sign in'
-              )}
-            </button>
-          </div>
-        </form>
+              <Input
+                prefix={<UserOutlined />}
+                placeholder="Enter your email"
+                autoComplete="email"
+              />
+            </Form.Item>
 
-        {/* Footer */}
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <button
-              type="button"
-              className="font-medium text-blue-600 hover:text-blue-500"
-              onClick={() => router.push('/register')}
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[
+                { required: true, message: 'Please input your password!' },
+                { min: 6, message: 'Password must be at least 6 characters!' }
+              ]}
             >
-              Contact your administrator
-            </button>
-          </p>
-          <p className="mt-2 text-xs text-gray-500">
-            <button
-              type="button"
-              className="text-blue-600 hover:text-blue-500"
-              onClick={() => router.push('/forgot-password')}
-            >
-              Forgot your password?
-            </button>
-          </p>
-        </div>
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+              />
+            </Form.Item>
+
+            <Form.Item>
+              <div className="flex justify-between items-center">
+                <Form.Item name="remember" valuePropName="checked" noStyle>
+                  <Checkbox>Remember me</Checkbox>
+                </Form.Item>
+                <Link href="/forgot-password" className="text-blue-600 hover:text-blue-800">
+                  Forgot password?
+                </Link>
+              </div>
+            </Form.Item>
+
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={isSubmitting}
+                block
+                className="h-12 text-base font-medium"
+              >
+                {isSubmitting ? 'Signing in...' : 'Sign In'}
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <div className="text-center mt-6">
+            <Text type="secondary">
+              Don't have an account?{' '}
+              <Link href="/register" className="text-blue-600 hover:text-blue-800 font-medium">
+                Sign up
+              </Link>
+            </Text>
+          </div>
+        </Card>
       </div>
     </div>
   );
