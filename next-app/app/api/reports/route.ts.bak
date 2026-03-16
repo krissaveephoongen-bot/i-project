@@ -1,0 +1,229 @@
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "../../../../../../lib/supabaseAdminClient";
+
+export const dynamic = "force-dynamic";
+
+// GET /api/reports - Generate comprehensive reports
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const reportType = searchParams.get("type") || "overview";
+
+    let dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter = {
+        gte: startDate,
+        lte: endDate,
+      };
+    }
+
+    // Fetch overview statistics
+    const [
+      projectsResult,
+      tasksResult,
+      usersResult,
+    ] = await Promise.all([
+      // Projects data
+      supabaseAdmin
+        .from("projects")
+        .select("id, status, progress_percentage, budget_allocated, budget_spent, created_at")
+        .or(`created_at.gte.${startDate || '2020-01-01'},created_at.lte.${endDate || '2100-12-31'}`),
+      
+      // Tasks data
+      supabaseAdmin
+        .from("tasks")
+        .select("id, status, priority, due_date, created_at, completed_at")
+        .or(`created_at.gte.${startDate || '2020-01-01'},created_at.lte.${endDate || '2100-12-31'}`),
+      
+      // Users data
+      supabaseAdmin
+        .from("users")
+        .select("id, last_login_at, created_at")
+        .or(`created_at.gte.${startDate || '2020-01-01'},created_at.lte.${endDate || '2100-12-31'}`),
+    ]);
+
+    const projects = projectsResult.data || [];
+    const tasks = tasksResult.data || [];
+    const users = usersResult.data || [];
+
+    // Calculate overview statistics
+    const totalProjects = projects.length;
+    const activeProjects = projects.filter(p => p.status === 'active').length;
+    const completedProjects = projects.filter(p => p.status === 'completed').length;
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(t => t.status === 'completed').length;
+    const totalBudget = projects.reduce((sum, p) => sum + (p.budget_allocated || 0), 0);
+    const spentBudget = projects.reduce((sum, p) => sum + (p.budget_spent || 0), 0);
+    const totalUsers = users.length;
+    const activeUsers = users.filter(u => {
+      if (!u.last_login_at) return false;
+      const lastLogin = new Date(u.last_login_at);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      return lastLogin > thirtyDaysAgo;
+    }).length;
+
+    const overview = {
+      totalProjects,
+      activeProjects,
+      completedProjects,
+      totalTasks,
+      completedTasks,
+      totalBudget,
+      spentBudget,
+      totalUsers,
+      activeUsers,
+    };
+
+    // Prepare project reports
+    const projectReports = await Promise.all(
+      projects.map(async (project) => {
+        const [{ count: tasksCount }] = await supabaseAdmin
+          .from("tasks")
+          .select("id", { count: "exact" })
+          .eq("project_id", project.id);
+        
+        const [{ count: completedTasksCount }] = await supabaseAdmin
+          .from("tasks")
+          .select("id", { count: "exact" })
+          .eq("project_id", project.id)
+          .eq("status", "completed");
+
+        return {
+          id: project.id,
+          name: project.name || "Unnamed Project",
+          status: project.status,
+          progress: project.progress_percentage || 0,
+          budget_allocated: project.budget_allocated || 0,
+          budget_spent: project.budget_spent || 0,
+          tasks_count: tasksCount || 0,
+          completed_tasks: completedTasksCount || 0,
+        };
+      })
+    );
+
+    // Prepare task reports
+    const taskReports = await Promise.all(
+      tasks.map(async (task) => {
+        const [{ data: projectData }] = await supabaseAdmin
+          .from("projects")
+          .select("name")
+          .eq("id", task.project_id)
+          .single();
+        
+        const [{ data: userData }] = await supabaseAdmin
+          .from("users")
+          .select("name")
+          .eq("id", task.assigned_to)
+          .single();
+
+        return {
+          id: task.id,
+          title: task.title || "Unnamed Task",
+          status: task.status,
+          priority: task.priority || 2,
+          assigned_to_name: userData?.name || "Unassigned",
+          project_name: projectData?.name || "Unassigned",
+          due_date: task.due_date,
+          completed_at: task.completed_at,
+        };
+      })
+    );
+
+    const responseData = {
+      overview,
+      projects: projectReports,
+      tasks: taskReports,
+      generatedAt: new Date().toISOString(),
+      dateRange: { startDate, endDate },
+    };
+
+    return NextResponse.json(responseData);
+
+  } catch (error) {
+    console.error("Error generating reports:", error);
+    return NextResponse.json(
+      { error: "Failed to generate reports", details: error },
+      { status: 500 }
+    );
+  }
+}
+
+// GET /api/reports/export - Export reports as Excel
+export async function EXPORT(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const reportType = searchParams.get("type") || "overview";
+
+    // For now, return the same data as GET but with proper headers for download
+    const reportsResponse = await GET(request);
+    const reportsData = await reportsResponse.json();
+
+    // In a real implementation, you would use a library like xlsx to generate Excel files
+    // For now, we'll return CSV data
+    const csvData = generateCSV(reportsData, reportType);
+    
+    return new NextResponse(csvData, {
+      headers: {
+        "Content-Type": "text/csv",
+        "Content-Disposition": `attachment; filename="report-${reportType}-${new Date().toISOString().split('T')[0]}.csv"`,
+      },
+    });
+
+  } catch (error) {
+    console.error("Error exporting reports:", error);
+    return NextResponse.json(
+      { error: "Failed to export reports", details: error },
+      { status: 500 }
+    );
+  }
+}
+
+function generateCSV(data: any, reportType: string): string {
+  if (reportType === "projects") {
+    const headers = ["Project Name", "Status", "Progress", "Budget Allocated", "Budget Spent", "Tasks Count", "Completed Tasks"];
+    const rows = data.projects.map((p: any) => [
+      p.name,
+      p.status,
+      `${p.progress}%`,
+      p.budget_allocated,
+      p.budget_spent,
+      p.tasks_count,
+      p.completed_tasks,
+    ]);
+    return [headers, ...rows].map(row => row.join(",")).join("\n");
+  }
+
+  if (reportType === "tasks") {
+    const headers = ["Task Title", "Status", "Priority", "Assigned To", "Project", "Due Date", "Completed Date"];
+    const rows = data.tasks.map((t: any) => [
+      t.title,
+      t.status,
+      t.priority,
+      t.assigned_to_name,
+      t.project_name,
+      t.due_date,
+      t.completed_at || "",
+    ]);
+    return [headers, ...rows].map(row => row.join(",")).join("\n");
+  }
+
+  // Default to overview
+  const headers = ["Metric", "Value"];
+  const rows = [
+    ["Total Projects", data.overview.totalProjects],
+    ["Active Projects", data.overview.activeProjects],
+    ["Completed Projects", data.overview.completedProjects],
+    ["Total Tasks", data.overview.totalTasks],
+    ["Completed Tasks", data.overview.completedTasks],
+    ["Total Budget", data.overview.totalBudget],
+    ["Spent Budget", data.overview.spentBudget],
+    ["Total Users", data.overview.totalUsers],
+    ["Active Users", data.overview.activeUsers],
+  ];
+  return [headers, ...rows].map(row => row.join(",")).join("\n");
+}

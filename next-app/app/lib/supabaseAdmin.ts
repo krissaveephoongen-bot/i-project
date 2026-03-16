@@ -1,12 +1,18 @@
-import { createClient } from "@supabase/supabase-js";
+// ============================================================
+// app/lib/supabaseAdmin.ts
+// ============================================================
+// Backward-compatibility re-export.
+//
+// The canonical Supabase admin client now lives at:
+//   lib/supabaseAdminClient.ts
+//
+// This file simply re-exports from there so that all existing
+// imports of "@/app/lib/supabaseAdmin" continue to work without
+// any changes, while ensuring there is only ONE client instance
+// in the process.
+//
+// DO NOT create a second `createClient(...)` call here.
+// DO NOT import from this file in new code — use "@/lib/supabaseAdminClient" directly.
+// ============================================================
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
-
-export const supabaseAdmin =
-  supabaseUrl && serviceRoleKey
-    ? createClient(supabaseUrl, serviceRoleKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-        db: { schema: "public" },
-      })
-    : (null as any);
+export { supabaseAdmin } from "@/lib/supabaseAdminClient";

@@ -1,298 +1,570 @@
 "use client";
 
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { LogOut, HelpCircle, ChevronDown, Settings, Users } from "lucide-react";
-import { clsx } from "clsx";
+import { Layout, Menu, Avatar, Divider, Tooltip, Typography } from "antd";
+import type { MenuProps } from "antd";
+import {
+  LogoutOutlined,
+  SettingOutlined,
+  QuestionCircleOutlined,
+  TeamOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import { useAuth } from "./AuthProvider";
 import { useNavigation } from "@/hooks/useNavigation";
-import CollapsibleMenuSection from "./CollapsibleMenuSection";
-import CommandPalette from "./CommandPalette";
+import type { NavSection } from "@/app/navigation/types";
 
-// --- Helper Components ---
+const { Sider } = Layout;
+const { Text } = Typography;
 
-interface NavItemProps {
-    item: {
-        name: string;
-        href?: string;
-        icon: React.ComponentType<{ className?: string }>;
-        roles: string[];
-        children?: {
-            name: string;
-            href: string;
-            icon: React.ComponentType<{ className?: string }>;
-        }[];
-    };
-    isActive: boolean;
-    isExpanded: boolean;
-    onToggleExpand: () => void;
-    onNavigate?: () => void;
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Convert a Lucide/React component to a sized React element for Ant Design menus */
+function navIcon(
+  IconComponent: React.ComponentType<{ className?: string }>,
+): React.ReactNode {
+  return <IconComponent className="w-[17px] h-[17px] flex-shrink-0" />;
 }
 
-const NavItem = ({
-    item,
-    isActive,
-    isExpanded,
-    onToggleExpand,
-    onNavigate,
-}: NavItemProps) => {
-    const isParent = !!item.children;
-    const currentPathname = usePathname();
+/** Build Ant Design menu items from our NavSection[] structure */
+function buildMenuItems(
+  sections: NavSection[],
+): NonNullable<MenuProps["items"]> {
+  const items: NonNullable<MenuProps["items"]> = [];
 
-    const handleClick = (e: React.MouseEvent) => {
-        if (isParent) {
-            e.preventDefault();
-            onToggleExpand();
-        } else if (onNavigate) {
-            onNavigate();
+  sections.forEach((section, idx) => {
+    if (idx > 0) {
+      items.push({ type: "divider", key: `divider-${idx}` });
+    }
+
+    // Section group label
+    if (section.title) {
+      items.push({
+        type: "group",
+        key: `group-${section.title}`,
+        label: (
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#475569",
+              userSelect: "none",
+            }}
+          >
+            {section.title}
+          </span>
+        ),
+        children: section.items.map((item) => {
+          const itemKey =
+            item.name ?? item.nameKey ?? item.href ?? Math.random().toString();
+
+          if (item.children && item.children.length > 0) {
+            // Parent item → SubMenu
+            return {
+              key: itemKey,
+              label: item.name ?? item.nameKey,
+              icon: navIcon(item.icon),
+              children: item.children.map((child) => ({
+                key: child.href,
+                label: child.name ?? child.nameKey,
+                icon: navIcon(child.icon),
+              })),
+            };
+          }
+
+          // Leaf item
+          return {
+            key: item.href ?? itemKey,
+            label: item.name ?? item.nameKey,
+            icon: navIcon(item.icon),
+          };
+        }),
+      });
+    }
+  });
+
+  return items;
+}
+
+/** Derive the best-matching selectedKeys from the current pathname */
+function deriveSelectedKeys(
+  sections: NavSection[],
+  pathname: string,
+): string[] {
+  let bestKey = "";
+  let bestLength = 0;
+
+  for (const section of sections) {
+    for (const item of section.items) {
+      // Check leaf item
+      if (item.href && !item.children) {
+        const match =
+          pathname === item.href ||
+          (item.href !== "/" && pathname.startsWith(item.href));
+        if (match && item.href.length > bestLength) {
+          bestKey = item.href;
+          bestLength = item.href.length;
         }
-    };
+      }
+      // Check children
+      if (item.children) {
+        for (const child of item.children) {
+          const match =
+            pathname === child.href ||
+            (child.href !== "/" && pathname.startsWith(child.href));
+          if (match && child.href.length > bestLength) {
+            bestKey = child.href;
+            bestLength = child.href.length;
+          }
+        }
+      }
+    }
+  }
 
-    return (
-        <li>
-            <Link
-                href={item.href || "#"}
-                onClick={handleClick}
-                aria-expanded={isParent ? isExpanded : undefined}
-                aria-current={isActive ? "page" : undefined}
-                className={clsx(
-                    "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                    isActive
-                        ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200",
-                    isParent && "justify-between",
-                )}
-            >
-                <div className="flex items-center gap-3">
-                    <item.icon className="w-5 h-5 flex-shrink-0" />
-                    <span>{item.name}</span>
-                </div>
-                {isParent && (
-                    <ChevronDown
-                        className={clsx(
-                            "w-4 h-4 transition-transform duration-200",
-                            isExpanded && "rotate-180",
-                        )}
-                        aria-hidden="true"
-                    />
-                )}
-            </Link>
-            {isParent && isExpanded && (
-                <ul className="pl-7 pt-2 space-y-1" role="group">
-                    {item.children!.map((child) => (
-                        <li key={child.name}>
-                            <Link
-                                href={child.href}
-                                onClick={onNavigate}
-                                aria-current={
-                                    currentPathname === child.href ? "page" : undefined
-                                }
-                                className={clsx(
-                                    "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                                    currentPathname === child.href
-                                        ? "text-blue-600 dark:text-blue-400"
-                                        : "text-slate-500 hover:text-slate-900 dark:text-slate-500 dark:hover:text-slate-300",
-                                )}
-                            >
-                                <child.icon className="w-5 h-5 flex-shrink-0" />
-                                <span>{child.name}</span>
-                            </Link>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </li>
-    );
-};
+  return bestKey ? [bestKey] : [];
+}
 
-// --- Main Sidebar Component ---
+/** Derive which parent submenu keys should be open based on the current pathname */
+function deriveDefaultOpenKeys(
+  sections: NavSection[],
+  pathname: string,
+): string[] {
+  const keys: string[] = [];
+
+  for (const section of sections) {
+    for (const item of section.items) {
+      if (item.children) {
+        const hasActiveChild = item.children.some(
+          (child) =>
+            pathname === child.href ||
+            (child.href !== "/" && pathname.startsWith(child.href)),
+        );
+        if (hasActiveChild) {
+          keys.push(item.name ?? item.nameKey ?? "");
+        }
+      }
+    }
+  }
+
+  return keys;
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
-    isMobile?: boolean;
-    onNavigate?: () => void;
+  isMobile?: boolean;
+  onNavigate?: () => void;
+  collapsed?: boolean;
+  onCollapse?: (collapsed: boolean) => void;
 }
 
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function Sidebar({
-    isMobile = false,
-    onNavigate,
+  isMobile = false,
+  onNavigate,
+  collapsed = false,
+  onCollapse,
 }: SidebarProps) {
-    const { t } = useTranslation();
-    const { user, signOut } = useAuth() || {};
-    const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
-        {},
-    );
+  const { t } = useTranslation();
+  const { user, signOut } = useAuth() || {};
+  const router = useRouter();
+  const pathname = usePathname() ?? "/";
 
-    const { navigation, userRole, pathname, useIsActive } = useNavigation(t);
+  const translate = (key: string, def?: string): string =>
+    t(key, def !== undefined ? { defaultValue: def } : undefined) as string;
 
-    const handleToggleExpand = (name: string) => {
-        setExpandedItems((prev: Record<string, boolean>) => ({
-            ...prev,
-            [name]: !prev[name],
-        }));
-    };
+  const { navigation, userRole } = useNavigation(translate);
 
-    return (
-        <aside
-            className={clsx(
-                "h-screen w-[260px] bg-background border-r border-border flex flex-col shadow-sm transition-colors duration-300",
-                !isMobile && "fixed left-0 top-0 z-50",
-            )}
-            role="navigation"
-            aria-label="เมนูหลัก"
+  // ── Menu items built from navigation config ───────────────────────────────
+  const menuItems = useMemo(() => buildMenuItems(navigation), [navigation]);
+
+  const selectedKeys = useMemo(
+    () => deriveSelectedKeys(navigation, pathname),
+    [navigation, pathname],
+  );
+
+  const defaultOpenKeys = useMemo(
+    () => deriveDefaultOpenKeys(navigation, pathname),
+    [navigation, pathname],
+  );
+
+  const [openKeys, setOpenKeys] = useState<string[]>(defaultOpenKeys);
+
+  // ── Navigation handler ────────────────────────────────────────────────────
+  const handleMenuClick: MenuProps["onClick"] = ({ key }) => {
+    if (key.startsWith("/")) {
+      router.push(key);
+      onNavigate?.();
+    }
+  };
+
+  // ── Bottom actions (settings, help, logout) ───────────────────────────────
+  const bottomItems: NonNullable<MenuProps["items"]> = [
+    { type: "divider", key: "divider-bottom" },
+    {
+      key: "/settings",
+      label: t("navigation.profile", "Profile"),
+      icon: <SettingOutlined />,
+    },
+    {
+      key: "/help",
+      label: t("navigation.help", "Help"),
+      icon: <QuestionCircleOutlined />,
+    },
+    {
+      key: "__logout__",
+      label: (
+        <span style={{ color: "#f87171" }}>
+          {t("navigation.logout", "Logout")}
+        </span>
+      ),
+      icon: <LogoutOutlined style={{ color: "#f87171" }} />,
+      danger: true,
+    },
+  ];
+
+  const handleBottomClick: MenuProps["onClick"] = async ({ key }) => {
+    if (key === "__logout__") {
+      await signOut?.();
+      router.push("/login");
+      return;
+    }
+    if (key.startsWith("/")) {
+      router.push(key);
+      onNavigate?.();
+    }
+  };
+
+  // ── Sider styles ─────────────────────────────────────────────────────────
+  const siderStyle: React.CSSProperties = {
+    position: isMobile ? "relative" : "fixed",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    zIndex: 50,
+    height: "100vh",
+    overflow: "hidden",
+    background: "#0A0F1E",
+    borderRight: "1px solid rgba(255,255,255,0.06)",
+  };
+
+  const userInitial = user?.name?.charAt(0)?.toUpperCase() ?? "U";
+  const avatarSrc =
+    user?.avatar ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name ?? "User")}&background=4f46e5&color=fff&size=64`;
+
+  return (
+    <Sider
+      width={260}
+      collapsed={collapsed}
+      collapsedWidth={0}
+      theme="dark"
+      style={siderStyle}
+      trigger={null}
+      breakpoint="lg"
+    >
+      {/* ── Right-edge separator ──────────────────────────── */}
+      <div
+        style={{
+          position: "absolute",
+          inset: "0 0 0 auto",
+          width: 1,
+          background:
+            "linear-gradient(to bottom, transparent, rgba(255,255,255,0.07), transparent)",
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overflow: "hidden",
+        }}
+      >
+        {/* ── Logo ────────────────────────────────────────── */}
+        <div
+          style={{
+            height: 64,
+            display: "flex",
+            alignItems: "center",
+            paddingInline: collapsed ? 12 : 20,
+            flexShrink: 0,
+            gap: 12,
+          }}
         >
-            {/* Logo Area */}
-            <div className="h-[64px] flex items-center px-6 border-b border-border">
-                <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">P</span>
-                    </div>
-                    <span className="text-xl font-bold tracking-tight text-foreground">
-                        I-PROJECT
-                    </span>
-                </Link>
+          <Link
+            href="/"
+            onClick={onNavigate}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              textDecoration: "none",
+            }}
+          >
+            {/* Icon badge */}
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                background: "linear-gradient(135deg, #6366f1 0%, #4338ca 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                boxShadow: "0 4px 12px rgba(79,70,229,0.4)",
+                position: "relative",
+              }}
+            >
+              <span
+                style={{
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: 15,
+                  lineHeight: 1,
+                  userSelect: "none",
+                }}
+              >
+                P
+              </span>
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: 10,
+                  border: "1px solid rgba(255,255,255,0.2)",
+                }}
+              />
             </div>
 
-            {/* Command Palette */}
-            <div className="px-4 pt-4">
-                <CommandPalette />
+            {/* Wordmark */}
+            {!collapsed && (
+              <span
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  letterSpacing: "0.05em",
+                  color: "rgba(255,255,255,0.9)",
+                  userSelect: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                i-
+                <span style={{ color: "#818cf8" }}>PROJECT</span>
+              </span>
+            )}
+          </Link>
+        </div>
+
+        {/* ── Hairline divider ─────────────────────────────── */}
+        <Divider
+          style={{
+            margin: "0 20px",
+            borderColor: "rgba(255,255,255,0.07)",
+            flexShrink: 0,
+            minWidth: 0,
+            width: "auto",
+          }}
+        />
+
+        {/* ── Main Navigation ──────────────────────────────── */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            overflowX: "hidden",
+            paddingBottom: 8,
+            scrollbarWidth: "thin",
+            scrollbarColor: "rgba(255,255,255,0.1) transparent",
+          }}
+        >
+          <Menu
+            mode="inline"
+            theme="dark"
+            items={menuItems}
+            selectedKeys={selectedKeys}
+            openKeys={openKeys}
+            onOpenChange={setOpenKeys}
+            onClick={handleMenuClick}
+            inlineCollapsed={collapsed}
+            style={{
+              background: "transparent",
+              border: "none",
+              fontSize: 13,
+              fontWeight: 500,
+              paddingInline: 8,
+            }}
+          />
+        </div>
+
+        {/* ── Bottom Hairline ──────────────────────────────── */}
+        <Divider
+          style={{
+            margin: "0 12px",
+            borderColor: "rgba(255,255,255,0.07)",
+            flexShrink: 0,
+            minWidth: 0,
+            width: "auto",
+          }}
+        />
+
+        {/* ── Bottom Actions ───────────────────────────────── */}
+        <Menu
+          mode="inline"
+          theme="dark"
+          items={bottomItems}
+          selectedKeys={[]}
+          onClick={handleBottomClick}
+          style={{
+            background: "transparent",
+            border: "none",
+            fontSize: 13,
+            fontWeight: 500,
+            paddingInline: 8,
+            flexShrink: 0,
+          }}
+        />
+
+        {/* ── User Card ────────────────────────────────────── */}
+        {!collapsed && (
+          <div
+            style={{
+              margin: "8px 12px 12px",
+              padding: "10px 12px",
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexShrink: 0,
+            }}
+          >
+            {/* Avatar with online dot */}
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <Avatar
+                size={34}
+                src={avatarSrc}
+                style={{ background: "#4f46e5" }}
+              >
+                {userInitial}
+              </Avatar>
+              <span
+                style={{
+                  position: "absolute",
+                  bottom: -1,
+                  right: -1,
+                  width: 9,
+                  height: 9,
+                  borderRadius: "50%",
+                  background: "#10b981",
+                  border: "1.5px solid #0A0F1E",
+                }}
+              />
             </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 py-4 px-4 overflow-y-auto" aria-label="เมนูนำทาง">
-                {navigation.map((section, idx) => {
-                    const isMainSection = section.title?.includes("MAIN");
-                    const isSecondarySection = section.title?.includes("WORKSPACE");
-                    const isAdminSection = section.title?.includes("ADMIN");
-
-                    const sectionContent = (
-                        <ul className="space-y-1" role="list">
-                            {section.items.map((item) => (
-                                <NavItem
-                                    key={item.name}
-                                    item={item}
-                                    isActive={useIsActive(item.href)}
-                                    isExpanded={expandedItems[item.name]}
-                                    onToggleExpand={() => handleToggleExpand(item.name)}
-                                    onNavigate={onNavigate}
-                                />
-                            ))}
-                        </ul>
-                    );
-
-                    // Main section always visible
-                    if (isMainSection) {
-                        return (
-                            <div key={section.title} className="mb-4">
-                                <h3 className="px-4 py-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                                    {section.title}
-                                </h3>
-                                {sectionContent}
-                            </div>
-                        );
-                    }
-
-                    // Secondary menu collapsible
-                    if (isSecondarySection) {
-                        return (
-                            <CollapsibleMenuSection
-                                key={section.title}
-                                title={section.title || "Features"}
-                                defaultExpanded={false}
-                            >
-                                {sectionContent}
-                            </CollapsibleMenuSection>
-                        );
-                    }
-
-                    // Admin menu collapsible
-                    if (isAdminSection) {
-                        return (
-                            <CollapsibleMenuSection
-                                key={section.title}
-                                title={section.title || "Admin"}
-                                defaultExpanded={false}
-                            >
-                                {sectionContent}
-                            </CollapsibleMenuSection>
-                        );
-                    }
-
-                    return null;
-                })}
-            </nav>
-
-            {/* Bottom Area */}
-            <div className="p-4 border-t border-border space-y-2">
-                <Link
-                    href="/settings"
-                    onClick={onNavigate}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                    <Users className="w-5 h-5" aria-hidden="true" />
-                    {t("navigation.profile")}
-                </Link>
-
-                <Link
-                    href="/help"
-                    onClick={onNavigate}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                    <HelpCircle className="w-5 h-5" aria-hidden="true" />
-                    {t("navigation.help")}
-                </Link>
-
-                <div className="p-3 bg-muted/50 rounded-lg border border-border">
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <Image
-                                src={
-                                    user?.avatar ||
-                                    `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "User")}&background=0284c7&color=fff`
-                                }
-                                alt={`รูปโปรไฟล์ของ ${user?.name || "ผู้ใช้"}`}
-                                width={40}
-                                height={40}
-                                className="rounded-full ring-2 ring-background object-cover"
-                                unoptimized={
-                                    user?.avatar?.startsWith("https://ui-avatars.com") ||
-                                    !user?.avatar
-                                }
-                            />
-                            <span
-                                className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full"
-                                aria-label="ออนไลน์"
-                            />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">
-                                {user?.name || t("common.guest", "Guest User")}
-                            </p>
-                            <p className="text-xs text-muted-foreground capitalize truncate">
-                                {user?.role || t("common.noRole", "No Role")}
-                            </p>
-                        </div>
-                        <Link
-                            href="/settings"
-                            className="text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                            aria-label="ตั้งค่า"
-                        >
-                            <Settings className="w-5 h-5" aria-hidden="true" />
-                        </Link>
-                    </div>
-                </div>
-
-                <button
-                    onClick={signOut}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label="ออกจากระบบ"
-                >
-                    <LogOut className="w-5 h-5" aria-hidden="true" />
-                    {t("navigation.logout")}
-                </button>
+            {/* Name + Role */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "rgba(255,255,255,0.9)",
+                  display: "block",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  lineHeight: "20px",
+                }}
+              >
+                {user?.name ?? t("common.guest", "Guest User")}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: "#475569",
+                  display: "block",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  lineHeight: "16px",
+                  textTransform: "capitalize",
+                  marginTop: 1,
+                }}
+              >
+                {userRole ?? user?.role ?? t("common.noRole", "No Role")}
+              </Text>
             </div>
-        </aside>
-    );
+
+            {/* Settings icon shortcut */}
+            <Tooltip
+              title={t("navigation.settings", "Settings")}
+              placement="right"
+            >
+              <button
+                onClick={() => {
+                  router.push("/settings");
+                  onNavigate?.();
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 4,
+                  borderRadius: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  color: "#475569",
+                  flexShrink: 0,
+                  transition: "color 0.2s",
+                }}
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLButtonElement).style.color = "#fff")
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLButtonElement).style.color =
+                    "#475569")
+                }
+                aria-label="Settings"
+              >
+                <SettingOutlined style={{ fontSize: 14 }} />
+              </button>
+            </Tooltip>
+          </div>
+        )}
+
+        {/* ── Collapsed avatar ─────────────────────────────── */}
+        {collapsed && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              padding: "8px 0 12px",
+              flexShrink: 0,
+            }}
+          >
+            <Tooltip title={user?.name ?? "User"} placement="right">
+              <Avatar
+                size={36}
+                src={avatarSrc}
+                style={{ background: "#4f46e5", cursor: "pointer" }}
+              >
+                {userInitial}
+              </Avatar>
+            </Tooltip>
+          </div>
+        )}
+      </div>
+    </Sider>
+  );
 }

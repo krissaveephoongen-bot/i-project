@@ -1,173 +1,126 @@
 "use client";
 
-import { ReactNode, useState } from "react";
-import Link from "next/link";
+import React, { useEffect, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
-import { useAuth } from "./AuthProvider";
-import { LogOut, Menu, X, ChevronDown } from "lucide-react";
-import { clsx } from "clsx";
-import CommandPalette from "./CommandPalette";
-import CollapsibleMenuSection from "./CollapsibleMenuSection";
-import { useNavigation } from "@/hooks/useNavigation";
-import { useTranslation } from "react-i18next";
+import { Layout, Drawer, Button } from "antd";
+import { MenuOutlined } from "@ant-design/icons";
+import Sidebar from "./Sidebar";
+import Header from "./Header";
+
+const { Sider, Content } = Layout;
+
+const SIDEBAR_WIDTH = 260;
 
 interface PortalLayoutFullProps {
-    children: ReactNode;
+  children: React.ReactNode;
 }
 
 export default function PortalLayoutFull({ children }: PortalLayoutFullProps) {
-    const pathname = usePathname();
-    const { signOut, user } = useAuth() || {};
-    const { t } = useTranslation();
-    const { navigation } = useNavigation(t);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
 
-    // Hide layout on login page
-    if (pathname === "/login" || pathname?.includes("login")) {
-        return children;
-    }
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
-    const handleToggleExpand = (name: string) => {
-        setExpandedItems((prev) => ({
-            ...prev,
-            [name]: !prev[name],
-        }));
+  // Close mobile drawer on Escape key
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
     };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50">
-            {/* Top Navigation */}
-            <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
-                            <span className="text-white font-bold">P</span>
-                        </div>
-                        <span className="text-xl font-bold text-white hidden sm:inline">
-                            I-PROJECT
-                        </span>
-                    </Link>
+  // Prevent body scroll when mobile drawer is open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
 
-                    {/* Desktop Command Palette */}
-                    <div className="hidden md:flex flex-1 max-w-xs mx-8">
-                        <CommandPalette />
-                    </div>
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+  const openMobile = useCallback(() => setMobileOpen(true), []);
 
-                    {/* Desktop User Menu */}
-                    <div className="hidden md:flex items-center gap-4">
-                        <div className="text-sm text-slate-600">
-                            {user?.email || "User"}
-                        </div>
-                        <button
-                            onClick={signOut}
-                            className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                        >
-                            <LogOut className="w-4 h-4" />
-                            Sign Out
-                        </button>
-                    </div>
+  // Login page — no chrome
+  if (pathname === "/login" || pathname?.startsWith("/login")) {
+    return <>{children}</>;
+  }
 
-                    {/* Mobile Menu Button */}
-                    <button
-                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="md:hidden p-2 text-slate-600 hover:text-slate-900"
-                    >
-                        {mobileMenuOpen ? (
-                            <X className="w-6 h-6" />
-                        ) : (
-                            <Menu className="w-6 h-6" />
-                        )}
-                    </button>
-                </div>
+  return (
+    <Layout style={{ minHeight: "100vh", background: "#f8fafc" }}>
+      {/* ── Desktop Sidebar (fixed, always visible ≥ lg) ──────────── */}
+      <div
+        className="hidden lg:block"
+        style={{
+          position: "fixed",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          zIndex: 50,
+          width: desktopCollapsed ? 0 : SIDEBAR_WIDTH,
+          transition: "width 0.25s cubic-bezier(0.4,0,0.2,1)",
+          overflow: "hidden",
+        }}
+      >
+        <Sidebar
+          collapsed={desktopCollapsed}
+          onCollapse={setDesktopCollapsed}
+        />
+      </div>
 
-                {/* Mobile Menu */}
-                {mobileMenuOpen && (
-                    <div className="md:hidden border-t border-slate-200 bg-slate-100 p-4 space-y-3 max-h-96 overflow-y-auto">
-                        <div className="mb-4">
-                            <CommandPalette />
-                        </div>
+      {/* ── Mobile Sidebar Drawer ────────────────────────────────── */}
+      <Drawer
+        open={mobileOpen}
+        onClose={closeMobile}
+        placement="left"
+        width={SIDEBAR_WIDTH}
+        closable={false}
+        className="lg:hidden"
+        styles={{
+          body: { padding: 0, background: "#0A0F1E" },
+          mask: { backdropFilter: "blur(4px)" },
+        }}
+        style={{ zIndex: 1000 }}
+      >
+        <Sidebar isMobile onNavigate={closeMobile} />
+      </Drawer>
 
-                        {/* Mobile Navigation */}
-                        <nav className="space-y-2">
-                            {navigation.map((section) => (
-                                <div key={section.title}>
-                                    <button
-                                        onClick={() =>
-                                            handleToggleExpand(section.title)
-                                        }
-                                        className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-600 uppercase hover:text-slate-900 transition-colors"
-                                    >
-                                        <span>{section.title}</span>
-                                        <ChevronDown
-                                            className={clsx(
-                                                "w-4 h-4 transition-transform",
-                                                expandedItems[section.title] &&
-                                                    "rotate-180"
-                                            )}
-                                        />
-                                    </button>
+      {/* ── Main content column ───────────────────────────────────── */}
+      <Layout
+        style={{
+          marginLeft:
+            typeof window !== "undefined" && window.innerWidth >= 1024
+              ? desktopCollapsed
+                ? 0
+                : SIDEBAR_WIDTH
+              : 0,
+          transition: "margin-left 0.25s cubic-bezier(0.4,0,0.2,1)",
+          background: "#f8fafc",
+          minHeight: "100vh",
+        }}
+        className="lg:ml-[260px]"
+      >
+        {/* Fixed Header */}
+        <Header onMobileMenuToggle={openMobile} />
 
-                                    {expandedItems[section.title] && (
-                                        <ul className="pl-4 space-y-1">
-                                            {section.items.map((item) => (
-                                                <li key={item.name}>
-                                                    <Link
-                                                        href={item.href || "#"}
-                                                        className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
-                                                        onClick={() =>
-                                                            setMobileMenuOpen(
-                                                                false
-                                                            )
-                                                        }
-                                                    >
-                                                        <item.icon className="w-4 h-4" />
-                                                        <span>{item.name}</span>
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
-                            ))}
-                        </nav>
-
-                        <button
-                            onClick={signOut}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                        >
-                            <LogOut className="w-4 h-4" />
-                            Sign Out
-                        </button>
-                    </div>
-                )}
-            </nav>
-
-            {/* Main Content Area */}
-            <main className="min-h-screen">{children}</main>
-
-            {/* Footer */}
-            <footer className="border-t border-slate-200 bg-slate-50/50 backdrop-blur">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-600">
-                        <p>&copy; 2024 I-PROJECT. All rights reserved.</p>
-                        <div className="flex gap-6">
-                            <Link
-                                href="/help"
-                                className="hover:text-slate-900"
-                            >
-                                Help & Support
-                            </Link>
-                            <Link
-                                href="/settings"
-                                className="hover:text-slate-900"
-                            >
-                                Settings
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </footer>
-        </div>
-    );
+        {/* Scrollable Content Area — offset by 64 px header height */}
+        <Content
+          id="main-content"
+          tabIndex={-1}
+          style={{
+            marginTop: 64,
+            minHeight: "calc(100vh - 64px)",
+            background: "#f8fafc",
+            overflow: "auto",
+          }}
+        >
+          {children}
+        </Content>
+      </Layout>
+    </Layout>
+  );
 }

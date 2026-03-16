@@ -16,6 +16,11 @@ import {
   List,
   Button,
   message,
+  Tag,
+  Timeline,
+  Dropdown,
+  Calendar,
+  Rate,
 } from "antd";
 import {
   ProjectOutlined,
@@ -30,6 +35,12 @@ import {
   TeamOutlined,
   ContactsOutlined,
   FileTextOutlined,
+  PlusOutlined,
+  FilterOutlined,
+  MoreOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "./components/AuthProvider";
 import { useRouter } from "next/navigation";
@@ -40,54 +51,50 @@ const { Title, Text } = Typography;
 interface Project {
   id: string;
   name: string;
-  status: string;
+  status: 'active' | 'completed' | 'on_hold' | 'cancelled' | 'planning' | 'in_progress';
   progress: number;
-  priority: number;
+  priority: 1 | 2 | 3 | 4 | 5;
   start_date: string;
   end_date: string;
   budget_allocated: number;
   budget_spent: number;
   created_by: string;
+  team: string[];
+  client: string;
+  tags: string[];
+  tasks?: number;
+  completed_tasks?: number;
 }
 
-interface Task {
+interface Activity {
   id: string;
   title: string;
-  status: string;
-  priority: number;
-  due_date: string;
-  assigned_to: string;
+  description: string;
+  type: 'project_created' | 'task_completed' | 'budget_approved' | 'team_update' | 'milestone_reached';
+  timestamp: string;
+  user: string;
+  avatar?: string;
 }
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: string;
-  created_at: string;
-  read: boolean;
-}
-
-export default function Dashboard() {
+export default function ProjectCentricDashboard() {
   const { user } = useAuth();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [stats, setStats] = useState({
     totalProjects: 0,
     activeProjects: 0,
     completedProjects: 0,
-    totalTasks: 0,
-    pendingTasks: 0,
-    completedTasks: 0,
+    onTimeProjects: 0,
+    atRiskProjects: 0,
     totalBudget: 0,
     spentBudget: 0,
     teamMembers: 13,
     totalClients: 8,
-    activeContracts: 5,
+    activeTasks: 0,
+    completedTasks: 0,
   });
 
   useEffect(() => {
@@ -112,10 +119,18 @@ export default function Dashboard() {
         // Calculate project stats
         const totalProjects = projectsList.length;
         const activeProjects = projectsList.filter((p: Project) => 
-          p.status !== 'completed' && p.status !== 'cancelled'
+          p.status === 'active' || p.status === 'in_progress'
         ).length;
         const completedProjects = projectsList.filter((p: Project) => 
           p.status === 'completed'
+        ).length;
+        const onTimeProjects = projectsList.filter((p: Project) => {
+          const endDate = new Date(p.end_date);
+          const today = new Date();
+          return endDate <= today;
+        }).length;
+        const atRiskProjects = projectsList.filter((p: Project) => 
+          p.priority >= 4 && (p.status === 'active' || p.status === 'in_progress')
         ).length;
         const totalBudget = projectsList.reduce((sum: number, p: Project) => 
           sum + (p.budget_allocated || 0), 0
@@ -124,45 +139,27 @@ export default function Dashboard() {
           sum + (p.budget_spent || 0), 0
         );
 
-        // Fetch tasks
-        const tasksRes = await fetch("/api/tasks");
-        if (tasksRes.ok) {
-          const tasksData = await tasksRes.json();
-          const tasksList = tasksData.data || [];
-          setTasks(tasksList);
-
-          // Calculate task stats
-          const totalTasks = tasksList.length;
-          const pendingTasks = tasksList.filter((t: Task) => 
-            t.status !== 'completed'
-          ).length;
-          const completedTasks = tasksList.filter((t: Task) => 
-            t.status === 'completed'
-          ).length;
-
-          setStats({
-            totalProjects,
-            activeProjects,
-            completedProjects,
-            totalTasks,
-            pendingTasks,
-            completedTasks,
-            totalBudget,
-            spentBudget,
-            teamMembers: 13,
-            totalClients: 8,
-            activeContracts: 5,
-          });
+        // Fetch activities
+        const activitiesRes = await fetch("/api/activities?limit=10");
+        if (activitiesRes.ok) {
+          const activitiesData = await activitiesRes.json();
+          setActivities(activitiesData.data || []);
         }
-      }
 
-      // Fetch notifications
-      const notificationsRes = await fetch("/api/notifications?pageSize=5");
-      if (notificationsRes.ok) {
-        const notificationsData = await notificationsRes.json();
-        setNotifications(notificationsData.data || []);
+        setStats({
+          totalProjects,
+          activeProjects,
+          completedProjects,
+          onTimeProjects,
+          atRiskProjects,
+          totalBudget,
+          spentBudget,
+          teamMembers: 13,
+          totalClients: 8,
+          activeTasks: projectsList.reduce((sum, p) => sum + (p.tasks || 0), 0),
+          completedTasks: projectsList.reduce((sum, p) => sum + (p.completed_tasks || 0), 0),
+        });
       }
-
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
       message.error("Failed to load dashboard data");
@@ -179,7 +176,13 @@ export default function Dashboard() {
       render: (text: string, record: Project) => (
         <Space>
           <ProjectOutlined />
-          <Text strong>{text}</Text>
+          <Button 
+            type="link" 
+            onClick={() => router.push(`/projects-complete`)}
+            style={{ padding: 0, height: "auto" }}
+          >
+            {text}
+          </Button>
         </Space>
       ),
     },
@@ -193,6 +196,7 @@ export default function Dashboard() {
           completed: { color: "success", text: "Completed" },
           on_hold: { color: "warning", text: "On Hold" },
           cancelled: { color: "error", text: "Cancelled" },
+          planning: { color: "default", text: "Planning" },
         };
         const config = statusConfig[status as keyof typeof statusConfig] || { color: "default", text: status };
         return <Badge status={config.color as any} text={config.text} />;
@@ -207,6 +211,7 @@ export default function Dashboard() {
           percent={progress} 
           size="small" 
           status={progress === 100 ? "success" : "active"}
+          strokeColor={progress === 100 ? "#52c41a" : "#1890ff"}
         />
       ),
     },
@@ -218,10 +223,9 @@ export default function Dashboard() {
         const priorityColors = ["#52c41a", "#1890ff", "#faad14", "#ff4d4f", "#722ed1"];
         const priorityLabels = ["Low", "Normal", "Medium", "High", "Critical"];
         return (
-          <Badge 
-            color={priorityColors[priority - 1]} 
-            text={priorityLabels[priority - 1]}
-          />
+          <Tag color={priorityColors[priority - 1]}>
+            {priorityLabels[priority - 1]}
+          </Tag>
         );
       },
     },
@@ -237,48 +241,54 @@ export default function Dashboard() {
             } 
             size="small" 
             showInfo={false}
+            strokeColor={record.budget_allocated ? 
+              (record.budget_spent || 0) / record.budget_allocated > 0.9 ? "#ff4d4f" : "#52c41a"
+            : "#1890ff"}
           />
         </Space>
       ),
     },
-  ];
-
-  const taskColumns = [
     {
-      title: "Task",
-      dataIndex: "title",
-      key: "title",
-      render: (text: string) => <Text strong>{text}</Text>,
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status: string) => {
-        const statusConfig = {
-          pending: { color: "warning", text: "Pending" },
-          in_progress: { color: "processing", text: "In Progress" },
-          completed: { color: "success", text: "Completed" },
-        };
-        const config = statusConfig[status as keyof typeof statusConfig] || { color: "default", text: status };
-        return <Badge status={config.color as any} text={config.text} />;
-      },
-    },
-    {
-      title: "Due Date",
-      dataIndex: "due_date",
-      key: "due_date",
-      render: (date: string) => (
+      title: "Team",
+      dataIndex: "team",
+      key: "team",
+      render: (team: string[]) => (
         <Space>
-          <ClockCircleOutlined />
-          <Text>{date ? new Date(date).toLocaleDateString() : "No due date"}</Text>
+          {team.slice(0, 3).map((member, index) => (
+            <Avatar key={index} size="small" style={{ marginRight: 4 }}>
+              {member.charAt(0).toUpperCase()}
+            </Avatar>
+          ))}
+          {team.length > 3 && (
+            <Avatar size="small" style={{ backgroundColor: "#f0f0f0" }}>
+              +{team.length - 3}
+            </Avatar>
+          )}
         </Space>
       ),
     },
   ];
 
+  const activityItems = activities.map((activity) => ({
+    key: activity.id,
+    dot: activity.type === 'project_created' ? 'green' : 
+           activity.type === 'task_completed' ? 'blue' : 
+           activity.type === 'budget_approved' ? 'orange' : 'gray',
+    children: (
+      <div>
+        <Text strong>{activity.title}</Text>
+        <Text type="secondary" style={{ fontSize: "12px" }}>
+          {activity.description}
+        </Text>
+        <Text type="secondary" style={{ fontSize: "11px", color: "#666" }}>
+          {activity.timestamp}
+        </Text>
+      </div>
+    ),
+  }));
+
   return (
-    <Layout className="min-h-screen bg-gray-50">
+    <Layout className="min-h-screen bg-gradient-to-br from-blue-50 via-white">
       <Header className="bg-white shadow-sm px-6">
         <div className="flex justify-between items-center">
           <div>
@@ -286,7 +296,7 @@ export default function Dashboard() {
               Dashboard
             </Title>
             <Text type="secondary">
-              Welcome back, {user?.name || "User"}
+              Welcome back, {user?.name || "User"}! Here's your project overview.
             </Text>
           </div>
           <Space>
@@ -297,10 +307,10 @@ export default function Dashboard() {
       </Header>
 
       <Content className="p-6">
-        {/* Statistics Cards */}
-        <Row gutter={[16, 16]} className="mb-6">
+        {/* Project Statistics */}
+        <Row gutter={[16, 16]} className="mb-8">
           <Col xs={24} sm={12} lg={6}>
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-300">
               <Statistic
                 title="Total Projects"
                 value={stats.totalProjects}
@@ -310,7 +320,7 @@ export default function Dashboard() {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-300">
               <Statistic
                 title="Active Projects"
                 value={stats.activeProjects}
@@ -320,180 +330,48 @@ export default function Dashboard() {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-300">
               <Statistic
-                title="Total Tasks"
-                value={stats.totalTasks}
-                prefix={<CheckSquareOutlined />}
-                valueStyle={{ color: "#faad14" }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Statistic
-                title="Completed Tasks"
-                value={stats.completedTasks}
-                prefix={<TrophyOutlined />}
-                valueStyle={{ color: "#722ed1" }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Statistic
-                title="Pending Tasks"
-                value={stats.pendingTasks}
+                title="On Time Projects"
+                value={stats.onTimeProjects}
                 prefix={<ClockCircleOutlined />}
-                valueStyle={{ color: "#ff7a45" }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Statistic
-                title="Team Members"
-                value={stats.teamMembers}
-                prefix={<UserOutlined />}
                 valueStyle={{ color: "#13c2c2" }}
               />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-300">
               <Statistic
-                title="Total Clients"
-                value={stats.totalClients}
-                prefix={<ContactsOutlined />}
-                valueStyle={{ color: "#52c41a" }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Statistic
-                title="Active Contracts"
-                value={stats.activeContracts}
+                title="At Risk Projects"
+                value={stats.atRiskProjects}
                 prefix={<BarChartOutlined />}
-                valueStyle={{ color: "#722ed1" }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Statistic
-                title="Total Budget"
-                value={stats.totalBudget}
-                prefix="฿"
-                precision={2}
-                valueStyle={{ color: "#1890ff" }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Statistic
-                title="Spent Budget"
-                value={stats.spentBudget}
-                prefix="฿"
-                precision={2}
                 valueStyle={{ color: "#ff4d4f" }}
               />
             </Card>
           </Col>
         </Row>
 
-        {/* Activity Overview */}
-        <Row gutter={[16, 16]} className="mb-6">
-          <Col xs={24} lg={8}>
-            <Card title="Recent Activity" extra={<Button type="link">View All</Button>}>
-              <List
-                dataSource={[
-                  { title: "New project created", description: "Website Redesign", time: "2 hours ago" },
-                  { title: "Task completed", description: "Login page development", time: "5 hours ago" },
-                  { title: "Budget approved", description: "Mobile app project", time: "1 day ago" },
-                ]}
-                renderItem={(item) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={item.title}
-                      description={item.description}
-                    />
-                    <div style={{ color: "#666", fontSize: "12px" }}>
-                      {item.time}
-                    </div>
-                  </List.Item>
-                )}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} lg={8}>
-            <Card title="Quick Actions">
-              <Space direction="vertical" size="large" style={{ width: "100%" }}>
-                <Button 
-                  type="primary" 
-                  icon={<ProjectOutlined />}
-                  size="large"
-                  style={{ width: "100%" }}
-                  onClick={() => router.push("/projects-complete")}
-                >
-                  Create New Project
-                </Button>
-                <Button 
-                  icon={<CheckSquareOutlined />}
-                  size="large"
-                  style={{ width: "100%" }}
-                  onClick={() => router.push("/tasks")}
-                >
-                  View Tasks
-                </Button>
-                <Button 
-                  icon={<UserOutlined />}
-                  size="large"
-                  style={{ width: "100%" }}
-                  onClick={() => router.push("/admin/users")}
-                >
-                  Manage Users
-                </Button>
-                <Button 
-                  icon={<BarChartOutlined />}
-                  size="large"
-                  style={{ width: "100%" }}
-                  onClick={() => router.push("/reports")}
-                >
-                  View Reports
-                </Button>
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} lg={8}>
-            <Card title="System Status">
-              <Space direction="vertical" size="middle">
-                <div>
-                  <Text strong>Database Status</Text>
-                  <Badge status="success" text="Connected" />
-                </div>
-                <div>
-                  <Text strong>API Response</Text>
-                  <Badge status="success" text="Normal" />
-                </div>
-                <div>
-                  <Text strong>Storage Usage</Text>
-                  <Progress percent={65} status="active" size="small" />
-                </div>
-                <div>
-                  <Text strong>Last Backup</Text>
-                  <Text type="secondary">2 hours ago</Text>
-                </div>
-              </Space>
-            </Card>
-          </Col>
-        </Row>
-
         {/* Budget Overview */}
-        <Row gutter={[16, 16]} className="mb-6">
-          <Col xs={24} lg={12}>
-            <Card title="Budget Overview" extra={<Button type="link">View All</Button>}>
+        <Row gutter={[16, 16]} className="mb-8">
+          <Col xs={24} lg={8}>
+            <Card 
+              title="Budget Overview" 
+              extra={
+                <Dropdown
+                  menu={{
+                    items: [
+                      { key: 'export-pdf', label: 'Export PDF' },
+                      { key: 'export-excel', label: 'Export Excel' },
+                    ]
+                  }}
+                >
+                  <Button icon={<MoreOutlined />}>
+                    More Options
+                  </Button>
+                </Dropdown>
+              }
+              className="hover:shadow-lg transition-shadow duration-300"
+            >
               <Row gutter={16}>
                 <Col span={12}>
                   <Statistic
@@ -520,69 +398,57 @@ export default function Dashboard() {
                   percent={stats.totalBudget ? 
                     Math.round((stats.spentBudget / stats.totalBudget) * 100) : 0
                   } 
+                  strokeColor={stats.totalBudget ? 
+                    (stats.spentBudget / stats.totalBudget) > 0.9 ? "#ff4d4f" : "#52c41a"
+                  : "#1890ff"}
                   status="active"
                 />
               </div>
             </Card>
           </Col>
 
-          <Col xs={24} lg={12}>
-            <Card title="Recent Notifications" extra={<Button type="link">View All</Button>}>
-              <List
-                dataSource={notifications}
-                renderItem={(item) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={
-                        <Space>
-                          <Text strong={!item.read}>{item.title}</Text>
-                          {!item.read && <Badge dot />}
-                        </Space>
-                      }
-                      description={
-                        <Space direction="vertical" size="small">
-                          <Text type="secondary">{item.message}</Text>
-                          <Text type="secondary" style={{ fontSize: "12px" }}>
-                            {new Date(item.created_at).toLocaleString()}
-                          </Text>
-                        </Space>
-                      }
-                    />
-                  </List.Item>
-                )}
+          <Col xs={24} lg={16}>
+            <Card 
+              title="Recent Activity" 
+              extra={<Button type="link" onClick={() => router.push("/activities")}>View All</Button>}
+              className="hover:shadow-lg transition-shadow duration-300"
+            >
+              <Timeline
+                items={activityItems}
+                mode="left"
+                className="mt-4"
               />
             </Card>
           </Col>
         </Row>
 
-        {/* Projects Table */}
+        {/* Recent Projects Table */}
         <Card 
           title="Recent Projects" 
-          extra={<Button type="primary" onClick={() => router.push("/projects-complete")}>View All</Button>}
+          extra={
+            <Space>
+              <Button icon={<FilterOutlined />}>Filter</Button>
+              <Button 
+                type="primary" 
+                onClick={() => router.push("/projects-complete")}
+              >
+                View All Projects
+              </Button>
+            </Space>
+          }
+          className="hover:shadow-lg transition-shadow duration-300"
         >
           <Table
             columns={projectColumns}
-            dataSource={projects.slice(0, 5)}
+            dataSource={projects.slice(0, 6)}
             rowKey="id"
             loading={loading}
             pagination={false}
             scroll={{ x: 800 }}
-          />
-        </Card>
-
-        {/* Tasks Table */}
-        <Card 
-          title="Recent Tasks" 
-          extra={<Button type="primary" onClick={() => router.push("/tasks")}>View All</Button>}
-          className="mt-6"
-        >
-          <Table
-            columns={taskColumns}
-            dataSource={tasks.slice(0, 5)}
-            rowKey="id"
-            loading={loading}
-            pagination={false}
-            scroll={{ x: 600 }}
+            onRow={(record) => ({
+              onClick: () => router.push(`/projects-complete/${record.id}`),
+              style: { cursor: 'pointer' }
+            })}
           />
         </Card>
       </Content>

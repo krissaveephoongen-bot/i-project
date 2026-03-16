@@ -1,223 +1,227 @@
+// ============================================================
+// POST /api/auth/login
+// ============================================================
+// Responsibilities (this file only):
+//   1. Parse + validate the request body
+//   2. Delegate to AuthService.login()
+//   3. Set HttpOnly cookies (access + refresh)
+//   4. Return the JSON response
+//
+// Business logic (lockout, password hashing, profile upsert,
+// JWT generation) lives entirely in AuthService.
+// ============================================================
+
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/app/lib/supabaseClient";
-import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
+import { getAuthService, AuthError } from "@/lib/auth/AuthService";
+import type { LoginRequest, LoginResponse } from "@/lib/auth/types";
+import {
+  ACCESS_TOKEN_EXPIRY_SECONDS,
+  REFRESH_TOKEN_EXPIRY_SECONDS,
+} from "@/lib/auth-utils";
 
-export async function POST(request: NextRequest) {
+// ----------------------------------------------------------
+// Constants
+// ----------------------------------------------------------
+
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
+// Cookie names — defined once so every route uses the same strings
+export const COOKIE_ACCESS_TOKEN = "access_token";
+export const COOKIE_REFRESH_TOKEN = "refresh_token";
+
+// ----------------------------------------------------------
+// Helper: parse request body
+// Supports both application/json and application/x-www-form-urlencoded
+// ----------------------------------------------------------
+
+async function parseBody(
+  request: NextRequest,
+): Promise<Record<string, unknown>> {
+  const text = await request.text();
+
+  if (!text.trim()) {
+    throw new Error("Empty request body");
+  }
+
+  const contentType = request.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    return Object.fromEntries(new URLSearchParams(text));
+  }
+
+  // Default: attempt JSON parse
   try {
-    const contentType = request.headers.get("content-type") || "";
-    let body: any;
-
-    // Read body once as text
-    const text = await request.text();
-
-    if (!text) {
-      return NextResponse.json({ error: "Empty body" }, { status: 400 });
-    }
-
+    return JSON.parse(text);
+  } catch {
+    // Last-resort: try form-encoded anyway
     try {
-      body = JSON.parse(text);
+      return Object.fromEntries(new URLSearchParams(text));
     } catch {
-      // Try form-urlencoded
-      body = Object.fromEntries(new URLSearchParams(text));
-    }
-
-    const { email, password } = body;
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password are required" },
-        { status: 400 },
+      throw new Error(
+        "Unable to parse request body as JSON or form-encoded data",
       );
     }
+  }
+}
 
-    const { data, error } = await supabase
-      .from("users")
-      .select(
-        "id,email,name,name_th,role,position,department,avatar,phone,is_active,is_deleted,failed_login_attempts,timezone,created_at,updated_at,hourly_rate,status,employee_code,password",
-      )
-      .eq("email", email)
-      .limit(1);
+// ----------------------------------------------------------
+// Helper: validate login fields
+// ----------------------------------------------------------
 
-    const user: any = (data || [])[0] || null;
+interface ValidationResult {
+  ok: true;
+  email: string;
+  password: string;
+  rememberMe: boolean;
+}
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "Invalid email or password" },
-        { status: 401 },
-      );
-    }
+interface ValidationError {
+  ok: false;
+  message: string;
+}
 
-    // Column mapping fallback
-    const is_active = user.is_active ?? true;
-    const is_deleted = user.is_deleted ?? false;
-    const locked_until = null; // Column doesn't exist in database
-    const failed_login_attempts = user.failed_login_attempts ?? 0;
-    const passwordHash =
-      user.password ?? user.password_hash ?? user.hashed_password ?? null;
+function validateLoginBody(
+  body: Record<string, unknown>,
+): ValidationResult | ValidationError {
+  const email =
+    typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const password = typeof body.password === "string" ? body.password : "";
+  const rememberMe = body.rememberMe === true || body.rememberMe === "true";
 
-    // Check if user is active
-    if (!is_active) {
-      return NextResponse.json(
-        { error: "Account is deactivated" },
-        { status: 401 },
-      );
-    }
+  if (!email) {
+    return { ok: false, message: "Email is required" };
+  }
 
-    // Check if user is deleted
-    if (is_deleted) {
-      return NextResponse.json({ error: "Account not found" }, { status: 401 });
-    }
+  // Basic email format guard — full validation is done by the DB unique constraint
+  if (!email.includes("@")) {
+    return { ok: false, message: "Invalid email address" };
+  }
 
-    // Check if account is locked
-    if (locked_until && new Date(locked_until) > new Date()) {
-      return NextResponse.json(
-        { error: "Account is temporarily locked" },
-        { status: 423 },
-      );
-    }
+  if (!password) {
+    return { ok: false, message: "Password is required" };
+  }
 
-    // Verify password
-    if (!passwordHash) {
-      return NextResponse.json(
-        { error: "Password not configured for this account" },
-        { status: 400 },
-      );
-    }
-    const isValidPassword = await bcrypt.compare(password, passwordHash);
-    if (!isValidPassword) {
-      // Increment failed login attempts
-      const failedAttempts = Number(failed_login_attempts || 0) + 1;
+  if (password.length < 1) {
+    return { ok: false, message: "Password is required" };
+  }
 
-      const updates: any = { failed_login_attempts: failedAttempts };
-      if (failedAttempts >= 5) {
-        updates.locked_until = new Date(
-          Date.now() + 30 * 60 * 1000,
-        ).toISOString();
-      }
+  return { ok: true, email, password, rememberMe };
+}
 
-      await supabase
-        .from("users")
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq("id", user.id);
+// ----------------------------------------------------------
+// Helper: set auth cookies
+// ----------------------------------------------------------
 
-      return NextResponse.json(
-        { error: "Invalid email or password" },
-        { status: 401 },
-      );
-    }
+function setAuthCookies(
+  accessToken: string,
+  refreshToken: string,
+  rememberMe: boolean,
+): void {
+  const cookieStore = cookies();
 
-    // Reset failed login attempts on successful login
-    await supabase
-      .from("users")
-      .update({
-        failed_login_attempts: 0,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", user.id);
+  // Access token — short-lived (24 h)
+  cookieStore.set(COOKIE_ACCESS_TOKEN, accessToken, {
+    httpOnly: true,
+    secure: IS_PRODUCTION,
+    sameSite: "lax",
+    path: "/",
+    // If rememberMe, persist for the full token lifetime; otherwise session cookie
+    ...(rememberMe ? { maxAge: ACCESS_TOKEN_EXPIRY_SECONDS } : {}),
+  });
 
-    // Return user data without password
-    const {
-      password: _,
-      password_hash: __,
-      hashed_password: ___,
-      ...userWithoutPassword
-    } = user;
+  // Refresh token — longer-lived (7 d), scoped to the refresh endpoint
+  cookieStore.set(COOKIE_REFRESH_TOKEN, refreshToken, {
+    httpOnly: true,
+    secure: IS_PRODUCTION,
+    sameSite: "lax",
+    path: "/api/auth/refresh",
+    ...(rememberMe ? { maxAge: REFRESH_TOKEN_EXPIRY_SECONDS } : {}),
+  });
+}
 
-    // Convert camelCase to snake_case for response
-    const responseUser = {
-      id: userWithoutPassword.id,
-      email: userWithoutPassword.email,
-      name: userWithoutPassword.name,
-      name_th: userWithoutPassword.name_th,
-      role: userWithoutPassword.role,
-      position: userWithoutPassword.position,
-      department: userWithoutPassword.department,
-      avatar: userWithoutPassword.avatar,
-      phone: userWithoutPassword.phone,
-      is_active: is_active,
-      is_deleted: is_deleted,
-      failed_login_attempts: failed_login_attempts,
-      last_login: null, // Column doesn't exist in database
-      locked_until: locked_until,
-      created_at: userWithoutPassword.created_at,
-      updated_at: userWithoutPassword.updated_at,
-      hourly_rate: userWithoutPassword.hourly_rate,
-      timezone: userWithoutPassword.timezone,
-      status: userWithoutPassword.status,
-      employee_code: userWithoutPassword.employee_code,
+// ----------------------------------------------------------
+// Route handler
+// ----------------------------------------------------------
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  // 1. Parse body
+  let body: Record<string, unknown>;
+  try {
+    body = await parseBody(request);
+  } catch (parseError) {
+    return NextResponse.json(
+      {
+        error: "Bad Request",
+        message:
+          parseError instanceof Error
+            ? parseError.message
+            : "Invalid request body",
+        code: "INVALID_BODY",
+      },
+      { status: 400 },
+    );
+  }
+
+  // 2. Validate fields
+  const validation = validateLoginBody(body);
+  if (!validation.ok) {
+    return NextResponse.json(
+      {
+        error: "Bad Request",
+        message: validation.message,
+        code: "VALIDATION_ERROR",
+      },
+      { status: 400 },
+    );
+  }
+
+  const { email, password, rememberMe } = validation;
+
+  // 3. Delegate to AuthService
+  try {
+    const authService = getAuthService();
+
+    const loginReq: LoginRequest = { email, password, rememberMe };
+    const session = await authService.login(loginReq);
+
+    // 4. Set HttpOnly cookies
+    setAuthCookies(session.accessToken, session.refreshToken, rememberMe);
+
+    // 5. Build response
+    // The token field is kept in the JSON body so the client-side
+    // AuthProvider can also store it in sessionStorage / localStorage
+    // for SPA-style in-memory access (e.g. attaching to fetch headers).
+    const response: LoginResponse = {
+      user: session.user,
+      profile: session.profile,
+      tokens: {
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+        expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS,
+      },
+      message: "Login successful",
     };
 
-    // Ensure profile record exists in public.profiles
-    let profileRow: any = null;
-    try {
-      const { data: pRows } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .limit(1);
-      profileRow = (pRows || [])[0] || null;
-      if (!profileRow) {
-        const insertPayload = {
-          id: user.id,
-          name: user.name ?? user.email,
-          email: user.email ?? null,
-          avatar_url: user.avatar ?? null,
-          role: user.role ?? null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        const { data: created } = await supabase
-          .from("profiles")
-          .insert(insertPayload)
-          .select("*")
-          .limit(1);
-        profileRow = (created || [])[0] || insertPayload;
-      } else {
-        // Sync role/name if changed
-        const needUpdate =
-          profileRow.role !== user.role ||
-          profileRow.name !== user.name ||
-          profileRow.email !== user.email ||
-          profileRow.avatar_url !== user.avatar;
-        if (needUpdate) {
-          const upd = {
-            name: user.name ?? profileRow.name,
-            email: user.email ?? profileRow.email,
-            avatar_url: user.avatar ?? profileRow.avatar_url,
-            role: user.role ?? profileRow.role,
-            updated_at: new Date().toISOString(),
-          };
-          const { data: updated } = await supabase
-            .from("profiles")
-            .update(upd)
-            .eq("id", user.id)
-            .select("*")
-            .limit(1);
-          profileRow = (updated || [])[0] || { ...profileRow, ...upd };
-        }
-      }
-    } catch {}
-
-    // Set cookie for server-side auth
-    const cookieStore = cookies();
-    cookieStore.set("auth_token", user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-    });
-
-    return NextResponse.json({
-      user: responseUser,
-      profile: profileRow,
-      token: user.id,
-      message: "Login successful",
-    });
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.error("Login error:", error);
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: error.code,
+        },
+        { status: error.statusCode },
+      );
+    }
+
+    // Unexpected error — log server-side, return generic message to client
+    console.error("[POST /api/auth/login] Unexpected error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        code: "INTERNAL_ERROR",
+      },
       { status: 500 },
     );
   }

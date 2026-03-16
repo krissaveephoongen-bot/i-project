@@ -1,21 +1,25 @@
+// ============================================================
+// GET /api/dashboard/teamload
+// ============================================================
+// Returns per-user total logged hours, sorted descending.
+//
+// Previously used a raw pg Pool query against `users` + `timesheets`.
+// Now delegates entirely to DashboardRepository which uses the
+// Supabase admin client — keeping all DB access in the data layer.
+// ============================================================
+
 import { ok } from "../../_lib/db";
-import { pool } from "../../_lib/db";
+import { dashboardRepository } from "@/lib/data";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const res = await pool.query(`
-      SELECT
-        u.id,
-        u.name,
-        SUM(t.hours)::numeric AS hours
-      FROM users u
-      LEFT JOIN timesheets t ON t.user_id = u.id
-      GROUP BY u.id, u.name
-      ORDER BY hours DESC NULLS LAST
-    `);
-    return ok(res.rows, 200);
+    const rows = await dashboardRepository.getTeamLoad();
+    return ok(rows, 200);
   } catch (error) {
+    console.error("[GET /api/dashboard/teamload]", error);
+    // Return an empty array so the dashboard widget degrades gracefully
     return ok([], 200);
-  } finally {
   }
 }

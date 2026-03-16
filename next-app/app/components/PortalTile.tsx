@@ -6,95 +6,118 @@ import { ArrowRight } from "lucide-react";
 import { clsx } from "clsx";
 
 interface PortalTileProps {
-    title: string;
-    description: string;
-    href: string;
-    icon: ReactNode;
-    badge?: string;
-    badgeColor?: "blue" | "green" | "red" | "yellow" | "purple";
-    stats?: Array<{ label: string; value: string | number }>;
-    variant?: "default" | "featured";
+  title: string;
+  description: string;
+  href: string;
+  icon: ReactNode;
+  badge?: string;
+  badgeColor?: "blue" | "green" | "red" | "yellow" | "purple";
+  stats?: Array<{ label: string; value: string | number }>;
+  variant?: "default" | "featured";
 }
 
+const badgeStyles: Record<
+  NonNullable<PortalTileProps["badgeColor"]>,
+  string
+> = {
+  blue: "bg-blue-50 text-blue-700",
+  green: "bg-emerald-50 text-emerald-700",
+  yellow: "bg-amber-50 text-amber-700",
+  red: "bg-red-50 text-red-700",
+  purple: "bg-violet-50 text-violet-700",
+};
+
 export default function PortalTile({
-    title,
-    description,
-    href,
-    icon,
-    badge,
-    badgeColor = "blue",
-    stats,
-    variant = "default",
+  title,
+  description,
+  href,
+  icon,
+  badge,
+  badgeColor = "blue",
+  stats,
+  variant = "default",
 }: PortalTileProps) {
-    const badgeColors = {
-        blue: "bg-blue-500/20 text-blue-200 border-blue-400/30",
-        green: "bg-green-500/20 text-green-200 border-green-400/30",
-        red: "bg-red-500/20 text-red-200 border-red-400/30",
-        yellow: "bg-yellow-500/20 text-yellow-200 border-yellow-400/30",
-        purple: "bg-purple-500/20 text-purple-200 border-purple-400/30",
-    };
+  return (
+    <Link
+      href={href}
+      className={clsx(
+        "group block bg-white rounded-xl border border-slate-200",
+        "shadow-sm hover:shadow-md",
+        "hover:-translate-y-0.5 transition-all duration-200",
+        "cursor-pointer",
+        variant === "featured" && "md:col-span-2 lg:col-span-2",
+      )}
+    >
+      <div className="p-5">
+        {/* ── Header row ─────────────────────────────────── */}
+        <div className="flex items-start gap-3">
+          {/* Icon container — 48 × 48 */}
+          <div className="shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-slate-100">
+            {icon}
+          </div>
 
-    return (
-        <Link href={href}>
-            <div
+          {/* Title + badge */}
+          <div className="flex-1 min-w-0 pt-0.5">
+            <h3 className="text-base font-semibold text-slate-900 truncate leading-snug">
+              {title}
+            </h3>
+            {badge && (
+              <span
                 className={clsx(
-                    "group relative overflow-hidden rounded-xl border transition-all duration-300 hover:scale-105 cursor-pointer",
-                    variant === "featured"
-                        ? "col-span-1 md:col-span-2 lg:col-span-2 bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200 hover:from-blue-100 hover:to-blue-200 hover:border-blue-300"
-                        : "bg-white/70 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                  "inline-block mt-1 px-2.5 py-0.5 rounded-full",
+                  "text-xs font-medium",
+                  badgeStyles[badgeColor],
                 )}
-            >
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-transparent group-hover:from-slate-900/0 group-hover:via-slate-800/0 group-hover:to-slate-900/10 transition-all duration-300" />
+              >
+                {badge}
+              </span>
+            )}
+          </div>
 
-                <div className="relative p-6 h-full flex flex-col">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-3 bg-slate-200/50 rounded-lg group-hover:bg-slate-200 transition-colors">
-                                {icon}
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-semibold text-slate-900">
-                                    {title}
-                                </h3>
-                                {badge && (
-                                    <span
-                                        className={clsx(
-                                            "inline-block mt-1 px-2.5 py-0.5 text-xs font-medium rounded-full border",
-                                            badgeColors[badgeColor]
-                                        )}
-                                    >
-                                        {badge}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                        <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors transform group-hover:translate-x-1" />
-                    </div>
+          {/* Arrow — slides right on hover */}
+          <ArrowRight
+            className={clsx(
+              "shrink-0 mt-0.5 w-4 h-4 text-slate-400",
+              "transition-transform duration-200",
+              "group-hover:translate-x-1 group-hover:text-slate-600",
+            )}
+            aria-hidden
+          />
+        </div>
 
-                    {/* Description */}
-                    <p className="text-slate-600 text-sm mb-4 flex-grow">
-                        {description}
-                    </p>
+        {/* ── Description ────────────────────────────────── */}
+        <p className="text-slate-500 text-sm mt-3 leading-relaxed">
+          {description}
+        </p>
 
-                    {/* Stats (optional) */}
-                    {stats && stats.length > 0 && (
-                        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-200">
-                            {stats.map((stat, idx) => (
-                                <div key={idx}>
-                                    <p className="text-xs text-slate-500">
-                                        {stat.label}
-                                    </p>
-                                    <p className="text-lg font-semibold text-slate-900">
-                                        {stat.value}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </Link>
-    );
+        {/* ── Stats section (optional) ────────────────────── */}
+        {stats && stats.length > 0 && (
+          <div
+            className={clsx(
+              "mt-4 pt-4 border-t border-slate-100",
+              "grid gap-x-4 gap-y-2",
+              stats.length === 1
+                ? "grid-cols-1"
+                : stats.length === 2
+                  ? "grid-cols-2"
+                  : stats.length === 3
+                    ? "grid-cols-3"
+                    : "grid-cols-2",
+            )}
+          >
+            {stats.map((stat, idx) => (
+              <div key={idx} className="flex flex-col">
+                <span className="font-semibold text-slate-900 text-lg leading-tight">
+                  {stat.value}
+                </span>
+                <span className="text-xs text-slate-500 mt-0.5">
+                  {stat.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Link>
+  );
 }

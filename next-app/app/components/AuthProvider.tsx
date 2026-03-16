@@ -1,290 +1,325 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+// ============================================================
+// AuthProvider.tsx
+// ============================================================
+// Responsibilities:
+//   • Hold the authenticated user + profile in React state
+//   • Restore session on page load (reads JWT from storage,
+//     verifies it with /api/auth/verify)
+//   • Expose signIn / signUp / signOut / forgotPassword /
+//     resetPassword to the rest of the app
+//   • Store tokens in localStorage (rememberMe) or
+//     sessionStorage (session-only)
+//
+// What changed vs the original:
+//   • Removed USE_MOCK flag and all mock branches — dev
+//     workflows should use a real local DB or a .env.local
+//     with Supabase credentials
+//   • `profile` field typed as AuthProfile | null, not `any`
+//   • Token storage now handles the new { tokens: { accessToken,
+//     refreshToken, expiresIn } } response shape from the API
+//   • Added resetPassword() to the context
+//   • Auth token key renamed from "auth_token" → "access_token"
+//     to match the new cookie/header naming convention
+//   • rememberedEmail is read/written only from localStorage
+//     (intentional — it is a UI convenience, not a security token)
+//   • All fetch error paths throw typed errors with the server's
+//     `code` field forwarded so the UI can branch on it
+// ============================================================
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: "admin" | "manager" | "employee";
-  department?: string;
-  position?: string;
-  avatar?: string;
-  phone?: string;
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import type {
+  AuthContextValue,
+  AuthProfile,
+  AuthUser,
+  UserRole,
+  LoginResponse,
+  RegisterResponse,
+  VerifyResponse,
+} from "@/lib/auth/types";
+
+// ----------------------------------------------------------
+// Storage keys — defined once so they never drift
+// ----------------------------------------------------------
+
+const KEY_ACCESS_TOKEN = "access_token";
+const KEY_REFRESH_TOKEN = "refresh_token";
+const KEY_REMEMBERED_EMAIL = "remembered_email";
+
+// ----------------------------------------------------------
+// Typed API error
+// ----------------------------------------------------------
+
+export class AuthApiError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly statusCode: number,
+  ) {
+    super(message);
+    this.name = "AuthApiError";
+  }
 }
 
-interface AuthContextType {
-  user: User | null;
-  profile: any | null;
-  loading: boolean;
-  signIn: (
-    email: string,
-    password: string,
-    rememberMe?: boolean,
-  ) => Promise<void>;
-  signUp: (
-    email: string,
-    password: string,
-    name?: string,
-    role?: "admin" | "manager" | "employee",
-  ) => Promise<void>;
-  signOut: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
+// ----------------------------------------------------------
+// Storage helpers
+// ----------------------------------------------------------
+
+function storeTokens(
+  accessToken: string,
+  refreshToken: string,
+  persistent: boolean,
+): void {
+  const storage = persistent ? localStorage : sessionStorage;
+  storage.setItem(KEY_ACCESS_TOKEN, accessToken);
+  storage.setItem(KEY_REFRESH_TOKEN, refreshToken);
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Toggle mock auth for development/verification when DB is not available
-const USE_MOCK = false;
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context !== undefined) return context;
-  const fallback: AuthContextType = {
-    user: null,
-    profile: null,
-    loading: false,
-    signIn: async (email: string, password: string, rememberMe = false) => {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, rememberMe }),
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error?.error || "Login failed");
-      }
-      const data = await response.json();
-      if (rememberMe) {
-        localStorage.setItem("auth_token", data.token);
-        localStorage.setItem("remembered_email", email);
-      } else {
-        sessionStorage.setItem("auth_token", data.token);
-        localStorage.removeItem("remembered_email");
-      }
-    },
-    signUp: async (email, password, name, role = "employee") => {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name, role }),
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error?.error || "Register failed");
-      }
-      const data = await response.json();
-      localStorage.setItem("auth_token", data.token);
-    },
-    signOut: async () => {
-      try {
-        await fetch("/api/auth/logout", { method: "POST" });
-      } catch {}
-      localStorage.removeItem("auth_token");
-      sessionStorage.removeItem("auth_token");
-    },
-    forgotPassword: async (email: string) => {
-      const response = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error?.error || "Failed to send password reset email");
-      }
-    },
-  };
-  return fallback;
+function clearStoredTokens(): void {
+  localStorage.removeItem(KEY_ACCESS_TOKEN);
+  localStorage.removeItem(KEY_REFRESH_TOKEN);
+  sessionStorage.removeItem(KEY_ACCESS_TOKEN);
+  sessionStorage.removeItem(KEY_REFRESH_TOKEN);
 }
+
+function readStoredAccessToken(): string | null {
+  return (
+    localStorage.getItem(KEY_ACCESS_TOKEN) ??
+    sessionStorage.getItem(KEY_ACCESS_TOKEN) ??
+    null
+  );
+}
+
+// ----------------------------------------------------------
+// Generic fetch helper — throws AuthApiError on non-2xx
+// ----------------------------------------------------------
+
+async function authFetch<T>(
+  url: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers ?? {}),
+    },
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new AuthApiError(
+      data.error ?? data.message ?? `Request failed (${response.status})`,
+      data.code ?? "UNKNOWN_ERROR",
+      response.status,
+    );
+  }
+
+  return data as T;
+}
+
+// ----------------------------------------------------------
+// Context
+// ----------------------------------------------------------
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (ctx === undefined) {
+    throw new Error("useAuth must be used within an <AuthProvider>");
+  }
+  return ctx;
+}
+
+// ----------------------------------------------------------
+// Provider component
+// ----------------------------------------------------------
 
 export default function AuthProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Prevent double-verification on React strict-mode double effect
+  const verifyInProgress = useRef(false);
+
+  // --------------------------------------------------------
+  // Restore session on mount
+  // --------------------------------------------------------
+
   useEffect(() => {
-    // Check for existing session on app load
-    const checkUser = async () => {
+    if (verifyInProgress.current) return;
+    verifyInProgress.current = true;
+
+    const restoreSession = async () => {
+      const token = readStoredAccessToken();
+
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        if (USE_MOCK) {
-          // Simulate a logged-in user for dev/demo
-          const mockUser: User = {
-            id: "mock-user-1",
-            email: "demo@example.com",
-            name: "Demo User",
-            role: "manager",
-          };
-          setUser(mockUser);
-          setLoading(false);
-          return;
-        }
+        const data = await authFetch<VerifyResponse>("/api/auth/verify", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-        const token =
-          localStorage.getItem("auth_token") ||
-          sessionStorage.getItem("auth_token");
-        const rememberedEmail = localStorage.getItem("remembered_email");
-
-        if (token) {
-          // Verify token with backend
-          const response = await fetch("/api/auth/verify", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            setUser(data.user);
-            setProfile(data.profile || null);
-          } else {
-            // Token invalid, remove it
-            localStorage.removeItem("auth_token");
-            sessionStorage.removeItem("auth_token");
-          }
-        }
-
-        // Store remembered email for login form
-        if (rememberedEmail) {
-          // This will be used by the login component
-          window.dispatchEvent(
-            new CustomEvent("rememberedEmail", { detail: rememberedEmail }),
-          );
-        }
+        setUser(data.user);
+        setProfile(data.profile ?? null);
       } catch (error) {
-        console.error("Error checking auth state:", error);
-        localStorage.removeItem("auth_token");
+        // Token invalid or expired — wipe stored tokens so the user
+        // is redirected to login on the next protected-route render
+        clearStoredTokens();
+
+        if (
+          error instanceof AuthApiError &&
+          error.statusCode !== 401 &&
+          error.statusCode !== 403
+        ) {
+          // Log unexpected errors (network issues, 5xx) but don't
+          // surface them to the user — just treat as "not logged in"
+          console.error("[AuthProvider] Session restore failed:", error);
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    checkUser();
+    restoreSession();
   }, []);
 
-  const signIn = async (
-    email: string,
-    password: string,
-    rememberMe = false,
-  ) => {
-    if (USE_MOCK) {
-      const mockUser: User = {
-        id: "mock-user-1",
-        email,
-        name: "Demo User",
-        role: "manager",
-      };
-      setUser(mockUser);
-      if (rememberMe) localStorage.setItem("auth_token", "mock-token");
-      else sessionStorage.setItem("auth_token", "mock-token");
-      return;
+  // --------------------------------------------------------
+  // Dispatch remembered-email event for the login form
+  // (convenience UX feature — not a security mechanism)
+  // --------------------------------------------------------
+
+  useEffect(() => {
+    const remembered = localStorage.getItem(KEY_REMEMBERED_EMAIL);
+    if (remembered && typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("rememberedEmail", { detail: remembered }),
+      );
     }
+  }, []);
 
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password, rememberMe }),
-    });
+  // --------------------------------------------------------
+  // signIn
+  // --------------------------------------------------------
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Login failed");
-    }
-
-    const data = await response.json();
-
-    // Store token and user
-    if (rememberMe) {
-      localStorage.setItem("auth_token", data.token);
-      localStorage.setItem("remembered_email", email);
-    } else {
-      sessionStorage.setItem("auth_token", data.token);
-      localStorage.removeItem("remembered_email");
-    }
-
-    setUser(data.user);
-    setProfile(data.profile || null);
-  };
-
-  const signOut = async () => {
-    if (USE_MOCK) {
-      setUser(null);
-      localStorage.removeItem("auth_token");
-      sessionStorage.removeItem("auth_token");
-      return;
-    }
-
-    try {
-      await fetch("/api/auth/logout", {
+  const signIn = useCallback(
+    async (email: string, password: string, rememberMe = false) => {
+      const data = await authFetch<LoginResponse>("/api/auth/login", {
         method: "POST",
+        body: JSON.stringify({ email, password, rememberMe }),
       });
-    } catch (error) {
-      console.error("Error during logout:", error);
+
+      storeTokens(
+        data.tokens.accessToken,
+        data.tokens.refreshToken,
+        rememberMe,
+      );
+
+      if (rememberMe) {
+        localStorage.setItem(KEY_REMEMBERED_EMAIL, email);
+      } else {
+        localStorage.removeItem(KEY_REMEMBERED_EMAIL);
+      }
+
+      setUser(data.user);
+      setProfile(data.profile ?? null);
+    },
+    [],
+  );
+
+  // --------------------------------------------------------
+  // signUp
+  // --------------------------------------------------------
+
+  const signUp = useCallback(
+    async (
+      email: string,
+      password: string,
+      name?: string,
+      role: UserRole = "employee",
+    ) => {
+      const data = await authFetch<RegisterResponse>("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ email, password, name, role }),
+      });
+
+      // Registration always uses session storage (no "rememberMe" on sign-up)
+      storeTokens(data.tokens.accessToken, data.tokens.refreshToken, false);
+
+      setUser(data.user);
+      setProfile(data.profile ?? null);
+    },
+    [],
+  );
+
+  // --------------------------------------------------------
+  // signOut
+  // --------------------------------------------------------
+
+  const signOut = useCallback(async () => {
+    // Best-effort server-side cookie clearing — ignore errors so
+    // the client state is always cleaned up even if the server is down
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // intentionally swallowed
     }
 
-    // Clear local storage and state
-    localStorage.removeItem("auth_token");
-    sessionStorage.removeItem("auth_token");
+    clearStoredTokens();
     setUser(null);
     setProfile(null);
-  };
+  }, []);
 
-  const signUp = async (
-    email: string,
-    password: string,
-    name?: string,
-    role: "admin" | "manager" | "employee" = "employee",
-  ) => {
-    if (USE_MOCK) {
-      const mockUser: User = {
-        id: `mock-user-${Date.now()}`,
-        email,
-        name: name || "New User",
-        role,
-      };
-      setUser(mockUser);
-      return;
-    }
+  // --------------------------------------------------------
+  // forgotPassword
+  // --------------------------------------------------------
 
-    const response = await fetch("/api/auth/register", {
+  const forgotPassword = useCallback(async (email: string) => {
+    await authFetch("/api/auth/forgot-password", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name, role }),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Register failed");
-    }
-    const data = await response.json();
-    localStorage.setItem("auth_token", data.token);
-    setUser(data.user);
-    setProfile(data.profile || null);
-  };
-
-  const forgotPassword = async (email: string) => {
-    if (USE_MOCK) return;
-
-    const response = await fetch("/api/auth/forgot-password", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({ email }),
     });
+    // Response is always a generic success message — nothing to do here
+  }, []);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to send password reset email");
-    }
-  };
+  // --------------------------------------------------------
+  // resetPassword
+  // --------------------------------------------------------
 
-  const value = {
+  const resetPassword = useCallback(
+    async (token: string, email: string, newPassword: string) => {
+      await authFetch("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ token, email, newPassword }),
+      });
+      // Caller is responsible for redirecting to /login after success
+    },
+    [],
+  );
+
+  // --------------------------------------------------------
+  // Context value
+  // --------------------------------------------------------
+
+  const value: AuthContextValue = {
     user,
     profile,
     loading,
@@ -292,6 +327,7 @@ export default function AuthProvider({
     signUp,
     signOut,
     forgotPassword,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
