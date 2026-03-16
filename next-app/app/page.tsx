@@ -27,6 +27,9 @@ import {
   ClockCircleOutlined,
   TrophyOutlined,
   RocketOutlined,
+  TeamOutlined,
+  ContactsOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "./components/AuthProvider";
 import { useRouter } from "next/navigation";
@@ -82,6 +85,9 @@ export default function Dashboard() {
     completedTasks: 0,
     totalBudget: 0,
     spentBudget: 0,
+    teamMembers: 13,
+    totalClients: 8,
+    activeContracts: 5,
   });
 
   useEffect(() => {
@@ -143,6 +149,9 @@ export default function Dashboard() {
             completedTasks,
             totalBudget,
             spentBudget,
+            teamMembers: 13,
+            totalClients: 8,
+            activeContracts: 5,
           });
         }
       }
@@ -330,6 +339,155 @@ export default function Dashboard() {
               />
             </Card>
           </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Pending Tasks"
+                value={stats.pendingTasks}
+                prefix={<ClockCircleOutlined />}
+                valueStyle={{ color: "#ff7a45" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Team Members"
+                value={stats.teamMembers}
+                prefix={<UserOutlined />}
+                valueStyle={{ color: "#13c2c2" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Total Clients"
+                value={stats.totalClients}
+                prefix={<ContactsOutlined />}
+                valueStyle={{ color: "#52c41a" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Active Contracts"
+                value={stats.activeContracts}
+                prefix={<BarChartOutlined />}
+                valueStyle={{ color: "#722ed1" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Total Budget"
+                value={stats.totalBudget}
+                prefix="฿"
+                precision={2}
+                valueStyle={{ color: "#1890ff" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Spent Budget"
+                value={stats.spentBudget}
+                prefix="฿"
+                precision={2}
+                valueStyle={{ color: "#ff4d4f" }}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Activity Overview */}
+        <Row gutter={[16, 16]} className="mb-6">
+          <Col xs={24} lg={8}>
+            <Card title="Recent Activity" extra={<Button type="link">View All</Button>}>
+              <List
+                dataSource={[
+                  { title: "New project created", description: "Website Redesign", time: "2 hours ago" },
+                  { title: "Task completed", description: "Login page development", time: "5 hours ago" },
+                  { title: "Budget approved", description: "Mobile app project", time: "1 day ago" },
+                ]}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      title={item.title}
+                      description={item.description}
+                    />
+                    <div style={{ color: "#666", fontSize: "12px" }}>
+                      {item.time}
+                    </div>
+                  </List.Item>
+                )}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} lg={8}>
+            <Card title="Quick Actions">
+              <Space direction="vertical" size="large" style={{ width: "100%" }}>
+                <Button 
+                  type="primary" 
+                  icon={<ProjectOutlined />}
+                  size="large"
+                  style={{ width: "100%" }}
+                  onClick={() => router.push("/projects-complete")}
+                >
+                  Create New Project
+                </Button>
+                <Button 
+                  icon={<CheckSquareOutlined />}
+                  size="large"
+                  style={{ width: "100%" }}
+                  onClick={() => router.push("/tasks")}
+                >
+                  View Tasks
+                </Button>
+                <Button 
+                  icon={<UserOutlined />}
+                  size="large"
+                  style={{ width: "100%" }}
+                  onClick={() => router.push("/admin/users")}
+                >
+                  Manage Users
+                </Button>
+                <Button 
+                  icon={<BarChartOutlined />}
+                  size="large"
+                  style={{ width: "100%" }}
+                  onClick={() => router.push("/reports")}
+                >
+                  View Reports
+                </Button>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} lg={8}>
+            <Card title="System Status">
+              <Space direction="vertical" size="middle">
+                <div>
+                  <Text strong>Database Status</Text>
+                  <Badge status="success" text="Connected" />
+                </div>
+                <div>
+                  <Text strong>API Response</Text>
+                  <Badge status="success" text="Normal" />
+                </div>
+                <div>
+                  <Text strong>Storage Usage</Text>
+                  <Progress percent={65} status="active" size="small" />
+                </div>
+                <div>
+                  <Text strong>Last Backup</Text>
+                  <Text type="secondary">2 hours ago</Text>
+                </div>
+              </Space>
+            </Card>
+          </Col>
         </Row>
 
         {/* Budget Overview */}
@@ -400,7 +558,7 @@ export default function Dashboard() {
         {/* Projects Table */}
         <Card 
           title="Recent Projects" 
-          extra={<Button type="primary" onClick={() => router.push("/projects")}>View All</Button>}
+          extra={<Button type="primary" onClick={() => router.push("/projects-complete")}>View All</Button>}
         >
           <Table
             columns={projectColumns}
