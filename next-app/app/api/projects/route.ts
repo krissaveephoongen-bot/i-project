@@ -19,9 +19,12 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
+    console.log("Projects API: Fetching projects with params:", { page, pageSize, status, search });
+
+    // Simple query without complex joins
     let query = supabaseAdmin
       .from("projects")
-      .select("*")
+      .select("*", { count: "exact" })
       .eq("is_deleted", false)
       .order("created_at", { ascending: false });
 
@@ -34,50 +37,24 @@ export async function GET(request: NextRequest) {
       query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
     }
 
-    // Get total count
-    const { count, error: countError } = await query.select("id", { count: "exact" });
-    
-    if (countError) {
-      console.error("Count error:", countError);
-      return NextResponse.json(
-        { error: "Failed to fetch projects count" },
-        { status: 500 }
-      );
-    }
-
     // Apply pagination
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    const { data, error } = await supabaseAdmin
-      .from("projects")
-      .select("*")
-      .eq("is_deleted", false)
-      .order("created_at", { ascending: false })
-      .range(from, to);
-
-    // Apply filters to data query
-    let filteredData = data || [];
-    if (status && status !== "all") {
-      filteredData = filteredData.filter((p: any) => p.status === status);
-    }
-    if (search) {
-      filteredData = filteredData.filter((p: any) => 
-        p.name?.toLowerCase().includes(search.toLowerCase()) ||
-        p.description?.toLowerCase().includes(search.toLowerCase())
-      );
-    }
+    const { data, error, count } = await query.range(from, to);
 
     if (error) {
       console.error("Projects fetch error:", error);
       return NextResponse.json(
-        { error: "Failed to fetch projects" },
+        { error: "Failed to fetch projects", details: error.message },
         { status: 500 }
       );
     }
 
+    console.log("Projects API: Successfully fetched", data?.length || 0, "projects");
+
     return NextResponse.json({
-      data: filteredData,
+      data: data || [],
       pagination: {
         page,
         pageSize,
@@ -89,7 +66,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Projects API error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
   }
@@ -127,6 +104,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log("Projects API: Creating project:", { name, status, priority });
+
     const { data, error } = await supabaseAdmin
       .from("projects")
       .insert([
@@ -151,17 +130,19 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error("Project creation error:", error);
       return NextResponse.json(
-        { error: "Failed to create project" },
+        { error: "Failed to create project", details: error.message },
         { status: 500 }
       );
     }
+
+    console.log("Projects API: Successfully created project:", data.id);
 
     return NextResponse.json({ data }, { status: 201 });
 
   } catch (error) {
     console.error("Project creation error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
   }
