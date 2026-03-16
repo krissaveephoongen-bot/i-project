@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
+import { supabaseAdmin } from "../../../../lib/supabaseAdminClient";
 
 export const revalidate = 0;
 
@@ -20,78 +20,30 @@ export async function GET(req: NextRequest) {
           spiTrend: [],
           spiSnaps: [],
           vendorMetrics: {
-             totalVendors: 0,
-             activeContracts: 0,
-             pendingPaymentsAmount: 0,
-             topVendorName: "None",
-             topVendorSpend: 0
+            totalVendors: 0,
+            activeContracts: 0,
+            pendingPaymentsAmount: 0,
+            topVendorName: "None",
+            topVendorSpend: 0,
           },
           error: "admin client missing",
         },
         { status: 200, headers },
       );
 
-    // Avoid ORDER BY to maximize compatibility across schemas
-    let projects = [];
-    let error = null;
-    
-    try {
-      const result = await supabaseAdmin.from("projects").select("*");
-      if (!result.error) {
-        projects = result.data || [];
-      } else {
-        error = result.error;
-        console.warn("Projects table not accessible, using fallback data:", result.error.message);
-      }
-    } catch (e) {
-      console.warn("Projects query failed, using fallback data:", e);
-      error = e;
+    // Query real projects from DB — no fallback mock data allowed
+    const { data: projectsData, error } = await supabaseAdmin
+      .from("projects")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Projects query failed:", error.message);
+      throw error;
     }
 
-    // Fallback to mock data if projects table is not accessible
-    if (projects.length === 0) {
-      projects = [
-        {
-          id: 'mock-1',
-          name: 'Sample Project Alpha',
-          status: 'in_progress',
-          progress: 65,
-          budget: 100000,
-          spent: 65000,
-          spi: 1.1,
-          manager_id: null,
-          client_id: null,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'mock-2',
-          name: 'Sample Project Beta',
-          status: 'planning',
-          progress: 25,
-          budget: 75000,
-          spent: 20000,
-          spi: 0.9,
-          manager_id: null,
-          client_id: null,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'mock-3',
-          name: 'Sample Project Gamma',
-          status: 'completed',
-          progress: 100,
-          budget: 50000,
-          spent: 48000,
-          spi: 1.0,
-          manager_id: null,
-          client_id: null,
-          created_at: new Date().toISOString()
-        }
-      ];
-    }
-
-    if (error && projects.length === 0) throw error;
-    // Exclude internal projects (department cost) from portfolio
+    const projects = projectsData || [];
+    // Exclude internal / department-cost projects from portfolio
     const list: any[] = (projects || []).filter((p: any) => {
       const isInternal = p.is_internal === true;
       const cat = String(p.internal_category || p.category || "").toLowerCase();
@@ -107,91 +59,135 @@ export async function GET(req: NextRequest) {
     const ids = list.map((p) => p.id);
 
     // Parallel fetch auxiliary data
-    const [managersRes, clientsRes, milestonesRes, risksRes, snapsRes, vendorRes] = await Promise.all([
-        // Managers
-        managerIds.length
-            ? supabaseAdmin.from("users").select("id,name").in("id", managerIds)
-            : Promise.resolve({ data: [] }),
-        // Clients
-        clientIds.length
-            ? supabaseAdmin.from("clients").select("id,name").in("id", clientIds)
-            : Promise.resolve({ data: [] }),
-        // Milestones
-        (async () => {
-            if (!ids.length) return { data: [] };
-            const mRes1 = await supabaseAdmin.from("milestones").select("*").in("project_id", ids as any);
-            if (!mRes1.error) return mRes1;
-            
-            // Fallback
-            const msg = `${mRes1.error.message || ""}`;
-            if (msg.includes("Could not find the") || msg.includes("schema cache")) {
-                return await supabaseAdmin.from("milestones").select("*").in("projectId", ids as any);
-            }
-            throw mRes1.error;
-        })(),
-        // Risks
-        (async () => {
-            if (!ids.length) return { data: [] };
-            const rRes1 = await supabaseAdmin.from("risks").select("*").in("project_id", ids as any);
-            if (!rRes1.error) return rRes1;
+    const [
+      managersRes,
+      clientsRes,
+      milestonesRes,
+      risksRes,
+      snapsRes,
+      vendorRes,
+    ] = await Promise.all([
+      // Managers
+      managerIds.length
+        ? supabaseAdmin.from("users").select("id,name").in("id", managerIds)
+        : Promise.resolve({ data: [] }),
+      // Clients
+      clientIds.length
+        ? supabaseAdmin.from("clients").select("id,name").in("id", clientIds)
+        : Promise.resolve({ data: [] }),
+      // Milestones
+      (async () => {
+        if (!ids.length) return { data: [] };
+        const mRes1 = await supabaseAdmin
+          .from("milestones")
+          .select("*")
+          .in("project_id", ids as any);
+        if (!mRes1.error) return mRes1;
 
-            // Fallback
-            const msg = `${rRes1.error.message || ""}`;
-            if (msg.includes("Could not find the") || msg.includes("schema cache")) {
-                 return await supabaseAdmin.from("risks").select("*").in("projectId", ids as any);
-            }
-            throw rRes1.error;
-        })(),
-        // Snapshots
-        (async () => {
-            if (!ids.length) return { data: [] };
-            const since = new Date();
-            since.setDate(since.getDate() - 30);
-            const sinceStr = since.toISOString().slice(0, 10);
-            return await supabaseAdmin
-                .from("spi_cpi_daily_snapshot")
-                .select("projectId,date,spi")
-                .in("projectId", ids)
-                .gte("date", sinceStr);
-        })(),
-        // Vendor Metrics
-        (async () => {
-             const [vCount, cCount, pPending, pPaid] = await Promise.all([
-                 supabaseAdmin.from("vendors").select("*", { count: "exact", head: true }),
-                 supabaseAdmin.from("vendor_contracts").select("*", { count: "exact", head: true }).eq("status", "active"),
-                 supabaseAdmin.from("vendor_payments").select("amount").eq("status", "pending"),
-                 supabaseAdmin.from("vendor_payments").select("vendorId, amount").eq("status", "paid")
-             ]);
-             
-             const pendingAmount = (pPending.data || []).reduce((s, p) => s + Number(p.amount||0), 0);
-             
-             // Top Vendor
-             const vendorSpend: Record<string, number> = {};
-             (pPaid.data || []).forEach((p: any) => {
-                 vendorSpend[p.vendorId] = (vendorSpend[p.vendorId] || 0) + Number(p.amount || 0);
-             });
-             let topVendorId = "";
-             let maxSpend = 0;
-             for (const [vid, amount] of Object.entries(vendorSpend)) {
-                 if (amount > maxSpend) {
-                     maxSpend = amount;
-                     topVendorId = vid;
-                 }
-             }
-             let topVendorName = "None";
-             if (topVendorId) {
-                 const { data: v } = await supabaseAdmin.from("vendors").select("name").eq("id", topVendorId).single();
-                 if (v) topVendorName = v.name;
-             }
+        // Fallback
+        const msg = `${mRes1.error.message || ""}`;
+        if (
+          msg.includes("Could not find the") ||
+          msg.includes("schema cache")
+        ) {
+          return await supabaseAdmin
+            .from("milestones")
+            .select("*")
+            .in("projectId", ids as any);
+        }
+        throw mRes1.error;
+      })(),
+      // Risks
+      (async () => {
+        if (!ids.length) return { data: [] };
+        const rRes1 = await supabaseAdmin
+          .from("risks")
+          .select("*")
+          .in("project_id", ids as any);
+        if (!rRes1.error) return rRes1;
 
-             return {
-                 totalVendors: vCount.count || 0,
-                 activeContracts: cCount.count || 0,
-                 pendingPaymentsAmount: pendingAmount,
-                 topVendorName,
-                 topVendorSpend: maxSpend
-             };
-        })()
+        // Fallback
+        const msg = `${rRes1.error.message || ""}`;
+        if (
+          msg.includes("Could not find the") ||
+          msg.includes("schema cache")
+        ) {
+          return await supabaseAdmin
+            .from("risks")
+            .select("*")
+            .in("projectId", ids as any);
+        }
+        throw rRes1.error;
+      })(),
+      // Snapshots
+      (async () => {
+        if (!ids.length) return { data: [] };
+        const since = new Date();
+        since.setDate(since.getDate() - 30);
+        const sinceStr = since.toISOString().slice(0, 10);
+        return await supabaseAdmin
+          .from("spi_cpi_daily_snapshot")
+          .select("projectId,date,spi")
+          .in("projectId", ids)
+          .gte("date", sinceStr);
+      })(),
+      // Vendor Metrics
+      (async () => {
+        const [vCount, cCount, pPending, pPaid] = await Promise.all([
+          supabaseAdmin
+            .from("vendors")
+            .select("*", { count: "exact", head: true }),
+          supabaseAdmin
+            .from("vendor_contracts")
+            .select("*", { count: "exact", head: true })
+            .eq("status", "active"),
+          supabaseAdmin
+            .from("vendor_payments")
+            .select("amount")
+            .eq("status", "pending"),
+          supabaseAdmin
+            .from("vendor_payments")
+            .select("vendorId, amount")
+            .eq("status", "paid"),
+        ]);
+
+        const pendingAmount = (pPending.data || []).reduce(
+          (s: number, p: any) => s + Number(p.amount || 0),
+          0,
+        );
+
+        // Top Vendor
+        const vendorSpend: Record<string, number> = {};
+        (pPaid.data || []).forEach((p: any) => {
+          vendorSpend[p.vendorId] =
+            (vendorSpend[p.vendorId] || 0) + Number(p.amount || 0);
+        });
+        let topVendorId = "";
+        let maxSpend = 0;
+        for (const [vid, amount] of Object.entries(vendorSpend)) {
+          if (amount > maxSpend) {
+            maxSpend = amount;
+            topVendorId = vid;
+          }
+        }
+        let topVendorName = "None";
+        if (topVendorId) {
+          const { data: v } = await supabaseAdmin
+            .from("vendors")
+            .select("name")
+            .eq("id", topVendorId)
+            .single();
+          if (v) topVendorName = v.name;
+        }
+
+        return {
+          totalVendors: vCount.count || 0,
+          activeContracts: cCount.count || 0,
+          pendingPaymentsAmount: pendingAmount,
+          topVendorName,
+          topVendorSpend: maxSpend,
+        };
+      })(),
     ]);
 
     const managers = managersRes.data || [];
@@ -208,7 +204,7 @@ export async function GET(req: NextRequest) {
 
     const budgetByProject: Record<string, number> = {};
     for (const p of list) budgetByProject[p.id] = Number(p.budget || 0);
-    
+
     // Pre-process milestones for all projects
     const milestonesByProject: Record<string, any[]> = {};
     const overdueCounts: Record<string, number> = {};
@@ -349,11 +345,11 @@ export async function GET(req: NextRequest) {
         spiTrend: [],
         spiSnaps: [],
         vendorMetrics: {
-             totalVendors: 0,
-             activeContracts: 0,
-             pendingPaymentsAmount: 0,
-             topVendorName: "None",
-             topVendorSpend: 0
+          totalVendors: 0,
+          activeContracts: 0,
+          pendingPaymentsAmount: 0,
+          topVendorName: "None",
+          topVendorSpend: 0,
         },
         error: e?.message || "error",
       },
