@@ -21,11 +21,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabaseAdmin
       .from("projects")
-      .select(`
-        *,
-        client:clients(name),
-        project_manager:users(name)
-      `)
+      .select("*")
       .eq("is_deleted", false)
       .order("created_at", { ascending: false });
 
@@ -39,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total count
-    const { count, error: countError } = await query;
+    const { count, error: countError } = await query.select("id", { count: "exact" });
     
     if (countError) {
       console.error("Count error:", countError);
@@ -53,8 +49,24 @@ export async function GET(request: NextRequest) {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    const { data, error } = await query
+    const { data, error } = await supabaseAdmin
+      .from("projects")
+      .select("*")
+      .eq("is_deleted", false)
+      .order("created_at", { ascending: false })
       .range(from, to);
+
+    // Apply filters to data query
+    let filteredData = data || [];
+    if (status && status !== "all") {
+      filteredData = filteredData.filter((p: any) => p.status === status);
+    }
+    if (search) {
+      filteredData = filteredData.filter((p: any) => 
+        p.name?.toLowerCase().includes(search.toLowerCase()) ||
+        p.description?.toLowerCase().includes(search.toLowerCase())
+      );
+    }
 
     if (error) {
       console.error("Projects fetch error:", error);
@@ -65,7 +77,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      data: data || [],
+      data: filteredData,
       pagination: {
         page,
         pageSize,
