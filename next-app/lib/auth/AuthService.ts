@@ -16,7 +16,7 @@
 
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
-import { supabaseAdmin } from "@/lib/supabaseAdminClient";
+import { supabaseAdmin } from "../supabaseAdminClient";
 import {
   generateAccessToken,
   generateRefreshToken,
