@@ -9,7 +9,7 @@ export const NAVIGATION_PATHS = {
   REPORTS: '/reports',
 
   // Operations
-  PROJECTS: '/projects',
+  PROJECTS: '/projects-complete',
   PROJECTS_WEEKLY: '/projects/weekly-activities',
   TASKS: '/tasks',
   TIMESHEET: '/timesheet',
