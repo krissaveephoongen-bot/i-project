@@ -44,9 +44,7 @@ import {
 } from "@ant-design/icons";
 import { useAuth } from "./components/AuthProvider";
 import { useRouter } from "next/navigation";
-
-const { Header, Content } = Layout;
-const { Title, Text } = Typography;
+import PortalLayoutFull from "./components/PortalLayoutFull";
 
 interface Project {
   id: string;
@@ -79,6 +77,8 @@ interface Activity {
 export default function ProjectCentricDashboard() {
   const { user } = useAuth();
   const router = useRouter();
+  const { Header, Content } = Layout;
+  const { Title, Text } = Typography;
 
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -156,8 +156,8 @@ export default function ProjectCentricDashboard() {
           spentBudget,
           teamMembers: 13,
           totalClients: 8,
-          activeTasks: projectsList.reduce((sum, p) => sum + (p.tasks || 0), 0),
-          completedTasks: projectsList.reduce((sum, p) => sum + (p.completed_tasks || 0), 0),
+          activeTasks: projectsList.reduce((sum: number, p: Project) => sum + (p.tasks || 0), 0),
+          completedTasks: projectsList.reduce((sum: number, p: Project) => sum + (p.completed_tasks || 0), 0),
         });
       }
     } catch (error) {
@@ -252,20 +252,23 @@ export default function ProjectCentricDashboard() {
       title: "Team",
       dataIndex: "team",
       key: "team",
-      render: (team: string[]) => (
-        <Space>
-          {team.slice(0, 3).map((member, index) => (
-            <Avatar key={index} size="small" style={{ marginRight: 4 }}>
-              {member.charAt(0).toUpperCase()}
-            </Avatar>
-          ))}
-          {team.length > 3 && (
-            <Avatar size="small" style={{ backgroundColor: "#f0f0f0" }}>
-              +{team.length - 3}
-            </Avatar>
-          )}
-        </Space>
-      ),
+      render: (team: string[]) => {
+        const teamArray = team || [];
+        return (
+          <Space>
+            {teamArray.slice(0, 3).map((member, index) => (
+              <Avatar key={index} size="small" style={{ marginRight: 4 }}>
+                {member.charAt(0).toUpperCase()}
+              </Avatar>
+            ))}
+            {teamArray.length > 3 && (
+              <Avatar size="small" style={{ backgroundColor: "#f0f0f0" }}>
+                +{teamArray.length - 3}
+              </Avatar>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -288,25 +291,8 @@ export default function ProjectCentricDashboard() {
   }));
 
   return (
-    <Layout className="min-h-screen bg-gradient-to-br from-blue-50 via-white">
-      <Header className="bg-white shadow-sm px-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <Title level={3} className="mb-0 text-gray-800">
-              Dashboard
-            </Title>
-            <Text type="secondary">
-              Welcome back, {user?.name || "User"}! Here's your project overview.
-            </Text>
-          </div>
-          <Space>
-            <Avatar icon={<UserOutlined />} />
-            <Text>{user?.email}</Text>
-          </Space>
-        </div>
-      </Header>
-
-      <Content className="p-6">
+    <PortalLayoutFull>
+      <div className="p-6">
         {/* Project Statistics */}
         <Row gutter={[16, 16]} className="mb-8">
           <Col xs={24} sm={12} lg={6}>
@@ -451,7 +437,7 @@ export default function ProjectCentricDashboard() {
             })}
           />
         </Card>
-      </Content>
-    </Layout>
+      </div>
+    </PortalLayoutFull>
   );
 }
